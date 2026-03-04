@@ -1,0 +1,109 @@
+<UserControl x:Class="NoteCards.Controls.NoteCardControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="220" MinHeight="140" Margin="8"
+             RenderTransformOrigin="0.5,0.5"
+             MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave">
+    <UserControl.RenderTransform>
+        <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1"/>
+    </UserControl.RenderTransform>
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="MouseEnter">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="CardBorder"
+                                     Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
+                                     To="22" Duration="0:0:0.18">
+                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="CardBorder"
+                                     Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
+                                     To="0.22" Duration="0:0:0.18">
+                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="CardScale"
+                                     Storyboard.TargetProperty="ScaleX"
+                                     To="1.03" Duration="0:0:0.18">
+                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="CardScale"
+                                     Storyboard.TargetProperty="ScaleY"
+                                     To="1.03" Duration="0:0:0.18">
+                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+        <EventTrigger RoutedEvent="MouseLeave">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="CardBorder"
+                                     Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
+                                     To="8" Duration="0:0:0.2">
+                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="CardBorder"
+                                     Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
+                                     To="0.08" Duration="0:0:0.2">
+                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="CardScale"
+                                     Storyboard.TargetProperty="ScaleX"
+                                     To="1.0" Duration="0:0:0.2">
+                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="CardScale"
+                                     Storyboard.TargetProperty="ScaleY"
+                                     To="1.0" Duration="0:0:0.2">
+                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
+    <Border x:Name="CardBorder"
+            Background="#FFFFFF"
+            BorderBrush="#E4E4E7"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="14">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" Opacity="0.08" BlurRadius="8"
+                              ShadowDepth="1" Direction="270"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid Grid.Row="0">
+                <TextBlock Text="{Binding Title}"
+                           FontSize="15" FontWeight="SemiBold"
+                           Foreground="#1C1C1C"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,28,4"/>
+                <Button x:Name="MenuButton"
+                        Content="&#x22EE;"
+                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Width="28" Height="28" Padding="0"
+                        FontSize="16" FontWeight="Bold"
+                        Background="Transparent" BorderThickness="0"
+                        Cursor="Hand"
+                        Visibility="{Binding IsMenuVisible, Converter={StaticResource BoolToVis}}"
+                        Click="OnMenuButtonClick">
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Ištrinti" Command="{Binding DeleteCommand}"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+            </Grid>
+            <TextBlock Grid.Row="1"
+                       Text="{Binding Content}"
+                       FontSize="13" TextWrapping="Wrap"
+                       MaxHeight="100"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="#555555"/>
+        </Grid>
+    </Border>
+</UserControl>
