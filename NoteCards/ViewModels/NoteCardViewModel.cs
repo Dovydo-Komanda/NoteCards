@@ -6,11 +6,14 @@ namespace NoteCards.ViewModels;
 public class NoteCardViewModel : ViewModelBase
 {
     private bool _isMenuVisible;
+    private bool _isDeleting;
+    private readonly Action<NoteCardViewModel> _deleteAction;
 
     public NoteCardViewModel(NoteDocument document, Action<NoteCardViewModel> deleteAction)
     {
         Document = document;
-        DeleteCommand = new RelayCommand(() => deleteAction(this));
+        _deleteAction = deleteAction;
+        DeleteCommand = new RelayCommand(() => IsDeleting = true);
     }
 
     public NoteDocument Document { get; }
@@ -24,5 +27,13 @@ public class NoteCardViewModel : ViewModelBase
         set => SetProperty(ref _isMenuVisible, value);
     }
 
+    public bool IsDeleting
+    {
+        get => _isDeleting;
+        set => SetProperty(ref _isDeleting, value);
+    }
+
     public ICommand DeleteCommand { get; }
+
+    internal void ExecuteDelete() => _deleteAction(this);
 }
