@@ -12,7 +12,23 @@ public partial class NoteCardControl : UserControl
     public NoteCardControl()
     {
         InitializeComponent();
-        DataContextChanged += OnDataContextChanged;
+
+        // Add click event to the whole control
+        this.MouseLeftButtonUp += NoteCardControl_MouseLeftButtonUp;
+        this.Cursor = Cursors.Hand;
+    }
+
+    private void NoteCardControl_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        // Get the ViewModel from DataContext
+        var viewModel = this.DataContext as NoteCardViewModel;
+        var mainWindow = Window.GetWindow(this) as MainWindow;
+
+        // Only proceed if both exist
+        if (viewModel != null && mainWindow != null)
+        {
+            mainWindow.OpenNoteEditor(viewModel);
+        }
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

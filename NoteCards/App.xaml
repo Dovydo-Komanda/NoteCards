@@ -6,9 +6,11 @@
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
+            <!--
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            -->
             <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
             <Style TargetType="{x:Type TextBlock}">
                 <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI, sans-serif"/>
