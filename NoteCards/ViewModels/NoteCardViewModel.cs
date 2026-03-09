@@ -13,7 +13,7 @@ public class NoteCardViewModel : ViewModelBase
     {
         Document = document;
         _deleteAction = deleteAction;
-        DeleteCommand = new RelayCommand(() => IsDeleting = true);
+        DeleteCommand = new RelayCommand(() => _deleteAction?.Invoke(this));
     }
 
     public NoteDocument Document { get; }

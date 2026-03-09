@@ -18,7 +18,8 @@ namespace NoteCards
         private void AboutButton_Click(object sender, RoutedEventArgs e)
         {
             HamburgerPopup.IsOpen = false;
-            MessageBox.Show("NoteCards v1.0", "About");
+            var about = new Views.AboutWindow { Owner = this };
+            about.ShowDialog();
         }
 
         // Open editor for a specific note card
