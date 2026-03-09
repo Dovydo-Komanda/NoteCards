@@ -4,6 +4,7 @@
              Width="220" MinHeight="140" Margin="8"
              RenderTransformOrigin="0.5,0.5"
              Opacity="0"
+             DataContextChanged="OnDataContextChanged"
              MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave">
     <UserControl.Resources>
         <Storyboard x:Key="ExitStoryboard">
