@@ -30,6 +30,22 @@ namespace NoteCards
             }
         }
 
+        private void UndoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ContentTextBox.CanUndo)
+            {
+                ContentTextBox.Undo();
+            }
+        }
+
+        private void RedoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ContentTextBox.CanRedo)
+            {
+                ContentTextBox.Redo();
+            }
+        }
+
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = true;

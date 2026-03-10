@@ -10,24 +10,46 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Top Bar -->
+        <!-- Top Bar with Undo/Redo buttons -->
         <Border Grid.Row="0"
-                Background="#F3F3F3"
-                BorderBrush="#E0E0E0"
-                BorderThickness="0,0,0,1"
-                Padding="16,12">
+        Background="#F3F3F3"
+        BorderBrush="#E0E0E0"
+        BorderThickness="0,0,0,1"
+        Padding="16,12">
             <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="101*"/>
+                    <ColumnDefinition Width="155*"/>
+                </Grid.ColumnDefinitions>
                 <TextBox x:Name="TitleTextBox"
-                         FontSize="20"
-                         FontWeight="SemiBold"
-                         BorderThickness="0"
-                         Background="Transparent"
-                         Foreground="#1C1C1C"
-                         VerticalAlignment="Center"/>
-                <Button Content="✓ Save"
-                        HorizontalAlignment="Right"
-                        Padding="16,6"
-                        Click="SaveButton_Click"/>
+                 FontSize="20"
+                 FontWeight="SemiBold"
+                 BorderThickness="0"
+                 Background="Transparent"
+                 Foreground="#1C1C1C"
+                 HorizontalAlignment="Right"
+                 VerticalAlignment="Center" Grid.ColumnSpan="2"/>
+
+                <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center">
+                    <!-- Undo Button -->
+                    <Button Content="↶ Undo"
+                    Padding="12,6"
+                    Margin="0,0,8,0"
+                    Click="UndoButton_Click"/>
+
+                    <!-- Redo Button -->
+                    <Button Content="↷ Redo"
+                    Padding="12,6"
+                    Margin="0,0,8,0"
+                    Click="RedoButton_Click"/>
+
+                    <!-- Save Button -->
+                    <Button Content="✓ Save"
+                    Padding="16,6"
+                    Click="SaveButton_Click"/>
+                </StackPanel>
             </Grid>
         </Border>
 
