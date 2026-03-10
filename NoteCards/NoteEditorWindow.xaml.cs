@@ -20,6 +20,30 @@ namespace NoteCards
             }
         }
 
+        // Print functionality
+        private void PrintButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Create a print preview window
+                var printPreview = new PrintPreviewWindow(
+                    TitleTextBox.Text,
+                    ContentTextBox.Text
+                );
+
+                printPreview.Owner = this;
+                printPreview.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to open print preview:\n\n{ex.Message}",
+                    "Print Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
         // Save data TO a NoteDocument
         public void SaveToDocument(NoteDocument document)
         {
