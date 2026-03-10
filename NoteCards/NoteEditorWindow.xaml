@@ -68,6 +68,17 @@
             <TextBox.Effect>
                 <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.1"/>
             </TextBox.Effect>
+
+            <!-- TEXT BOX CONTEXT MENU -->
+            <TextBox.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Cut" Command="Cut"/>
+                    <MenuItem Header="Copy" Command="Copy"/>
+                    <MenuItem Header="Paste" Command="Paste"/>
+                    <Separator/>
+                    <MenuItem Header="Select All" Command="SelectAll"/>
+                </ContextMenu>
+            </TextBox.ContextMenu>
         </TextBox>
     </Grid>
 </Window>
