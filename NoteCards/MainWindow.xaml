@@ -96,10 +96,31 @@
         <vm:MainViewModel/>
     </Window.DataContext>
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="{Binding SidebarWidth}"/>
+        <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="#F3F3F3" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0"  Padding="10">
+            <StackPanel>
+                <!-- Collapse button -->
+                <Button Content="☰" Command="{Binding ToggleSidebarCommand}"/>
+                <Button Content="➕ Add Note" Command="{Binding AddNoteCommand}"/>
+                <Button Content="ℹ About the program" Click="AboutButton_Click"/>
+                <Button Content="Functionality" Margin="0,4"/>
+                <Button Content="ckat" Margin="0,4"/>
+            </StackPanel>
+        </Border>
+
+
+    <Grid Grid.Column="1">
+
+    <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
 
         <!-- Top Bar -->
         <Border Grid.Row="0"
@@ -197,5 +218,6 @@
                     ToolTip="Pridėti užrašą"
                     Command="{Binding AddNoteCommand}"/>
         </Grid>
+    </Grid>
     </Grid>
 </Window>

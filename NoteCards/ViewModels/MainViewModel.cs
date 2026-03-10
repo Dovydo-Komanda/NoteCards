@@ -10,6 +10,7 @@ public class MainViewModel : ViewModelBase
     {
         Notes = new ObservableCollection<NoteCardViewModel>();
         AddNoteCommand = new RelayCommand(AddNote);
+        ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
 
         // Seed a test note
         var testDocument = new NoteDocument
@@ -38,4 +39,21 @@ public class MainViewModel : ViewModelBase
     {
         Notes.Remove(noteCard);
     }
+
+    private bool _isSidebarExpanded = true;
+
+    public double SidebarWidth
+    {
+        get => _isSidebarExpanded ? 220 : 60;
+    }
+
+    public ICommand ToggleSidebarCommand { get; }
+
+    private void ToggleSidebar()
+    {
+        _isSidebarExpanded = !_isSidebarExpanded;
+        OnPropertyChanged(nameof(SidebarWidth));
+    }
+
+    
 }

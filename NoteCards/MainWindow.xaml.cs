@@ -47,6 +47,6 @@ namespace NoteCards
                 foreach (var note in notesList)
                     vm.Notes.Add(note);
             }
-        }
+        } 
     }
 }
