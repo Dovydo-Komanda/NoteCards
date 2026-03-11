@@ -184,12 +184,14 @@
 					<StackPanel Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
-						<Button Content="+ Pridėti užrašą"
-                                Padding="14,6"
-                                FontSize="13"
-                                Command="{Binding AddNoteCommand}"
-                                Cursor="Hand"
-                                Margin="0,0,8,0"/>
+
+
+				<Button Content="+ Pridėti užrašą"
+						Padding="14,6"
+						FontSize="13"
+						Command="{Binding AddNoteCommand}"
+						Cursor="Hand"
+						Margin="0,0,8,0"/>
 						<Button x:Name="HamburgerButton"
                                 Content="☰"
                                 Padding="12,6"
@@ -293,8 +295,8 @@
 				</Border>
 				<!-- All Notes + FAB -->
 				<Grid Grid.Row="1">
-					<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
-						<ItemsControl ItemsSource="{Binding Notes}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
+						<ItemsControl ItemsSource="{Binding NotesView}">
 							<ItemsControl.ItemsPanel>
 								<ItemsPanelTemplate>
 									<WrapPanel Orientation="Horizontal"/>

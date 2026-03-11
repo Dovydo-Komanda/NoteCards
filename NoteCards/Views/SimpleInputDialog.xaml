@@ -1,0 +1,20 @@
+<Window x:Class="NoteCards.Views.SimpleInputDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Simple Input" Height="150" Width="400"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="PromptText" FontWeight="SemiBold" />
+        <TextBox x:Name="InputBox" Grid.Row="1" Margin="0,8,0,8" />
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancel" Width="80" Margin="0,0,8,0" Click="Cancel_Click"/>
+            <Button Content="OK" Width="80" Click="Ok_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

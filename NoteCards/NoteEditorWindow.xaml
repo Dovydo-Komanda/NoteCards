@@ -68,6 +68,11 @@
                         Margin="0,0,8,0"
                         Click="OpenFromFileButton_Click"/>
 
+                    <!-- Search inside note (opens dialog) -->
+                    <Button x:Name="SearchButton" Content="🔎 Search" Padding="6,6" Margin="0,0,4,0" Click="SearchButton_Click"/>
+
+
+
                 <Button x:Name="Font"
                     Content="Font"
                     Padding="6,6"
@@ -109,6 +114,7 @@
            <!-- Main Text Area -->
           <RichTextBox x:Name="ContentTextBox"
               Grid.Row="2"
+              SelectionChanged="ContentTextBox_SelectionChanged"
               Margin="20"
               Padding="15"
               FontSize="14"
@@ -117,9 +123,11 @@
               VerticalScrollBarVisibility="{Binding EnableScrollbar, Converter={StaticResource BoolToScrollBarVisibilityConverter}}"
               BorderThickness="0"
               Background="White">
-			<RichTextBox.Effect>
+              <RichTextBox.Effect>
 				<DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.1"/>
 			</RichTextBox.Effect>
+
+
 
 			<!-- CONTEXT MENU -->
 			<RichTextBox.ContextMenu>

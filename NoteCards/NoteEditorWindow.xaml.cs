@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using NoteCards.Models;
+using NoteCards.ViewModels;
 using System.IO;
 using System.Windows.Documents;
 
@@ -13,6 +14,73 @@ namespace NoteCards
         public NoteEditorWindow()
         {
             InitializeComponent();
+        }
+
+        private void ClearAllHighlights()
+        {
+            var doc = ContentTextBox.Document;
+            var textRange = new TextRange(doc.ContentStart, doc.ContentEnd);
+            textRange.ApplyPropertyValue(TextElement.BackgroundProperty, System.Windows.Media.Brushes.Transparent);
+        }
+
+        private void ContentTextBox_SelectionChanged(object sender, RoutedEventArgs e)
+        {
+            // If selection is empty (deselected), clear highlights
+            var sel = ContentTextBox.Selection;
+            if (sel == null || sel.IsEmpty)
+            {
+                ClearAllHighlights();
+            }
+        }
+
+        private void SearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Open a lightweight input dialog to search inside the note
+            var input = new Views.SimpleInputDialog("Find in note", "Enter text to find:");
+            input.Owner = this;
+            if (input.ShowDialog() == true)
+            {
+                var query = input.InputText;
+                PerformFind(query);
+            }
+        }
+
+
+
+        private void PerformFind(string query)
+        {
+            if (string.IsNullOrEmpty(query))
+                return;
+
+            // Clear previous selection
+            var doc = ContentTextBox.Document;
+            ClearAllHighlights();
+
+            // Search for the query in the text
+            var navigator = doc.ContentStart;
+            while (navigator.CompareTo(doc.ContentEnd) < 0)
+            {
+                var text = navigator.GetTextInRun(LogicalDirection.Forward);
+                if (!string.IsNullOrEmpty(text))
+                {
+                    var idx = text.IndexOf(query, System.StringComparison.OrdinalIgnoreCase);
+                    if (idx >= 0)
+                    {
+                        var start = navigator.GetPositionAtOffset(idx);
+                        var end = start.GetPositionAtOffset(query.Length);
+                        if (start != null && end != null)
+                        {
+                            var foundRange = new TextRange(start, end);
+                            foundRange.ApplyPropertyValue(TextElement.BackgroundProperty, System.Windows.Media.Brushes.Yellow);
+                            // Scroll to selection
+                            ContentTextBox.Selection.Select(start, end);
+                            ContentTextBox.Focus();
+                            return; // highlight first occurrence
+                        }
+                    }
+                }
+                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+            }
         }
 
         // Load data FROM a NoteDocument

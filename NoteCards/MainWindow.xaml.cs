@@ -109,6 +109,14 @@ namespace NoteCards
             about.ShowDialog();
         }
 
+        private void ClearSearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.DataContext is ViewModels.MainViewModel vm)
+            {
+                vm.SearchQuery = string.Empty;
+            }
+        }
+
         // Open editor for a specific note card
         public void OpenNoteEditor(NoteCardViewModel noteViewModel)
         {

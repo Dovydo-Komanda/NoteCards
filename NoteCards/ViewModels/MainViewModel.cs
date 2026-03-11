@@ -6,6 +6,8 @@ using System.IO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.ComponentModel;
+using System.Windows.Data;
 
 namespace NoteCards.ViewModels;
 
@@ -28,6 +30,9 @@ public class MainViewModel : ViewModelBase
     public MainViewModel()
     {
         Notes = new ObservableCollection<NoteCardViewModel>();
+        // Create a view for Notes so we can apply filtering for search
+        _notesView = CollectionViewSource.GetDefaultView(Notes);
+        _notesView.Filter = (o) => FilterNotes(o);
         Notes.CollectionChanged += (_, _) => RefreshRecentNotes();
         RefreshRecentNotes();
         AddNoteCommand = new RelayCommand(AddNote);
@@ -47,6 +52,24 @@ public class MainViewModel : ViewModelBase
     }
 
     public ObservableCollection<NoteCardViewModel> Notes { get; }
+
+    private readonly ICollectionView _notesView;
+    public ICollectionView NotesView => _notesView;
+
+    private string _searchQuery = string.Empty;
+    public string SearchQuery
+    {
+        get => _searchQuery;
+        set
+        {
+            if (_searchQuery != value)
+            {
+                _searchQuery = value ?? string.Empty;
+                OnPropertyChanged(nameof(SearchQuery));
+                _notesView.Refresh();
+            }
+        }
+    }
 
     public ICommand AddNoteCommand { get; }
 
@@ -91,6 +114,20 @@ public class MainViewModel : ViewModelBase
         RecentNotes.Clear();
         foreach (var note in recent)
             RecentNotes.Add(note);
+    }
+
+    private bool FilterNotes(object? obj)
+    {
+        if (obj is not NoteCardViewModel note)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+            return true;
+
+        var q = SearchQuery.Trim();
+        // Case-insensitive contains on title or content
+        return (note.Title?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
+            || (note.Content?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
     }
     // Persistence: save/load notes to a local JSON file
     private static string GetNotesFilePath()
