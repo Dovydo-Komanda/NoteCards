@@ -26,6 +26,8 @@ namespace NoteCards
         public void OpenNoteEditor(NoteCardViewModel noteViewModel)
         {
             var editor = new NoteEditorWindow();
+            // Set DataContext so EnableScrollbar binding works
+            editor.DataContext = this.DataContext;
 
             editor.LoadFromDocument(noteViewModel.Document);
 
@@ -49,9 +51,12 @@ namespace NoteCards
         private void SettingsMenuButton_Click(object sender, RoutedEventArgs e)
         {
             HamburgerPopup.IsOpen = false;
-            var settingsPanel = this.FindName("SettingsPanelControl") as UIElement;
+            var settingsPanel = this.FindName("SettingsPanelControl") as FrameworkElement;
             if (settingsPanel != null)
+            {
+                settingsPanel.DataContext = this.DataContext;
                 settingsPanel.Visibility = Visibility.Visible;
+            }
         }
     }
 }

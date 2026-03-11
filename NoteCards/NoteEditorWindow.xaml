@@ -3,7 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Note Editor" Height="600" Width="800"
         WindowStartupLocation="CenterScreen"
-        Background="#EBEBEF">
+        Background="#EBEBEF"
+        xmlns:converters="clr-namespace:NoteCards.Converters">
+    <Window.Resources>
+        <converters:BoolToScrollBarVisibilityConverter x:Key="BoolToScrollBarVisibilityConverter" />
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -91,17 +95,17 @@
 		</StackPanel>
 		
 		
-        <!-- Main Text Area -->
-		<RichTextBox x:Name="ContentTextBox"
-             Grid.Row="2"
-             Margin="20"
-             Padding="15"
-             FontSize="14"
-             FontFamily="Segoe UI"
-             AcceptsReturn="True"
-             VerticalScrollBarVisibility="Auto"
-             BorderThickness="0"
-             Background="White">
+           <!-- Main Text Area -->
+          <RichTextBox x:Name="ContentTextBox"
+              Grid.Row="2"
+              Margin="20"
+              Padding="15"
+              FontSize="14"
+              FontFamily="Segoe UI"
+              AcceptsReturn="True"
+              VerticalScrollBarVisibility="{Binding EnableScrollbar, Converter={StaticResource BoolToScrollBarVisibilityConverter}}"
+              BorderThickness="0"
+              Background="White">
 			<RichTextBox.Effect>
 				<DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.1"/>
 			</RichTextBox.Effect>

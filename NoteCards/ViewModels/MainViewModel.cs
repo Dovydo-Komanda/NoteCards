@@ -6,6 +6,20 @@ namespace NoteCards.ViewModels;
 
 public class MainViewModel : ViewModelBase
 {
+    private bool _enableScrollbar = true;
+    public bool EnableScrollbar
+    {
+        get => _enableScrollbar;
+        set
+        {
+            if (_enableScrollbar != value)
+            {
+                _enableScrollbar = value;
+                OnPropertyChanged(nameof(EnableScrollbar));
+            }
+        }
+    }
+
     public MainViewModel()
     {
         Notes = new ObservableCollection<NoteCardViewModel>();
