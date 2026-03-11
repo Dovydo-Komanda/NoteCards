@@ -7,6 +7,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -18,8 +19,8 @@
         Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="101*"/>
-                    <ColumnDefinition Width="155*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="TitleTextBox"
                  FontSize="20"
@@ -55,36 +56,66 @@
                     Padding="6,6"
                     Margin="0,0,8,0"
                     Click="PrintButton_Click"/>
-                </StackPanel>
+
+					<Button x:Name="Font"
+                    Content="Font"
+                    Padding="6,6"
+                    Margin="0,0,8,0"
+                    Click="FontSettings_Click"/>
+				</StackPanel>
             </Grid>
         </Border>
 
-        <!-- Main Text Area -->
-        <TextBox x:Name="ContentTextBox"
-         Grid.Row="1"
-         Margin="20"
-         Padding="15"
-         FontSize="14"
-         FontFamily="Segoe UI"
-         TextWrapping="Wrap"
-         AcceptsReturn="True"
-         VerticalScrollBarVisibility="Auto"
-         BorderThickness="0"
-         Background="White">
-            <TextBox.Effect>
-                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.1"/>
-            </TextBox.Effect>
+		<!-- Font -->
+		<StackPanel x:Name="FontPanel"
+            Grid.Row="1"
+            Orientation="Horizontal"
+            Margin="16,8"
+            Visibility="Collapsed">
+			<TextBlock Text="Font:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+			<ComboBox x:Name="FontFamilyBox" Width="160" SelectionChanged="FontFamilyBox_Changed">
+				<ComboBoxItem Content="Segoe UI"/>
+				<ComboBoxItem Content="Arial"/>
+				<ComboBoxItem Content="Times New Roman"/>
+				<ComboBoxItem Content="Calibri"/>
+			</ComboBox>
 
-            <!-- TEXT BOX CONTEXT MENU -->
-            <TextBox.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="Cut" Command="Cut"/>
-                    <MenuItem Header="Copy" Command="Copy"/>
-                    <MenuItem Header="Paste" Command="Paste"/>
-                    <Separator/>
-                    <MenuItem Header="Select All" Command="SelectAll"/>
-                </ContextMenu>
-            </TextBox.ContextMenu>
-        </TextBox>
+			<TextBlock Text="Size:" Margin="12,0,6,0" VerticalAlignment="Center"/>
+			<ComboBox x:Name="FontSizeBox" Width="70" SelectionChanged="FontSizeBox_Changed">
+				<ComboBoxItem Content="12"/>
+				<ComboBoxItem Content="14"/>
+				<ComboBoxItem Content="16"/>
+				<ComboBoxItem Content="18"/>
+				<ComboBoxItem Content="24"/>
+			</ComboBox>
+		</StackPanel>
+		
+		
+        <!-- Main Text Area -->
+		<RichTextBox x:Name="ContentTextBox"
+             Grid.Row="2"
+             Margin="20"
+             Padding="15"
+             FontSize="14"
+             FontFamily="Segoe UI"
+             AcceptsReturn="True"
+             VerticalScrollBarVisibility="Auto"
+             BorderThickness="0"
+             Background="White">
+			<RichTextBox.Effect>
+				<DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.1"/>
+			</RichTextBox.Effect>
+
+			<!-- CONTEXT MENU -->
+			<RichTextBox.ContextMenu>
+				<ContextMenu>
+					<MenuItem Header="Cut" Command="Cut"/>
+					<MenuItem Header="Copy" Command="Copy"/>
+					<MenuItem Header="Paste" Command="Paste"/>
+					<Separator/>
+					<MenuItem Header="Select All" Command="SelectAll"/>
+				</ContextMenu>
+			</RichTextBox.ContextMenu>
+		</RichTextBox>
     </Grid>
 </Window>
