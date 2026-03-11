@@ -13,11 +13,13 @@ namespace NoteCards.Views
         private void ThemeChanged(object sender, SelectionChangedEventArgs e)
         {
             var combo = sender as ComboBox;
-
-            if (combo.SelectedItem is ComboBoxItem item)
+            if (combo?.SelectedItem is ComboBoxItem item && item.Content != null)
             {
-                string theme = item.Content.ToString();
-                ThemeManager.SetTheme(theme);
+                string? theme = item.Content.ToString();
+                if (!string.IsNullOrEmpty(theme))
+                {
+                    ThemeManager.SetTheme(theme);
+                }
             }
         }
 

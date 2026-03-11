@@ -117,26 +117,30 @@ namespace NoteCards
 
         private void FontFamilyBox_Changed(object sender, SelectionChangedEventArgs e)
         {
-            if (FontFamilyBox.SelectedItem is ComboBoxItem item)
+            if (FontFamilyBox.SelectedItem is ComboBoxItem item && item.Content != null)
             {
-                string fontName = item.Content.ToString();
-                if (ContentTextBox.Selection != null && !ContentTextBox.Selection.IsEmpty)
+                string? fontName = item.Content.ToString();
+                if (!string.IsNullOrEmpty(fontName))
                 {
-                    ContentTextBox.Selection.ApplyPropertyValue(TextElement.FontFamilyProperty, new FontFamily(fontName));
+                    if (ContentTextBox.Selection != null && !ContentTextBox.Selection.IsEmpty)
+                    {
+                        ContentTextBox.Selection.ApplyPropertyValue(TextElement.FontFamilyProperty, new FontFamily(fontName));
+                    }
+                    else
+                    {
+                        ContentTextBox.FontFamily = new FontFamily(fontName);
+                    }
+                    UpdateFontButtonText();
                 }
-                else
-                {
-                    ContentTextBox.FontFamily = new FontFamily(fontName);
-                }
-                UpdateFontButtonText();
             }
         }
 
         private void FontSizeBox_Changed(object sender, SelectionChangedEventArgs e)
         {
-            if (FontSizeBox.SelectedItem is ComboBoxItem item)
+            if (FontSizeBox.SelectedItem is ComboBoxItem item && item.Content != null)
             {
-                if (double.TryParse(item.Content.ToString(), out double size))
+                string? sizeText = item.Content.ToString();
+                if (!string.IsNullOrEmpty(sizeText) && double.TryParse(sizeText, out double size))
                 {
                     if (ContentTextBox.Selection != null && !ContentTextBox.Selection.IsEmpty)
                     {
