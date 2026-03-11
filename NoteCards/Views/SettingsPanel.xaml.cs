@@ -10,6 +10,17 @@ namespace NoteCards.Views
             InitializeComponent();
         }
 
+        private void ThemeChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var combo = sender as ComboBox;
+
+            if (combo.SelectedItem is ComboBoxItem item)
+            {
+                string theme = item.Content.ToString();
+                ThemeManager.SetTheme(theme);
+            }
+        }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             this.Visibility = Visibility.Collapsed;
