@@ -28,7 +28,7 @@ namespace NoteCards
             var editor = new NoteEditorWindow();
 
             // Load existing data from the NoteDocument
-            editor.LoadFromDocument(noteViewModel.Document);
+            editor.LoadFromDocument(noteViewModel.Document); 
 
             // Show the editor as a dialog
             if (editor.ShowDialog() == true)
@@ -42,11 +42,21 @@ namespace NoteCards
 
                 // Force UI refresh by reassigning the collection
                 var vm = this.DataContext as MainViewModel;
+                #pragma warning disable CS8602 // Dereference of a possibly null reference.
                 var notesList = vm.Notes.ToList(); // Copy list
+                #pragma warning restore CS8602 // Dereference of a possibly null reference.
                 vm.Notes.Clear();
                 foreach (var note in notesList)
                     vm.Notes.Add(note);
             }
-        } 
+        }
+
+        // Settings icon click handler
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var settingsPanel = this.FindName("SettingsPanelControl") as UIElement;
+            if (settingsPanel != null)
+                settingsPanel.Visibility = Visibility.Visible;
+        }
     }
 }
