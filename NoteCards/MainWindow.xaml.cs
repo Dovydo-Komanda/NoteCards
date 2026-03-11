@@ -47,6 +47,15 @@ namespace NoteCards
                 foreach (var note in notesList)
                     vm.Notes.Add(note);
             }
-        } 
+        }
+        private void DarkMode_On(object sender, RoutedEventArgs e)
+        {
+            ThemeManager.SetTheme("Dark");
+        }
+
+        private void DarkMode_Off(object sender, RoutedEventArgs e)
+        {
+            ThemeManager.SetTheme("Light");
+        }
     }
 }
