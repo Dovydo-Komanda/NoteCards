@@ -1,5 +1,10 @@
-﻿using System.Windows;
+﻿using System.Reflection.Metadata;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using NoteCards.Models;
+using System.IO;
+using System.Windows.Documents;
 
 namespace NoteCards
 {
@@ -16,7 +21,29 @@ namespace NoteCards
             if (document != null)
             {
                 TitleTextBox.Text = document.Title;
-                ContentTextBox.Text = document.Content;
+
+                if (!string.IsNullOrEmpty(document.Content))
+                {
+                    TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
+
+                    try
+                    {
+                        // Try load as Base64 RTF
+                        byte[] bytes = Convert.FromBase64String(document.Content);
+                        using (MemoryStream ms = new MemoryStream(bytes))
+                        {
+                            tr.Load(ms, DataFormats.Rtf);
+                        }
+                    }
+                    catch (FormatException)
+                    {
+                        // If not Base64, just load as plain text
+                        tr.Text = document.Content;
+                    }
+                }
+
+                ContentTextBox.FontFamily = new FontFamily(document.FontFamily);
+                ContentTextBox.FontSize = document.FontSize;
             }
         }
 
@@ -25,19 +52,26 @@ namespace NoteCards
         {
             try
             {
-                // Create a print preview window
-                var printPreview = new PrintPreviewWindow(
-                    TitleTextBox.Text,
-                    ContentTextBox.Text
-                );
+                // Use the FlowDocument from RichTextBox
+                FlowDocument documentToPrint = ContentTextBox.Document;
 
-                printPreview.Owner = this;
-                printPreview.ShowDialog();
+                // Format the document for printing
+                documentToPrint.PagePadding = new Thickness(50);
+
+                // Create a PrintDialog
+                PrintDialog pd = new PrintDialog();
+                if (pd.ShowDialog() == true)
+                {
+                    documentToPrint.ColumnWidth = pd.PrintableAreaWidth;
+
+                    // Print the document with fonts and formatting
+                    pd.PrintDocument(((IDocumentPaginatorSource)documentToPrint).DocumentPaginator, TitleTextBox.Text);
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Failed to open print preview:\n\n{ex.Message}",
+                    $"Failed to print note:\n\n{ex.Message}",
                     "Print Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -50,30 +84,89 @@ namespace NoteCards
             if (document != null)
             {
                 document.Title = TitleTextBox.Text;
-                document.Content = ContentTextBox.Text;
+
+                TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    tr.Save(ms, DataFormats.Rtf); // save as RTF
+                    document.Content = Convert.ToBase64String(ms.ToArray());
+                }
+
+                document.FontFamily = ContentTextBox.FontFamily.Source;
+                document.FontSize = ContentTextBox.FontSize;
             }
         }
 
         private void UndoButton_Click(object sender, RoutedEventArgs e)
         {
             if (ContentTextBox.CanUndo)
-            {
                 ContentTextBox.Undo();
-            }
         }
 
         private void RedoButton_Click(object sender, RoutedEventArgs e)
         {
             if (ContentTextBox.CanRedo)
-            {
                 ContentTextBox.Redo();
-            }
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = true;
             this.Close();
+        }
+
+        private void FontFamilyBox_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (FontFamilyBox.SelectedItem is ComboBoxItem item)
+            {
+                string fontName = item.Content.ToString();
+                if (ContentTextBox.Selection != null && !ContentTextBox.Selection.IsEmpty)
+                {
+                    ContentTextBox.Selection.ApplyPropertyValue(TextElement.FontFamilyProperty, new FontFamily(fontName));
+                }
+                else
+                {
+                    ContentTextBox.FontFamily = new FontFamily(fontName);
+                }
+                UpdateFontButtonText();
+            }
+        }
+
+        private void FontSizeBox_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (FontSizeBox.SelectedItem is ComboBoxItem item)
+            {
+                if (double.TryParse(item.Content.ToString(), out double size))
+                {
+                    if (ContentTextBox.Selection != null && !ContentTextBox.Selection.IsEmpty)
+                    {
+                        ContentTextBox.Selection.ApplyPropertyValue(TextElement.FontSizeProperty, size);
+                    }
+                    else
+                    {
+                        ContentTextBox.FontSize = size;
+                    }
+                    UpdateFontButtonText();
+                }
+            }
+        }
+
+        private void FontSettings_Click(object sender, RoutedEventArgs e)
+        {
+            // Toggle panel visibility
+            FontPanel.Visibility = FontPanel.Visibility == Visibility.Visible
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+
+            UpdateFontButtonText();
+        }
+
+        private void UpdateFontButtonText()
+        {
+            if (Font != null)
+            {
+                Font.Content = $"Font: {ContentTextBox.FontFamily.Source}, {ContentTextBox.FontSize}";
+            }
         }
     }
 }
