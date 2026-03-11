@@ -1,6 +1,11 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using NoteCards.Models;
+using System.Text.Json;
+using System.IO;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace NoteCards.ViewModels;
 
@@ -28,13 +33,17 @@ public class MainViewModel : ViewModelBase
         AddNoteCommand = new RelayCommand(AddNote);
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
 
-        // Seed a test note
-        var testDocument = new NoteDocument
+        // Try to load saved notes from disk. If none exist, seed a test note.
+        if (!LoadNotes())
         {
-            Title = "Pirmasis konspektas",
-            Content = "Tai yra testinis dokumentas, skirtas patikrinti NoteCards funkcionalumą."
-        };
-        Notes.Add(new NoteCardViewModel(testDocument, DeleteNote));
+            var testDocument = new NoteDocument
+            {
+                Title = "Pirmasis konspektas",
+                Content = "Tai yra testinis dokumentas, skirtas patikrinti NoteCards funkcionalumą."
+            };
+            Notes.Add(new NoteCardViewModel(testDocument, DeleteNote));
+            SaveNotes();
+        }
     }
 
     public ObservableCollection<NoteCardViewModel> Notes { get; }
@@ -49,11 +58,13 @@ public class MainViewModel : ViewModelBase
             Content = string.Empty
         };
         Notes.Add(new NoteCardViewModel(document, DeleteNote));
+        SaveNotes();
     }
 
     private void DeleteNote(NoteCardViewModel noteCard)
     {
         Notes.Remove(noteCard);
+        SaveNotes();
     }
 
     private bool _isSidebarExpanded = true;
@@ -81,5 +92,54 @@ public class MainViewModel : ViewModelBase
         foreach (var note in recent)
             RecentNotes.Add(note);
     }
+    // Persistence: save/load notes to a local JSON file
+    private static string GetNotesFilePath()
+    {
+        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NoteCards");
+        Directory.CreateDirectory(dir);
+        return Path.Combine(dir, "notes.json");
+    }
 
+    public void SaveNotes()
+    {
+        try
+        {
+            var docs = new List<NoteDocument>();
+            foreach (var vm in Notes)
+                docs.Add(vm.Document);
+
+            var opts = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(docs, opts);
+            File.WriteAllText(GetNotesFilePath(), json);
+        }
+        catch
+        {
+            // Ignore persistence errors for now
+        }
+    }
+
+    private bool LoadNotes()
+    {
+        try
+        {
+            var path = GetNotesFilePath();
+            if (!File.Exists(path))
+                return false;
+
+            var json = File.ReadAllText(path);
+            var docs = JsonSerializer.Deserialize<List<NoteDocument>>(json);
+            if (docs == null || docs.Count == 0)
+                return false;
+
+            Notes.Clear();
+            foreach (var doc in docs)
+                Notes.Add(new NoteCardViewModel(doc, DeleteNote));
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

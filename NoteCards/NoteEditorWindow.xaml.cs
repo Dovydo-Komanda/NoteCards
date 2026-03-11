@@ -28,12 +28,21 @@ namespace NoteCards
 
                     try
                     {
-                        // Try load as Base64 RTF
-                        byte[] bytes = Convert.FromBase64String(document.Content);
-                        using (MemoryStream ms = new MemoryStream(bytes))
-                        {
-                            tr.Load(ms, DataFormats.Rtf);
-                        }
+                    // Try load as Base64 RTF, but verify decoded bytes look like RTF to avoid
+                    // misinterpreting plain text that happens to be valid Base64.
+                    byte[] bytes = Convert.FromBase64String(document.Content);
+                    // Check for RTF header at start of decoded bytes ("{\rtf")
+                    if (bytes.Length >= 5)
+                    {
+                        var hdr = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
+                        if (!hdr.StartsWith("{\\rtf"))
+                            throw new FormatException();
+                    }
+
+                    using (MemoryStream ms = new MemoryStream(bytes))
+                    {
+                        tr.Load(ms, DataFormats.Rtf);
+                    }
                     }
                     catch (FormatException)
                     {
@@ -170,6 +179,43 @@ namespace NoteCards
             if (Font != null)
             {
                 Font.Content = $"Font: {ContentTextBox.FontFamily.Source}, {ContentTextBox.FontSize}";
+            }
+        }
+
+        private void OpenFromFileButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog();
+            dlg.Filter = "Text Files (*.txt)|*.txt|Rich Text Format (*.rtf)|*.rtf|All files (*.*)|*.*";
+            if (dlg.ShowDialog() != true)
+                return;
+
+            var path = dlg.FileName;
+            try
+            {
+                var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+                string content = string.Empty;
+
+                if (ext == ".rtf")
+                {
+                    var bytes = System.IO.File.ReadAllBytes(path);
+                    // Load RTF directly into RichTextBox
+                    TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
+                    using (var ms = new MemoryStream(bytes))
+                    {
+                        tr.Load(ms, DataFormats.Rtf);
+                    }
+                }
+                else
+                {
+                    // plain text
+                    content = File.ReadAllText(path);
+                    TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
+                    tr.Text = content;
+                }
+            }
+            catch
+            {
+                MessageBox.Show("Failed to open file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

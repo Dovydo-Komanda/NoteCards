@@ -11,6 +11,92 @@ namespace NoteCards
             InitializeComponent();
         }
 
+        private void OpenFromFileMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            HamburgerPopup.IsOpen = false;
+
+            var dlg = new Microsoft.Win32.OpenFileDialog();
+            dlg.Filter = "Text Files (*.txt)|*.txt|Rich Text Format (*.rtf)|*.rtf|All files (*.*)|*.*";
+            if (dlg.ShowDialog() != true)
+                return;
+
+            var path = dlg.FileName;
+            try
+            {
+                var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+                string content = string.Empty;
+                bool isRtf = false;
+
+                if (ext == ".rtf")
+                {
+                    var bytes = System.IO.File.ReadAllBytes(path);
+                    content = Convert.ToBase64String(bytes);
+                    isRtf = true;
+                }
+                else
+                {
+                    // Try strict UTF8 then fallbacks
+                    var rawBytes = System.IO.File.ReadAllBytes(path);
+                    try
+                    {
+                        content = new System.Text.UTF8Encoding(false, true).GetString(rawBytes);
+                    }
+                    catch
+                    {
+                        try
+                        {
+                            using (var ms = new System.IO.MemoryStream(rawBytes))
+                            using (var sr = new System.IO.StreamReader(ms, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true))
+                            {
+                                content = sr.ReadToEnd();
+                            }
+                        }
+                        catch
+                        {
+                            try { content = System.Text.Encoding.Default.GetString(rawBytes); }
+                            catch { try { content = System.Text.Encoding.GetEncoding(1257).GetString(rawBytes); } catch { content = string.Empty; } }
+                        }
+                    }
+                }
+
+                var vm = this.DataContext as MainViewModel;
+                if (vm == null) return;
+
+                // Try find existing note with identical content; otherwise create new
+                NoteCardViewModel existing = null;
+                foreach (var n in vm.Notes)
+                {
+                    if (n.Document.Content == content)
+                    {
+                        existing = n; break;
+                    }
+                }
+
+                NoteCardViewModel target;
+                if (existing != null)
+                {
+                    target = existing;
+                }
+                else
+                {
+                    var doc = new NoteCards.Models.NoteDocument
+                    {
+                        Title = System.IO.Path.GetFileNameWithoutExtension(path),
+                        Content = content
+                    };
+                    target = new NoteCardViewModel(doc, (note) => vm.Notes.Remove(note));
+                    vm.Notes.Add(target);
+                    vm.SaveNotes();
+                }
+
+                OpenNoteEditor(target);
+            }
+            catch
+            {
+                MessageBox.Show("Failed to open file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void HamburgerButton_Click(object sender, RoutedEventArgs e)
         {
             HamburgerPopup.IsOpen = !HamburgerPopup.IsOpen;
@@ -46,6 +132,7 @@ namespace NoteCards
                 foreach (var note in notesList)
                     vm.Notes.Add(note);
                     vm.RefreshRecentNotes();
+                vm.SaveNotes();
             }
         }
 

@@ -1,3 +1,7 @@
+using System;
+using System.IO;
+using System.Windows;
+using System.Windows.Documents;
 using System.Windows.Input;
 using NoteCards.Models;
 
@@ -19,7 +23,51 @@ public class NoteCardViewModel : ViewModelBase
     public NoteDocument Document { get; }
 
     public string Title => Document.Title;
-    public string Content => Document.Content;
+    // Return a plain-text preview for the card. The stored Document.Content
+    // may be plain text or Base64-encoded RTF (saved by the editor). If it's
+    // RTF we decode and extract the text so the card shows readable content
+    // instead of raw Base64/RTF markup.
+    public string Content
+    {
+        get
+        {
+            var raw = Document.Content;
+            if (string.IsNullOrEmpty(raw))
+                return string.Empty;
+
+            try
+            {
+                // Try to treat stored content as Base64-encoded RTF
+                byte[] bytes = Convert.FromBase64String(raw);
+
+                // Heuristic: ensure decoded bytes start with RTF header
+                if (bytes.Length >= 5)
+                {
+                    var hdr = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
+                    if (!hdr.StartsWith("{\\rtf"))
+                        throw new FormatException();
+                }
+
+                using (var ms = new MemoryStream(bytes))
+                {
+                    var flowDoc = new FlowDocument();
+                    var tr = new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd);
+                    tr.Load(ms, DataFormats.Rtf);
+                    return tr.Text?.Trim() ?? string.Empty;
+                }
+            }
+            catch (FormatException)
+            {
+                // Not Base64 -> assume plain text
+                return raw;
+            }
+            catch
+            {
+                // Any other failure: fall back to raw content
+                return raw;
+            }
+        }
+    }
 
     public bool IsMenuVisible
     {

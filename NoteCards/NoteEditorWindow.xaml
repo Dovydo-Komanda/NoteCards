@@ -33,9 +33,9 @@
                  Background="Transparent"
                  Foreground="#1C1C1C"
                  HorizontalAlignment="Right"
-                 VerticalAlignment="Center" Grid.ColumnSpan="2"/>
+                 VerticalAlignment="Center" Grid.Column="1"/>
 
-                <StackPanel Orientation="Horizontal"
+                <StackPanel Grid.Column="0" Orientation="Horizontal"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center">
                     <!-- Undo Button -->
@@ -61,11 +61,20 @@
                     Margin="0,0,8,0"
                     Click="PrintButton_Click"/>
 
-					<Button x:Name="Font"
+                    <!-- Open file into editor -->
+                    <Button x:Name="OpenFileButton"
+                        Content="📂 Open"
+                        Padding="6,6"
+                        Margin="0,0,8,0"
+                        Click="OpenFromFileButton_Click"/>
+
+                <Button x:Name="Font"
                     Content="Font"
                     Padding="6,6"
                     Margin="0,0,8,0"
                     Click="FontSettings_Click"/>
+
+
 				</StackPanel>
             </Grid>
         </Border>
@@ -92,7 +101,9 @@
 				<ComboBoxItem Content="18"/>
 				<ComboBoxItem Content="24"/>
 			</ComboBox>
-		</StackPanel>
+
+        <!-- Open file moved to top bar -->
+        </StackPanel>
 		
 		
            <!-- Main Text Area -->

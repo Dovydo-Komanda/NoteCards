@@ -133,6 +133,7 @@
                         Click="OnMenuButtonClick">
                     <Button.ContextMenu>
                         <ContextMenu>
+                            <MenuItem Header="Atidaryti" Click="OnOpenMenuClick"/>
                             <MenuItem Header="Ištrinti" Command="{Binding DeleteCommand}"/>
                         </ContextMenu>
                     </Button.ContextMenu>
