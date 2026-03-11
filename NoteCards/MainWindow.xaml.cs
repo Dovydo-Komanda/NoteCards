@@ -51,9 +51,10 @@ namespace NoteCards
             }
         }
 
-        // Settings icon click handler
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        // Settings menu button click handler (from hamburger)
+        private void SettingsMenuButton_Click(object sender, RoutedEventArgs e)
         {
+            HamburgerPopup.IsOpen = false;
             var settingsPanel = this.FindName("SettingsPanelControl") as UIElement;
             if (settingsPanel != null)
                 settingsPanel.Visibility = Visibility.Visible;
