@@ -29,31 +29,25 @@ namespace NoteCards
             // Set DataContext so EnableScrollbar binding works
             editor.DataContext = this.DataContext;
 
-            // Load existing data from the NoteDocument
-            editor.LoadFromDocument(noteViewModel.Document); 
+            editor.LoadFromDocument(noteViewModel.Document);
 
-            // Show the editor as a dialog
             if (editor.ShowDialog() == true)
             {
-                // Save changes back to the Document
                 editor.SaveToDocument(noteViewModel.Document);
 
-                // Notify UI that properties changed (so the card updates)
-                // Since Title/Content are read-only wrappers, we need to trigger refresh
-                noteViewModel.Document.Title = noteViewModel.Document.Title; // This won't work...
-
-                // Force UI refresh by reassigning the collection
                 var vm = this.DataContext as MainViewModel;
-                #pragma warning disable CS8602 // Dereference of a possibly null reference.
-                var notesList = vm.Notes.ToList(); // Copy list
-                #pragma warning restore CS8602 // Dereference of a possibly null reference.
+#pragma warning disable CS8602
+                var notesList = vm.Notes.ToList();
+#pragma warning restore CS8602
+
                 vm.Notes.Clear();
+
                 foreach (var note in notesList)
                     vm.Notes.Add(note);
             }
         }
 
-        // Settings menu button click handler (from hamburger)
+        // Settings menu button click handler
         private void SettingsMenuButton_Click(object sender, RoutedEventArgs e)
         {
             HamburgerPopup.IsOpen = false;

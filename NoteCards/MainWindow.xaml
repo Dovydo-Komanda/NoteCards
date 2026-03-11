@@ -7,7 +7,7 @@
         xmlns:converters="clr-namespace:NoteCards.Converters"
         Title="NoteCards" Height="600" Width="900"
         WindowStartupLocation="CenterScreen"
-        Background="#EBEBEF">
+        Background="{DynamicResource WindowBackground}">
     <Window.Resources>
         <converters:BoolToScrollBarVisibilityConverter x:Key="BoolToScrollBarVisibilityConverter" />
         <Style x:Key="PopupMenuButtonStyle" TargetType="Button">
@@ -106,7 +106,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- Sidebar -->
-        <Border Grid.Column="0" Background="#F3F3F3" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0"  Padding="10">
+        <Border Grid.Column="0" Background="{DynamicResource SidebarBackground}" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0"  Padding="10">
             <StackPanel>
                 <!-- Collapse button -->
                 <Button Content="☰" Command="{Binding ToggleSidebarCommand}"/>
@@ -127,16 +127,28 @@
 
         <!-- Top Bar -->
         <Border Grid.Row="0"
-                Background="#F3F3F3"
+                Background="{DynamicResource SidebarBackground}"
                 BorderBrush="#E0E0E0"
                 BorderThickness="0,0,0,1"
                 Padding="16,10">
             <Grid>
-                <TextBlock Text="NoteCards"
-                           FontSize="22" FontWeight="SemiBold"
-                           Foreground="#1C1C1C"
-                           VerticalAlignment="Center"/>
-                <StackPanel Orientation="Horizontal"
+                    <StackPanel Orientation="Horizontal"
+                                VerticalAlignment="Center">
+
+                        <Image Source="Assets/logo.png"
+                               Width="28"
+                               Height="28"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center"/>
+
+                        <TextBlock Text="NoteCards"
+                                   FontSize="22"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextColor}"
+                                   VerticalAlignment="Center"/>
+
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
                         <Button Content="+ Pridėti užrašą"
@@ -164,7 +176,7 @@
                StaysOpen="False"
                AllowsTransparency="True"
                PopupAnimation="Fade">
-            <Border Background="White"
+                <Border Background="{DynamicResource SidebarBackground}"
                     BorderBrush="#D8D8D8"
                     BorderThickness="1"
                     CornerRadius="8"
