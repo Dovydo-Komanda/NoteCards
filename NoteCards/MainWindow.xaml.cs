@@ -1,5 +1,6 @@
 using System.Windows;
 using NoteCards.ViewModels;
+using System.Windows.Controls;
 
 namespace NoteCards
 {
@@ -44,6 +45,7 @@ namespace NoteCards
 
                 foreach (var note in notesList)
                     vm.Notes.Add(note);
+                    vm.RefreshRecentNotes();
             }
         }
 
@@ -57,6 +59,11 @@ namespace NoteCards
                 settingsPanel.DataContext = this.DataContext;
                 settingsPanel.Visibility = Visibility.Visible;
             }
+        }
+        private void RecentNoteButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is NoteCardViewModel noteVm)
+                OpenNoteEditor(noteVm);
         }
     }
 }

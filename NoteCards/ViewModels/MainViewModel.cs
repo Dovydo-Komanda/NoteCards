@@ -23,6 +23,8 @@ public class MainViewModel : ViewModelBase
     public MainViewModel()
     {
         Notes = new ObservableCollection<NoteCardViewModel>();
+        Notes.CollectionChanged += (_, _) => RefreshRecentNotes();
+        RefreshRecentNotes();
         AddNoteCommand = new RelayCommand(AddNote);
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
 
@@ -68,6 +70,16 @@ public class MainViewModel : ViewModelBase
         _isSidebarExpanded = !_isSidebarExpanded;
         OnPropertyChanged(nameof(SidebarWidth));
     }
+    public ObservableCollection<NoteCardViewModel> RecentNotes { get; } = new();
+    public void RefreshRecentNotes()
+    {
+        var recent = Notes
+            .OrderByDescending(n => n.Document.LastModified)
+            .Take(5)
+            .ToList();
+        RecentNotes.Clear();
+        foreach (var note in recent)
+            RecentNotes.Add(note);
+    }
 
-    
 }

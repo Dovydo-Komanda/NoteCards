@@ -84,7 +84,7 @@ namespace NoteCards
             if (document != null)
             {
                 document.Title = TitleTextBox.Text;
-
+                document.LastModified = DateTime.Now;
                 TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
                 using (MemoryStream ms = new MemoryStream())
                 {
