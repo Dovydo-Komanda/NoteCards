@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:NoteCards.Controls"
         xmlns:vm="clr-namespace:NoteCards.ViewModels"
+        xmlns:Views="clr-namespace:NoteCards.Views"
         Title="NoteCards" Height="600" Width="900"
         WindowStartupLocation="CenterScreen"
         Background="#EBEBEF">
@@ -136,19 +137,19 @@
                 <StackPanel Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
-                    <Button Content="+ Pridėti užrašą"
-                            Padding="14,6"
-                            FontSize="13"
-                            Command="{Binding AddNoteCommand}"
-                            Cursor="Hand"
-                            Margin="0,0,8,0"/>
-                    <Button x:Name="HamburgerButton"
-                            Content="☰"
-                            Padding="12,6"
-                            FontSize="16"
-                            Cursor="Hand"
-                            ToolTip="Meniu"
-                            Click="HamburgerButton_Click"/>
+                        <Button Content="+ Pridėti užrašą"
+                                Padding="14,6"
+                                FontSize="13"
+                                Command="{Binding AddNoteCommand}"
+                                Cursor="Hand"
+                                Margin="0,0,8,0"/>
+                        <Button x:Name="HamburgerButton"
+                                Content="☰"
+                                Padding="12,6"
+                                FontSize="16"
+                                Cursor="Hand"
+                                ToolTip="Meniu"
+                                Click="HamburgerButton_Click"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -173,7 +174,7 @@
                 </Border.Effect>
                 <StackPanel>
                     <Button Style="{StaticResource PopupMenuButtonStyle}"
-                            IsEnabled="False">
+                            Click="SettingsMenuButton_Click">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="⚙" Width="20" TextAlignment="Center" FontSize="14" VerticalAlignment="Center"/>
                             <TextBlock Text="Nustatymai" FontSize="14" Margin="8,0,0,0" VerticalAlignment="Center"/>
@@ -217,6 +218,14 @@
                     Content="+"
                     ToolTip="Pridėti užrašą"
                     Command="{Binding AddNoteCommand}"/>
+
+            <!-- Settings Panel Overlay -->
+            <Views:SettingsPanel x:Name="SettingsPanelControl"
+                                x:FieldModifier="public"
+                                Visibility="Collapsed"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Panel.ZIndex="100"/>
         </Grid>
     </Grid>
     </Grid>
