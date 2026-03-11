@@ -188,16 +188,20 @@
                     <Button Style="{StaticResource PopupMenuButtonStyle}"
                             Click="SettingsMenuButton_Click">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="⚙" Width="20" TextAlignment="Center" FontSize="14" VerticalAlignment="Center"/>
-                            <TextBlock Text="Nustatymai" FontSize="14" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                        </StackPanel>
+                                <TextBlock Text="⚙" Width="20" TextAlignment="Center" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource TextColor}"/>
+                                <TextBlock Text="Nustatymai"
+                                           FontSize="14"
+                                           Margin="8,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextColor}"/>
+                            </StackPanel>
                     </Button>
                     <Separator Margin="8,1"/>
                     <Button Style="{StaticResource PopupMenuButtonStyle}"
                             Click="AboutButton_Click">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="ℹ" Width="20" TextAlignment="Center" FontSize="14" VerticalAlignment="Center"/>
-                            <TextBlock Text="Apie programą" FontSize="14" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="ℹ" Width="20" TextAlignment="Center" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource TextColor}"/>
+                                <TextBlock Text="Apie programą" FontSize="14" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextColor}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
