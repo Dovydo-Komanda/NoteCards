@@ -4,10 +4,12 @@
         xmlns:controls="clr-namespace:NoteCards.Controls"
         xmlns:vm="clr-namespace:NoteCards.ViewModels"
         xmlns:Views="clr-namespace:NoteCards.Views"
+        xmlns:converters="clr-namespace:NoteCards.Converters"
         Title="NoteCards" Height="600" Width="900"
         WindowStartupLocation="CenterScreen"
         Background="#EBEBEF">
     <Window.Resources>
+        <converters:BoolToScrollBarVisibilityConverter x:Key="BoolToScrollBarVisibilityConverter" />
         <Style x:Key="PopupMenuButtonStyle" TargetType="Button">
             <Setter Property="OverridesDefaultStyle" Value="True"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -194,8 +196,8 @@
 
         <!-- Dashboard + FAB overlay -->
         <Grid Grid.Row="1">
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
-                          Padding="8">
+            <ScrollViewer Padding="8"
+                          VerticalScrollBarVisibility="{Binding EnableScrollbar, Converter={StaticResource BoolToScrollBarVisibilityConverter}}">
                 <ItemsControl ItemsSource="{Binding Notes}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
