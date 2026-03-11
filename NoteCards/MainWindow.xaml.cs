@@ -1,5 +1,5 @@
-using System.Windows;
 using NoteCards.ViewModels;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace NoteCards
@@ -130,17 +130,12 @@ namespace NoteCards
             {
                 editor.SaveToDocument(noteViewModel.Document);
 
+                // Notify the card's bindings to refresh with the new content/title
+                noteViewModel.NotifyContentChanged();
+
                 var vm = this.DataContext as MainViewModel;
-#pragma warning disable CS8602
-                var notesList = vm.Notes.ToList();
-#pragma warning restore CS8602
-
-                vm.Notes.Clear();
-
-                foreach (var note in notesList)
-                    vm.Notes.Add(note);
-                    vm.RefreshRecentNotes();
-                vm.SaveNotes();
+                vm?.RefreshRecentNotes();
+                vm?.SaveNotes();
             }
         }
 

@@ -1,13 +1,10 @@
-using System.Collections.ObjectModel;
-using System.Windows.Input;
 using NoteCards.Models;
-using System.Text.Json;
-using System.IO;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
+using System.Text.Json;
 using System.Windows.Data;
+using System.Windows.Input;
 
 namespace NoteCards.ViewModels;
 

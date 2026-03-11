@@ -1,4 +1,4 @@
-<Window x:Class="NoteCards.Views.AboutWindow"
+﻿<Window x:Class="NoteCards.Views.AboutWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Apie programą"
@@ -6,7 +6,7 @@
         SizeToContent="Height"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
-        Opacity="0"
+        Closing="AboutWindow_Closing"
         Background="#FAFAFA">
     <Window.Resources>
         <Style x:Key="AuthorLineStyle" TargetType="TextBlock">
@@ -15,13 +15,37 @@
             <Setter Property="Margin" Value="0,5,0,0"/>
             <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI, sans-serif"/>
         </Style>
+        <Storyboard x:Key="CloseStoryboard">
+            <DoubleAnimation Storyboard.TargetName="ContentPanel"
+                             Storyboard.TargetProperty="Opacity"
+                             From="1" To="0" Duration="0:0:0.18">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseIn"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="ContentPanel"
+                             Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                             From="0" To="8" Duration="0:0:0.18">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseIn"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
     </Window.Resources>
     <Window.Triggers>
         <EventTrigger RoutedEvent="Loaded">
             <BeginStoryboard>
                 <Storyboard>
-                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                    <DoubleAnimation Storyboard.TargetName="ContentPanel"
+                                     Storyboard.TargetProperty="Opacity"
                                      From="0" To="1" Duration="0:0:0.28">
+                        <DoubleAnimation.EasingFunction>
+                            <QuadraticEase EasingMode="EaseOut"/>
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="ContentPanel"
+                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                     From="12" To="0" Duration="0:0:0.28">
                         <DoubleAnimation.EasingFunction>
                             <QuadraticEase EasingMode="EaseOut"/>
                         </DoubleAnimation.EasingFunction>
@@ -30,7 +54,10 @@
             </BeginStoryboard>
         </EventTrigger>
     </Window.Triggers>
-    <StackPanel>
+    <StackPanel x:Name="ContentPanel" Opacity="0">
+        <StackPanel.RenderTransform>
+            <TranslateTransform Y="12"/>
+        </StackPanel.RenderTransform>
 
         <!-- Gradient header -->
         <Border BorderBrush="#E0E0E8" BorderThickness="0,0,0,1" Padding="32,28,32,22">

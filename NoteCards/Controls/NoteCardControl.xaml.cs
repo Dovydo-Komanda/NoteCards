@@ -1,9 +1,9 @@
+using NoteCards.ViewModels;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
-using NoteCards.ViewModels;
 
 namespace NoteCards.Controls;
 
@@ -20,6 +20,10 @@ public partial class NoteCardControl : UserControl
 
     private void NoteCardControl_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        // Don't open the editor when the three-dot menu button was clicked
+        if (MenuButton.IsMouseOver)
+            return;
+
         // Get the ViewModel from DataContext
         var viewModel = this.DataContext as NoteCardViewModel;
         var mainWindow = Window.GetWindow(this) as MainWindow;

@@ -1,9 +1,8 @@
-using System;
+using NoteCards.Models;
 using System.IO;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Input;
-using NoteCards.Models;
 
 namespace NoteCards.ViewModels;
 
@@ -53,7 +52,8 @@ public class NoteCardViewModel : ViewModelBase
                     var flowDoc = new FlowDocument();
                     var tr = new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd);
                     tr.Load(ms, DataFormats.Rtf);
-                    return tr.Text?.Trim() ?? string.Empty;
+                    // Re-create the range after loading so it spans the full inserted content
+                    return new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd).Text?.Trim() ?? string.Empty;
                 }
             }
             catch (FormatException)
@@ -63,8 +63,8 @@ public class NoteCardViewModel : ViewModelBase
             }
             catch
             {
-                // Any other failure: fall back to raw content
-                return raw;
+                // Any other failure (e.g. malformed RTF): return empty rather than raw Base64 garbage
+                return string.Empty;
             }
         }
     }
@@ -84,4 +84,10 @@ public class NoteCardViewModel : ViewModelBase
     public ICommand DeleteCommand { get; }
 
     internal void ExecuteDelete() => _deleteAction(this);
+
+    public void NotifyContentChanged()
+    {
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Content));
+    }
 }

@@ -1,19 +1,49 @@
-﻿using System.Reflection.Metadata;
+﻿using NoteCards.Models;
+using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
-using NoteCards.Models;
-using NoteCards.ViewModels;
-using System.IO;
 using System.Windows.Documents;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace NoteCards
 {
     public partial class NoteEditorWindow : Window
     {
+        private bool? _pendingDialogResult = null;
+        private bool _isPlayingCloseAnimation = false;
+
         public NoteEditorWindow()
         {
             InitializeComponent();
+        }
+
+        private void NoteEditorWindow_Closing(object sender, CancelEventArgs e)
+        {
+            if (_isPlayingCloseAnimation)
+                return;
+
+            e.Cancel = true;
+            AnimateAndClose();
+        }
+
+        private void AnimateAndClose()
+        {
+            if (_isPlayingCloseAnimation)
+                return;
+
+            _isPlayingCloseAnimation = true;
+
+            var sb = ((Storyboard)Resources["CloseStoryboard"]).Clone();
+            sb.Completed += (_, _) =>
+            {
+                if (_pendingDialogResult.HasValue)
+                    this.DialogResult = _pendingDialogResult.Value;
+                else
+                    this.Close();
+            };
+            sb.Begin(this);
         }
 
         private void ClearAllHighlights()
@@ -96,21 +126,21 @@ namespace NoteCards
 
                     try
                     {
-                    // Try load as Base64 RTF, but verify decoded bytes look like RTF to avoid
-                    // misinterpreting plain text that happens to be valid Base64.
-                    byte[] bytes = Convert.FromBase64String(document.Content);
-                    // Check for RTF header at start of decoded bytes ("{\rtf")
-                    if (bytes.Length >= 5)
-                    {
-                        var hdr = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
-                        if (!hdr.StartsWith("{\\rtf"))
-                            throw new FormatException();
-                    }
+                        // Try load as Base64 RTF, but verify decoded bytes look like RTF to avoid
+                        // misinterpreting plain text that happens to be valid Base64.
+                        byte[] bytes = Convert.FromBase64String(document.Content);
+                        // Check for RTF header at start of decoded bytes ("{\rtf")
+                        if (bytes.Length >= 5)
+                        {
+                            var hdr = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
+                            if (!hdr.StartsWith("{\\rtf"))
+                                throw new FormatException();
+                        }
 
-                    using (MemoryStream ms = new MemoryStream(bytes))
-                    {
-                        tr.Load(ms, DataFormats.Rtf);
-                    }
+                        using (MemoryStream ms = new MemoryStream(bytes))
+                        {
+                            tr.Load(ms, DataFormats.Rtf);
+                        }
                     }
                     catch (FormatException)
                     {
@@ -188,8 +218,8 @@ namespace NoteCards
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            this.DialogResult = true;
-            this.Close();
+            _pendingDialogResult = true;
+            AnimateAndClose();
         }
 
         private void FontFamilyBox_Changed(object sender, SelectionChangedEventArgs e)
