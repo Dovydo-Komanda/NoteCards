@@ -16,6 +16,10 @@
                 <ComboBoxItem Content="Light"/>
                 <ComboBoxItem Content="Dark"/>
             </ComboBox>
+            <Button Content="Check for Updates"
+                    Margin="0,12,0,0"
+                    Width="160"
+                    Click="CheckUpdates_Click"/>
             <Button Content="Close" HorizontalAlignment="Right" Margin="0,24,0,0" Width="80" Click="CloseButton_Click"/>
         </StackPanel>
     </Border>
