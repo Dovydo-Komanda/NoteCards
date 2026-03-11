@@ -40,8 +40,8 @@ public class MainViewModel : ViewModelBase
         {
             var testDocument = new NoteDocument
             {
-                Title = "Pirmasis konspektas",
-                Content = "Tai yra testinis dokumentas, skirtas patikrinti NoteCards funkcionalumą."
+                Title = "First Note",
+                Content = "This is a test document to verify NoteCards functionality."
             };
             Notes.Add(new NoteCardViewModel(testDocument, DeleteNote));
             SaveNotes();
@@ -72,11 +72,11 @@ public class MainViewModel : ViewModelBase
 
     private void AddNote()
     {
-        var document = new NoteDocument
-        {
-            Title = "Naujas konspektas",
-            Content = string.Empty
-        };
+            var document = new NoteDocument
+            {
+                Title = "New Note",
+                Content = string.Empty
+            };
         Notes.Add(new NoteCardViewModel(document, DeleteNote));
         SaveNotes();
     }
