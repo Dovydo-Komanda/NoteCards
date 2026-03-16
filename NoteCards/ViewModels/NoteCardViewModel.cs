@@ -11,12 +11,18 @@ public class NoteCardViewModel : ViewModelBase
     private bool _isMenuVisible;
     private bool _isDeleting;
     private readonly Action<NoteCardViewModel> _deleteAction;
+    private readonly Action<NoteCardViewModel>? _removeFromGroupAction;
 
-    public NoteCardViewModel(NoteDocument document, Action<NoteCardViewModel> deleteAction)
+    public NoteCardViewModel(
+        NoteDocument document,
+        Action<NoteCardViewModel> deleteAction,
+        Action<NoteCardViewModel>? removeFromGroupAction = null)
     {
         Document = document;
         _deleteAction = deleteAction;
+        _removeFromGroupAction = removeFromGroupAction;
         DeleteCommand = new RelayCommand(() => IsDeleting = true);
+        RemoveFromGroupCommand = new RelayCommand(RemoveFromGroup, () => IsGrouped);
     }
 
     public NoteDocument Document { get; }
@@ -81,7 +87,11 @@ public class NoteCardViewModel : ViewModelBase
         set => SetProperty(ref _isDeleting, value);
     }
 
+    public bool IsGrouped => Document.GroupId.HasValue;
+
     public ICommand DeleteCommand { get; }
+
+    public ICommand RemoveFromGroupCommand { get; }
 
     internal void ExecuteDelete() => _deleteAction(this);
 
@@ -89,5 +99,18 @@ public class NoteCardViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(Content));
+        OnPropertyChanged(nameof(IsGrouped));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    public void NotifyGroupChanged()
+    {
+        OnPropertyChanged(nameof(IsGrouped));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void RemoveFromGroup()
+    {
+        _removeFromGroupAction?.Invoke(this);
     }
 }

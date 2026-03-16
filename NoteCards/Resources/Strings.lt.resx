@@ -64,4 +64,22 @@
   <data name="FirstNoteContent" xml:space="preserve"><value>Tai bandomasis dokumentas NoteCards veikimui patikrinti.</value></data>
   <data name="NewNoteTitle" xml:space="preserve"><value>Naujas užrašas</value></data>
   <data name="FontButtonFormat" xml:space="preserve"><value>Šriftas: {0}, {1}</value></data>
+  <data name="Groups" xml:space="preserve"><value>Grupės</value></data>
+  <data name="UngroupedNotes" xml:space="preserve"><value>Nesugrupuoti užrašai</value></data>
+  <data name="GroupTitleFormat" xml:space="preserve"><value>Grupė {0}</value></data>
+  <data name="RemoveFromGroup" xml:space="preserve"><value>Pašalinti iš grupės</value></data>
+  <data name="RenameGroup" xml:space="preserve"><value>Pervadinti grupę</value></data>
+  <data name="RenameGroupPrompt" xml:space="preserve"><value>Įveskite naują grupės pavadinimą:</value></data>
+  <data name="GroupBackgroundColor" xml:space="preserve"><value>Grupės fono spalva</value></data>
+  <data name="GroupColorDefault" xml:space="preserve"><value>Numatyta mėlyna</value></data>
+  <data name="GroupColorMint" xml:space="preserve"><value>Mėtinė</value></data>
+  <data name="GroupColorRose" xml:space="preserve"><value>Rožinė</value></data>
+  <data name="GroupColorAmber" xml:space="preserve"><value>Gintarinė</value></data>
+  <data name="GroupColorLilac" xml:space="preserve"><value>Alyvinė</value></data>
+  <data name="DisbandGroup" xml:space="preserve"><value>Išformuoti grupę</value></data>
+  <data name="DisbandGroupPrompt" xml:space="preserve"><value>Išformuoti šią grupę?
+Taip = palikti užrašus nesugrupuotus
+Ne = išformuoti ir ištrinti visus grupės užrašus
+Atšaukti = nutraukti</value></data>
+  <data name="DropToUngroup" xml:space="preserve"><value>Numeskite čia, kad pašalintumėte užrašą iš grupės</value></data>
 </root>

@@ -11,6 +11,14 @@ namespace NoteCards.Views
             PromptText.Text = prompt;
         }
 
+        public SimpleInputDialog(string title, string prompt, string initialText)
+            : this(title, prompt)
+        {
+            InputBox.Text = initialText ?? string.Empty;
+            InputBox.SelectAll();
+            InputBox.Focus();
+        }
+
         public string InputText => InputBox.Text ?? string.Empty;
 
         private void Ok_Click(object sender, RoutedEventArgs e)

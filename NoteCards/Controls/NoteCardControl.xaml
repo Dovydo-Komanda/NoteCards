@@ -4,7 +4,14 @@
              Width="220" MinHeight="140" Margin="8"
              RenderTransformOrigin="0.5,0.5"
              Opacity="0"
+             AllowDrop="True"
              DataContextChanged="OnDataContextChanged"
+             PreviewMouseLeftButtonDown="OnPreviewMouseLeftButtonDown"
+             MouseMove="OnMouseMove"
+             DragEnter="OnDragEnter"
+             DragLeave="OnDragLeave"
+             DragOver="OnDragOver"
+             Drop="OnDrop"
              MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave">
     <UserControl.Resources>
         <Storyboard x:Key="ExitStoryboard">
@@ -116,6 +123,14 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
+            <Border x:Name="DropGlow"
+                    Background="#00000000"
+                    BorderBrush="#4A6EE0"
+                    BorderThickness="0"
+                    CornerRadius="10"
+                    Opacity="0"
+                    Grid.RowSpan="2"
+                    IsHitTestVisible="False"/>
             <Grid Grid.Row="0">
                 <TextBlock Text="{Binding Title}"
                            FontSize="15" FontWeight="SemiBold"
@@ -134,6 +149,9 @@
                     <Button.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}" Click="OnOpenMenuClick"/>
+                            <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}"
+                                      Command="{Binding RemoveFromGroupCommand}"
+                                      Visibility="{Binding IsGrouped, Converter={StaticResource BoolToVis}}"/>
                             <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}" Command="{Binding DeleteCommand}"/>
                         </ContextMenu>
                     </Button.ContextMenu>

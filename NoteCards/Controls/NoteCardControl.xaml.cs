@@ -10,30 +10,163 @@ namespace NoteCards.Controls;
 
 public partial class NoteCardControl : UserControl
 {
+    private Point _dragStart;
+    private bool _suppressOpenOnMouseUp;
+
     public NoteCardControl()
     {
         InitializeComponent();
 
         // Use PreviewMouseLeftButtonUp so clicks inside child controls still trigger opening the editor
-        this.PreviewMouseLeftButtonUp += NoteCardControl_PreviewMouseLeftButtonUp;
-        this.Cursor = Cursors.Hand;
+        PreviewMouseLeftButtonUp += NoteCardControl_PreviewMouseLeftButtonUp;
+        Cursor = Cursors.Hand;
     }
 
     private void NoteCardControl_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (_suppressOpenOnMouseUp)
+        {
+            _suppressOpenOnMouseUp = false;
+            return;
+        }
+
         // Don't open the editor when the three-dot menu button was clicked
         if (MenuButton.IsMouseOver)
             return;
 
         // Get the ViewModel from DataContext
-        var viewModel = this.DataContext as NoteCardViewModel;
+        var viewModel = DataContext as NoteCardViewModel;
         var mainWindow = Window.GetWindow(this) as MainWindow;
 
         // Only proceed if both exist
         if (viewModel != null && mainWindow != null)
-        {
             mainWindow.OpenNoteEditor(viewModel);
+    }
+
+    private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragStart = e.GetPosition(this);
+    }
+
+    private void OnMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed)
+            return;
+
+        if (DataContext is not NoteCardViewModel draggedNote)
+            return;
+
+        if (MenuButton.IsMouseOver)
+            return;
+
+        var currentPosition = e.GetPosition(this);
+        var delta = currentPosition - _dragStart;
+        if (Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance
+            && Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance)
+            return;
+
+        _suppressOpenOnMouseUp = true;
+        MainWindow.SetNoteDragInProgress(true);
+        try
+        {
+            DragDrop.DoDragDrop(this, new DataObject(typeof(NoteCardViewModel), draggedNote), DragDropEffects.Move);
         }
+        finally
+        {
+            MainWindow.SetNoteDragInProgress(false);
+        }
+    }
+
+    private void OnDragOver(object sender, DragEventArgs e)
+    {
+        if (DataContext is not NoteCardViewModel target)
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        var dragged = e.Data.GetData(typeof(NoteCardViewModel)) as NoteCardViewModel;
+        e.Effects = dragged is not null && !ReferenceEquals(dragged, target)
+            ? DragDropEffects.Move
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnDragEnter(object sender, DragEventArgs e)
+    {
+        if (CanAcceptDrop(e))
+            AnimateDropGlow(1, 2);
+    }
+
+    private void OnDragLeave(object sender, DragEventArgs e)
+    {
+        AnimateDropGlow(0, 0);
+    }
+
+    private void OnDrop(object sender, DragEventArgs e)
+    {
+        try
+        {
+            if (DataContext is not NoteCardViewModel targetNote)
+                return;
+
+            var draggedNote = e.Data.GetData(typeof(NoteCardViewModel)) as NoteCardViewModel;
+            var mainWindow = Window.GetWindow(this) as MainWindow;
+            var mainVm = mainWindow?.DataContext as MainViewModel;
+            if (draggedNote is null || mainVm is null)
+                return;
+
+            var sameGroup = draggedNote.Document.GroupId.HasValue
+                && draggedNote.Document.GroupId == targetNote.Document.GroupId;
+
+            var changed = false;
+            if (sameGroup)
+            {
+                var dropPosition = e.GetPosition(this);
+                var placeAfter = dropPosition.X >= (ActualWidth / 2d);
+                changed = mainVm.TryReorderNotesWithinGroup(draggedNote, targetNote, placeAfter);
+            }
+            else
+            {
+                changed = mainVm.TryGroupNotes(draggedNote, targetNote);
+            }
+
+            if (changed)
+                AnimateDropGlow(0.85, 3);
+
+            e.Handled = true;
+        }
+        finally
+        {
+            AnimateDropGlow(0, 0);
+        }
+    }
+
+    private bool CanAcceptDrop(DragEventArgs e)
+    {
+        if (DataContext is not NoteCardViewModel target)
+            return false;
+
+        var dragged = e.Data.GetData(typeof(NoteCardViewModel)) as NoteCardViewModel;
+        return dragged is not null && !ReferenceEquals(dragged, target);
+    }
+
+    private void AnimateDropGlow(double opacity, double thickness)
+    {
+        DropGlow.BeginAnimation(OpacityProperty, new DoubleAnimation
+        {
+            To = opacity,
+            Duration = TimeSpan.FromMilliseconds(150),
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+        });
+
+        DropGlow.BeginAnimation(Border.BorderThicknessProperty, new ThicknessAnimation
+        {
+            To = new Thickness(thickness),
+            Duration = TimeSpan.FromMilliseconds(150),
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+        });
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -46,8 +179,10 @@ public partial class NoteCardControl : UserControl
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(NoteCardViewModel.IsDeleting)) return;
-        if (sender is not NoteCardViewModel vm || !vm.IsDeleting) return;
+        if (e.PropertyName != nameof(NoteCardViewModel.IsDeleting))
+            return;
+        if (sender is not NoteCardViewModel vm || !vm.IsDeleting)
+            return;
 
         var sb = ((Storyboard)Resources["ExitStoryboard"]).Clone();
         sb.Completed += (_, _) => vm.ExecuteDelete();
@@ -121,11 +256,9 @@ public partial class NoteCardControl : UserControl
                         // 2) Try BOM detection / StreamReader fallback
                         try
                         {
-                            using (var ms = new System.IO.MemoryStream(rawBytes))
-                            using (var sr = new System.IO.StreamReader(ms, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true))
-                            {
-                                content = sr.ReadToEnd();
-                            }
+                            using var ms = new System.IO.MemoryStream(rawBytes);
+                            using var sr = new System.IO.StreamReader(ms, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                            content = sr.ReadToEnd();
                         }
                         catch
                         {

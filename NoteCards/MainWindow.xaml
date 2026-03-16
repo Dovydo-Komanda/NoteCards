@@ -130,6 +130,34 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+		<Style x:Key="GroupCardStyle" TargetType="Border">
+			<Setter Property="Opacity" Value="0"/>
+			<Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+			<Setter Property="RenderTransform">
+				<Setter.Value>
+					<TranslateTransform Y="10"/>
+				</Setter.Value>
+			</Setter>
+			<Style.Triggers>
+				<EventTrigger RoutedEvent="Loaded">
+					<BeginStoryboard>
+						<Storyboard>
+							<DoubleAnimation Storyboard.TargetProperty="Opacity"
+											 To="1"
+											 Duration="0:0:0.25"/>
+							<DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+											 To="0"
+											 Duration="0:0:0.25">
+								<DoubleAnimation.EasingFunction>
+									<CubicEase EasingMode="EaseOut"/>
+								</DoubleAnimation.EasingFunction>
+							</DoubleAnimation>
+						</Storyboard>
+					</BeginStoryboard>
+				</EventTrigger>
+			</Style.Triggers>
+		</Style>
     </Window.Resources>
     <Window.DataContext>
         <vm:MainViewModel/>
@@ -258,56 +286,362 @@
 						BorderBrush="{DynamicResource BorderColor}"
 						BorderThickness="0,0,0,1"
 						Padding="16,12">
-					<StackPanel>
-                      <TextBlock Text="{Binding [RecentNotes], Source={StaticResource Loc}}"
-								   FontSize="13"
-								   FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextColor}"
-								   Margin="0,0,0,10"
-								   FontFamily="Segoe UI Variable, Segoe UI, sans-serif"/>
-						<ItemsControl ItemsSource="{Binding RecentNotes}">
-							<ItemsControl.ItemsPanel>
-								<ItemsPanelTemplate>
-									<StackPanel Orientation="Horizontal"/>
-								</ItemsPanelTemplate>
-							</ItemsControl.ItemsPanel>
-							<ItemsControl.ItemTemplate>
-								<DataTemplate DataType="{x:Type vm:NoteCardViewModel}">
-									<Button Style="{StaticResource RecentNoteCardStyle}"
-											Tag="{Binding}"
-											Click="RecentNoteButton_Click">
-										<StackPanel MinWidth="120" MaxWidth="180">
-											<TextBlock Text="{Binding Document.Title}"
-													   FontWeight="SemiBold"
-													   FontSize="13"
-													   TextTrimming="CharacterEllipsis"
-													   Foreground="{DynamicResource TextColor}"/>
-											<TextBlock Text="{Binding Document.LastModified, StringFormat='{}{0:dd MMM, HH:mm}'}"
-													   FontSize="11"
-													   Foreground="{DynamicResource TextColor}"
-													   Margin="0,4,0,0"/>
-										</StackPanel>
-									</Button>
-								</DataTemplate>
-							</ItemsControl.ItemTemplate>
-						</ItemsControl>
+                    <StackPanel>
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="Auto"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock Text="{Binding [RecentNotes], Source={StaticResource Loc}}"
+									   FontSize="13"
+									   FontWeight="SemiBold"
+									   Foreground="{DynamicResource TextColor}"
+									   FontFamily="Segoe UI Variable, Segoe UI, sans-serif"
+									   VerticalAlignment="Center"/>
+							<Button Grid.Column="1"
+									Width="28"
+									Height="28"
+									Padding="0"
+									FontSize="15"
+									Background="Transparent"
+									BorderThickness="0"
+									Cursor="Hand"
+                                 ToolTip="Show/Hide recent notes"
+									Click="ToggleRecentSectionButton_Click">
+								<Button.Style>
+									<Style TargetType="Button">
+										<Setter Property="Content" Value="▾"/>
+										<Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+										<Setter Property="RenderTransform">
+											<Setter.Value>
+												<RotateTransform Angle="0"/>
+											</Setter.Value>
+										</Setter>
+										<Style.Triggers>
+											<DataTrigger Binding="{Binding IsRecentSectionExpanded}" Value="False">
+												<Setter Property="RenderTransform">
+													<Setter.Value>
+														<RotateTransform Angle="-90"/>
+													</Setter.Value>
+												</Setter>
+											</DataTrigger>
+										</Style.Triggers>
+									</Style>
+								</Button.Style>
+							</Button>
+						</Grid>
+                      <Border x:Name="RecentSectionBody"
+								Margin="0,10,0,0"
+								RenderTransformOrigin="0.5,0">
+							<Border.RenderTransform>
+								<TranslateTransform/>
+							</Border.RenderTransform>
+							<ScrollViewer x:Name="RecentNotesScrollViewer"
+										  HorizontalScrollBarVisibility="Auto"
+										  VerticalScrollBarVisibility="Disabled"
+										  CanContentScroll="True"
+										  PanningMode="HorizontalOnly"
+										  PreviewMouseWheel="RecentNotesScrollViewer_PreviewMouseWheel">
+								<ItemsControl ItemsSource="{Binding RecentNotes}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate>
+											<StackPanel Orientation="Horizontal"/>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate DataType="{x:Type vm:NoteCardViewModel}">
+											<Button Style="{StaticResource RecentNoteCardStyle}"
+													Tag="{Binding}"
+													Click="RecentNoteButton_Click">
+												<StackPanel MinWidth="120" MaxWidth="180">
+													<TextBlock Text="{Binding Document.Title}"
+															   FontWeight="SemiBold"
+															   FontSize="13"
+															   TextTrimming="CharacterEllipsis"
+															   Foreground="{DynamicResource TextColor}"/>
+													<TextBlock Text="{Binding Document.LastModified, StringFormat='{}{0:dd MMM, HH:mm}'}"
+															   FontSize="11"
+															   Foreground="{DynamicResource TextColor}"
+															   Margin="0,4,0,0"/>
+												</StackPanel>
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</ScrollViewer>
+						</Border>
 					</StackPanel>
 				</Border>
 				<!-- All Notes + FAB -->
-				<Grid Grid.Row="1">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
-						<ItemsControl ItemsSource="{Binding NotesView}">
-							<ItemsControl.ItemsPanel>
-								<ItemsPanelTemplate>
-									<WrapPanel Orientation="Horizontal"/>
-								</ItemsPanelTemplate>
-							</ItemsControl.ItemsPanel>
-							<ItemsControl.ItemTemplate>
-								<DataTemplate DataType="{x:Type vm:NoteCardViewModel}">
-									<controls:NoteCardControl/>
-								</DataTemplate>
-							</ItemsControl.ItemTemplate>
-						</ItemsControl>
+             <Grid Grid.Row="1">
+				   <ScrollViewer x:Name="NotesScrollViewer"
+								 VerticalScrollBarVisibility="Auto"
+								 Padding="8"
+								 AllowDrop="True"
+								 PreviewDragOver="NotesScrollViewer_PreviewDragOver"
+								 PreviewMouseWheel="NotesScrollViewer_PreviewMouseWheel">
+                        <Grid Margin="0,0,0,18">
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+							</Grid.RowDefinitions>
+
+							<Border x:Name="GroupsSectionContainer"
+									Visibility="{Binding HasGroups, Converter={StaticResource BoolToVis}}"
+									Margin="0,0,0,10"
+									RenderTransformOrigin="0.5,0.5">
+								<Border.Style>
+									<Style TargetType="Border">
+										<Setter Property="Grid.Row" Value="0"/>
+										<Style.Triggers>
+											<DataTrigger Binding="{Binding IsGroupsFirst}" Value="False">
+												<Setter Property="Grid.Row" Value="1"/>
+											</DataTrigger>
+										</Style.Triggers>
+									</Style>
+								</Border.Style>
+								<Border.RenderTransform>
+									<TranslateTransform/>
+								</Border.RenderTransform>
+								<StackPanel>
+									<Grid Margin="10,6,10,8">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="Auto"/>
+										</Grid.ColumnDefinitions>
+										<TextBlock Text="{Binding [Groups], Source={StaticResource Loc}}"
+												   FontSize="14"
+												   FontWeight="SemiBold"
+												   Foreground="{DynamicResource TextColor}"
+												   VerticalAlignment="Center"/>
+                                     <Button Grid.Column="1" Width="26" Height="26" Margin="0,0,2,0" Padding="0" FontSize="12" Content="↑" Background="#EAF2FF" Foreground="#2A5BCF" BorderBrush="#BCD2FF" BorderThickness="1" Cursor="Hand" ToolTip="Move groups section up" Click="MoveGroupsUpButton_Click"/>
+                                     <Button Grid.Column="2" Width="26" Height="26" Margin="0,0,4,0" Padding="0" FontSize="12" Content="↓" Background="#EAF2FF" Foreground="#2A5BCF" BorderBrush="#BCD2FF" BorderThickness="1" Cursor="Hand" ToolTip="Move groups section down" Click="MoveGroupsDownButton_Click"/>
+										<Button Grid.Column="3" Width="28" Height="28" Padding="0" FontSize="15" Background="#F2F2F5" Foreground="#444" BorderBrush="#D8D8DE" BorderThickness="1" Cursor="Hand" ToolTip="Show/Hide groups" Click="ToggleGroupsSectionButton_Click">
+											<Button.Style>
+												<Style TargetType="Button">
+													<Setter Property="Content" Value="▾"/>
+													<Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+													<Setter Property="RenderTransform">
+														<Setter.Value><RotateTransform Angle="0"/></Setter.Value>
+													</Setter>
+													<Style.Triggers>
+														<DataTrigger Binding="{Binding IsGroupsSectionExpanded}" Value="False">
+															<Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-90"/></Setter.Value></Setter>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</Button.Style>
+										</Button>
+									</Grid>
+                                 <StackPanel x:Name="GroupsSectionBody">
+										<ItemsControl x:Name="GroupsItemsControl" ItemsSource="{Binding NoteGroups}">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate DataType="{x:Type vm:NoteGroupViewModel}">
+											<Border Style="{StaticResource GroupCardStyle}"
+                                                    Background="{Binding BackgroundBrush}"
+													BorderBrush="#D9E3FF"
+													BorderThickness="1"
+													CornerRadius="12"
+													Padding="10"
+													Margin="8,0,8,10"
+													AllowDrop="True"
+													DragOver="GroupBorder_DragOver"
+													Drop="GroupBorder_Drop">
+												<Border.Tag>
+													<Binding/>
+												</Border.Tag>
+                                                <StackPanel>
+													<Grid Margin="2,0,2,8">
+														<Grid.ColumnDefinitions>
+															<ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+																<ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+															<ColumnDefinition Width="Auto"/>
+														</Grid.ColumnDefinitions>
+														<TextBlock Text="{Binding Name}"
+																   FontWeight="SemiBold"
+																   Foreground="#2F3A59"
+																   VerticalAlignment="Center"
+																   TextTrimming="CharacterEllipsis"
+																   Margin="0,0,8,0"/>
+                                                         <Button Grid.Column="1"
+																  Width="24"
+																	Height="24"
+																	Padding="0"
+																	FontSize="11"
+																	Content="↑"
+																	Background="#EEF5FF"
+																	Foreground="#2A5BCF"
+																	BorderBrush="#C8DAFF"
+																	BorderThickness="1"
+																	Cursor="Hand"
+																	Margin="0,0,3,0"
+																	Tag="{Binding}"
+																	ToolTip="Move this group up"
+																	Click="MoveSingleGroupUpButton_Click"/>
+															<Button Grid.Column="2"
+																  Width="24"
+																	Height="24"
+																	Padding="0"
+																	FontSize="11"
+																	Content="↓"
+																	Background="#EEF5FF"
+																	Foreground="#2A5BCF"
+																	BorderBrush="#C8DAFF"
+																	BorderThickness="1"
+																	Cursor="Hand"
+																	Margin="0,0,4,0"
+																	Tag="{Binding}"
+																	ToolTip="Move this group down"
+																	Click="MoveSingleGroupDownButton_Click"/>
+															<Button Grid.Column="3"
+                                                              Width="28"
+																Height="28"
+																Padding="0"
+																FontSize="13"
+																Content="🎨"
+																Background="Transparent"
+																BorderThickness="0"
+																Cursor="Hand"
+																Margin="0,0,4,0"
+																Tag="{Binding}"
+																ToolTip="{Binding [GroupBackgroundColor], Source={StaticResource Loc}}"
+																Click="GroupColorButton_Click">
+															<Button.ContextMenu>
+																<ContextMenu>
+																	<MenuItem Header="{Binding [GroupColorDefault], Source={StaticResource Loc}}"
+																		  Tag="#F8FAFF"
+																		  Click="GroupColorMenuItem_Click"/>
+																	<MenuItem Header="{Binding [GroupColorMint], Source={StaticResource Loc}}"
+																		  Tag="#ECFEF1"
+																		  Click="GroupColorMenuItem_Click"/>
+																	<MenuItem Header="{Binding [GroupColorRose], Source={StaticResource Loc}}"
+																		  Tag="#FFF1F2"
+																		  Click="GroupColorMenuItem_Click"/>
+																	<MenuItem Header="{Binding [GroupColorAmber], Source={StaticResource Loc}}"
+																		  Tag="#FFFBEB"
+																		  Click="GroupColorMenuItem_Click"/>
+																	<MenuItem Header="{Binding [GroupColorLilac], Source={StaticResource Loc}}"
+																		  Tag="#F5F3FF"
+																		  Click="GroupColorMenuItem_Click"/>
+																</ContextMenu>
+															</Button.ContextMenu>
+														</Button>
+                                                         <Button Grid.Column="4"
+																Width="28"
+																Height="28"
+																Padding="0"
+																FontSize="16"
+																FontWeight="Bold"
+																Content="&#x22EE;"
+																Background="Transparent"
+																BorderThickness="0"
+																Cursor="Hand"
+																Tag="{Binding}"
+																Click="GroupMenuButton_Click">
+															<Button.ContextMenu>
+																<ContextMenu>
+																	<MenuItem Header="{Binding [RenameGroup], Source={StaticResource Loc}}"
+																			  Click="RenameGroupMenuItem_Click"/>
+																	<Separator/>
+																	<MenuItem Header="{Binding [DisbandGroup], Source={StaticResource Loc}}"
+																			  Click="DisbandGroupMenuItem_Click"/>
+																</ContextMenu>
+															</Button.ContextMenu>
+														</Button>
+													</Grid>
+													<ItemsControl ItemsSource="{Binding Notes}">
+														<ItemsControl.ItemsPanel>
+															<ItemsPanelTemplate>
+																<WrapPanel Orientation="Horizontal"/>
+															</ItemsPanelTemplate>
+														</ItemsControl.ItemsPanel>
+														<ItemsControl.ItemTemplate>
+															<DataTemplate DataType="{x:Type vm:NoteCardViewModel}">
+																<controls:NoteCardControl/>
+															</DataTemplate>
+														</ItemsControl.ItemTemplate>
+													</ItemsControl>
+												</StackPanel>
+											</Border>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+                                     </ItemsControl>
+									</StackPanel>
+								</StackPanel>
+							</Border>
+
+							<Border x:Name="UngroupedSectionContainer"
+									Background="Transparent"
+									AllowDrop="True"
+									DragOver="UngroupedDropZone_DragOver"
+									Drop="UngroupedDropZone_Drop"
+									RenderTransformOrigin="0.5,0.5">
+								<Border.Style>
+									<Style TargetType="Border">
+										<Setter Property="Grid.Row" Value="1"/>
+										<Style.Triggers>
+											<DataTrigger Binding="{Binding IsGroupsFirst}" Value="False">
+												<Setter Property="Grid.Row" Value="0"/>
+											</DataTrigger>
+										</Style.Triggers>
+									</Style>
+								</Border.Style>
+								<Border.RenderTransform>
+									<TranslateTransform/>
+								</Border.RenderTransform>
+								<StackPanel>
+									<Grid Margin="10,2,10,8">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="Auto"/>
+										</Grid.ColumnDefinitions>
+										<TextBlock Text="{Binding [UngroupedNotes], Source={StaticResource Loc}}"
+												   FontSize="14"
+												   FontWeight="SemiBold"
+												   Foreground="{DynamicResource TextColor}"
+												   VerticalAlignment="Center"/>
+                                       <Button Grid.Column="1" Width="26" Height="26" Margin="0,0,2,0" Padding="0" FontSize="12" Content="↑" Background="#FFF4EA" Foreground="#C96A1A" BorderBrush="#FFD6B3" BorderThickness="1" Cursor="Hand" ToolTip="Move ungrouped section up" Click="MoveUngroupedUpButton_Click"/>
+                                     <Button Grid.Column="2" Width="26" Height="26" Margin="0,0,4,0" Padding="0" FontSize="12" Content="↓" Background="#FFF4EA" Foreground="#C96A1A" BorderBrush="#FFD6B3" BorderThickness="1" Cursor="Hand" ToolTip="Move ungrouped section down" Click="MoveUngroupedDownButton_Click"/>
+										<Button Grid.Column="3" Width="28" Height="28" Padding="0" FontSize="15" Background="#F2F2F5" Foreground="#444" BorderBrush="#D8D8DE" BorderThickness="1" Cursor="Hand" ToolTip="Show/Hide ungrouped" Click="ToggleUngroupedSectionButton_Click">
+											<Button.Style>
+												<Style TargetType="Button">
+													<Setter Property="Content" Value="▾"/>
+													<Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+													<Setter Property="RenderTransform">
+														<Setter.Value><RotateTransform Angle="0"/></Setter.Value>
+													</Setter>
+													<Style.Triggers>
+														<DataTrigger Binding="{Binding IsUngroupedSectionExpanded}" Value="False">
+															<Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-90"/></Setter.Value></Setter>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</Button.Style>
+										</Button>
+									</Grid>
+									<StackPanel x:Name="UngroupedSectionBody">
+										<ItemsControl ItemsSource="{Binding NotesView}">
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate>
+												<WrapPanel Orientation="Horizontal"/>
+											</ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate DataType="{x:Type vm:NoteCardViewModel}">
+												<controls:NoteCardControl/>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+                                     </ItemsControl>
+									</StackPanel>
+								</StackPanel>
+							</Border>
+						</Grid>
 					</ScrollViewer>
 					<Button Style="{StaticResource FabStyle}"
 							VerticalAlignment="Bottom"

@@ -4,5 +4,7 @@
     <SolidColorBrush x:Key="WindowBackground" Color="#EBEBEF"/>
     <SolidColorBrush x:Key="SidebarBackground" Color="#F3F3F3"/>
     <SolidColorBrush x:Key="TextColor" Color="#1C1C1C"/>
+    <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="BorderColor" Color="#D9D9DF"/>
 
 </ResourceDictionary>

@@ -64,4 +64,22 @@
   <data name="FirstNoteContent" xml:space="preserve"><value>This is a test document to verify NoteCards functionality.</value></data>
   <data name="NewNoteTitle" xml:space="preserve"><value>New Note</value></data>
   <data name="FontButtonFormat" xml:space="preserve"><value>Font: {0}, {1}</value></data>
+  <data name="Groups" xml:space="preserve"><value>Groups</value></data>
+  <data name="UngroupedNotes" xml:space="preserve"><value>Ungrouped Notes</value></data>
+  <data name="GroupTitleFormat" xml:space="preserve"><value>Group {0}</value></data>
+  <data name="RemoveFromGroup" xml:space="preserve"><value>Remove from Group</value></data>
+  <data name="RenameGroup" xml:space="preserve"><value>Rename Group</value></data>
+  <data name="RenameGroupPrompt" xml:space="preserve"><value>Enter a new group name:</value></data>
+  <data name="GroupBackgroundColor" xml:space="preserve"><value>Group Background Color</value></data>
+  <data name="GroupColorDefault" xml:space="preserve"><value>Default Blue</value></data>
+  <data name="GroupColorMint" xml:space="preserve"><value>Mint</value></data>
+  <data name="GroupColorRose" xml:space="preserve"><value>Rose</value></data>
+  <data name="GroupColorAmber" xml:space="preserve"><value>Amber</value></data>
+  <data name="GroupColorLilac" xml:space="preserve"><value>Lilac</value></data>
+  <data name="DisbandGroup" xml:space="preserve"><value>Disband Group</value></data>
+  <data name="DisbandGroupPrompt" xml:space="preserve"><value>Disband this group?
+Yes = keep notes as ungrouped
+No = disband and delete all notes in this group
+Cancel = abort</value></data>
+  <data name="DropToUngroup" xml:space="preserve"><value>Drop here to move note out of group</value></data>
 </root>

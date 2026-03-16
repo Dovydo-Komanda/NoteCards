@@ -5,17 +5,24 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace NoteCards.ViewModels;
 
 public class MainViewModel : ViewModelBase
 {
+    private const string DefaultGroupBackground = "#F8FAFF";
+    private const int RecentNotesLimit = 20;
+
     private bool _isLoadingSettings;
+    private bool _saveNotesQueued;
     private bool _enableScrollbar = true;
     private string _selectedLanguage = LocalizationService.English;
     private string _selectedTheme = "Light";
+    private readonly Dictionary<Guid, NoteGroupData> _groupMetadata = new();
 
     public bool EnableScrollbar
     {
@@ -68,10 +75,15 @@ public class MainViewModel : ViewModelBase
         LoadAppSettings();
 
         Notes = new ObservableCollection<NoteCardViewModel>();
+        NoteGroups = new ObservableCollection<NoteGroupViewModel>();
         // Create a view for Notes so we can apply filtering for search
         _notesView = CollectionViewSource.GetDefaultView(Notes);
-        _notesView.Filter = (o) => FilterNotes(o);
-        Notes.CollectionChanged += (_, _) => RefreshRecentNotes();
+        _notesView.Filter = FilterUngroupedNotes;
+        Notes.CollectionChanged += (_, _) =>
+        {
+            RefreshRecentNotes();
+            RebuildGroups();
+        };
         RefreshRecentNotes();
         AddNoteCommand = new RelayCommand(AddNote);
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
@@ -84,15 +96,66 @@ public class MainViewModel : ViewModelBase
                 Title = LocalizationService.GetString("FirstNoteTitle"),
                 Content = LocalizationService.GetString("FirstNoteContent")
             };
-            Notes.Add(new NoteCardViewModel(testDocument, DeleteNote));
+            Notes.Add(CreateNoteCard(testDocument));
             SaveNotes();
         }
+
+        RebuildGroups();
     }
 
     public ObservableCollection<NoteCardViewModel> Notes { get; }
+    public ObservableCollection<NoteGroupViewModel> NoteGroups { get; }
+    public bool HasGroups => NoteGroups.Count > 0;
 
     private readonly ICollectionView _notesView;
     public ICollectionView NotesView => _notesView;
+
+    private bool _isRecentSectionExpanded = true;
+    public bool IsRecentSectionExpanded
+    {
+        get => _isRecentSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isRecentSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    private bool _isGroupsSectionExpanded = true;
+    public bool IsGroupsSectionExpanded
+    {
+        get => _isGroupsSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isGroupsSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    private bool _isUngroupedSectionExpanded = true;
+    public bool IsUngroupedSectionExpanded
+    {
+        get => _isUngroupedSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isUngroupedSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    private bool _isGroupsFirst = true;
+    public bool IsGroupsFirst
+    {
+        get => _isGroupsFirst;
+        set
+        {
+            if (SetProperty(ref _isGroupsFirst, value))
+            {
+                CommandManager.InvalidateRequerySuggested();
+                SaveAppSettings();
+            }
+        }
+    }
 
     private string _searchQuery = string.Empty;
     public string SearchQuery
@@ -105,26 +168,194 @@ public class MainViewModel : ViewModelBase
                 _searchQuery = value ?? string.Empty;
                 OnPropertyChanged(nameof(SearchQuery));
                 _notesView.Refresh();
+                RebuildGroups();
             }
         }
     }
 
     public ICommand AddNoteCommand { get; }
+    public ICommand ToggleRecentSectionCommand { get; }
+    public ICommand ToggleGroupsSectionCommand { get; }
+    public ICommand ToggleUngroupedSectionCommand { get; }
+    public ICommand MoveGroupsUpCommand { get; }
+    public ICommand MoveGroupsDownCommand { get; }
+    public ICommand MoveUngroupedUpCommand { get; }
+    public ICommand MoveUngroupedDownCommand { get; }
+
+    public NoteCardViewModel AddNoteFromDocument(NoteDocument document)
+    {
+        var note = CreateNoteCard(document);
+        Notes.Add(note);
+        SaveNotes();
+        return note;
+    }
 
     private void AddNote()
     {
-            var document = new NoteDocument
-            {
-                Title = LocalizationService.GetString("NewNoteTitle"),
-                Content = string.Empty
-            };
-        Notes.Add(new NoteCardViewModel(document, DeleteNote));
-        SaveNotes();
+        var document = new NoteDocument
+        {
+            Title = LocalizationService.GetString("NewNoteTitle"),
+            Content = string.Empty
+        };
+        AddNoteFromDocument(document);
     }
 
     private void DeleteNote(NoteCardViewModel noteCard)
     {
         Notes.Remove(noteCard);
+        NormalizeGroups();
+        RebuildGroups();
+        SaveNotes();
+    }
+
+    public bool TryGroupNotes(NoteCardViewModel draggedNote, NoteCardViewModel targetNote)
+    {
+        if (ReferenceEquals(draggedNote, targetNote))
+            return false;
+
+        var targetGroupId = targetNote.Document.GroupId;
+        var finalGroupId = targetGroupId ?? draggedNote.Document.GroupId ?? Guid.NewGuid();
+
+        if (draggedNote.Document.GroupId == finalGroupId && targetNote.Document.GroupId == finalGroupId)
+            return false;
+
+        draggedNote.Document.GroupId = finalGroupId;
+        targetNote.Document.GroupId = finalGroupId;
+        EnsureGroupMetadata(finalGroupId);
+
+        draggedNote.NotifyGroupChanged();
+        targetNote.NotifyGroupChanged();
+
+        NormalizeGroups();
+        RebuildGroups();
+        SaveNotes();
+        return true;
+    }
+
+    public bool MoveGroupUp(NoteGroupViewModel group)
+    {
+        return TryMoveGroup(group, moveUp: true);
+    }
+
+    public bool MoveGroupDown(NoteGroupViewModel group)
+    {
+        return TryMoveGroup(group, moveUp: false);
+    }
+
+    public bool TryReorderNotesWithinGroup(NoteCardViewModel draggedNote, NoteCardViewModel targetNote, bool placeAfter)
+    {
+        if (ReferenceEquals(draggedNote, targetNote))
+            return false;
+
+        var groupId = draggedNote.Document.GroupId;
+        if (!groupId.HasValue || targetNote.Document.GroupId != groupId)
+            return false;
+
+        var draggedIndex = Notes.IndexOf(draggedNote);
+        var targetIndex = Notes.IndexOf(targetNote);
+        if (draggedIndex < 0 || targetIndex < 0)
+            return false;
+
+        var newIndex = placeAfter ? targetIndex + 1 : targetIndex;
+        if (draggedIndex < newIndex)
+            newIndex--;
+
+        if (newIndex == draggedIndex)
+            return false;
+
+        Notes.Move(draggedIndex, Math.Clamp(newIndex, 0, Notes.Count - 1));
+        RebuildGroups();
+        SaveNotes();
+        return true;
+    }
+
+    public bool TryMoveNoteToGroup(NoteCardViewModel draggedNote, NoteGroupViewModel targetGroup)
+    {
+        if (draggedNote.Document.GroupId == targetGroup.GroupId)
+            return false;
+
+        draggedNote.Document.GroupId = targetGroup.GroupId;
+        EnsureGroupMetadata(targetGroup.GroupId);
+        draggedNote.NotifyGroupChanged();
+        NormalizeGroups();
+        RebuildGroups();
+        SaveNotes();
+        return true;
+    }
+
+    public void RemoveFromGroup(NoteCardViewModel note)
+    {
+        if (!note.Document.GroupId.HasValue)
+            return;
+
+        note.Document.GroupId = null;
+        note.NotifyGroupChanged();
+        NormalizeGroups();
+        RebuildGroups();
+        _notesView.Refresh();
+        SaveNotes();
+    }
+
+    public bool TryDropToUngrouped(NoteCardViewModel draggedNote)
+    {
+        if (!draggedNote.Document.GroupId.HasValue)
+            return false;
+
+        RemoveFromGroup(draggedNote);
+        return true;
+    }
+
+    public bool RenameGroup(NoteGroupViewModel group, string newName)
+    {
+        var trimmed = (newName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return false;
+
+        var metadata = EnsureGroupMetadata(group.GroupId);
+        if (string.Equals(metadata.Name, trimmed, StringComparison.Ordinal))
+            return false;
+
+        metadata.Name = trimmed;
+        group.Name = trimmed;
+        SaveNotes();
+        return true;
+    }
+
+    public bool SetGroupBackgroundColor(NoteGroupViewModel group, string backgroundColor)
+    {
+        if (string.IsNullOrWhiteSpace(backgroundColor))
+            return false;
+
+        var metadata = EnsureGroupMetadata(group.GroupId);
+        if (string.Equals(metadata.BackgroundColor, backgroundColor, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        metadata.BackgroundColor = backgroundColor;
+        group.SetBackground(backgroundColor);
+        SaveNotes();
+        return true;
+    }
+
+    public void DisbandGroup(NoteGroupViewModel group, bool deleteNotes)
+    {
+        var notesInGroup = Notes.Where(n => n.Document.GroupId == group.GroupId).ToList();
+        if (deleteNotes)
+        {
+            foreach (var note in notesInGroup)
+                Notes.Remove(note);
+        }
+        else
+        {
+            foreach (var note in notesInGroup)
+            {
+                note.Document.GroupId = null;
+                note.NotifyGroupChanged();
+            }
+        }
+
+        _groupMetadata.Remove(group.GroupId);
+        NormalizeGroups();
+        RebuildGroups();
         SaveNotes();
     }
 
@@ -142,22 +373,52 @@ public class MainViewModel : ViewModelBase
         _isSidebarExpanded = !_isSidebarExpanded;
         OnPropertyChanged(nameof(SidebarWidth));
     }
+
+    private void MoveGroupsUp()
+    {
+        IsGroupsFirst = true;
+    }
+
+    private void MoveGroupsDown()
+    {
+        IsGroupsFirst = false;
+    }
+
+    private void MoveUngroupedUp()
+    {
+        IsGroupsFirst = false;
+    }
+
+    private void MoveUngroupedDown()
+    {
+        IsGroupsFirst = true;
+    }
+
     public ObservableCollection<NoteCardViewModel> RecentNotes { get; } = new();
     public void RefreshRecentNotes()
     {
         var recent = Notes
             .OrderByDescending(n => n.Document.LastModified)
-            .Take(5)
+            .Take(RecentNotesLimit)
             .ToList();
         RecentNotes.Clear();
         foreach (var note in recent)
             RecentNotes.Add(note);
     }
 
-    private bool FilterNotes(object? obj)
+    private bool FilterUngroupedNotes(object? obj)
     {
         if (obj is not NoteCardViewModel note)
             return false;
+
+        if (note.Document.GroupId.HasValue)
+            return false;
+
+        return MatchesSearch(note);
+    }
+
+    private bool MatchesSearch(NoteCardViewModel note)
+    {
 
         if (string.IsNullOrWhiteSpace(SearchQuery))
             return true;
@@ -166,6 +427,68 @@ public class MainViewModel : ViewModelBase
         // Case-insensitive contains on title or content
         return (note.Title?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
             || (note.Content?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private void NormalizeGroups()
+    {
+        var grouped = Notes
+            .Where(n => n.Document.GroupId.HasValue)
+            .GroupBy(n => n.Document.GroupId!.Value)
+            .ToList();
+
+        foreach (var group in grouped)
+        {
+            if (group.Count() >= 2)
+                continue;
+
+            foreach (var note in group)
+            {
+                note.Document.GroupId = null;
+                note.NotifyGroupChanged();
+            }
+
+            _groupMetadata.Remove(group.Key);
+        }
+    }
+
+    private void RebuildGroups()
+    {
+        _notesView.Refresh();
+
+        var groupedByRecent = Notes
+            .Where(n => n.Document.GroupId.HasValue)
+            .GroupBy(n => n.Document.GroupId!.Value)
+            .OrderByDescending(g => g.Max(n => n.Document.LastModified))
+            .ToList();
+
+        var nextOrder = 0;
+        foreach (var group in groupedByRecent)
+        {
+            var metadata = EnsureGroupMetadata(group.Key);
+            if (!metadata.SortOrder.HasValue)
+                metadata.SortOrder = nextOrder;
+
+            nextOrder = Math.Max(nextOrder, metadata.SortOrder.Value + 1);
+        }
+
+        var grouped = groupedByRecent
+            .OrderBy(g => EnsureGroupMetadata(g.Key).SortOrder ?? int.MaxValue)
+            .ThenByDescending(g => g.Max(n => n.Document.LastModified))
+            .ToList();
+
+        NoteGroups.Clear();
+
+        foreach (var group in grouped)
+        {
+            var visibleNotes = group.Where(MatchesSearch).ToList();
+            if (visibleNotes.Count == 0)
+                continue;
+
+            var metadata = EnsureGroupMetadata(group.Key);
+            NoteGroups.Add(new NoteGroupViewModel(group.Key, metadata.Name, metadata.BackgroundColor, visibleNotes));
+        }
+
+        OnPropertyChanged(nameof(HasGroups));
     }
     // Persistence: save/load notes to a local JSON file
     private static string GetNotesFilePath()
@@ -183,8 +506,17 @@ public class MainViewModel : ViewModelBase
             foreach (var vm in Notes)
                 docs.Add(vm.Document);
 
+            var store = new NotesStoreData
+            {
+                Notes = docs,
+                Groups = _groupMetadata.Values
+                    .OrderBy(g => g.SortOrder ?? int.MaxValue)
+                    .ThenBy(g => g.Name)
+                    .ToList()
+            };
+
             var opts = new JsonSerializerOptions { WriteIndented = true };
-            var json = JsonSerializer.Serialize(docs, opts);
+            var json = JsonSerializer.Serialize(store, opts);
             File.WriteAllText(GetNotesFilePath(), json);
         }
         catch
@@ -201,6 +533,10 @@ public class MainViewModel : ViewModelBase
         _enableScrollbar = settings.EnableScrollbar;
         _selectedLanguage = LocalizationService.NormalizeLanguage(settings.Language);
         _selectedTheme = string.Equals(settings.Theme, "Dark", StringComparison.OrdinalIgnoreCase) ? "Dark" : "Light";
+        _isRecentSectionExpanded = settings.IsRecentSectionExpanded;
+        _isGroupsSectionExpanded = settings.IsGroupsSectionExpanded;
+        _isUngroupedSectionExpanded = settings.IsUngroupedSectionExpanded;
+        _isGroupsFirst = settings.IsGroupsFirst;
 
         LocalizationService.SetCulture(_selectedLanguage);
         ThemeManager.SetTheme(_selectedTheme);
@@ -217,7 +553,11 @@ public class MainViewModel : ViewModelBase
         {
             Language = _selectedLanguage,
             Theme = _selectedTheme,
-            EnableScrollbar = _enableScrollbar
+            EnableScrollbar = _enableScrollbar,
+            IsRecentSectionExpanded = _isRecentSectionExpanded,
+            IsGroupsSectionExpanded = _isGroupsSectionExpanded,
+            IsUngroupedSectionExpanded = _isUngroupedSectionExpanded,
+            IsGroupsFirst = _isGroupsFirst
         });
     }
 
@@ -230,13 +570,31 @@ public class MainViewModel : ViewModelBase
                 return false;
 
             var json = File.ReadAllText(path);
-            var docs = JsonSerializer.Deserialize<List<NoteDocument>>(json);
-            if (docs == null || docs.Count == 0)
+            var docs = new List<NoteDocument>();
+            var store = JsonSerializer.Deserialize<NotesStoreData>(json);
+            if (store?.Notes != null && store.Notes.Count > 0)
+            {
+                docs = store.Notes;
+                _groupMetadata.Clear();
+                foreach (var metadata in store.Groups ?? new List<NoteGroupData>())
+                    _groupMetadata[metadata.GroupId] = metadata;
+            }
+            else
+            {
+                var legacyDocs = JsonSerializer.Deserialize<List<NoteDocument>>(json);
+                if (legacyDocs != null)
+                    docs = legacyDocs;
+            }
+
+            if (docs.Count == 0)
                 return false;
 
             Notes.Clear();
             foreach (var doc in docs)
-                Notes.Add(new NoteCardViewModel(doc, DeleteNote));
+                Notes.Add(CreateNoteCard(doc));
+
+            NormalizeGroups();
+            RebuildGroups();
 
             return true;
         }
@@ -244,5 +602,83 @@ public class MainViewModel : ViewModelBase
         {
             return false;
         }
+    }
+
+    private NoteCardViewModel CreateNoteCard(NoteDocument doc)
+    {
+        return new NoteCardViewModel(doc, DeleteNote, RemoveFromGroup);
+    }
+
+    private NoteGroupData EnsureGroupMetadata(Guid groupId)
+    {
+        if (_groupMetadata.TryGetValue(groupId, out var metadata))
+        {
+            metadata.SortOrder ??= GetNextGroupSortOrder();
+            return metadata;
+        }
+
+        metadata = new NoteGroupData
+        {
+            GroupId = groupId,
+            Name = string.Format(
+                LocalizationService.GetString("GroupTitleFormat"),
+                groupId.ToString()[..4].ToUpperInvariant()),
+            BackgroundColor = DefaultGroupBackground,
+            SortOrder = GetNextGroupSortOrder()
+        };
+        _groupMetadata[groupId] = metadata;
+        return metadata;
+    }
+
+    private int GetNextGroupSortOrder()
+    {
+        if (_groupMetadata.Count == 0)
+            return 0;
+
+        return _groupMetadata.Values
+            .Select(m => m.SortOrder ?? -1)
+            .DefaultIfEmpty(-1)
+            .Max() + 1;
+    }
+
+    private bool TryMoveGroup(NoteGroupViewModel group, bool moveUp)
+    {
+        var currentIndex = NoteGroups.IndexOf(group);
+        if (currentIndex < 0)
+            return false;
+
+        var targetIndex = moveUp ? currentIndex - 1 : currentIndex + 1;
+        if (targetIndex < 0 || targetIndex >= NoteGroups.Count)
+            return false;
+
+        var targetGroup = NoteGroups[targetIndex];
+        var current = EnsureGroupMetadata(group.GroupId);
+        var target = EnsureGroupMetadata(targetGroup.GroupId);
+
+        (current.SortOrder, target.SortOrder) = (target.SortOrder, current.SortOrder);
+        NoteGroups.Move(currentIndex, targetIndex);
+        QueueSaveNotes();
+        return true;
+    }
+
+    private void QueueSaveNotes()
+    {
+        if (_saveNotesQueued)
+            return;
+
+        _saveNotesQueued = true;
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null)
+        {
+            _saveNotesQueued = false;
+            SaveNotes();
+            return;
+        }
+
+        dispatcher.BeginInvoke(new Action(() =>
+        {
+            _saveNotesQueued = false;
+            SaveNotes();
+        }), DispatcherPriority.Background);
     }
 }

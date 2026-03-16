@@ -3,6 +3,7 @@ namespace NoteCards.Models;
 public class NoteDocument
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid? GroupId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public string FontFamily { get; set; } = "Segoe UI";
