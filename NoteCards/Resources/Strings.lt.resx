@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Menu" xml:space="preserve"><value>Meniu</value></data>
+  <data name="AddNote" xml:space="preserve"><value>Pridėti užrašą</value></data>
+  <data name="About" xml:space="preserve"><value>Apie</value></data>
+  <data name="Settings" xml:space="preserve"><value>Nustatymai</value></data>
+  <data name="RecentNotes" xml:space="preserve"><value>Naujausi užrašai</value></data>
+  <data name="Open" xml:space="preserve"><value>Atidaryti</value></data>
+  <data name="Delete" xml:space="preserve"><value>Ištrinti</value></data>
+  <data name="Close" xml:space="preserve"><value>Uždaryti</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Atšaukti</value></data>
+  <data name="Ok" xml:space="preserve"><value>Gerai</value></data>
+  <data name="Language" xml:space="preserve"><value>Kalba:</value></data>
+  <data name="LanguageEnglish" xml:space="preserve"><value>Anglų</value></data>
+  <data name="LanguageLithuanian" xml:space="preserve"><value>Lietuvių</value></data>
+  <data name="Scrollbar" xml:space="preserve"><value>Slinkties juosta:</value></data>
+  <data name="EnableScrollbar" xml:space="preserve"><value>Rodyti slinkties juostą</value></data>
+  <data name="Theme" xml:space="preserve"><value>Tema:</value></data>
+  <data name="ThemeLight" xml:space="preserve"><value>Šviesi</value></data>
+  <data name="ThemeDark" xml:space="preserve"><value>Tamsi</value></data>
+  <data name="CheckForUpdates" xml:space="preserve"><value>Tikrinti atnaujinimus</value></data>
+  <data name="LatestVersion" xml:space="preserve"><value>Naudojate naujausią versiją.</value></data>
+  <data name="AppUpdate" xml:space="preserve"><value>Programos atnaujinimas</value></data>
+  <data name="NoteEditorTitle" xml:space="preserve"><value>Užrašo redagavimas</value></data>
+  <data name="Undo" xml:space="preserve"><value>Anuliuoti</value></data>
+  <data name="Redo" xml:space="preserve"><value>Grąžinti</value></data>
+  <data name="Save" xml:space="preserve"><value>Išsaugoti</value></data>
+  <data name="Print" xml:space="preserve"><value>Spausdinti</value></data>
+  <data name="Search" xml:space="preserve"><value>Ieškoti</value></data>
+  <data name="Font" xml:space="preserve"><value>Šriftas</value></data>
+  <data name="FontLabel" xml:space="preserve"><value>Šriftas:</value></data>
+  <data name="SizeLabel" xml:space="preserve"><value>Dydis:</value></data>
+  <data name="Cut" xml:space="preserve"><value>Iškirpti</value></data>
+  <data name="Copy" xml:space="preserve"><value>Kopijuoti</value></data>
+  <data name="Paste" xml:space="preserve"><value>Įklijuoti</value></data>
+  <data name="SelectAll" xml:space="preserve"><value>Pažymėti viską</value></data>
+  <data name="FindInNoteTitle" xml:space="preserve"><value>Ieškoti užraše</value></data>
+  <data name="FindInNotePrompt" xml:space="preserve"><value>Įveskite ieškomą tekstą:</value></data>
+  <data name="FailedToOpenFile" xml:space="preserve"><value>Nepavyko atidaryti failo.</value></data>
+  <data name="Error" xml:space="preserve"><value>Klaida</value></data>
+  <data name="FailedToPrintNote" xml:space="preserve"><value>Nepavyko atspausdinti užrašo:</value></data>
+  <data name="PrintError" xml:space="preserve"><value>Spausdinimo klaida</value></data>
+  <data name="OpenFileDialogFilter" xml:space="preserve"><value>Tekstiniai failai (*.txt)|*.txt|Rich Text Format (*.rtf)|*.rtf|Visi failai (*.*)|*.*</value></data>
+  <data name="AboutDescription" xml:space="preserve"><value>Paprasta užrašų kortelių programėlė greitam ir tvarkingam konspektų bei užrašų valdymui.</value></data>
+  <data name="Authors" xml:space="preserve"><value>AUTORIAI</value></data>
+  <data name="SimpleInputTitle" xml:space="preserve"><value>Paprastas įvedimas</value></data>
+  <data name="PrintPreviewTitle" xml:space="preserve"><value>Spausdinimo peržiūra</value></data>
+  <data name="DocumentSentToPrinter" xml:space="preserve"><value>Dokumentas sėkmingai išsiųstas spausdintuvui!</value></data>
+  <data name="PrintComplete" xml:space="preserve"><value>Spausdinimas baigtas</value></data>
+  <data name="FailedToPrint" xml:space="preserve"><value>Nepavyko atspausdinti:</value></data>
+  <data name="FirstNoteTitle" xml:space="preserve"><value>Pirmas užrašas</value></data>
+  <data name="FirstNoteContent" xml:space="preserve"><value>Tai bandomasis dokumentas NoteCards veikimui patikrinti.</value></data>
+  <data name="NewNoteTitle" xml:space="preserve"><value>Naujas užrašas</value></data>
+  <data name="FontButtonFormat" xml:space="preserve"><value>Šriftas: {0}, {1}</value></data>
+</root>

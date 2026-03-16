@@ -1,4 +1,5 @@
 using NoteCards.ViewModels;
+using NoteCards.Localization;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -89,7 +90,7 @@ public partial class NoteCardControl : UserControl
             return;
 
         var dlg = new Microsoft.Win32.OpenFileDialog();
-        dlg.Filter = "Text Files (*.txt)|*.txt|Rich Text Format (*.rtf)|*.rtf|All files (*.*)|*.*";
+        dlg.Filter = LocalizationService.GetString("OpenFileDialogFilter");
         if (dlg.ShowDialog() == true)
         {
             try
@@ -108,7 +109,7 @@ public partial class NoteCardControl : UserControl
                     // Read raw bytes first
                     var rawBytes = System.IO.File.ReadAllBytes(path);
 
-                    string content = null;
+                    string? content = null;
 
                     // 1) Try strict UTF-8 (throws on invalid sequences)
                     try
@@ -150,7 +151,7 @@ public partial class NoteCardControl : UserControl
             }
             catch
             {
-                MessageBox.Show("Failed to open file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationService.GetString("FailedToOpenFile"), LocalizationService.GetString("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

@@ -146,8 +146,8 @@
 			<StackPanel>
 				<!-- Collapse button -->
 				<Button Content="☰" Command="{Binding ToggleSidebarCommand}"/>
-                <Button Content="➕ Add Note" Command="{Binding AddNoteCommand}"/>
-				<Button Content="ℹ About" Click="AboutButton_Click"/>
+                <Button Content="{Binding [AddNote], Source={StaticResource Loc}, StringFormat=➕ {0}}" Command="{Binding AddNoteCommand}"/>
+				<Button Content="{Binding [About], Source={StaticResource Loc}, StringFormat=ℹ {0}}" Click="AboutButton_Click"/>
 			</StackPanel>
 		</Border>
 
@@ -186,7 +186,7 @@
                             VerticalAlignment="Center">
 
 
-                <Button Content="+ Add Note"
+                <Button Content="{Binding [AddNote], Source={StaticResource Loc}, StringFormat=+ {0}}"
 						Padding="14,6"
 						FontSize="13"
 						Command="{Binding AddNoteCommand}"
@@ -197,7 +197,7 @@
 								Padding="12,6"
 								FontSize="16"
 								Cursor="Hand"
-								ToolTip="Menu"
+                          ToolTip="{Binding [Menu], Source={StaticResource Loc}}"
 								Click="HamburgerButton_Click"/>
 					</StackPanel>
 				</Grid>
@@ -226,7 +226,7 @@
 								Click="SettingsMenuButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="⚙" Width="20" TextAlignment="Center" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource TextColor}"/>
-                                 <TextBlock Text="Settings"
+                                 <TextBlock Text="{Binding [Settings], Source={StaticResource Loc}}"
                                            FontSize="14"
                                            Margin="8,0,0,0"
                                            VerticalAlignment="Center"
@@ -239,7 +239,7 @@
                                 Click="AboutButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="ℹ" Width="20" TextAlignment="Center" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource TextColor}"/>
-                                 <TextBlock Text="About" FontSize="14" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextColor}"/>
+                                 <TextBlock Text="{Binding [About], Source={StaticResource Loc}}" FontSize="14" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextColor}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -259,7 +259,7 @@
 						BorderThickness="0,0,0,1"
 						Padding="16,12">
 					<StackPanel>
-						<TextBlock Text="Recent Notes"
+                      <TextBlock Text="{Binding [RecentNotes], Source={StaticResource Loc}}"
 								   FontSize="13"
 								   FontWeight="SemiBold"
 								   Foreground="{DynamicResource TextColor}"
@@ -314,7 +314,7 @@
 							HorizontalAlignment="Right"
 							Margin="0,0,28,24"
 							Content="+"
-							ToolTip="Pridėti užrašą"
+                            ToolTip="{Binding [AddNote], Source={StaticResource Loc}}"
 							Command="{Binding AddNoteCommand}"/>
 					<Views:SettingsPanel x:Name="SettingsPanelControl"
 										 x:FieldModifier="public"

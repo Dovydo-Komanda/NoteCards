@@ -1,4 +1,5 @@
 ﻿using NoteCards.Models;
+using NoteCards.Localization;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -66,7 +67,7 @@ namespace NoteCards
         private void SearchButton_Click(object sender, RoutedEventArgs e)
         {
             // Open a lightweight input dialog to search inside the note
-            var input = new Views.SimpleInputDialog("Find in note", "Enter text to find:");
+            var input = new Views.SimpleInputDialog(LocalizationService.GetString("FindInNoteTitle"), LocalizationService.GetString("FindInNotePrompt"));
             input.Owner = this;
             if (input.ShowDialog() == true)
             {
@@ -178,8 +179,8 @@ namespace NoteCards
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Failed to print note:\n\n{ex.Message}",
-                    "Print Error",
+                    $"{LocalizationService.GetString("FailedToPrintNote")}\n\n{ex.Message}",
+                    LocalizationService.GetString("PrintError"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -276,14 +277,14 @@ namespace NoteCards
         {
             if (Font != null)
             {
-                Font.Content = $"Font: {ContentTextBox.FontFamily.Source}, {ContentTextBox.FontSize}";
+                Font.Content = string.Format(LocalizationService.GetString("FontButtonFormat"), ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
             }
         }
 
         private void OpenFromFileButton_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new Microsoft.Win32.OpenFileDialog();
-            dlg.Filter = "Text Files (*.txt)|*.txt|Rich Text Format (*.rtf)|*.rtf|All files (*.*)|*.*";
+            dlg.Filter = LocalizationService.GetString("OpenFileDialogFilter");
             if (dlg.ShowDialog() != true)
                 return;
 
@@ -313,7 +314,7 @@ namespace NoteCards
             }
             catch
             {
-                MessageBox.Show("Failed to open file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationService.GetString("FailedToOpenFile"), LocalizationService.GetString("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

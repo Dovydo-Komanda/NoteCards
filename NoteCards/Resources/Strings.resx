@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Menu" xml:space="preserve"><value>Menu</value></data>
+  <data name="AddNote" xml:space="preserve"><value>Add Note</value></data>
+  <data name="About" xml:space="preserve"><value>About</value></data>
+  <data name="Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="RecentNotes" xml:space="preserve"><value>Recent Notes</value></data>
+  <data name="Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Language" xml:space="preserve"><value>Language:</value></data>
+  <data name="LanguageEnglish" xml:space="preserve"><value>English</value></data>
+  <data name="LanguageLithuanian" xml:space="preserve"><value>Lithuanian</value></data>
+  <data name="Scrollbar" xml:space="preserve"><value>Scrollbar:</value></data>
+  <data name="EnableScrollbar" xml:space="preserve"><value>Enable scrollbar</value></data>
+  <data name="Theme" xml:space="preserve"><value>Theme:</value></data>
+  <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
+  <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="CheckForUpdates" xml:space="preserve"><value>Check for Updates</value></data>
+  <data name="LatestVersion" xml:space="preserve"><value>You are using the latest version.</value></data>
+  <data name="AppUpdate" xml:space="preserve"><value>App Update</value></data>
+  <data name="NoteEditorTitle" xml:space="preserve"><value>Note Editor</value></data>
+  <data name="Undo" xml:space="preserve"><value>Undo</value></data>
+  <data name="Redo" xml:space="preserve"><value>Redo</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Print" xml:space="preserve"><value>Print</value></data>
+  <data name="Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Font" xml:space="preserve"><value>Font</value></data>
+  <data name="FontLabel" xml:space="preserve"><value>Font:</value></data>
+  <data name="SizeLabel" xml:space="preserve"><value>Size:</value></data>
+  <data name="Cut" xml:space="preserve"><value>Cut</value></data>
+  <data name="Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="Paste" xml:space="preserve"><value>Paste</value></data>
+  <data name="SelectAll" xml:space="preserve"><value>Select All</value></data>
+  <data name="FindInNoteTitle" xml:space="preserve"><value>Find in note</value></data>
+  <data name="FindInNotePrompt" xml:space="preserve"><value>Enter text to find:</value></data>
+  <data name="FailedToOpenFile" xml:space="preserve"><value>Failed to open file.</value></data>
+  <data name="Error" xml:space="preserve"><value>Error</value></data>
+  <data name="FailedToPrintNote" xml:space="preserve"><value>Failed to print note:</value></data>
+  <data name="PrintError" xml:space="preserve"><value>Print Error</value></data>
+  <data name="OpenFileDialogFilter" xml:space="preserve"><value>Text Files (*.txt)|*.txt|Rich Text Format (*.rtf)|*.rtf|All files (*.*)|*.*</value></data>
+  <data name="AboutDescription" xml:space="preserve"><value>A simple note card app for quick, tidy management of outlines and notes.</value></data>
+  <data name="Authors" xml:space="preserve"><value>AUTHORS</value></data>
+  <data name="SimpleInputTitle" xml:space="preserve"><value>Simple Input</value></data>
+  <data name="PrintPreviewTitle" xml:space="preserve"><value>Print Preview</value></data>
+  <data name="DocumentSentToPrinter" xml:space="preserve"><value>Document sent to printer successfully!</value></data>
+  <data name="PrintComplete" xml:space="preserve"><value>Print Complete</value></data>
+  <data name="FailedToPrint" xml:space="preserve"><value>Failed to print:</value></data>
+  <data name="FirstNoteTitle" xml:space="preserve"><value>First Note</value></data>
+  <data name="FirstNoteContent" xml:space="preserve"><value>This is a test document to verify NoteCards functionality.</value></data>
+  <data name="NewNoteTitle" xml:space="preserve"><value>New Note</value></data>
+  <data name="FontButtonFormat" xml:space="preserve"><value>Font: {0}, {1}</value></data>
+</root>

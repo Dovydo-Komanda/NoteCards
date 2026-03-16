@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using NoteCards.Localization;
 
 namespace NoteCards.Views
 {
@@ -10,27 +11,14 @@ namespace NoteCards.Views
             InitializeComponent();
         }
 
-        private void ThemeChanged(object sender, SelectionChangedEventArgs e)
-        {
-            var combo = sender as ComboBox;
-            if (combo?.SelectedItem is ComboBoxItem item && item.Content != null)
-            {
-                string? theme = item.Content.ToString();
-                if (!string.IsNullOrEmpty(theme))
-                {
-                    ThemeManager.SetTheme(theme);
-                }
-            }
-        }
-
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             this.Visibility = Visibility.Collapsed;
         }
         private void CheckUpdates_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("You are using the latest version.",
-                            "App Update",
+            MessageBox.Show(LocalizationService.GetString("LatestVersion"),
+                            LocalizationService.GetString("AppUpdate"),
                             MessageBoxButton.OK,
                             MessageBoxImage.Information);
         }

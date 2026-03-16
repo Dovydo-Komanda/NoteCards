@@ -133,8 +133,8 @@
                         Click="OnMenuButtonClick">
                     <Button.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="Open" Click="OnOpenMenuClick"/>
-                            <MenuItem Header="Delete" Command="{Binding DeleteCommand}"/>
+                            <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}" Click="OnOpenMenuClick"/>
+                            <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}" Command="{Binding DeleteCommand}"/>
                         </ContextMenu>
                     </Button.ContextMenu>
                 </Button>

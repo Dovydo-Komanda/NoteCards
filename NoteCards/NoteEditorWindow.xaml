@@ -1,7 +1,7 @@
 ﻿<Window x:Class="NoteCards.NoteEditorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Note Editor" Height="600" Width="800"
+        Title="{Binding [NoteEditorTitle], Source={StaticResource Loc}}" Height="600" Width="800"
         WindowStartupLocation="CenterScreen"
         Background="#EBEBEF"
         Closing="NoteEditorWindow_Closing"
@@ -81,42 +81,42 @@
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center">
                     <!-- Undo Button -->
-                    <Button Content="↶ Undo"
+                    <Button Content="{Binding [Undo], Source={StaticResource Loc}, StringFormat=↶ {0}}"
                     Padding="12,6"
                     Margin="0,0,8,0"
                     Click="UndoButton_Click"/>
 
                     <!-- Redo Button -->
-                    <Button Content="↷ Redo"
+                    <Button Content="{Binding [Redo], Source={StaticResource Loc}, StringFormat=↷ {0}}"
                     Padding="12,6"
                     Margin="0,0,8,0"
                     Click="RedoButton_Click"/>
 
                     <!-- Save Button -->
-                    <Button Content="✓ Save"
+                    <Button Content="{Binding [Save], Source={StaticResource Loc}, StringFormat=✓ {0}}"
                     Padding="12,6"
                     Click="SaveButton_Click"/>
 
                     <!-- Print Button -->
-                    <Button Content="🖨 Print"
+                    <Button Content="{Binding [Print], Source={StaticResource Loc}, StringFormat=🖨 {0}}"
                     Padding="6,6"
                     Margin="0,0,8,0"
                     Click="PrintButton_Click"/>
 
                     <!-- Open file into editor -->
                     <Button x:Name="OpenFileButton"
-                        Content="📂 Open"
+                        Content="{Binding [Open], Source={StaticResource Loc}, StringFormat=📂 {0}}"
                         Padding="6,6"
                         Margin="0,0,8,0"
                         Click="OpenFromFileButton_Click"/>
 
                     <!-- Search inside note (opens dialog) -->
-                    <Button x:Name="SearchButton" Content="🔎 Search" Padding="6,6" Margin="0,0,4,0" Click="SearchButton_Click"/>
+                    <Button x:Name="SearchButton" Content="{Binding [Search], Source={StaticResource Loc}, StringFormat=🔎 {0}}" Padding="6,6" Margin="0,0,4,0" Click="SearchButton_Click"/>
 
 
 
                 <Button x:Name="Font"
-                    Content="Font"
+                    Content="{Binding [Font], Source={StaticResource Loc}}"
                     Padding="6,6"
                     Margin="0,0,8,0"
                     Click="FontSettings_Click"/>
@@ -132,7 +132,7 @@
             Orientation="Horizontal"
             Margin="16,8"
             Visibility="Collapsed">
-			<TextBlock Text="Font:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+           <TextBlock Text="{Binding [FontLabel], Source={StaticResource Loc}}" VerticalAlignment="Center" Margin="0,0,6,0"/>
 			<ComboBox x:Name="FontFamilyBox" Width="160" SelectionChanged="FontFamilyBox_Changed">
 				<ComboBoxItem Content="Segoe UI"/>
 				<ComboBoxItem Content="Arial"/>
@@ -140,7 +140,7 @@
 				<ComboBoxItem Content="Calibri"/>
 			</ComboBox>
 
-			<TextBlock Text="Size:" Margin="12,0,6,0" VerticalAlignment="Center"/>
+          <TextBlock Text="{Binding [SizeLabel], Source={StaticResource Loc}}" Margin="12,0,6,0" VerticalAlignment="Center"/>
 			<ComboBox x:Name="FontSizeBox" Width="70" SelectionChanged="FontSizeBox_Changed">
 				<ComboBoxItem Content="12"/>
 				<ComboBoxItem Content="14"/>
@@ -174,11 +174,11 @@
 			<!-- CONTEXT MENU -->
 			<RichTextBox.ContextMenu>
 				<ContextMenu>
-					<MenuItem Header="Cut" Command="Cut"/>
-					<MenuItem Header="Copy" Command="Copy"/>
-					<MenuItem Header="Paste" Command="Paste"/>
+                  <MenuItem Header="{Binding [Cut], Source={StaticResource Loc}}" Command="Cut"/>
+                    <MenuItem Header="{Binding [Copy], Source={StaticResource Loc}}" Command="Copy"/>
+                    <MenuItem Header="{Binding [Paste], Source={StaticResource Loc}}" Command="Paste"/>
 					<Separator/>
-					<MenuItem Header="Select All" Command="SelectAll"/>
+                 <MenuItem Header="{Binding [SelectAll], Source={StaticResource Loc}}" Command="SelectAll"/>
 				</ContextMenu>
 			</RichTextBox.ContextMenu>
 		</RichTextBox>

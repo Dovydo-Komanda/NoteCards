@@ -2,8 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:NoteCards"
+             xmlns:localization="clr-namespace:NoteCards.Localization"
              xmlns:converters="clr-namespace:NoteCards.Converters"
-             StartupUri="MainWindow.xaml">
+             >
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -11,6 +12,7 @@
                 <ResourceDictionary Source="Themes/LightTheme.xaml"/>
 
             </ResourceDictionary.MergedDictionaries>
+            <x:Static x:Key="Loc" Member="localization:LocalizationProvider.Instance"/>
             <!--
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.xaml" />

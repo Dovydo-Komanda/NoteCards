@@ -1,4 +1,5 @@
 using NoteCards.ViewModels;
+using NoteCards.Localization;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -16,7 +17,7 @@ namespace NoteCards
             HamburgerPopup.IsOpen = false;
 
             var dlg = new Microsoft.Win32.OpenFileDialog();
-            dlg.Filter = "Text Files (*.txt)|*.txt|Rich Text Format (*.rtf)|*.rtf|All files (*.*)|*.*";
+            dlg.Filter = LocalizationService.GetString("OpenFileDialogFilter");
             if (dlg.ShowDialog() != true)
                 return;
 
@@ -25,13 +26,11 @@ namespace NoteCards
             {
                 var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
                 string content = string.Empty;
-                bool isRtf = false;
 
                 if (ext == ".rtf")
                 {
                     var bytes = System.IO.File.ReadAllBytes(path);
                     content = Convert.ToBase64String(bytes);
-                    isRtf = true;
                 }
                 else
                 {
@@ -63,7 +62,7 @@ namespace NoteCards
                 if (vm == null) return;
 
                 // Try find existing note with identical content; otherwise create new
-                NoteCardViewModel existing = null;
+                NoteCardViewModel? existing = null;
                 foreach (var n in vm.Notes)
                 {
                     if (n.Document.Content == content)
@@ -93,7 +92,7 @@ namespace NoteCards
             }
             catch
             {
-                MessageBox.Show("Failed to open file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationService.GetString("FailedToOpenFile"), LocalizationService.GetString("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

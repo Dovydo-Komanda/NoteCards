@@ -1,4 +1,6 @@
 using NoteCards.Models;
+using NoteCards.Localization;
+using NoteCards.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
@@ -10,7 +12,11 @@ namespace NoteCards.ViewModels;
 
 public class MainViewModel : ViewModelBase
 {
+    private bool _isLoadingSettings;
     private bool _enableScrollbar = true;
+    private string _selectedLanguage = LocalizationService.English;
+    private string _selectedTheme = "Light";
+
     public bool EnableScrollbar
     {
         get => _enableScrollbar;
@@ -20,12 +26,47 @@ public class MainViewModel : ViewModelBase
             {
                 _enableScrollbar = value;
                 OnPropertyChanged(nameof(EnableScrollbar));
+                SaveAppSettings();
+            }
+        }
+    }
+
+    public string SelectedLanguage
+    {
+        get => _selectedLanguage;
+        set
+        {
+            var normalized = LocalizationService.NormalizeLanguage(value);
+            if (_selectedLanguage != normalized)
+            {
+                _selectedLanguage = normalized;
+                OnPropertyChanged(nameof(SelectedLanguage));
+                LocalizationService.SetCulture(_selectedLanguage);
+                SaveAppSettings();
+            }
+        }
+    }
+
+    public string SelectedTheme
+    {
+        get => _selectedTheme;
+        set
+        {
+            var normalized = string.Equals(value, "Dark", StringComparison.OrdinalIgnoreCase) ? "Dark" : "Light";
+            if (_selectedTheme != normalized)
+            {
+                _selectedTheme = normalized;
+                OnPropertyChanged(nameof(SelectedTheme));
+                ThemeManager.SetTheme(_selectedTheme);
+                SaveAppSettings();
             }
         }
     }
 
     public MainViewModel()
     {
+        LoadAppSettings();
+
         Notes = new ObservableCollection<NoteCardViewModel>();
         // Create a view for Notes so we can apply filtering for search
         _notesView = CollectionViewSource.GetDefaultView(Notes);
@@ -40,8 +81,8 @@ public class MainViewModel : ViewModelBase
         {
             var testDocument = new NoteDocument
             {
-                Title = "First Note",
-                Content = "This is a test document to verify NoteCards functionality."
+                Title = LocalizationService.GetString("FirstNoteTitle"),
+                Content = LocalizationService.GetString("FirstNoteContent")
             };
             Notes.Add(new NoteCardViewModel(testDocument, DeleteNote));
             SaveNotes();
@@ -74,7 +115,7 @@ public class MainViewModel : ViewModelBase
     {
             var document = new NoteDocument
             {
-                Title = "New Note",
+                Title = LocalizationService.GetString("NewNoteTitle"),
                 Content = string.Empty
             };
         Notes.Add(new NoteCardViewModel(document, DeleteNote));
@@ -150,6 +191,34 @@ public class MainViewModel : ViewModelBase
         {
             // Ignore persistence errors for now
         }
+    }
+
+    private void LoadAppSettings()
+    {
+        _isLoadingSettings = true;
+        var settings = AppSettingsService.Load();
+
+        _enableScrollbar = settings.EnableScrollbar;
+        _selectedLanguage = LocalizationService.NormalizeLanguage(settings.Language);
+        _selectedTheme = string.Equals(settings.Theme, "Dark", StringComparison.OrdinalIgnoreCase) ? "Dark" : "Light";
+
+        LocalizationService.SetCulture(_selectedLanguage);
+        ThemeManager.SetTheme(_selectedTheme);
+
+        _isLoadingSettings = false;
+    }
+
+    private void SaveAppSettings()
+    {
+        if (_isLoadingSettings)
+            return;
+
+        AppSettingsService.Save(new AppSettings
+        {
+            Language = _selectedLanguage,
+            Theme = _selectedTheme,
+            EnableScrollbar = _enableScrollbar
+        });
     }
 
     private bool LoadNotes()

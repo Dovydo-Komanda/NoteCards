@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
+using NoteCards.Localization;
 using PrintDialog = System.Windows.Controls.PrintDialog;
 
 namespace NoteCards
@@ -65,8 +66,8 @@ namespace NoteCards
                     );
 
                     MessageBox.Show(
-                        "Document sent to printer successfully!",
-                        "Print Complete",
+                        LocalizationService.GetString("DocumentSentToPrinter"),
+                        LocalizationService.GetString("PrintComplete"),
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
 
@@ -76,8 +77,8 @@ namespace NoteCards
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Failed to print:\n\n{ex.Message}",
-                    "Print Error",
+                    $"{LocalizationService.GetString("FailedToPrint")}\n\n{ex.Message}",
+                    LocalizationService.GetString("PrintError"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
