@@ -213,13 +213,17 @@
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
 
-
-                <Button Content="{Binding [AddNote], Source={StaticResource Loc}, StringFormat=+ {0}}"
-						Padding="14,6"
-						FontSize="13"
-						Command="{Binding AddNoteCommand}"
-						Cursor="Hand"
-						Margin="0,0,8,0"/>
+						<Button x:Name="TagsFilterButton"
+                             Content="&#xE71C;"
+								FontFamily="Segoe MDL2 Assets"
+								Width="34"
+								Height="32"
+								Padding="0"
+								FontSize="15"
+								Cursor="Hand"
+								Margin="0,0,8,0"
+                               ToolTip="{Binding TagFilterButtonText}"
+								Click="TagsFilterButton_Click"/>
                         <Button x:Name="HamburgerButton"
 								Content="☰"
 								Padding="12,6"
@@ -230,6 +234,76 @@
 					</StackPanel>
 				</Grid>
 			</Border>
+
+			<Popup x:Name="TagsFilterPopup"
+				   Grid.Row="0"
+				   PlacementTarget="{Binding ElementName=TagsFilterButton}"
+				   Placement="Bottom"
+				   StaysOpen="False"
+				   AllowsTransparency="True"
+				   PopupAnimation="Fade">
+				<Border Background="{DynamicResource SidebarBackground}"
+						BorderBrush="#D8D8D8"
+						BorderThickness="1"
+						CornerRadius="10"
+						MinWidth="260"
+						MaxWidth="320"
+						Padding="8"
+						Margin="12,10,12,14">
+					<Border.Effect>
+						<DropShadowEffect Color="#000000" Opacity="0.14" BlurRadius="14" ShadowDepth="1" Direction="270"/>
+					</Border.Effect>
+					<StackPanel>
+						<Grid Margin="4,2,4,8">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="Auto"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock Text="{Binding [FilterTags], Source={StaticResource Loc}}"
+									   FontWeight="SemiBold"
+									   Foreground="{DynamicResource TextColor}"
+									   VerticalAlignment="Center"/>
+							<Button Grid.Column="1"
+									Style="{StaticResource PopupMenuButtonStyle}"
+									Padding="8,4"
+									Content="{Binding [ClearFilters], Source={StaticResource Loc}}"
+									Command="{Binding ClearTagFiltersCommand}"/>
+						</Grid>
+						<Border Background="#F5F6FB"
+								CornerRadius="8"
+								Padding="10,14"
+								Visibility="{Binding HasTagFilters, Converter={StaticResource BoolToVis}}">
+							<ScrollViewer MaxHeight="230" VerticalScrollBarVisibility="Auto">
+								<ItemsControl ItemsSource="{Binding TagFilters}">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate DataType="{x:Type vm:TagFilterItemViewModel}">
+											<CheckBox Content="{Binding Tag}"
+													  IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+													  Margin="0,2"
+													  Foreground="{DynamicResource TextColor}"/>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</ScrollViewer>
+						</Border>
+                      <TextBlock Text="{Binding [NoTagsFound], Source={StaticResource Loc}}"
+								   Margin="4,8,4,6"
+								   FontStyle="Italic"
+								   Foreground="#7A7F90">
+							<TextBlock.Style>
+								<Style TargetType="TextBlock">
+									<Setter Property="Visibility" Value="Collapsed"/>
+									<Style.Triggers>
+										<DataTrigger Binding="{Binding HasTagFilters}" Value="False">
+											<Setter Property="Visibility" Value="Visible"/>
+										</DataTrigger>
+									</Style.Triggers>
+								</Style>
+							</TextBlock.Style>
+						</TextBlock>
+					</StackPanel>
+				</Border>
+			</Popup>
 
 			<!-- Hamburger Popup Menu -->
             <Popup x:Name="HamburgerPopup"

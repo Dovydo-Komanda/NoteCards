@@ -120,6 +120,7 @@ namespace NoteCards
             if (document != null)
             {
                 TitleTextBox.Text = document.Title;
+                TagsTextBox.Text = string.Join(", ", document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
 
                 if (!string.IsNullOrEmpty(document.Content))
                 {
@@ -192,6 +193,7 @@ namespace NoteCards
             if (document != null)
             {
                 document.Title = TitleTextBox.Text;
+                document.Tags = ParseTags(TagsTextBox.Text);
                 document.LastModified = DateTime.Now;
                 TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
                 using (MemoryStream ms = new MemoryStream())
@@ -203,6 +205,19 @@ namespace NoteCards
                 document.FontFamily = ContentTextBox.FontFamily.Source;
                 document.FontSize = ContentTextBox.FontSize;
             }
+        }
+
+        private static List<string> ParseTags(string? rawTags)
+        {
+            if (string.IsNullOrWhiteSpace(rawTags))
+                return new List<string>();
+
+            return rawTags
+                .Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries)
+                .Select(tag => tag.Trim())
+                .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private void UndoButton_Click(object sender, RoutedEventArgs e)

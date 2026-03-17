@@ -403,7 +403,14 @@ namespace NoteCards
 
         private void HamburgerButton_Click(object sender, RoutedEventArgs e)
         {
+            TagsFilterPopup.IsOpen = false;
             HamburgerPopup.IsOpen = !HamburgerPopup.IsOpen;
+        }
+
+        private void TagsFilterButton_Click(object sender, RoutedEventArgs e)
+        {
+            HamburgerPopup.IsOpen = false;
+            TagsFilterPopup.IsOpen = !TagsFilterPopup.IsOpen;
         }
 
         private void AboutButton_Click(object sender, RoutedEventArgs e)
@@ -438,7 +445,7 @@ namespace NoteCards
                 noteViewModel.NotifyContentChanged();
 
                 var vm = this.DataContext as MainViewModel;
-                vm?.RefreshRecentNotes();
+                vm?.RefreshTagFiltersAfterNoteEdit();
                 vm?.SaveNotes();
             }
         }

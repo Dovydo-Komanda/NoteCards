@@ -122,6 +122,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Border x:Name="DropGlow"
                     Background="#00000000"
@@ -163,6 +164,18 @@
                        MaxHeight="100"
                        TextTrimming="CharacterEllipsis"
                        Foreground="#555555"/>
+            <Border Grid.Row="2"
+                    Margin="0,10,0,0"
+                    Padding="8,4"
+                    Background="#F5F7FB"
+                    CornerRadius="7"
+                    Visibility="{Binding HasTags, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding TagsDisplay}"
+                           FontSize="11"
+                           Foreground="#4A5D80"
+                           TextTrimming="CharacterEllipsis"
+                           TextWrapping="NoWrap"/>
+            </Border>
         </Grid>
     </Border>
 </UserControl>

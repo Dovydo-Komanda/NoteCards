@@ -82,4 +82,9 @@ Taip = palikti užrašus nesugrupuotus
 Ne = išformuoti ir ištrinti visus grupės užrašus
 Atšaukti = nutraukti</value></data>
   <data name="DropToUngroup" xml:space="preserve"><value>Numeskite čia, kad pašalintumėte užrašą iš grupės</value></data>
+  <data name="Tags" xml:space="preserve"><value>Žymės:</value></data>
+  <data name="TagsHint" xml:space="preserve"><value>Pavyzdys: darbas, skubu, idėja</value></data>
+  <data name="FilterTags" xml:space="preserve"><value>Filtruoti žymes</value></data>
+  <data name="ClearFilters" xml:space="preserve"><value>Išvalyti</value></data>
+  <data name="NoTagsFound" xml:space="preserve"><value>Žymių dar nėra.</value></data>
 </root>

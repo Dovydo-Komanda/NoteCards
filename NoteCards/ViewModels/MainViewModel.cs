@@ -23,6 +23,7 @@ public class MainViewModel : ViewModelBase
     private string _selectedLanguage = LocalizationService.English;
     private string _selectedTheme = "Light";
     private readonly Dictionary<Guid, NoteGroupData> _groupMetadata = new();
+    private readonly HashSet<string> _selectedTags = new(StringComparer.OrdinalIgnoreCase);
 
     public bool EnableScrollbar
     {
@@ -76,17 +77,20 @@ public class MainViewModel : ViewModelBase
 
         Notes = new ObservableCollection<NoteCardViewModel>();
         NoteGroups = new ObservableCollection<NoteGroupViewModel>();
+        TagFilters = new ObservableCollection<TagFilterItemViewModel>();
         // Create a view for Notes so we can apply filtering for search
         _notesView = CollectionViewSource.GetDefaultView(Notes);
         _notesView.Filter = FilterUngroupedNotes;
         Notes.CollectionChanged += (_, _) =>
         {
-            RefreshRecentNotes();
-            RebuildGroups();
+            RefreshAvailableTags();
+            ApplyFilters();
         };
+        RefreshAvailableTags();
         RefreshRecentNotes();
         AddNoteCommand = new RelayCommand(AddNote);
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
+        ClearTagFiltersCommand = new RelayCommand(ClearTagFilters, () => HasActiveTagFilters);
 
         // Try to load saved notes from disk. If none exist, seed a test note.
         if (!LoadNotes())
@@ -105,7 +109,13 @@ public class MainViewModel : ViewModelBase
 
     public ObservableCollection<NoteCardViewModel> Notes { get; }
     public ObservableCollection<NoteGroupViewModel> NoteGroups { get; }
+    public ObservableCollection<TagFilterItemViewModel> TagFilters { get; }
     public bool HasGroups => NoteGroups.Count > 0;
+    public bool HasTagFilters => TagFilters.Count > 0;
+    public bool HasActiveTagFilters => _selectedTags.Count > 0;
+    public string TagFilterButtonText => HasActiveTagFilters
+        ? $"{LocalizationService.GetString("FilterTags")} ({_selectedTags.Count})"
+        : LocalizationService.GetString("FilterTags");
 
     private readonly ICollectionView _notesView;
     public ICollectionView NotesView => _notesView;
@@ -167,8 +177,7 @@ public class MainViewModel : ViewModelBase
             {
                 _searchQuery = value ?? string.Empty;
                 OnPropertyChanged(nameof(SearchQuery));
-                _notesView.Refresh();
-                RebuildGroups();
+                ApplyFilters();
             }
         }
     }
@@ -181,6 +190,23 @@ public class MainViewModel : ViewModelBase
     public ICommand MoveGroupsDownCommand { get; }
     public ICommand MoveUngroupedUpCommand { get; }
     public ICommand MoveUngroupedDownCommand { get; }
+    public ICommand ClearTagFiltersCommand { get; }
+
+    public void SetTagFilterSelected(string tag, bool isSelected)
+    {
+        if (string.IsNullOrWhiteSpace(tag))
+            return;
+
+        if (isSelected)
+            _selectedTags.Add(tag);
+        else
+            _selectedTags.Remove(tag);
+
+        OnPropertyChanged(nameof(HasActiveTagFilters));
+        OnPropertyChanged(nameof(TagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+        ApplyFilters();
+    }
 
     public NoteCardViewModel AddNoteFromDocument(NoteDocument document)
     {
@@ -398,6 +424,7 @@ public class MainViewModel : ViewModelBase
     public void RefreshRecentNotes()
     {
         var recent = Notes
+            .Where(MatchesSearch)
             .OrderByDescending(n => n.Document.LastModified)
             .Take(RecentNotesLimit)
             .ToList();
@@ -419,6 +446,16 @@ public class MainViewModel : ViewModelBase
 
     private bool MatchesSearch(NoteCardViewModel note)
     {
+        if (_selectedTags.Count > 0)
+        {
+            var noteTags = note.Document.Tags
+                .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                .Select(tag => tag.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!_selectedTags.All(noteTags.Contains))
+                return false;
+        }
 
         if (string.IsNullOrWhiteSpace(SearchQuery))
             return true;
@@ -426,7 +463,61 @@ public class MainViewModel : ViewModelBase
         var q = SearchQuery.Trim();
         // Case-insensitive contains on title or content
         return (note.Title?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
-            || (note.Content?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
+            || (note.Content?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
+            || (note.TagsSearchText?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private void RefreshAvailableTags()
+    {
+        var tags = Notes
+            .SelectMany(note => note.Document.Tags)
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Select(tag => tag.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(tag => tag, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        _selectedTags.RemoveWhere(selected => !tags.Any(tag => string.Equals(tag, selected, StringComparison.OrdinalIgnoreCase)));
+
+        TagFilters.Clear();
+        foreach (var tag in tags)
+        {
+            var isSelected = _selectedTags.Contains(tag);
+            TagFilters.Add(new TagFilterItemViewModel(tag, isSelected, SetTagFilterSelected));
+        }
+
+        OnPropertyChanged(nameof(HasTagFilters));
+        OnPropertyChanged(nameof(HasActiveTagFilters));
+        OnPropertyChanged(nameof(TagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void ClearTagFilters()
+    {
+        if (_selectedTags.Count == 0)
+            return;
+
+        _selectedTags.Clear();
+        foreach (var tag in TagFilters)
+            tag.IsSelected = false;
+
+        OnPropertyChanged(nameof(HasActiveTagFilters));
+        OnPropertyChanged(nameof(TagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        _notesView.Refresh();
+        RebuildGroups();
+        RefreshRecentNotes();
+    }
+
+    public void RefreshTagFiltersAfterNoteEdit()
+    {
+        RefreshAvailableTags();
+        ApplyFilters();
     }
 
     private void NormalizeGroups()
@@ -593,8 +684,10 @@ public class MainViewModel : ViewModelBase
             foreach (var doc in docs)
                 Notes.Add(CreateNoteCard(doc));
 
+            RefreshAvailableTags();
             NormalizeGroups();
             RebuildGroups();
+            RefreshRecentNotes();
 
             return true;
         }

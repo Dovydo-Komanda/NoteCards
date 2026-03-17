@@ -25,6 +25,34 @@ public class NoteCardViewModel : ViewModelBase
         RemoveFromGroupCommand = new RelayCommand(RemoveFromGroup, () => IsGrouped);
     }
 
+    public bool HasTags => Document.Tags?.Count > 0;
+
+    public string TagsDisplay
+    {
+        get
+        {
+            if (!HasTags)
+                return string.Empty;
+
+            return string.Join("   ", Document.Tags
+                .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                .Select(tag => $"-{tag.Trim()}"));
+        }
+    }
+
+    public string TagsSearchText
+    {
+        get
+        {
+            if (!HasTags)
+                return string.Empty;
+
+            return string.Join(" ", Document.Tags
+                .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                .Select(tag => tag.Trim()));
+        }
+    }
+
     public NoteDocument Document { get; }
 
     public string Title => Document.Title;
@@ -99,6 +127,9 @@ public class NoteCardViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(Content));
+        OnPropertyChanged(nameof(HasTags));
+        OnPropertyChanged(nameof(TagsDisplay));
+        OnPropertyChanged(nameof(TagsSearchText));
         OnPropertyChanged(nameof(IsGrouped));
         CommandManager.InvalidateRequerySuggested();
     }

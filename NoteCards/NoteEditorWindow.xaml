@@ -54,6 +54,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
+         <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -126,9 +127,36 @@
             </Grid>
         </Border>
 
-		<!-- Font -->
-		<StackPanel x:Name="FontPanel"
-            Grid.Row="1"
+       <Border Grid.Row="1"
+                Margin="20,8,20,0"
+                Padding="12,8"
+                CornerRadius="8"
+                Background="#F7F8FC"
+                BorderBrush="#E3E7F4"
+                BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding [Tags], Source={StaticResource Loc}}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,10,0"
+                           Foreground="#425170"
+                           FontWeight="SemiBold"/>
+                <TextBox x:Name="TagsTextBox"
+                         Grid.Column="1"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         VerticalContentAlignment="Center"
+                         Foreground="#2C3650"
+                         ToolTip="{Binding [TagsHint], Source={StaticResource Loc}}"/>
+            </Grid>
+        </Border>
+
+        <!-- Font -->
+        <StackPanel x:Name="FontPanel"
+            Grid.Row="2"
             Orientation="Horizontal"
             Margin="16,8"
             Visibility="Collapsed">
@@ -155,7 +183,7 @@
 		
            <!-- Main Text Area -->
           <RichTextBox x:Name="ContentTextBox"
-              Grid.Row="2"
+              Grid.Row="3"
               SelectionChanged="ContentTextBox_SelectionChanged"
               Margin="20"
               Padding="15"
