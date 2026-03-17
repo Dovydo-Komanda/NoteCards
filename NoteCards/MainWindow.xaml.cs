@@ -17,6 +17,8 @@ namespace NoteCards
         private const double DragScrollEdgeThreshold = 64;
         private const double DragScrollStep = 18;
         private const int SectionAnimationMs = 280;
+        private const double TopSearchExpandedWidth = 320;
+        private const int TopSearchAnimationMs = 300;
 
         private MainViewModel? _observedViewModel;
         private bool _lastKnownGroupsFirst = true;
@@ -403,14 +405,36 @@ namespace NoteCards
 
         private void HamburgerButton_Click(object sender, RoutedEventArgs e)
         {
+            CollapseTopSearchPanel();
             TagsFilterPopup.IsOpen = false;
             HamburgerPopup.IsOpen = !HamburgerPopup.IsOpen;
         }
 
         private void TagsFilterButton_Click(object sender, RoutedEventArgs e)
         {
+            CollapseTopSearchPanel();
             HamburgerPopup.IsOpen = false;
             TagsFilterPopup.IsOpen = !TagsFilterPopup.IsOpen;
+        }
+
+        private void TopSearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (TopSearchPanel.Visibility == Visibility.Visible)
+            {
+                CollapseTopSearchPanel();
+                return;
+            }
+
+            ExpandTopSearchPanel();
+        }
+
+        private void TopSearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Escape)
+                return;
+
+            CollapseTopSearchPanel();
+            e.Handled = true;
         }
 
         private void AboutButton_Click(object sender, RoutedEventArgs e)
@@ -426,6 +450,75 @@ namespace NoteCards
             {
                 vm.SearchQuery = string.Empty;
             }
+
+            CollapseTopSearchPanel();
+        }
+
+        private void ExpandTopSearchPanel()
+        {
+            HamburgerPopup.IsOpen = false;
+            TagsFilterPopup.IsOpen = false;
+
+            TopSearchPanel.Visibility = Visibility.Visible;
+            TopSearchPanel.IsHitTestVisible = true;
+            TopSearchPanel.BeginAnimation(FrameworkElement.WidthProperty, null);
+            TopSearchPanel.BeginAnimation(OpacityProperty, null);
+
+            TopSearchPanel.Width = 0;
+            TopSearchPanel.Opacity = 0;
+
+            var duration = TimeSpan.FromMilliseconds(TopSearchAnimationMs);
+            var easeOut = new CubicEase { EasingMode = EasingMode.EaseOut };
+            TopSearchPanel.BeginAnimation(FrameworkElement.WidthProperty, new DoubleAnimation(0, TopSearchExpandedWidth, duration)
+            {
+                EasingFunction = easeOut
+            });
+            TopSearchPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration)
+            {
+                EasingFunction = easeOut
+            });
+
+            Dispatcher.BeginInvoke(() =>
+            {
+                TopSearchTextBox.Focus();
+                TopSearchTextBox.SelectAll();
+            }, DispatcherPriority.Input);
+        }
+
+        private void CollapseTopSearchPanel()
+        {
+            if (TopSearchPanel.Visibility != Visibility.Visible)
+                return;
+
+            // Read current visual state first, then animate to collapsed state.
+            // Clearing animations before this can snap values and make collapse look instant.
+            var startWidth = TopSearchPanel.ActualWidth > 0
+                ? TopSearchPanel.ActualWidth
+                : Math.Max(TopSearchPanel.Width, 1);
+            var startOpacity = TopSearchPanel.Opacity;
+
+            if (startOpacity <= 0)
+                startOpacity = 1;
+
+            var duration = TimeSpan.FromMilliseconds(TopSearchAnimationMs);
+            var easeIn = new CubicEase { EasingMode = EasingMode.EaseIn };
+            var widthAnimation = new DoubleAnimation(startWidth, 0, duration)
+            {
+                EasingFunction = easeIn
+            };
+            widthAnimation.Completed += (_, _) =>
+            {
+                TopSearchPanel.Visibility = Visibility.Collapsed;
+                TopSearchPanel.IsHitTestVisible = false;
+                TopSearchPanel.Width = 0;
+                TopSearchPanel.Opacity = 0;
+            };
+
+            TopSearchPanel.BeginAnimation(FrameworkElement.WidthProperty, widthAnimation);
+            TopSearchPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(startOpacity, 0, duration)
+            {
+                EasingFunction = easeIn
+            });
         }
 
         // Open editor for a specific note card

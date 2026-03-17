@@ -87,4 +87,5 @@ Cancel = abort</value></data>
   <data name="FilterTags" xml:space="preserve"><value>Filter Tags</value></data>
   <data name="ClearFilters" xml:space="preserve"><value>Clear</value></data>
   <data name="NoTagsFound" xml:space="preserve"><value>No tags found yet.</value></data>
+  <data name="SearchNotesHint" xml:space="preserve"><value>Search instantly by title, text, tags, group, date, font...</value></data>
 </root>

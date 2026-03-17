@@ -87,4 +87,5 @@ Atšaukti = nutraukti</value></data>
   <data name="FilterTags" xml:space="preserve"><value>Filtruoti žymes</value></data>
   <data name="ClearFilters" xml:space="preserve"><value>Išvalyti</value></data>
   <data name="NoTagsFound" xml:space="preserve"><value>Žymių dar nėra.</value></data>
+  <data name="SearchNotesHint" xml:space="preserve"><value>Momentinė paieška pagal pavadinimą, tekstą, žymes, grupę, datą, šriftą...</value></data>
 </root>

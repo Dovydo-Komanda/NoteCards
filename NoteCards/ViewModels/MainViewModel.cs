@@ -3,6 +3,7 @@ using NoteCards.Localization;
 using NoteCards.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -460,11 +461,50 @@ public class MainViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(SearchQuery))
             return true;
 
-        var q = SearchQuery.Trim();
-        // Case-insensitive contains on title or content
-        return (note.Title?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
-            || (note.Content?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
-            || (note.TagsSearchText?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
+        var tokens = SearchQuery
+            .Split([' ', ',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length == 0)
+            return true;
+
+        var searchable = BuildSearchText(note);
+        return tokens.All(token => searchable.Contains(token, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private string BuildSearchText(NoteCardViewModel note)
+    {
+        var groupName = GetNoteGroupName(note);
+        var lastModified = note.Document.LastModified.ToString("yyyy-MM-dd HH:mm dd MMM yyyy", CultureInfo.CurrentCulture);
+        var createdAt = note.Document.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm dd MMM yyyy", CultureInfo.CurrentCulture);
+        var groupState = note.Document.GroupId.HasValue
+            ? LocalizationService.GetString("Groups")
+            : LocalizationService.GetString("UngroupedNotes");
+
+        return string.Join(' ',
+            note.Title,
+            note.Content,
+            note.TagsSearchText,
+            groupName,
+            groupState,
+            note.Document.FontFamily,
+            note.Document.FontSize.ToString(CultureInfo.InvariantCulture),
+            lastModified,
+            createdAt);
+    }
+
+    private string GetNoteGroupName(NoteCardViewModel note)
+    {
+        if (!note.Document.GroupId.HasValue)
+            return LocalizationService.GetString("UngroupedNotes");
+
+        if (_groupMetadata.TryGetValue(note.Document.GroupId.Value, out var metadata)
+            && !string.IsNullOrWhiteSpace(metadata.Name))
+        {
+            return metadata.Name;
+        }
+
+        return string.Format(
+            LocalizationService.GetString("GroupTitleFormat"),
+            note.Document.GroupId.Value.ToString()[..4].ToUpperInvariant());
     }
 
     private void RefreshAvailableTags()

@@ -209,29 +209,77 @@
                                    VerticalAlignment="Center"/>
 
 					</StackPanel>
-					<StackPanel Orientation="Horizontal"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Center">
+                    <Grid HorizontalAlignment="Right"
+						  VerticalAlignment="Center">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
 
-						<Button x:Name="TagsFilterButton"
-                             Content="&#xE71C;"
-								FontFamily="Segoe MDL2 Assets"
+						<Border x:Name="TopSearchPanel"
+								Grid.Column="0"
+								Width="0"
+								Height="34"
+								Margin="0,0,8,0"
+								Padding="10,0"
+								Visibility="Collapsed"
+								Background="#F5F7FB"
+								BorderBrush="#DDE4F3"
+								BorderThickness="1"
+								CornerRadius="8"
+								Opacity="0">
+							<DockPanel LastChildFill="True">
+                              <TextBlock Text="🔎"
+										   Foreground="#74809A"
+										   Margin="0,0,8,0"
+                                        VerticalAlignment="Center"
+										   FontSize="13"/>
+								<TextBox x:Name="TopSearchTextBox"
+										 BorderThickness="0"
+										 Background="Transparent"
+										 Foreground="{DynamicResource TextColor}"
+										 VerticalContentAlignment="Center"
+										 Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+										 ToolTip="{Binding [SearchNotesHint], Source={StaticResource Loc}}"
+										 KeyDown="TopSearchTextBox_KeyDown"/>
+							</DockPanel>
+						</Border>
+
+						<Button x:Name="TopSearchButton"
+								Grid.Column="1"
+                              Content="🔎"
 								Width="34"
 								Height="32"
 								Padding="0"
-								FontSize="15"
+                               FontSize="14"
 								Cursor="Hand"
 								Margin="0,0,8,0"
-                               ToolTip="{Binding TagFilterButtonText}"
+								ToolTip="{Binding [Search], Source={StaticResource Loc}}"
+								Click="TopSearchButton_Click"/>
+
+						<Button x:Name="TagsFilterButton"
+								Grid.Column="2"
+                              Content="🏷"
+								Width="34"
+								Height="32"
+								Padding="0"
+                               FontSize="14"
+								Cursor="Hand"
+								Margin="0,0,8,0"
+								ToolTip="{Binding TagFilterButtonText}"
 								Click="TagsFilterButton_Click"/>
-                        <Button x:Name="HamburgerButton"
+
+						<Button x:Name="HamburgerButton"
+								Grid.Column="3"
 								Content="☰"
 								Padding="12,6"
 								FontSize="16"
 								Cursor="Hand"
-                          ToolTip="{Binding [Menu], Source={StaticResource Loc}}"
+								ToolTip="{Binding [Menu], Source={StaticResource Loc}}"
 								Click="HamburgerButton_Click"/>
-					</StackPanel>
+					</Grid>
 				</Grid>
 			</Border>
 
