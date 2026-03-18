@@ -6,6 +6,8 @@ public class AppSettings
 
     public string Theme { get; set; } = "Light";
 
+    public string NoteSortOptionKey { get; set; } = "last-modified-desc";
+
     public bool EnableScrollbar { get; set; } = true;
 
     public bool IsRecentSectionExpanded { get; set; } = true;

@@ -17,12 +17,19 @@ public class MainViewModel : ViewModelBase
 {
     private const string DefaultGroupBackground = "#F8FAFF";
     private const int RecentNotesLimit = 20;
+    private const string SortLastModifiedDesc = "last-modified-desc";
+    private const string SortLastModifiedAsc = "last-modified-asc";
+    private const string SortCreatedAtDesc = "created-at-desc";
+    private const string SortCreatedAtAsc = "created-at-asc";
+    private const string SortTitleAsc = "title-asc";
+    private const string SortTitleDesc = "title-desc";
 
     private bool _isLoadingSettings;
     private bool _saveNotesQueued;
     private bool _enableScrollbar = true;
     private string _selectedLanguage = LocalizationService.English;
     private string _selectedTheme = "Light";
+    private string _selectedSortOptionKey = SortLastModifiedDesc;
     private readonly Dictionary<Guid, NoteGroupData> _groupMetadata = new();
     private readonly HashSet<string> _selectedTags = new(StringComparer.OrdinalIgnoreCase);
 
@@ -51,6 +58,8 @@ public class MainViewModel : ViewModelBase
                 _selectedLanguage = normalized;
                 OnPropertyChanged(nameof(SelectedLanguage));
                 LocalizationService.SetCulture(_selectedLanguage);
+                RefreshSortOptions();
+                OnPropertyChanged(nameof(SortButtonText));
                 SaveAppSettings();
             }
         }
@@ -79,14 +88,17 @@ public class MainViewModel : ViewModelBase
         Notes = new ObservableCollection<NoteCardViewModel>();
         NoteGroups = new ObservableCollection<NoteGroupViewModel>();
         TagFilters = new ObservableCollection<TagFilterItemViewModel>();
+        SortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
         // Create a view for Notes so we can apply filtering for search
         _notesView = CollectionViewSource.GetDefaultView(Notes);
         _notesView.Filter = FilterUngroupedNotes;
+        ApplySortToUngroupedView();
         Notes.CollectionChanged += (_, _) =>
         {
             RefreshAvailableTags();
             ApplyFilters();
         };
+        RefreshSortOptions();
         RefreshAvailableTags();
         RefreshRecentNotes();
         AddNoteCommand = new RelayCommand(AddNote);
@@ -111,12 +123,33 @@ public class MainViewModel : ViewModelBase
     public ObservableCollection<NoteCardViewModel> Notes { get; }
     public ObservableCollection<NoteGroupViewModel> NoteGroups { get; }
     public ObservableCollection<TagFilterItemViewModel> TagFilters { get; }
+    public ObservableCollection<NoteSortOptionItemViewModel> SortOptions { get; }
     public bool HasGroups => NoteGroups.Count > 0;
     public bool HasTagFilters => TagFilters.Count > 0;
     public bool HasActiveTagFilters => _selectedTags.Count > 0;
     public string TagFilterButtonText => HasActiveTagFilters
         ? $"{LocalizationService.GetString("FilterTags")} ({_selectedTags.Count})"
         : LocalizationService.GetString("FilterTags");
+    public string SortButtonText => string.Format(
+        LocalizationService.GetString("SortButtonFormat"),
+        GetSortOptionDisplayName(_selectedSortOptionKey));
+
+    public string SelectedSortOptionKey
+    {
+        get => _selectedSortOptionKey;
+        set
+        {
+            var normalized = NormalizeSortOptionKey(value);
+            if (!SetProperty(ref _selectedSortOptionKey, normalized))
+                return;
+
+            UpdateSortOptionSelection();
+            ApplySortToUngroupedView();
+            OnPropertyChanged(nameof(SortButtonText));
+            ApplyFilters();
+            SaveAppSettings();
+        }
+    }
 
     private readonly ICollectionView _notesView;
     public ICollectionView NotesView => _notesView;
@@ -554,6 +587,127 @@ public class MainViewModel : ViewModelBase
         RefreshRecentNotes();
     }
 
+    private void SetSortOptionSelected(string key, bool isSelected)
+    {
+        if (!isSelected)
+            return;
+
+        SelectedSortOptionKey = key;
+    }
+
+    private void RefreshSortOptions()
+    {
+        var selectedKey = NormalizeSortOptionKey(_selectedSortOptionKey);
+        _selectedSortOptionKey = selectedKey;
+
+        SortOptions.Clear();
+        SortOptions.Add(new NoteSortOptionItemViewModel(SortLastModifiedDesc, LocalizationService.GetString("SortByLastModifiedDesc"), selectedKey == SortLastModifiedDesc, SetSortOptionSelected));
+        SortOptions.Add(new NoteSortOptionItemViewModel(SortLastModifiedAsc, LocalizationService.GetString("SortByLastModifiedAsc"), selectedKey == SortLastModifiedAsc, SetSortOptionSelected));
+        SortOptions.Add(new NoteSortOptionItemViewModel(SortCreatedAtDesc, LocalizationService.GetString("SortByCreatedAtDesc"), selectedKey == SortCreatedAtDesc, SetSortOptionSelected));
+        SortOptions.Add(new NoteSortOptionItemViewModel(SortCreatedAtAsc, LocalizationService.GetString("SortByCreatedAtAsc"), selectedKey == SortCreatedAtAsc, SetSortOptionSelected));
+        SortOptions.Add(new NoteSortOptionItemViewModel(SortTitleAsc, LocalizationService.GetString("SortByTitleAsc"), selectedKey == SortTitleAsc, SetSortOptionSelected));
+        SortOptions.Add(new NoteSortOptionItemViewModel(SortTitleDesc, LocalizationService.GetString("SortByTitleDesc"), selectedKey == SortTitleDesc, SetSortOptionSelected));
+    }
+
+    private void UpdateSortOptionSelection()
+    {
+        foreach (var option in SortOptions)
+            option.IsSelected = string.Equals(option.Key, _selectedSortOptionKey, StringComparison.Ordinal);
+    }
+
+    private void ApplySortToUngroupedView()
+    {
+        _notesView.SortDescriptions.Clear();
+
+        switch (_selectedSortOptionKey)
+        {
+            case SortLastModifiedAsc:
+                _notesView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Ascending));
+                _notesView.SortDescriptions.Add(new SortDescription("Document.Title", ListSortDirection.Ascending));
+                break;
+            case SortCreatedAtDesc:
+                _notesView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Descending));
+                _notesView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                break;
+            case SortCreatedAtAsc:
+                _notesView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Ascending));
+                _notesView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                break;
+            case SortTitleAsc:
+                _notesView.SortDescriptions.Add(new SortDescription("Document.Title", ListSortDirection.Ascending));
+                _notesView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                break;
+            case SortTitleDesc:
+                _notesView.SortDescriptions.Add(new SortDescription("Document.Title", ListSortDirection.Descending));
+                _notesView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                break;
+            default:
+                _notesView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                _notesView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Descending));
+                break;
+        }
+    }
+
+    private List<NoteCardViewModel> SortNotes(IEnumerable<NoteCardViewModel> notes)
+    {
+        return _selectedSortOptionKey switch
+        {
+            SortLastModifiedAsc => notes
+                .OrderBy(n => n.Document.LastModified)
+                .ThenBy(n => n.Document.Title, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
+            SortCreatedAtDesc => notes
+                .OrderByDescending(n => n.Document.CreatedAt)
+                .ThenByDescending(n => n.Document.LastModified)
+                .ToList(),
+            SortCreatedAtAsc => notes
+                .OrderBy(n => n.Document.CreatedAt)
+                .ThenByDescending(n => n.Document.LastModified)
+                .ToList(),
+            SortTitleAsc => notes
+                .OrderBy(n => n.Document.Title, StringComparer.CurrentCultureIgnoreCase)
+                .ThenByDescending(n => n.Document.LastModified)
+                .ToList(),
+            SortTitleDesc => notes
+                .OrderByDescending(n => n.Document.Title, StringComparer.CurrentCultureIgnoreCase)
+                .ThenByDescending(n => n.Document.LastModified)
+                .ToList(),
+            _ => notes
+                .OrderByDescending(n => n.Document.LastModified)
+                .ThenByDescending(n => n.Document.CreatedAt)
+                .ToList()
+        };
+    }
+
+    private static string NormalizeSortOptionKey(string? value)
+    {
+        if (string.Equals(value, SortLastModifiedAsc, StringComparison.OrdinalIgnoreCase))
+            return SortLastModifiedAsc;
+        if (string.Equals(value, SortCreatedAtDesc, StringComparison.OrdinalIgnoreCase))
+            return SortCreatedAtDesc;
+        if (string.Equals(value, SortCreatedAtAsc, StringComparison.OrdinalIgnoreCase))
+            return SortCreatedAtAsc;
+        if (string.Equals(value, SortTitleAsc, StringComparison.OrdinalIgnoreCase))
+            return SortTitleAsc;
+        if (string.Equals(value, SortTitleDesc, StringComparison.OrdinalIgnoreCase))
+            return SortTitleDesc;
+
+        return SortLastModifiedDesc;
+    }
+
+    private static string GetSortOptionDisplayName(string sortKey)
+    {
+        return NormalizeSortOptionKey(sortKey) switch
+        {
+            SortLastModifiedAsc => LocalizationService.GetString("SortByLastModifiedAsc"),
+            SortCreatedAtDesc => LocalizationService.GetString("SortByCreatedAtDesc"),
+            SortCreatedAtAsc => LocalizationService.GetString("SortByCreatedAtAsc"),
+            SortTitleAsc => LocalizationService.GetString("SortByTitleAsc"),
+            SortTitleDesc => LocalizationService.GetString("SortByTitleDesc"),
+            _ => LocalizationService.GetString("SortByLastModifiedDesc")
+        };
+    }
+
     public void RefreshTagFiltersAfterNoteEdit()
     {
         RefreshAvailableTags();
@@ -611,7 +765,7 @@ public class MainViewModel : ViewModelBase
 
         foreach (var group in grouped)
         {
-            var visibleNotes = group.Where(MatchesSearch).ToList();
+            var visibleNotes = SortNotes(group.Where(MatchesSearch));
             if (visibleNotes.Count == 0)
                 continue;
 
@@ -664,6 +818,7 @@ public class MainViewModel : ViewModelBase
         _enableScrollbar = settings.EnableScrollbar;
         _selectedLanguage = LocalizationService.NormalizeLanguage(settings.Language);
         _selectedTheme = string.Equals(settings.Theme, "Dark", StringComparison.OrdinalIgnoreCase) ? "Dark" : "Light";
+        _selectedSortOptionKey = NormalizeSortOptionKey(settings.NoteSortOptionKey);
         _isRecentSectionExpanded = settings.IsRecentSectionExpanded;
         _isGroupsSectionExpanded = settings.IsGroupsSectionExpanded;
         _isUngroupedSectionExpanded = settings.IsUngroupedSectionExpanded;
@@ -684,6 +839,7 @@ public class MainViewModel : ViewModelBase
         {
             Language = _selectedLanguage,
             Theme = _selectedTheme,
+            NoteSortOptionKey = _selectedSortOptionKey,
             EnableScrollbar = _enableScrollbar,
             IsRecentSectionExpanded = _isRecentSectionExpanded,
             IsGroupsSectionExpanded = _isGroupsSectionExpanded,

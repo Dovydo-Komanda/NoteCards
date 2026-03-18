@@ -88,4 +88,11 @@ Cancel = abort</value></data>
   <data name="ClearFilters" xml:space="preserve"><value>Clear</value></data>
   <data name="NoTagsFound" xml:space="preserve"><value>No tags found yet.</value></data>
   <data name="SearchNotesHint" xml:space="preserve"><value>Search instantly by title, text, tags, group, date, font...</value></data>
+  <data name="SortButtonFormat" xml:space="preserve"><value>Sort: {0}</value></data>
+  <data name="SortByLastModifiedDesc" xml:space="preserve"><value>Recently edited</value></data>
+  <data name="SortByLastModifiedAsc" xml:space="preserve"><value>Least recently edited</value></data>
+  <data name="SortByCreatedAtDesc" xml:space="preserve"><value>Newest created</value></data>
+  <data name="SortByCreatedAtAsc" xml:space="preserve"><value>Oldest created</value></data>
+  <data name="SortByTitleAsc" xml:space="preserve"><value>Title A–Z</value></data>
+  <data name="SortByTitleDesc" xml:space="preserve"><value>Title Z–A</value></data>
 </root>

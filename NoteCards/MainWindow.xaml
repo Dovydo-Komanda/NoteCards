@@ -216,6 +216,7 @@
 							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="Auto"/>
+                           <ColumnDefinition Width="Auto"/>
 						</Grid.ColumnDefinitions>
 
 						<Border x:Name="TopSearchPanel"
@@ -259,8 +260,20 @@
 								ToolTip="{Binding [Search], Source={StaticResource Loc}}"
 								Click="TopSearchButton_Click"/>
 
-						<Button x:Name="TagsFilterButton"
+						<Button x:Name="SortNotesButton"
 								Grid.Column="2"
+								Content="⇅"
+								Width="34"
+								Height="32"
+								Padding="0"
+								FontSize="14"
+								Cursor="Hand"
+								Margin="0,0,8,0"
+								ToolTip="{Binding SortButtonText}"
+								Click="SortNotesButton_Click"/>
+
+						<Button x:Name="TagsFilterButton"
+                             Grid.Column="3"
                               Content="🏷"
 								Width="34"
 								Height="32"
@@ -272,7 +285,7 @@
 								Click="TagsFilterButton_Click"/>
 
 						<Button x:Name="HamburgerButton"
-								Grid.Column="3"
+                             Grid.Column="4"
 								Content="☰"
 								Padding="12,6"
 								FontSize="16"
@@ -282,6 +295,48 @@
 					</Grid>
 				</Grid>
 			</Border>
+
+			<Popup x:Name="SortNotesPopup"
+				   Grid.Row="0"
+				   PlacementTarget="{Binding ElementName=SortNotesButton}"
+				   Placement="Bottom"
+				   StaysOpen="False"
+				   AllowsTransparency="True"
+				   PopupAnimation="Fade">
+				<Border Background="{DynamicResource SidebarBackground}"
+						BorderBrush="#D8D8D8"
+						BorderThickness="1"
+						CornerRadius="10"
+						MinWidth="260"
+						MaxWidth="320"
+						Padding="8"
+						Margin="12,10,12,14">
+					<Border.Effect>
+						<DropShadowEffect Color="#000000" Opacity="0.14" BlurRadius="14" ShadowDepth="1" Direction="270"/>
+					</Border.Effect>
+					<StackPanel>
+						<TextBlock Text="{Binding SortButtonText}"
+								   FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextColor}"
+								   Margin="6,3,6,8"/>
+						<Border Background="#F5F6FB"
+								CornerRadius="8"
+								Padding="8,8">
+							<ItemsControl ItemsSource="{Binding SortOptions}">
+								<ItemsControl.ItemTemplate>
+                                   <DataTemplate>
+										<RadioButton GroupName="NoteSortOptionGroup"
+												 Content="{Binding DisplayName}"
+												 IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+												 Margin="2,4"
+												 Foreground="{DynamicResource TextColor}"/>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</Border>
+					</StackPanel>
+				</Border>
+			</Popup>
 
 			<Popup x:Name="TagsFilterPopup"
 				   Grid.Row="0"

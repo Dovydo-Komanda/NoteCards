@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -29,6 +30,7 @@ namespace NoteCards
         private FrameworkElement? UngroupedSectionBodyElement => FindName("UngroupedSectionBody") as FrameworkElement;
         private FrameworkElement? GroupsSectionContainerElement => FindName("GroupsSectionContainer") as FrameworkElement;
         private FrameworkElement? UngroupedSectionContainerElement => FindName("UngroupedSectionContainer") as FrameworkElement;
+        private Popup? SortNotesPopupElement => FindName("SortNotesPopup") as Popup;
 
         internal static bool IsNoteDragInProgress { get; private set; }
 
@@ -406,14 +408,28 @@ namespace NoteCards
         private void HamburgerButton_Click(object sender, RoutedEventArgs e)
         {
             CollapseTopSearchPanel();
+            if (SortNotesPopupElement != null)
+                SortNotesPopupElement.IsOpen = false;
             TagsFilterPopup.IsOpen = false;
             HamburgerPopup.IsOpen = !HamburgerPopup.IsOpen;
+        }
+
+        private void SortNotesButton_Click(object sender, RoutedEventArgs e)
+        {
+            CollapseTopSearchPanel();
+            HamburgerPopup.IsOpen = false;
+            TagsFilterPopup.IsOpen = false;
+
+            if (SortNotesPopupElement != null)
+                SortNotesPopupElement.IsOpen = !SortNotesPopupElement.IsOpen;
         }
 
         private void TagsFilterButton_Click(object sender, RoutedEventArgs e)
         {
             CollapseTopSearchPanel();
             HamburgerPopup.IsOpen = false;
+            if (SortNotesPopupElement != null)
+                SortNotesPopupElement.IsOpen = false;
             TagsFilterPopup.IsOpen = !TagsFilterPopup.IsOpen;
         }
 
@@ -458,6 +474,8 @@ namespace NoteCards
         {
             HamburgerPopup.IsOpen = false;
             TagsFilterPopup.IsOpen = false;
+            if (SortNotesPopupElement != null)
+                SortNotesPopupElement.IsOpen = false;
 
             TopSearchPanel.Visibility = Visibility.Visible;
             TopSearchPanel.IsHitTestVisible = true;

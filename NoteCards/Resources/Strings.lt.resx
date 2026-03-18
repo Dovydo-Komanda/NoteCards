@@ -88,4 +88,11 @@ Atšaukti = nutraukti</value></data>
   <data name="ClearFilters" xml:space="preserve"><value>Išvalyti</value></data>
   <data name="NoTagsFound" xml:space="preserve"><value>Žymių dar nėra.</value></data>
   <data name="SearchNotesHint" xml:space="preserve"><value>Momentinė paieška pagal pavadinimą, tekstą, žymes, grupę, datą, šriftą...</value></data>
+  <data name="SortButtonFormat" xml:space="preserve"><value>Rikiavimas: {0}</value></data>
+  <data name="SortByLastModifiedDesc" xml:space="preserve"><value>Naujausiai redaguoti</value></data>
+  <data name="SortByLastModifiedAsc" xml:space="preserve"><value>Seniausiai redaguoti</value></data>
+  <data name="SortByCreatedAtDesc" xml:space="preserve"><value>Naujausiai sukurti</value></data>
+  <data name="SortByCreatedAtAsc" xml:space="preserve"><value>Seniausiai sukurti</value></data>
+  <data name="SortByTitleAsc" xml:space="preserve"><value>Pavadinimas A–Ž</value></data>
+  <data name="SortByTitleDesc" xml:space="preserve"><value>Pavadinimas Ž–A</value></data>
 </root>
