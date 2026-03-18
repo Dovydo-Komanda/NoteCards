@@ -4,38 +4,151 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="300" d:DesignWidth="400">
-    <Border Background="#FFFFFF" BorderBrush="#D8D8D8" BorderThickness="1" CornerRadius="12" Padding="24">
-        <StackPanel>
-            <TextBlock Text="{Binding [Settings], Source={StaticResource Loc}}" FontSize="20" FontWeight="Bold" Margin="0,0,0,16"/>
-            <TextBlock Text="{Binding [Language], Source={StaticResource Loc}}" FontSize="14" Margin="0,8,0,0"/>
-            <ComboBox Width="160"
-                      Margin="0,4,0,0"
-                      SelectedValuePath="Tag"
-                      SelectedValue="{Binding SelectedLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                <ComboBoxItem Tag="en" Content="{Binding [LanguageEnglish], Source={StaticResource Loc}}"/>
-                <ComboBoxItem Tag="lt" Content="{Binding [LanguageLithuanian], Source={StaticResource Loc}}"/>
-            </ComboBox>
-            <!-- Scrollbar Settings -->
-            <TextBlock Text="{Binding [Scrollbar], Source={StaticResource Loc}}" FontSize="14" Margin="0,8,0,0"/>
-            <CheckBox x:Name="EnableScrollbarCheckBox"
-                      Content="{Binding [EnableScrollbar], Source={StaticResource Loc}}"
-                      Margin="0,4,0,0"
-                      IsChecked="{Binding EnableScrollbar, Mode=TwoWay}"/>
-            <!-- Example settings UI -->
-            <TextBlock Text="{Binding [Theme], Source={StaticResource Loc}}" FontSize="14" Margin="0,8,0,0"/>
-            <ComboBox Width="160"
-                      Margin="0,4,0,0"
-                      SelectedValuePath="Tag"
-                      SelectedValue="{Binding SelectedTheme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                <ComboBoxItem Tag="Light" Content="{Binding [ThemeLight], Source={StaticResource Loc}}"/>
-                <ComboBoxItem Tag="Dark" Content="{Binding [ThemeDark], Source={StaticResource Loc}}"/>
-            </ComboBox>
-            <Button Content="{Binding [CheckForUpdates], Source={StaticResource Loc}}"
-                    Margin="0,12,0,0"
-                    Width="160"
-                    Click="CheckUpdates_Click"/>
-            <Button Content="{Binding [Close], Source={StaticResource Loc}}" HorizontalAlignment="Right" Margin="0,24,0,0" Width="80" Click="CloseButton_Click"/>
-        </StackPanel>
-    </Border>
+             d:DesignHeight="520"
+             d:DesignWidth="960">
+    <Grid x:Name="OverlayRoot" Background="#66000000" MouseDown="OverlayRoot_MouseDown">
+        <Border x:Name="PanelCard"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="1"
+                CornerRadius="16"
+                Padding="24"
+                Width="560"
+                MaxWidth="560"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" Opacity="0.20" BlurRadius="24" ShadowDepth="0"/>
+            </Border.Effect>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="{Binding [Settings], Source={StaticResource Loc}}"
+                               FontSize="24"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextColor}"/>
+
+                    <Button Grid.Column="1"
+                            Content="✕"
+                            Width="30"
+                            Height="30"
+                            Padding="0"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource TextColor}"
+                            Cursor="Hand"
+                            Click="CloseButton_Click"/>
+                </Grid>
+
+                <Border Grid.Row="1"
+                        Margin="0,18,0,0"
+                        Background="{DynamicResource SidebarBackground}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="22"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="{Binding [Language], Source={StaticResource Loc}}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextColor}"/>
+                            <ComboBox Margin="0,8,0,0"
+                                      MinWidth="180"
+                                      SelectedValuePath="Tag"
+                                      SelectedValue="{Binding SelectedLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                <ComboBoxItem Tag="en" Content="{Binding [LanguageEnglish], Source={StaticResource Loc}}"/>
+                                <ComboBoxItem Tag="lt" Content="{Binding [LanguageLithuanian], Source={StaticResource Loc}}"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <Border Grid.Column="1"
+                                Width="1"
+                                Margin="10,0"
+                                Background="{DynamicResource BorderColor}"/>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="{Binding [Theme], Source={StaticResource Loc}}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextColor}"/>
+                            <ComboBox Margin="0,8,0,0"
+                                      MinWidth="180"
+                                      SelectedValuePath="Tag"
+                                      SelectedValue="{Binding SelectedTheme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                <ComboBoxItem Tag="Light" Content="{Binding [ThemeLight], Source={StaticResource Loc}}"/>
+                                <ComboBoxItem Tag="Dark" Content="{Binding [ThemeDark], Source={StaticResource Loc}}"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="2"
+                        Margin="0,14,0,0"
+                        Background="{DynamicResource SidebarBackground}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="16,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="{Binding [Scrollbar], Source={StaticResource Loc}}"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextColor}"/>
+                        <CheckBox Grid.Column="1"
+                                  x:Name="EnableScrollbarCheckBox"
+                                  Content="{Binding [EnableScrollbar], Source={StaticResource Loc}}"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  IsChecked="{Binding EnableScrollbar, Mode=TwoWay}"/>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="3" Margin="0,20,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Content="{Binding [CheckForUpdates], Source={StaticResource Loc}}"
+                            Padding="14,8"
+                            MinWidth="190"
+                            HorizontalAlignment="Left"
+                            Click="CheckUpdates_Click"/>
+
+                    <Button Grid.Column="1"
+                            Content="{Binding [Close], Source={StaticResource Loc}}"
+                            Margin="10,0,0,0"
+                            MinWidth="100"
+                            Padding="14,8"
+                            Click="CloseButton_Click"/>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

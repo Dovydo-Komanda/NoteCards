@@ -419,11 +419,13 @@ public class MainViewModel : ViewModelBase
         SaveNotes();
     }
 
-    private bool _isSidebarExpanded = true;
+    private bool _isSidebarExpanded = false;
+
+    public bool IsSidebarExpanded => _isSidebarExpanded;
 
     public double SidebarWidth
     {
-        get => _isSidebarExpanded ? 220 : 60;
+        get => _isSidebarExpanded ? 232 : 64;
     }
 
     public ICommand ToggleSidebarCommand { get; }
@@ -432,6 +434,7 @@ public class MainViewModel : ViewModelBase
     {
         _isSidebarExpanded = !_isSidebarExpanded;
         OnPropertyChanged(nameof(SidebarWidth));
+        OnPropertyChanged(nameof(IsSidebarExpanded));
     }
 
     private void MoveGroupsUp()

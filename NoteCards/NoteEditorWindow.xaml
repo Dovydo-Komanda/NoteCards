@@ -24,6 +24,95 @@
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
         </Storyboard>
+
+        <Style x:Key="EditorToolButtonBaseStyle" TargetType="Button">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI, sans-serif"/>
+            <Setter Property="Foreground" Value="#243047"/>
+            <Setter Property="Background" Value="#F1F4FA"/>
+            <Setter Property="BorderBrush" Value="#D9E1F2"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#E7EDF9"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#C7D4EE"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#DCE6F6"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#B9CAE9"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="EditorToolIconButtonStyle" TargetType="Button" BasedOn="{StaticResource EditorToolButtonBaseStyle}">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="EditorPrimarySaveButtonStyle" TargetType="Button" BasedOn="{StaticResource EditorToolButtonBaseStyle}">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="#3F6FE8"/>
+            <Setter Property="BorderBrush" Value="#2F5CD0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="SaveButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="SaveButtonBorder" Property="Background" Value="#3562D8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="SaveButtonBorder" Property="Background" Value="#294CB2"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="EditorSideToolButtonStyle" TargetType="Button" BasedOn="{StaticResource EditorToolButtonBaseStyle}">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
     </Window.Resources>
     <Window.Triggers>
         <EventTrigger RoutedEvent="Loaded">
@@ -51,6 +140,10 @@
         <Grid.RenderTransform>
             <TranslateTransform Y="12"/>
         </Grid.RenderTransform>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
@@ -60,79 +153,66 @@
 
         <!-- Top Bar with Undo/Redo buttons -->
         <Border Grid.Row="0"
-        Background="#F3F3F3"
-        BorderBrush="#E0E0E0"
-        BorderThickness="0,0,0,1"
-        Padding="16,12">
+                Grid.ColumnSpan="2"
+                Background="#F7F8FC"
+                BorderBrush="#E2E8F5"
+                BorderThickness="0,0,0,1"
+                Padding="14,12">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="TitleTextBox"
-                 FontSize="20"
-                 FontWeight="SemiBold"
-                 BorderThickness="0"
-                 Background="Transparent"
-                 Foreground="#1C1C1C"
-                 HorizontalAlignment="Right"
-                 VerticalAlignment="Center" Grid.Column="1"/>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center">
-                    <!-- Undo Button -->
-                    <Button Content="{Binding [Undo], Source={StaticResource Loc}, StringFormat=↶ {0}}"
-                    Padding="12,6"
-                    Margin="0,0,8,0"
-                    Click="UndoButton_Click"/>
+                <Border Grid.Column="0"
+                        Margin="0,0,14,0"
+                        Background="#FFFFFF"
+                        BorderBrush="#D8E0F1"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="12,4">
+                    <TextBox x:Name="TitleTextBox"
+                             FontSize="20"
+                             FontWeight="SemiBold"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             Foreground="#1C1C1C"
+                             VerticalAlignment="Center"
+                             ToolTip="{Binding [NoteEditorTitle], Source={StaticResource Loc}}"/>
+                </Border>
 
-                    <!-- Redo Button -->
-                    <Button Content="{Binding [Redo], Source={StaticResource Loc}, StringFormat=↷ {0}}"
-                    Padding="12,6"
-                    Margin="0,0,8,0"
-                    Click="RedoButton_Click"/>
-
-                    <!-- Save Button -->
-                    <Button Content="{Binding [Save], Source={StaticResource Loc}, StringFormat=✓ {0}}"
-                    Padding="12,6"
-                    Click="SaveButton_Click"/>
-
-                    <!-- Print Button -->
-                    <Button Content="{Binding [Print], Source={StaticResource Loc}, StringFormat=🖨 {0}}"
-                    Padding="6,6"
-                    Margin="0,0,8,0"
-                    Click="PrintButton_Click"/>
-
-                    <!-- Open file into editor -->
-                    <Button x:Name="OpenFileButton"
-                        Content="{Binding [Open], Source={StaticResource Loc}, StringFormat=📂 {0}}"
-                        Padding="6,6"
-                        Margin="0,0,8,0"
-                        Click="OpenFromFileButton_Click"/>
-
-                    <!-- Search inside note (opens dialog) -->
-                    <Button x:Name="SearchButton" Content="{Binding [Search], Source={StaticResource Loc}, StringFormat=🔎 {0}}" Padding="6,6" Margin="0,0,4,0" Click="SearchButton_Click"/>
-
-
-
-                <Button x:Name="Font"
-                    Content="{Binding [Font], Source={StaticResource Loc}}"
-                    Padding="6,6"
-                    Margin="0,0,8,0"
-                    Click="FontSettings_Click"/>
-
-
-				</StackPanel>
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <Button Content="↶"
+                            Style="{StaticResource EditorToolIconButtonStyle}"
+                            ToolTip="{Binding [Undo], Source={StaticResource Loc}}"
+                            Click="UndoButton_Click"/>
+                    <Button Content="↷"
+                            Style="{StaticResource EditorToolIconButtonStyle}"
+                            ToolTip="{Binding [Redo], Source={StaticResource Loc}}"
+                            Click="RedoButton_Click"/>
+                    <Button x:Name="SearchButton"
+                            Content="🔎"
+                            Style="{StaticResource EditorToolIconButtonStyle}"
+                            ToolTip="{Binding [Search], Source={StaticResource Loc}}"
+                            Click="SearchButton_Click"/>
+                    <Button Content="✓"
+                            Style="{StaticResource EditorPrimarySaveButtonStyle}"
+                            ToolTip="{Binding [Save], Source={StaticResource Loc}}"
+                            Click="SaveButton_Click"/>
+                </StackPanel>
             </Grid>
         </Border>
 
        <Border Grid.Row="1"
-                Margin="20,8,20,0"
+                Grid.Column="0"
+                Margin="20,10,20,0"
                 Padding="12,8"
-                CornerRadius="8"
-                Background="#F7F8FC"
-                BorderBrush="#E3E7F4"
+                CornerRadius="10"
+                Background="#FFFFFF"
+                BorderBrush="#DBE3F3"
                 BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -155,47 +235,67 @@
         </Border>
 
         <!-- Font -->
-        <StackPanel x:Name="FontPanel"
-            Grid.Row="2"
-            Orientation="Horizontal"
-            Margin="16,8"
-            Visibility="Collapsed">
-           <TextBlock Text="{Binding [FontLabel], Source={StaticResource Loc}}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-			<ComboBox x:Name="FontFamilyBox" Width="160" SelectionChanged="FontFamilyBox_Changed">
-				<ComboBoxItem Content="Segoe UI"/>
-				<ComboBoxItem Content="Arial"/>
-				<ComboBoxItem Content="Times New Roman"/>
-				<ComboBoxItem Content="Calibri"/>
-			</ComboBox>
+        <Border x:Name="FontPanel"
+                Grid.Row="2"
+                Grid.Column="0"
+                Margin="20,10,20,0"
+                Padding="12,8"
+                CornerRadius="10"
+                Background="#FFFFFF"
+                BorderBrush="#DBE3F3"
+                BorderThickness="1"
+                Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding [FontLabel], Source={StaticResource Loc}}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,6,0"
+                           FontWeight="SemiBold"
+                           Foreground="#425170"/>
+                <ComboBox x:Name="FontFamilyBox" Width="160" SelectionChanged="FontFamilyBox_Changed">
+                    <ComboBoxItem Content="Segoe UI"/>
+                    <ComboBoxItem Content="Arial"/>
+                    <ComboBoxItem Content="Times New Roman"/>
+                    <ComboBoxItem Content="Calibri"/>
+                </ComboBox>
 
-          <TextBlock Text="{Binding [SizeLabel], Source={StaticResource Loc}}" Margin="12,0,6,0" VerticalAlignment="Center"/>
-			<ComboBox x:Name="FontSizeBox" Width="70" SelectionChanged="FontSizeBox_Changed">
-				<ComboBoxItem Content="12"/>
-				<ComboBoxItem Content="14"/>
-				<ComboBoxItem Content="16"/>
-				<ComboBoxItem Content="18"/>
-				<ComboBoxItem Content="24"/>
-			</ComboBox>
-
-        <!-- Open file moved to top bar -->
-        </StackPanel>
+                <TextBlock Text="{Binding [SizeLabel], Source={StaticResource Loc}}"
+                           Margin="12,0,6,0"
+                           VerticalAlignment="Center"
+                           FontWeight="SemiBold"
+                           Foreground="#425170"/>
+                <ComboBox x:Name="FontSizeBox" Width="70" SelectionChanged="FontSizeBox_Changed">
+                    <ComboBoxItem Content="12"/>
+                    <ComboBoxItem Content="14"/>
+                    <ComboBoxItem Content="16"/>
+                    <ComboBoxItem Content="18"/>
+                    <ComboBoxItem Content="24"/>
+                </ComboBox>
+            </StackPanel>
+        </Border>
 		
 		
            <!-- Main Text Area -->
-          <RichTextBox x:Name="ContentTextBox"
-              Grid.Row="3"
-              SelectionChanged="ContentTextBox_SelectionChanged"
-              Margin="20"
-              Padding="15"
-              FontSize="14"
-              FontFamily="Segoe UI"
-              AcceptsReturn="True"
-              VerticalScrollBarVisibility="{Binding EnableScrollbar, Converter={StaticResource BoolToScrollBarVisibilityConverter}}"
-              BorderThickness="0"
-              Background="White">
-              <RichTextBox.Effect>
-				<DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.1"/>
-			</RichTextBox.Effect>
+        <Border Grid.Row="3"
+                Grid.Column="0"
+                Margin="20,10,20,20"
+                Padding="2"
+                CornerRadius="12"
+                BorderBrush="#D8E1F4"
+                BorderThickness="1"
+                Background="#FFFFFF">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.08"/>
+            </Border.Effect>
+            <RichTextBox x:Name="ContentTextBox"
+                         SelectionChanged="ContentTextBox_SelectionChanged"
+                         Margin="0"
+                         Padding="16"
+                         FontSize="14"
+                         FontFamily="Segoe UI"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="{Binding EnableScrollbar, Converter={StaticResource BoolToScrollBarVisibilityConverter}}"
+                         BorderThickness="0"
+                         Background="Transparent">
 
 
 
@@ -209,6 +309,36 @@
                  <MenuItem Header="{Binding [SelectAll], Source={StaticResource Loc}}" Command="SelectAll"/>
 				</ContextMenu>
 			</RichTextBox.ContextMenu>
-		</RichTextBox>
+            </RichTextBox>
+        </Border>
+
+        <Border Grid.Row="1"
+                Grid.Column="1"
+                Grid.RowSpan="3"
+                Margin="0,10,20,20"
+                Padding="8"
+                CornerRadius="10"
+                Background="#FFFFFF"
+                BorderBrush="#DBE3F3"
+                BorderThickness="1"
+                VerticalAlignment="Top">
+            <StackPanel>
+                <Button x:Name="OpenFileButton"
+                        Content="📂"
+                        Style="{StaticResource EditorSideToolButtonStyle}"
+                        ToolTip="{Binding [Open], Source={StaticResource Loc}}"
+                        Click="OpenFromFileButton_Click"/>
+                <Button Content="🖨"
+                        Style="{StaticResource EditorSideToolButtonStyle}"
+                        ToolTip="{Binding [Print], Source={StaticResource Loc}}"
+                        Click="PrintButton_Click"/>
+                <Separator Margin="4,0,4,8"/>
+                <Button x:Name="FontButton"
+                        Content="𝑭"
+                        Style="{StaticResource EditorSideToolButtonStyle}"
+                        ToolTip="{Binding [Font], Source={StaticResource Loc}}"
+                        Click="FontSettings_Click"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

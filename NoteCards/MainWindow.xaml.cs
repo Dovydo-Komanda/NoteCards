@@ -1,6 +1,7 @@
 using NoteCards.ViewModels;
 using NoteCards.Localization;
 using NoteCards.Views;
+using NoteCards.Animations;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -20,6 +21,7 @@ namespace NoteCards
         private const int SectionAnimationMs = 280;
         private const double TopSearchExpandedWidth = 320;
         private const int TopSearchAnimationMs = 300;
+        private const int SidebarAnimationMs = 240;
 
         private MainViewModel? _observedViewModel;
         private bool _lastKnownGroupsFirst = true;
@@ -31,6 +33,7 @@ namespace NoteCards
         private FrameworkElement? GroupsSectionContainerElement => FindName("GroupsSectionContainer") as FrameworkElement;
         private FrameworkElement? UngroupedSectionContainerElement => FindName("UngroupedSectionContainer") as FrameworkElement;
         private Popup? SortNotesPopupElement => FindName("SortNotesPopup") as Popup;
+        private ColumnDefinition? SidebarColumnElement => FindName("SidebarColumn") as ColumnDefinition;
 
         internal static bool IsNoteDragInProgress { get; private set; }
 
@@ -107,6 +110,11 @@ namespace NoteCards
                 {
                     EnsureExpandedSectionsNotClipped(vm);
                 }
+                else if (e.PropertyName == nameof(MainViewModel.IsSidebarExpanded)
+                      || e.PropertyName == nameof(MainViewModel.SidebarWidth))
+                {
+                    AnimateSidebarWidth(vm.SidebarWidth);
+                }
             });
         }
 
@@ -118,8 +126,41 @@ namespace NoteCards
             SetSectionVisibilityImmediately(RecentSectionBodyElement, vm.IsRecentSectionExpanded);
             SetSectionVisibilityImmediately(GroupsSectionBodyElement, vm.IsGroupsSectionExpanded);
             SetSectionVisibilityImmediately(UngroupedSectionBodyElement, vm.IsUngroupedSectionExpanded);
+            SetSidebarWidthImmediately(vm.SidebarWidth);
             EnsureExpandedSectionsNotClipped(vm);
             _lastKnownGroupsFirst = vm.IsGroupsFirst;
+        }
+
+        private void SetSidebarWidthImmediately(double width)
+        {
+            if (SidebarColumnElement != null)
+                SidebarColumnElement.Width = new GridLength(width, GridUnitType.Pixel);
+        }
+
+        private void AnimateSidebarWidth(double targetWidth)
+        {
+            if (SidebarColumnElement is null)
+                return;
+
+            var currentWidth = SidebarColumnElement.ActualWidth;
+            if (currentWidth <= 0)
+                currentWidth = SidebarColumnElement.Width.Value;
+
+            if (Math.Abs(currentWidth - targetWidth) < 0.5)
+            {
+                SidebarColumnElement.Width = new GridLength(targetWidth, GridUnitType.Pixel);
+                return;
+            }
+
+            var animation = new GridLengthAnimation
+            {
+                From = new GridLength(currentWidth, GridUnitType.Pixel),
+                To = new GridLength(targetWidth, GridUnitType.Pixel),
+                Duration = TimeSpan.FromMilliseconds(SidebarAnimationMs),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
+            };
+
+            SidebarColumnElement.BeginAnimation(ColumnDefinition.WidthProperty, animation);
         }
 
         private static void EnsureExpandedSectionsNotClipped(MainViewModel vm)
@@ -325,8 +366,6 @@ namespace NoteCards
 
         private void OpenFromFileMenuButton_Click(object sender, RoutedEventArgs e)
         {
-            HamburgerPopup.IsOpen = false;
-
             var dlg = new Microsoft.Win32.OpenFileDialog();
             dlg.Filter = LocalizationService.GetString("OpenFileDialogFilter");
             if (dlg.ShowDialog() != true)
@@ -405,19 +444,29 @@ namespace NoteCards
             }
         }
 
-        private void HamburgerButton_Click(object sender, RoutedEventArgs e)
+        private void SidebarSearchButton_Click(object sender, RoutedEventArgs e)
         {
-            CollapseTopSearchPanel();
-            if (SortNotesPopupElement != null)
-                SortNotesPopupElement.IsOpen = false;
-            TagsFilterPopup.IsOpen = false;
-            HamburgerPopup.IsOpen = !HamburgerPopup.IsOpen;
+            TopSearchButton_Click(sender, e);
+        }
+
+        private void SidebarSortButton_Click(object sender, RoutedEventArgs e)
+        {
+            SortNotesButton_Click(sender, e);
+        }
+
+        private void SidebarTagsFilterButton_Click(object sender, RoutedEventArgs e)
+        {
+            TagsFilterButton_Click(sender, e);
+        }
+
+        private void SidebarSettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsMenuButton_Click(sender, e);
         }
 
         private void SortNotesButton_Click(object sender, RoutedEventArgs e)
         {
             CollapseTopSearchPanel();
-            HamburgerPopup.IsOpen = false;
             TagsFilterPopup.IsOpen = false;
 
             if (SortNotesPopupElement != null)
@@ -427,7 +476,6 @@ namespace NoteCards
         private void TagsFilterButton_Click(object sender, RoutedEventArgs e)
         {
             CollapseTopSearchPanel();
-            HamburgerPopup.IsOpen = false;
             if (SortNotesPopupElement != null)
                 SortNotesPopupElement.IsOpen = false;
             TagsFilterPopup.IsOpen = !TagsFilterPopup.IsOpen;
@@ -455,7 +503,6 @@ namespace NoteCards
 
         private void AboutButton_Click(object sender, RoutedEventArgs e)
         {
-            HamburgerPopup.IsOpen = false;
             var about = new Views.AboutWindow { Owner = this };
             about.ShowDialog();
         }
@@ -472,7 +519,6 @@ namespace NoteCards
 
         private void ExpandTopSearchPanel()
         {
-            HamburgerPopup.IsOpen = false;
             TagsFilterPopup.IsOpen = false;
             if (SortNotesPopupElement != null)
                 SortNotesPopupElement.IsOpen = false;
@@ -564,12 +610,11 @@ namespace NoteCards
         // Settings menu button click handler
         private void SettingsMenuButton_Click(object sender, RoutedEventArgs e)
         {
-            HamburgerPopup.IsOpen = false;
-            var settingsPanel = this.FindName("SettingsPanelControl") as FrameworkElement;
+            var settingsPanel = this.FindName("SettingsPanelControl") as SettingsPanel;
             if (settingsPanel != null)
             {
                 settingsPanel.DataContext = this.DataContext;
-                settingsPanel.Visibility = Visibility.Visible;
+                settingsPanel.ShowAnimated();
             }
         }
         private void RecentNoteButton_Click(object sender, RoutedEventArgs e)

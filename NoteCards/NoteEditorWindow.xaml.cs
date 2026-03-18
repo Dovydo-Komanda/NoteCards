@@ -153,6 +153,7 @@ namespace NoteCards
 
                 ContentTextBox.FontFamily = new FontFamily(document.FontFamily);
                 ContentTextBox.FontSize = document.FontSize;
+                UpdateFontButtonText();
             }
         }
 
@@ -290,9 +291,9 @@ namespace NoteCards
 
         private void UpdateFontButtonText()
         {
-            if (Font != null)
+            if (FindName("FontButton") is Button fontButton)
             {
-                Font.Content = string.Format(LocalizationService.GetString("FontButtonFormat"), ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
+                fontButton.ToolTip = string.Format(LocalizationService.GetString("FontButtonFormat"), ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
             }
         }
 
