@@ -153,6 +153,9 @@
                             <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}"
                                       Command="{Binding RemoveFromGroupCommand}"
                                       Visibility="{Binding IsGrouped, Converter={StaticResource BoolToVis}}"/>
+                            <!-- DUPLICATE ITEM -->
+                            <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}" 
+                            Command="{Binding DuplicateCommand}"/>
                             <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}" Command="{Binding DeleteCommand}"/>
                         </ContextMenu>
                     </Button.ContextMenu>

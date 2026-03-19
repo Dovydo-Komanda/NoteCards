@@ -12,17 +12,21 @@ public class NoteCardViewModel : ViewModelBase
     private bool _isDeleting;
     private readonly Action<NoteCardViewModel> _deleteAction;
     private readonly Action<NoteCardViewModel>? _removeFromGroupAction;
+    private readonly Action<NoteCardViewModel>? _duplicateAction;
 
     public NoteCardViewModel(
         NoteDocument document,
         Action<NoteCardViewModel> deleteAction,
-        Action<NoteCardViewModel>? removeFromGroupAction = null)
+        Action<NoteCardViewModel>? removeFromGroupAction = null,
+        Action<NoteCardViewModel>? duplicateAction = null)
     {
         Document = document;
         _deleteAction = deleteAction;
         _removeFromGroupAction = removeFromGroupAction;
+        _duplicateAction = duplicateAction;
         DeleteCommand = new RelayCommand(() => IsDeleting = true);
         RemoveFromGroupCommand = new RelayCommand(RemoveFromGroup, () => IsGrouped);
+        DuplicateCommand = new RelayCommand(DuplicateNote);
     }
 
     public bool HasTags => Document.Tags?.Count > 0;
@@ -121,7 +125,11 @@ public class NoteCardViewModel : ViewModelBase
 
     public ICommand RemoveFromGroupCommand { get; }
 
+    public ICommand DuplicateCommand { get; }
+
     internal void ExecuteDelete() => _deleteAction(this);
+
+    private void DuplicateNote() => _duplicateAction?.Invoke(this);
 
     public void NotifyContentChanged()
     {

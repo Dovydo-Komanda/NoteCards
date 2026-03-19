@@ -260,6 +260,26 @@ public class MainViewModel : ViewModelBase
         AddNoteFromDocument(document);
     }
 
+    private void DuplicateNote(NoteCardViewModel noteCard)
+    {
+        // Create a copy of the document with new ID and timestamps
+        var duplicateDocument = new NoteDocument
+        {
+            Title = $"{noteCard.Document.Title} (Copy)",
+            Content = noteCard.Document.Content,
+            Tags = noteCard.Document.Tags?.ToList(), // Copy tags if they exist
+            FontFamily = noteCard.Document.FontFamily,
+            FontSize = noteCard.Document.FontSize,
+            CreatedAt = DateTime.Now,
+            LastModified = DateTime.Now,
+            // GroupId is intentionally NOT copied - duplicate starts ungrouped
+            GroupId = null
+        };
+
+        // Add the duplicated note
+        AddNoteFromDocument(duplicateDocument);
+    }
+
     private void DeleteNote(NoteCardViewModel noteCard)
     {
         Notes.Remove(noteCard);
@@ -898,7 +918,12 @@ public class MainViewModel : ViewModelBase
 
     private NoteCardViewModel CreateNoteCard(NoteDocument doc)
     {
-        return new NoteCardViewModel(doc, DeleteNote, RemoveFromGroup);
+        return new NoteCardViewModel(
+            doc, 
+            DeleteNote, 
+            RemoveFromGroup,
+            DuplicateNote
+            );
     }
 
     private NoteGroupData EnsureGroupMetadata(Guid groupId)
