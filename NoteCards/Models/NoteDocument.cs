@@ -11,4 +11,5 @@ public class NoteDocument
     public double FontSize { get; set; } = 14;
     public DateTime LastModified { get; set; } = DateTime.Now;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsPinned { get; set; } = false;
 }

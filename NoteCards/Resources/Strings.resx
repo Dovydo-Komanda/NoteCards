@@ -95,6 +95,9 @@ Cancel = abort</value></data>
   <data name="SortByCreatedAtAsc" xml:space="preserve"><value>Oldest created</value></data>
   <data name="SortByTitleAsc" xml:space="preserve"><value>Title A–Z</value></data>
   <data name="SortByTitleDesc" xml:space="preserve"><value>Title Z–A</value></data>
+  <data name="Pin" xml:space="preserve"><value>Pin</value></data>
+  <data name="Unpin" xml:space="preserve"><value>Unpin</value></data>
+  <data name="Duplicate" xml:space="preserve"><value>Duplicate</value></data>
   <data name="FindReplaceTitle" xml:space="preserve"><value>Find / Replace</value></data>
   <data name="FindLabel" xml:space="preserve"><value>Find:</value></data>
   <data name="ReplaceLabel" xml:space="preserve"><value>Replace:</value></data>
