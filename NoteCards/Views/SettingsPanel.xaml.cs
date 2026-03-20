@@ -1,9 +1,10 @@
+using NoteCards.Localization;
+using NoteCards.Services;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using NoteCards.Localization;
 
 namespace NoteCards.Views
 {
@@ -61,6 +62,39 @@ namespace NoteCards.Views
             OverlayRoot.BeginAnimation(OpacityProperty, openOverlay);
             PanelCard.BeginAnimation(OpacityProperty, openPanelOpacity);
             translate.BeginAnimation(TranslateTransform.YProperty, openPanelShift);
+
+            var settings = AppSettingsService.Load();
+            EnableScrollbarCheckBox.IsChecked = settings.EnableScrollbar;
+            EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
+        }
+
+        // auto-save checkbox handlers
+        private void EnableAutoSaveCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            // Enable auto-save in all open editor windows
+            foreach (var window in Application.Current.Windows.OfType<NoteEditorWindow>())
+            {
+                window.SetAutoSaveEnabled(true);
+            }
+
+            // Save preference
+            var settings = AppSettingsService.Load();
+            settings.EnableAutoSave = true;
+            AppSettingsService.Save(settings);
+        }
+
+        private void EnableAutoSaveCheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            // Disable auto-save in all open editor windows
+            foreach (var window in Application.Current.Windows.OfType<NoteEditorWindow>())
+            {
+                window.SetAutoSaveEnabled(false);
+            }
+
+            // Save preference
+            var settings = AppSettingsService.Load();
+            settings.EnableAutoSave = false;
+            AppSettingsService.Save(settings);
         }
 
         public void HideAnimated()

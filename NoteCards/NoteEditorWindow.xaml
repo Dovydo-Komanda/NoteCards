@@ -185,6 +185,14 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
+                    <!-- Auto-Save Indicator -->
+                    <TextBlock x:Name="AutoSaveIndicator"
+                            FontSize="11"
+                            Foreground="#6B7280"
+                            FontStyle="Italic"
+                            Margin="10,0,10,0"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed"/>
                     <Button Content="↶"
                             Style="{StaticResource EditorToolIconButtonStyle}"
                             ToolTip="{Binding [Undo], Source={StaticResource Loc}}"

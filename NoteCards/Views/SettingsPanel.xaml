@@ -103,30 +103,61 @@
                     </Grid>
                 </Border>
 
+                <!-- Scrollbar and Auto-Save Settings -->
                 <Border Grid.Row="2"
-                        Margin="0,14,0,0"
-                        Background="{DynamicResource SidebarBackground}"
-                        BorderBrush="{DynamicResource BorderColor}"
-                        BorderThickness="1"
-                        CornerRadius="12"
-                        Padding="16,12">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
+        Margin="0,14,0,0"
+        Background="{DynamicResource SidebarBackground}"
+        BorderBrush="{DynamicResource BorderColor}"
+        BorderThickness="1"
+        CornerRadius="12"
+        Padding="16,12">
+                    <StackPanel>
+                        <!-- Scrollbar Setting -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="{Binding [Scrollbar], Source={StaticResource Loc}}"
-                                   VerticalAlignment="Center"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextColor}"/>
-                        <CheckBox Grid.Column="1"
-                                  x:Name="EnableScrollbarCheckBox"
-                                  Content="{Binding [EnableScrollbar], Source={StaticResource Loc}}"
-                                  HorizontalAlignment="Right"
-                                  VerticalAlignment="Center"
-                                  IsChecked="{Binding EnableScrollbar, Mode=TwoWay}"/>
-                    </Grid>
+                            <TextBlock Text="{Binding [Scrollbar], Source={StaticResource Loc}}"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextColor}"/>
+                            <CheckBox Grid.Column="1"
+                      x:Name="EnableScrollbarCheckBox"
+                      Content="{Binding [EnableScrollbar], Source={StaticResource Loc}}"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Center"
+                      IsChecked="{Binding EnableScrollbar, Mode=TwoWay}"/>
+                        </Grid>
+
+                        <Border Height="1" 
+                Background="{DynamicResource BorderColor}" 
+                Margin="0,0,0,12"/>
+
+                        <!-- Auto-Save Setting -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding [AutoSave], Source={StaticResource Loc}}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextColor}"/>
+                            </StackPanel>
+
+                            <CheckBox Grid.Column="1"
+                      x:Name="EnableAutoSaveCheckBox"
+                      Content="{Binding [EnableAutoSave], Source={StaticResource Loc}}"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Center"
+                      IsChecked="True"
+                      Checked="EnableAutoSaveCheckBox_Checked"
+                      Unchecked="EnableAutoSaveCheckBox_Unchecked"/>
+                        </Grid>
+                    </StackPanel>
                 </Border>
 
                 <Grid Grid.Row="3" Margin="0,20,0,0">

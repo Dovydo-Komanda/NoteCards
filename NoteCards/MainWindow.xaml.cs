@@ -1,7 +1,8 @@
-using NoteCards.ViewModels;
-using NoteCards.Localization;
-using NoteCards.Views;
 using NoteCards.Animations;
+using NoteCards.Localization;
+using NoteCards.Models;
+using NoteCards.ViewModels;
+using NoteCards.Views;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -591,8 +592,12 @@ namespace NoteCards
             var editor = new NoteEditorWindow();
             // Set DataContext so EnableScrollbar binding works
             editor.DataContext = this.DataContext;
-
             editor.LoadFromDocument(noteViewModel.Document);
+            editor.SetCurrentDocument(noteViewModel.Document); // Set current document for auto-save
+
+            // Subscribe to auto-save event to refresh the card UI
+            void OnAutoSaved(NoteDocument doc) => noteViewModel.NotifyContentChanged();
+            editor.DocumentAutoSaved += OnAutoSaved;
 
             if (editor.ShowDialog() == true)
             {
@@ -605,6 +610,9 @@ namespace NoteCards
                 vm?.RefreshTagFiltersAfterNoteEdit();
                 vm?.SaveNotes();
             }
+
+            // Unsubscribe to avoid memory leaks
+            editor.DocumentAutoSaved -= OnAutoSaved;
         }
 
         // Settings menu button click handler

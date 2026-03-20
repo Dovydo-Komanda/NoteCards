@@ -1,6 +1,8 @@
 ﻿using Microsoft.Win32;
 using NoteCards.Localization;
 using NoteCards.Models;
+using NoteCards.Services;
+using NoteCards.ViewModels;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -16,13 +18,25 @@ namespace NoteCards
         private bool? _pendingDialogResult = null;
         private bool _isPlayingCloseAnimation = false;
 
+        // Auto-save fields
+        public event Action<NoteDocument>? DocumentAutoSaved;
+        private System.Threading.Timer? _autoSaveTimer;
+        private bool _isAutoSaveEnabled = true;
+        private const int AutoSaveIntervalMs = 30000; // 30 seconds
+        private DateTime _lastAutoSaveTime = DateTime.MinValue;
+        private string _lastSavedContent = string.Empty;
+        private NoteDocument? _currentDocument;
+
         public NoteEditorWindow()
         {
             InitializeComponent();
+            InitializeAutoSave();
         }
 
         private void NoteEditorWindow_Closing(object sender, CancelEventArgs e)
         {
+            StopAutoSaveTimer();
+
             if (_isPlayingCloseAnimation)
                 return;
 
@@ -77,8 +91,6 @@ namespace NoteCards
             }
         }
 
-
-
         private void PerformFind(string query)
         {
             if (string.IsNullOrEmpty(query))
@@ -120,6 +132,7 @@ namespace NoteCards
         {
             if (document != null)
             {
+                _currentDocument = document; // Set current document
                 TitleTextBox.Text = document.Title;
                 TagsTextBox.Text = string.Join(", ", document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
 
@@ -155,6 +168,9 @@ namespace NoteCards
                 ContentTextBox.FontFamily = new FontFamily(document.FontFamily);
                 ContentTextBox.FontSize = document.FontSize;
                 UpdateFontButtonText();
+
+                // Initialize last saved content
+                _lastSavedContent = GetContentAsText();
             }
         }
 
@@ -207,6 +223,200 @@ namespace NoteCards
                 document.FontFamily = ContentTextBox.FontFamily.Source;
                 document.FontSize = ContentTextBox.FontSize;
             }
+        }
+
+        // Initialize auto-save timer
+        private void InitializeAutoSave()
+        {
+            // Load auto-save setting from app settings
+            var settings = AppSettingsService.Load();
+            _isAutoSaveEnabled = settings.EnableAutoSave;
+
+            // Start the auto-save timer if enabled
+            if (_isAutoSaveEnabled)
+            {
+                StartAutoSaveTimer();
+            }
+
+            // Hook into content changes to track modifications
+            ContentTextBox.TextChanged += ContentTextBox_TextChanged;
+        }
+
+        // Start the auto-save timer
+        private void StartAutoSaveTimer()
+        {
+            if (_isAutoSaveEnabled)
+            {
+                // Repeating timer: dueTime=30s (first fire), period=30s (repeat interval)
+                _autoSaveTimer = new System.Threading.Timer(
+                    AutoSaveCallback,
+                    null,
+                    AutoSaveIntervalMs,  // dueTime: first fire after 30 seconds
+                    AutoSaveIntervalMs); // period: repeat every 30 seconds
+            }
+        }
+
+        // Stop the auto-save timer
+        private void StopAutoSaveTimer()
+        {
+            _autoSaveTimer?.Dispose();
+            _autoSaveTimer = null;
+        }
+
+        // Content changed event handler
+        private void ContentTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // Reset auto-save timer on content change (optional: only auto-save if user stops typing)
+            // For now, we'll auto-save every 30 seconds regardless
+        }
+
+        private void AutoSaveCallback(object? state)
+        {
+            // Debug: Log timer firing
+            System.Diagnostics.Debug.WriteLine($"[AutoSave] Timer fired at {DateTime.Now:HH:mm:ss}");
+
+            // Switch to UI thread
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (_isAutoSaveEnabled && _currentDocument != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AutoSave] Checking if content changed...");
+
+                    if (HasContentChanged())
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[AutoSave] Content changed, performing save...");
+                        PerformAutoSave();
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[AutoSave] No changes detected since last save");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AutoSave] Disabled or no document: Enabled={_isAutoSaveEnabled}, Doc={_currentDocument != null}");
+                }
+            });
+        }
+
+        // Check if content has changed since last save
+        private bool HasContentChanged()
+        {
+            var currentContent = GetContentAsText();
+            return currentContent != _lastSavedContent ||
+                   TitleTextBox.Text != (_currentDocument?.Title ?? string.Empty);
+        }
+
+        // Get current content as plain text for comparison
+        private string GetContentAsText()
+        {
+            var textRange = new TextRange(
+                ContentTextBox.Document.ContentStart,
+                ContentTextBox.Document.ContentEnd);
+            return textRange.Text;
+        }
+
+        // Perform auto-save
+        private void PerformAutoSave()
+        {
+            try
+            {
+                if (_currentDocument != null)
+                {
+                    // Save to document
+                    SaveToDocument(_currentDocument);
+
+                    // Update last saved content
+                    _lastSavedContent = GetContentAsText();
+                    _lastAutoSaveTime = DateTime.Now;
+
+                    // Show visual indicator
+                    ShowAutoSaveIndicator();
+
+                    // Raise event so MainWindow can refresh the note card
+                    DocumentAutoSaved?.Invoke(_currentDocument);
+
+                    // Save notes to disk (via MainViewModel)
+                    if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm)
+                    {
+                        mainVm.SaveNotes();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't disturb user during auto-save
+                System.Diagnostics.Debug.WriteLine($"Auto-save failed: {ex.Message}");
+            }
+        }
+
+        // Show visual auto-save indicator
+        private void ShowAutoSaveIndicator()
+        {
+            // Find or create the auto-save indicator
+            var indicator = FindName("AutoSaveIndicator") as TextBlock;
+            if (indicator == null)
+            {
+                // Create indicator if it doesn't exist
+                indicator = new TextBlock
+                {
+                    Name = "AutoSaveIndicator",
+                    FontSize = 11,
+                    Foreground = Brushes.Gray,
+                    FontStyle = FontStyles.Italic,
+                    Margin = new Thickness(10, 0, 0, 0),
+                    Visibility = Visibility.Collapsed
+                };
+
+                // Add to top bar (find the StackPanel with buttons)
+                if (FindName("TopBarStackPanel") is StackPanel topBarPanel)
+                {
+                    topBarPanel.Children.Add(indicator);
+                }
+            }
+
+            // Show "Auto-saving..." message
+            indicator.Text = LocalizationService.GetString("AutoSaving");
+            indicator.Visibility = Visibility.Visible;
+            indicator.Opacity = 1;
+
+            // Fade out after 2 seconds
+            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(2))
+            {
+                BeginTime = TimeSpan.FromSeconds(1)
+            };
+            fadeOut.Completed += (s, e) => indicator.Visibility = Visibility.Collapsed;
+            indicator.BeginAnimation(TextBlock.OpacityProperty, fadeOut);
+        }
+
+        // Enable/disable auto-save
+        public void SetAutoSaveEnabled(bool enabled)
+        {
+            _isAutoSaveEnabled = enabled;
+
+            if (enabled)
+            {
+                StartAutoSaveTimer();
+            }
+            else
+            {
+                StopAutoSaveTimer();
+            }
+
+            // Save preference to app settings
+            var settings = AppSettingsService.Load();
+            settings.EnableAutoSave = enabled;
+            AppSettingsService.Save(settings);
+        }
+
+        // Check if auto-save is enabled
+        public bool IsAutoSaveEnabled() => _isAutoSaveEnabled;
+
+        // Set the current document being edited
+        public void SetCurrentDocument(NoteDocument document)
+        {
+            _currentDocument = document;
+            _lastSavedContent = GetContentAsText();
         }
 
         private void ExportPdfButton_Click(object sender, RoutedEventArgs e)
@@ -331,6 +541,35 @@ namespace NoteCards
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
+            // Perform manual save
+            if (_currentDocument != null)
+            {
+                SaveToDocument(_currentDocument);
+                _lastSavedContent = GetContentAsText();
+
+                // Save to disk
+                if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm)
+                {
+                    mainVm.SaveNotes();
+                }
+
+                // Show auto-save indicator with "Saved" message
+                var indicator = FindName("AutoSaveIndicator") as TextBlock;
+                if (indicator != null)
+                {
+                    indicator.Text = LocalizationService.GetString("Saved");
+                    indicator.Visibility = Visibility.Visible;
+                    indicator.Opacity = 1;
+
+                    var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(1.5))
+                    {
+                        BeginTime = TimeSpan.FromSeconds(0.5)
+                    };
+                    fadeOut.Completed += (s, e) => indicator.Visibility = Visibility.Collapsed;
+                    indicator.BeginAnimation(TextBlock.OpacityProperty, fadeOut);
+                }
+            }
+
             _pendingDialogResult = true;
             AnimateAndClose();
         }
