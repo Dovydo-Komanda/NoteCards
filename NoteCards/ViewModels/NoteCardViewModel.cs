@@ -13,20 +13,24 @@ public class NoteCardViewModel : ViewModelBase
     private readonly Action<NoteCardViewModel> _deleteAction;
     private readonly Action<NoteCardViewModel>? _removeFromGroupAction;
     private readonly Action<NoteCardViewModel>? _duplicateAction;
+    private readonly Action<NoteCardViewModel>? _togglePinAction;
 
     public NoteCardViewModel(
         NoteDocument document,
         Action<NoteCardViewModel> deleteAction,
         Action<NoteCardViewModel>? removeFromGroupAction = null,
-        Action<NoteCardViewModel>? duplicateAction = null)
+        Action<NoteCardViewModel>? duplicateAction = null,
+        Action<NoteCardViewModel>? togglePinAction = null)
     {
         Document = document;
         _deleteAction = deleteAction;
         _removeFromGroupAction = removeFromGroupAction;
         _duplicateAction = duplicateAction;
+        _togglePinAction = togglePinAction;
         DeleteCommand = new RelayCommand(() => IsDeleting = true);
         RemoveFromGroupCommand = new RelayCommand(RemoveFromGroup, () => IsGrouped);
         DuplicateCommand = new RelayCommand(DuplicateNote);
+        TogglePinCommand = new RelayCommand(TogglePin);
     }
 
     public bool HasTags => Document.Tags?.Count > 0;
@@ -127,6 +131,8 @@ public class NoteCardViewModel : ViewModelBase
 
     public ICommand DuplicateCommand { get; }
 
+    public ICommand TogglePinCommand { get; }
+
     internal void ExecuteDelete() => _deleteAction(this);
 
     private void DuplicateNote() => _duplicateAction?.Invoke(this);
@@ -151,5 +157,10 @@ public class NoteCardViewModel : ViewModelBase
     private void RemoveFromGroup()
     {
         _removeFromGroupAction?.Invoke(this);
+    }
+
+    private void TogglePin()
+    {
+        _togglePinAction?.Invoke(this);
     }
 }

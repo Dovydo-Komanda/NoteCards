@@ -280,6 +280,14 @@ public class MainViewModel : ViewModelBase
         AddNoteFromDocument(duplicateDocument);
     }
 
+    private void TogglePin(NoteCardViewModel noteCard)
+    {
+        noteCard.Document.IsPinned = !noteCard.Document.IsPinned;
+        RebuildGroups();
+        ApplyFilters();
+        SaveNotes();
+    }
+
     private void DeleteNote(NoteCardViewModel noteCard)
     {
         Notes.Remove(noteCard);
@@ -642,6 +650,9 @@ public class MainViewModel : ViewModelBase
     {
         _notesView.SortDescriptions.Clear();
 
+        // Always sort pinned notes first
+        _notesView.SortDescriptions.Add(new SortDescription("Document.IsPinned", ListSortDirection.Descending));
+
         switch (_selectedSortOptionKey)
         {
             case SortLastModifiedAsc:
@@ -676,27 +687,33 @@ public class MainViewModel : ViewModelBase
         return _selectedSortOptionKey switch
         {
             SortLastModifiedAsc => notes
-                .OrderBy(n => n.Document.LastModified)
+                .OrderByDescending(n => n.Document.IsPinned)
+                .ThenBy(n => n.Document.LastModified)
                 .ThenBy(n => n.Document.Title, StringComparer.CurrentCultureIgnoreCase)
                 .ToList(),
             SortCreatedAtDesc => notes
-                .OrderByDescending(n => n.Document.CreatedAt)
+                .OrderByDescending(n => n.Document.IsPinned)
+                .ThenByDescending(n => n.Document.CreatedAt)
                 .ThenByDescending(n => n.Document.LastModified)
                 .ToList(),
             SortCreatedAtAsc => notes
-                .OrderBy(n => n.Document.CreatedAt)
+                .OrderByDescending(n => n.Document.IsPinned)
+                .ThenBy(n => n.Document.CreatedAt)
                 .ThenByDescending(n => n.Document.LastModified)
                 .ToList(),
             SortTitleAsc => notes
-                .OrderBy(n => n.Document.Title, StringComparer.CurrentCultureIgnoreCase)
+                .OrderByDescending(n => n.Document.IsPinned)
+                .ThenBy(n => n.Document.Title, StringComparer.CurrentCultureIgnoreCase)
                 .ThenByDescending(n => n.Document.LastModified)
                 .ToList(),
             SortTitleDesc => notes
-                .OrderByDescending(n => n.Document.Title, StringComparer.CurrentCultureIgnoreCase)
+                .OrderByDescending(n => n.Document.IsPinned)
+                .ThenByDescending(n => n.Document.Title, StringComparer.CurrentCultureIgnoreCase)
                 .ThenByDescending(n => n.Document.LastModified)
                 .ToList(),
             _ => notes
-                .OrderByDescending(n => n.Document.LastModified)
+                .OrderByDescending(n => n.Document.IsPinned)
+                .ThenByDescending(n => n.Document.LastModified)
                 .ThenByDescending(n => n.Document.CreatedAt)
                 .ToList()
         };
@@ -922,7 +939,8 @@ public class MainViewModel : ViewModelBase
             doc, 
             DeleteNote, 
             RemoveFromGroup,
-            DuplicateNote
+            DuplicateNote,
+            TogglePin
             );
     }
 

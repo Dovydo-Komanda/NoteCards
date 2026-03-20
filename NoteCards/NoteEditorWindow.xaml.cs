@@ -17,6 +17,9 @@ namespace NoteCards
     {
         private bool? _pendingDialogResult = null;
         private bool _isPlayingCloseAnimation = false;
+        // Last search/replace state for Find Next / Replace Next functionality
+        private string? _lastSearchQuery = null;
+        private string? _lastReplacementText = null;
 
         // Auto-save fields
         public event Action<NoteDocument>? DocumentAutoSaved;
@@ -81,13 +84,15 @@ namespace NoteCards
 
         private void SearchButton_Click(object sender, RoutedEventArgs e)
         {
-            // Open a lightweight input dialog to search inside the note
-            var input = new Views.SimpleInputDialog(LocalizationService.GetString("FindInNoteTitle"), LocalizationService.GetString("FindInNotePrompt"));
-            input.Owner = this;
-            if (input.ShowDialog() == true)
+            // Open combined Find/Replace dialog
+            var dlg = new Views.SearchReplaceDialogLocalized(_lastSearchQuery, _lastReplacementText);
+            dlg.Owner = this;
+            var res = dlg.ShowDialog();
+            if (res == true)
             {
-                var query = input.InputText;
-                PerformFind(query);
+                // save last used values
+                _lastSearchQuery = dlg.SearchText;
+                _lastReplacementText = dlg.ReplacementText;
             }
         }
 
@@ -125,6 +130,95 @@ namespace NoteCards
                 }
                 navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
             }
+        }
+
+        // Find next occurrence after current selection. Wraps to start if needed.
+        internal bool PerformFindNext(string query)
+        {
+            if (string.IsNullOrEmpty(query))
+                return false;
+
+            var doc = ContentTextBox.Document;
+            ClearAllHighlights();
+
+            TextPointer startPos = null;
+            var sel = ContentTextBox.Selection;
+            if (sel != null && !sel.IsEmpty)
+            {
+                startPos = sel.End;
+            }
+            else
+            {
+                startPos = doc.ContentStart;
+            }
+
+            // Search from startPos to end
+            var navigator = startPos;
+            while (navigator != null && navigator.CompareTo(doc.ContentEnd) < 0)
+            {
+                var text = navigator.GetTextInRun(LogicalDirection.Forward);
+                if (!string.IsNullOrEmpty(text))
+                {
+                    var idx = text.IndexOf(query, System.StringComparison.OrdinalIgnoreCase);
+                    if (idx >= 0)
+                    {
+                        var start = navigator.GetPositionAtOffset(idx);
+                        var end = start.GetPositionAtOffset(query.Length);
+                        if (start != null && end != null)
+                        {
+                            var foundRange = new TextRange(start, end);
+                            foundRange.ApplyPropertyValue(TextElement.BackgroundProperty, System.Windows.Media.Brushes.Yellow);
+                            ContentTextBox.Selection.Select(start, end);
+                            ContentTextBox.Focus();
+                            return true;
+                        }
+                    }
+                }
+                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+            }
+
+            // Not found after current position - try from document start (wrap)
+            navigator = doc.ContentStart;
+            while (navigator != null && navigator.CompareTo(startPos) < 0)
+            {
+                var text = navigator.GetTextInRun(LogicalDirection.Forward);
+                if (!string.IsNullOrEmpty(text))
+                {
+                    var idx = text.IndexOf(query, System.StringComparison.OrdinalIgnoreCase);
+                    if (idx >= 0)
+                    {
+                        var start = navigator.GetPositionAtOffset(idx);
+                        var end = start.GetPositionAtOffset(query.Length);
+                        if (start != null && end != null)
+                        {
+                            var foundRange = new TextRange(start, end);
+                            foundRange.ApplyPropertyValue(TextElement.BackgroundProperty, System.Windows.Media.Brushes.Yellow);
+                            ContentTextBox.Selection.Select(start, end);
+                            ContentTextBox.Focus();
+                            return true;
+                        }
+                    }
+                }
+                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+            }
+
+            return false;
+        }
+
+        internal void PerformReplaceNext(string query, string replacement)
+        {
+            if (string.IsNullOrEmpty(query))
+                return;
+
+            // If current selection matches the search, replace it
+            var sel = ContentTextBox.Selection;
+            if (sel != null && !sel.IsEmpty && string.Equals(sel.Text, query, StringComparison.OrdinalIgnoreCase))
+            {
+                sel.Text = replacement ?? string.Empty;
+            }
+
+            // then find next
+            PerformFindNext(query);
         }
 
         // Load data FROM a NoteDocument

@@ -95,4 +95,12 @@ Atšaukti = nutraukti</value></data>
   <data name="SortByCreatedAtAsc" xml:space="preserve"><value>Seniausiai sukurti</value></data>
   <data name="SortByTitleAsc" xml:space="preserve"><value>Pavadinimas A–Ž</value></data>
   <data name="SortByTitleDesc" xml:space="preserve"><value>Pavadinimas Ž–A</value></data>
+  <data name="Pin" xml:space="preserve"><value>Prisegti</value></data>
+  <data name="Unpin" xml:space="preserve"><value>Atsegti</value></data>
+  <data name="Duplicate" xml:space="preserve"><value>Kopijuoti</value></data>
+  <data name="FindReplaceTitle" xml:space="preserve"><value>Rasti / Pakeisti</value></data>
+  <data name="FindLabel" xml:space="preserve"><value>Rasti:</value></data>
+  <data name="ReplaceLabel" xml:space="preserve"><value>Pakeisti:</value></data>
+  <data name="FindNext" xml:space="preserve"><value>Rasti kitą</value></data>
+  <data name="ReplaceNext" xml:space="preserve"><value>Pakeisti kitą</value></data>
 </root>
