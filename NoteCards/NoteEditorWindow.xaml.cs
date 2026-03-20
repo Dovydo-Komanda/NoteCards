@@ -1,5 +1,6 @@
-﻿using NoteCards.Models;
+﻿using Microsoft.Win32;
 using NoteCards.Localization;
+using NoteCards.Models;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -206,6 +207,101 @@ namespace NoteCards
                 document.FontFamily = ContentTextBox.FontFamily.Source;
                 document.FontSize = ContentTextBox.FontSize;
             }
+        }
+
+        private void ExportPdfButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ExportToPdf(TitleTextBox.Text);
+
+                MessageBox.Show("PDF export complete!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to export PDF:\n\n{ex.Message}",
+                    "Export Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private void ExportToPdf(string title)
+        {
+            var exportDoc = new FlowDocument();
+            exportDoc.PageWidth = 816;  // A4 at 96 DPI
+            exportDoc.PageHeight = 1056;
+            exportDoc.ColumnWidth = 680;
+            exportDoc.PagePadding = new Thickness(60);
+
+            // Add title as FIRST paragraph (from TitleTextBox only)
+            var titleParagraph = new Paragraph(new Run(title))
+            {
+                FontSize = 24,
+                FontWeight = FontWeights.Bold,
+                Foreground = Brushes.Black,
+                Margin = new Thickness(0, 0, 0, 30)
+            };
+            exportDoc.Blocks.Add(titleParagraph);
+
+            // Add separator line
+            var separator = new Paragraph(new Run("────────────────────────────────────────────────"))
+            {
+                FontSize = 10,
+                Foreground = Brushes.LightGray,
+                Margin = new Thickness(0, 0, 0, 20)
+            };
+            exportDoc.Blocks.Add(separator);
+
+            // Extract ONLY text content from RichTextBox
+            var textRange = new TextRange(
+                ContentTextBox.Document.ContentStart,
+                ContentTextBox.Document.ContentEnd);
+
+            string contentText = textRange.Text?.Trim() ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(contentText))
+            {
+                // Split by paragraphs for better formatting
+                var paragraphs = contentText.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+
+                foreach (var para in paragraphs)
+                {
+                    if (!string.IsNullOrWhiteSpace(para))
+                    {
+                        exportDoc.Blocks.Add(new Paragraph(new Run(para))
+                        {
+                            FontSize = 12,
+                            FontFamily = new FontFamily("Segoe UI"),
+                            Foreground = Brushes.Black,
+                            Margin = new Thickness(0, 0, 0, 10)
+                        });
+                    }
+                }
+            }
+            else
+            {
+                // No content
+                exportDoc.Blocks.Add(new Paragraph(new Run("(No content)"))
+                {
+                    FontSize = 12,
+                    Foreground = Brushes.Gray,
+                    FontStyle = FontStyles.Italic
+                });
+            }
+
+            var printDialog = new PrintDialog();
+
+            var printQueue = new System.Printing.PrintQueue(
+                new System.Printing.PrintServer(),
+                "Microsoft Print to PDF");
+
+            printDialog.PrintQueue = printQueue;
+
+            printDialog.PrintDocument(
+                ((IDocumentPaginatorSource)exportDoc).DocumentPaginator,
+                title);
         }
 
         private static List<string> ParseTags(string? rawTags)

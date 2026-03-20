@@ -332,6 +332,10 @@
                         Style="{StaticResource EditorSideToolButtonStyle}"
                         ToolTip="{Binding [Print], Source={StaticResource Loc}}"
                         Click="PrintButton_Click"/>
+                <Button Content="📄 Export PDF"
+                        Style="{StaticResource EditorSideToolButtonStyle}"
+                        ToolTip="{Binding [Export], Source={StaticResource Loc}}"
+                        Click="ExportPdfButton_Click"/>
                 <Separator Margin="4,0,4,8"/>
                 <Button x:Name="FontButton"
                         Content="𝑭"
