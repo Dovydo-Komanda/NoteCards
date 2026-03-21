@@ -1,3 +1,4 @@
+using NoteCards.Localization;
 using NoteCards.Models;
 using System.IO;
 using System.Windows;
@@ -27,7 +28,7 @@ public class NoteCardViewModel : ViewModelBase
         _removeFromGroupAction = removeFromGroupAction;
         _duplicateAction = duplicateAction;
         _togglePinAction = togglePinAction;
-        DeleteCommand = new RelayCommand(() => IsDeleting = true);
+        DeleteCommand = new RelayCommand(ConfirmAndDelete);
         RemoveFromGroupCommand = new RelayCommand(RemoveFromGroup, () => IsGrouped);
         DuplicateCommand = new RelayCommand(DuplicateNote);
         TogglePinCommand = new RelayCommand(TogglePin);
@@ -121,6 +122,23 @@ public class NoteCardViewModel : ViewModelBase
     {
         get => _isDeleting;
         set => SetProperty(ref _isDeleting, value);
+    }
+
+    private async void ConfirmAndDelete()
+    {
+        // Create and show the custom dialog
+        var dialog = new NoteCards.Views.DeleteConfirmationDialog();
+
+        // Set the owner to ensure proper centering
+        dialog.Owner = Application.Current?.MainWindow;
+
+        // Show dialog and wait for result
+        var result = dialog.ShowDialog();
+
+        if (result == true)
+        {
+            ExecuteDelete();
+        }
     }
 
     public bool IsGrouped => Document.GroupId.HasValue;
