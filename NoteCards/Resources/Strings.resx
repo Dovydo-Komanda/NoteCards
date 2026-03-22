@@ -109,4 +109,10 @@ Cancel = abort</value></data>
   <data name="Saved" xml:space="preserve"><value>Saved</value></data>
   <data name="AutoSaving" xml:space="preserve"><value>Auto-saving...</value></data>
   <data name="Export" xml:space="preserve"><value>Export</value></data>
+  <data name="Import" xml:space="preserve"><value>Import</value></data>
+  <data name="ImportNotes" xml:space="preserve"><value>Import Notes</value></data>
+  <data name="SelectFilesToImport" xml:space="preserve"><value>Select files to import</value></data>
+  <data name="ImportSuccess" xml:space="preserve"><value>Successfully imported {0} note(s)</value></data>
+  <data name="ImportError" xml:space="preserve"><value>Error importing file:</value></data>
+  <data name="SupportedFormats" xml:space="preserve"><value>Text Files (*.txt)|*.txt|Markdown Files (*.md)|*.md|All files (*.*)|*.*</value></data>
 </root>

@@ -4,6 +4,7 @@ using NoteCards.Models;
 using NoteCards.ViewModels;
 using NoteCards.Views;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -904,6 +905,87 @@ namespace NoteCards
 
             return placementTarget.DataContext as NoteGroupViewModel
                 ?? (placementTarget as Button)?.Tag as NoteGroupViewModel;
+        }
+
+        private void ImportButton_Click(object sender, RoutedEventArgs e)
+        {
+            CollapseTopSearchPanel();
+            if (SortNotesPopupElement != null)
+                SortNotesPopupElement.IsOpen = false;
+            TagsFilterPopup.IsOpen = false;
+
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Multiselect = true,
+                Filter = LocalizationService.GetString("SupportedFormats"),
+                Title = LocalizationService.GetString("SelectFilesToImport")
+            };
+
+            if (openFileDialog.ShowDialog() != true)
+                return;
+
+            try
+            {
+                int importedCount = 0;
+
+                if (DataContext is MainViewModel vm)
+                {
+                    foreach (var filePath in openFileDialog.FileNames)
+                    {
+                        try
+                        {
+                            string content = File.ReadAllText(filePath);
+                            if (string.IsNullOrWhiteSpace(content))
+                                continue;
+
+                            // Extract filename without extension as the title
+                            string fileName = Path.GetFileNameWithoutExtension(filePath);
+
+                            // Create a new note from the imported content
+                            var newDocument = new NoteDocument
+                            {
+                                Title = fileName,
+                                Content = content,
+                                Tags = new List<string>(),
+                                FontFamily = "Segoe UI",
+                                FontSize = 14
+                            };
+
+                            // Add to view model
+                            vm.AddNoteFromDocument(newDocument);
+                            importedCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(
+                                $"{LocalizationService.GetString("ImportError")}\n{Path.GetFileName(filePath)}\n\n{ex.Message}",
+                                LocalizationService.GetString("Error"),
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                        }
+                    }
+
+                    if (importedCount > 0)
+                    {
+                        string message = string.Format(
+                            LocalizationService.GetString("ImportSuccess"),
+                            importedCount);
+                        MessageBox.Show(
+                            message,
+                            LocalizationService.GetString("ImportNotes"),
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("ImportError")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
     }
 }

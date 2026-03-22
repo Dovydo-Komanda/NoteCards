@@ -109,4 +109,10 @@ Atšaukti = nutraukti</value></data>
   <data name="Saved" xml:space="preserve"><value>Išsaugota</value></data>
   <data name="AutoSaving" xml:space="preserve"><value>Automatiškai išsaugoma...</value></data>
   <data name="Export" xml:space="preserve"><value>Eksportuoti</value></data>
+  <data name="Import" xml:space="preserve"><value>Importuoti</value></data>
+  <data name="ImportNotes" xml:space="preserve"><value>Importuoti užrašus</value></data>
+  <data name="SelectFilesToImport" xml:space="preserve"><value>Pasirinkite importuotinus failus</value></data>
+  <data name="ImportSuccess" xml:space="preserve"><value>Sėkmingai importuota {0} užrašai(-ų)</value></data>
+  <data name="ImportError" xml:space="preserve"><value>Klaida importuojant failą:</value></data>
+  <data name="SupportedFormats" xml:space="preserve"><value>Tekstiniai failai (*.txt)|*.txt|Markdown failai (*.md)|*.md|Visi failai (*.*)|*.*</value></data>
 </root>

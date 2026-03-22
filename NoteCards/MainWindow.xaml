@@ -313,9 +313,10 @@
                                    VerticalAlignment="Center"/>
 
 					</StackPanel>
-                    <Grid HorizontalAlignment="Right"
+					<Grid HorizontalAlignment="Right"
 						  VerticalAlignment="Center">
 						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="Auto"/>
@@ -376,16 +377,28 @@
 								Click="SortNotesButton_Click"/>
 
 						<Button x:Name="TagsFilterButton"
-                             Grid.Column="3"
-                              Content="🏷"
+							 Grid.Column="3"
+							  Content="🏷"
 								Width="34"
 								Height="32"
 								Padding="0"
-                               FontSize="14"
+							   FontSize="14"
 								Cursor="Hand"
 								Margin="0,0,8,0"
 								ToolTip="{Binding TagFilterButtonText}"
 								Click="TagsFilterButton_Click"/>
+
+						<Button x:Name="ImportButton"
+								Grid.Column="4"
+								Content="📥"
+								Width="34"
+								Height="32"
+								Padding="0"
+								FontSize="14"
+								Cursor="Hand"
+								Margin="0,0,8,0"
+								ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}"
+								Click="ImportButton_Click"/>
 
 					</Grid>
 				</Grid>
