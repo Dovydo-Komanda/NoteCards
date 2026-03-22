@@ -762,5 +762,18 @@ namespace NoteCards
                 MessageBox.Show(LocalizationService.GetString("FailedToOpenFile"), LocalizationService.GetString("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        private void ClearContentButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Show confirmation dialog
+            var dlg = new Views.ClearContentConfirmationDialog();
+            dlg.Owner = this;
+            if (dlg.ShowDialog() == true)
+            {
+                // Clear all content from the RichTextBox
+                TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
+                tr.Text = string.Empty;
+            }
+        }
     }
 }

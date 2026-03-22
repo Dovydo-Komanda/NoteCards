@@ -206,6 +206,11 @@
                             Style="{StaticResource EditorToolIconButtonStyle}"
                             ToolTip="{Binding [Search], Source={StaticResource Loc}}"
                             Click="SearchButton_Click"/>
+                    <Button x:Name="ClearContentButton"
+                            Content="🗑"
+                            Style="{StaticResource EditorToolIconButtonStyle}"
+                            ToolTip="{Binding [ClearContent], Source={StaticResource Loc}}"
+                            Click="ClearContentButton_Click"/>
                     <Button Content="✓"
                             Style="{StaticResource EditorPrimarySaveButtonStyle}"
                             ToolTip="{Binding [Save], Source={StaticResource Loc}}"

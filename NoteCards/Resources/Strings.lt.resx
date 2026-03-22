@@ -103,4 +103,10 @@ Atšaukti = nutraukti</value></data>
   <data name="ReplaceLabel" xml:space="preserve"><value>Pakeisti:</value></data>
   <data name="FindNext" xml:space="preserve"><value>Rasti kitą</value></data>
   <data name="ReplaceNext" xml:space="preserve"><value>Pakeisti kitą</value></data>
+  <data name="ClearContent" xml:space="preserve"><value>Išvalyti turinį</value></data>
+  <data name="ClearContentTitle" xml:space="preserve"><value>Išvalyti turinį</value></data>
+  <data name="ClearContentPrompt" xml:space="preserve"><value>Ar tikrai norite išvalyti visą šio užrašo turinį? Šis veiksmas negali būti atšauktas.</value></data>
+  <data name="Saved" xml:space="preserve"><value>Išsaugota</value></data>
+  <data name="AutoSaving" xml:space="preserve"><value>Automatiškai išsaugoma...</value></data>
+  <data name="Export" xml:space="preserve"><value>Eksportuoti</value></data>
 </root>

@@ -103,4 +103,10 @@ Cancel = abort</value></data>
   <data name="ReplaceLabel" xml:space="preserve"><value>Replace:</value></data>
   <data name="FindNext" xml:space="preserve"><value>Find Next</value></data>
   <data name="ReplaceNext" xml:space="preserve"><value>Replace Next</value></data>
+  <data name="ClearContent" xml:space="preserve"><value>Clear Content</value></data>
+  <data name="ClearContentTitle" xml:space="preserve"><value>Clear Content</value></data>
+  <data name="ClearContentPrompt" xml:space="preserve"><value>Are you sure you want to clear all content from this note? This action cannot be undone.</value></data>
+  <data name="Saved" xml:space="preserve"><value>Saved</value></data>
+  <data name="AutoSaving" xml:space="preserve"><value>Auto-saving...</value></data>
+  <data name="Export" xml:space="preserve"><value>Export</value></data>
 </root>
