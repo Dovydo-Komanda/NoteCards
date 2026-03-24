@@ -117,4 +117,5 @@ Atšaukti = nutraukti</value></data>
   <data name="SupportedFormats" xml:space="preserve"><value>Tekstiniai failai (*.txt)|*.txt|Markdown failai (*.md)|*.md|Visi failai (*.*)|*.*</value></data>
   <data name="InsertImage" xml:space="preserve"><value>Įterpti paveikslėlį</value></data>
   <data name="ImageTooltip" xml:space="preserve"><value>Įterpti paveikslėlį į užrašą</value></data>
+  <data name="ReplaceFromFile" xml:space="preserve"><value>Pakeisti iš failo...</value></data>
 </root>

@@ -157,6 +157,7 @@
                     <Button.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}" Click="OnOpenMenuClick"/>
+                            <MenuItem Header="{Binding [ReplaceFromFile], Source={StaticResource Loc}}" Click="OnOpenFromFileClick"/>
                             <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
                                       Command="{Binding TogglePinCommand}"
                                       Visibility="{Binding Document.IsPinned, Converter={StaticResource InverseBoolToVis}}"/>
