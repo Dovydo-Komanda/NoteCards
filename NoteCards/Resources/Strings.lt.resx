@@ -115,4 +115,6 @@ Atšaukti = nutraukti</value></data>
   <data name="ImportSuccess" xml:space="preserve"><value>Sėkmingai importuota {0} užrašai(-ų)</value></data>
   <data name="ImportError" xml:space="preserve"><value>Klaida importuojant failą:</value></data>
   <data name="SupportedFormats" xml:space="preserve"><value>Tekstiniai failai (*.txt)|*.txt|Markdown failai (*.md)|*.md|Visi failai (*.*)|*.*</value></data>
+  <data name="InsertImage" xml:space="preserve"><value>Įterpti paveikslėlį</value></data>
+  <data name="ImageTooltip" xml:space="preserve"><value>Įterpti paveikslėlį į užrašą</value></data>
 </root>

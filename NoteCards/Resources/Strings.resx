@@ -115,4 +115,6 @@ Cancel = abort</value></data>
   <data name="ImportSuccess" xml:space="preserve"><value>Successfully imported {0} note(s)</value></data>
   <data name="ImportError" xml:space="preserve"><value>Error importing file:</value></data>
   <data name="SupportedFormats" xml:space="preserve"><value>Text Files (*.txt)|*.txt|Markdown Files (*.md)|*.md|All files (*.*)|*.*</value></data>
+  <data name="InsertImage" xml:space="preserve"><value>Insert Image</value></data>
+  <data name="ImageTooltip" xml:space="preserve"><value>Insert an image into the note</value></data>
 </root>

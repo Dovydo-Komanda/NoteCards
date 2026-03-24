@@ -8,8 +8,12 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 
 namespace NoteCards
 {
@@ -558,35 +562,18 @@ namespace NoteCards
             };
             exportDoc.Blocks.Add(separator);
 
-            // Extract ONLY text content from RichTextBox
-            var textRange = new TextRange(
-                ContentTextBox.Document.ContentStart,
-                ContentTextBox.Document.ContentEnd);
-
-            string contentText = textRange.Text?.Trim() ?? string.Empty;
-
-            if (!string.IsNullOrWhiteSpace(contentText))
+            var contentClone = CloneFlowDocument(ContentTextBox.Document);
+            if (contentClone != null && contentClone.Blocks.FirstBlock != null)
             {
-                // Split by paragraphs for better formatting
-                var paragraphs = contentText.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
-
-                foreach (var para in paragraphs)
+                while (contentClone.Blocks.FirstBlock != null)
                 {
-                    if (!string.IsNullOrWhiteSpace(para))
-                    {
-                        exportDoc.Blocks.Add(new Paragraph(new Run(para))
-                        {
-                            FontSize = 12,
-                            FontFamily = new FontFamily("Segoe UI"),
-                            Foreground = Brushes.Black,
-                            Margin = new Thickness(0, 0, 0, 10)
-                        });
-                    }
+                    var block = contentClone.Blocks.FirstBlock;
+                    contentClone.Blocks.Remove(block);
+                    exportDoc.Blocks.Add(block);
                 }
             }
             else
             {
-                // No content
                 exportDoc.Blocks.Add(new Paragraph(new Run("(No content)"))
                 {
                     FontSize = 12,
@@ -619,6 +606,12 @@ namespace NoteCards
                 .Where(tag => !string.IsNullOrWhiteSpace(tag))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+
+        private static FlowDocument? CloneFlowDocument(FlowDocument source)
+        {
+            var xaml = XamlWriter.Save(source);
+            return XamlReader.Parse(xaml) as FlowDocument;
         }
 
         private void UndoButton_Click(object sender, RoutedEventArgs e)
@@ -774,6 +767,201 @@ namespace NoteCards
                 TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
                 tr.Text = string.Empty;
             }
+        }
+
+        private void InsertImageButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new OpenFileDialog();
+            dlg.Filter = "Image files (*.jpg;*.jpeg;*.png;*.bmp;*.gif)|*.jpg;*.jpeg;*.png;*.bmp;*.gif|All files (*.*)|*.*";
+            dlg.Title = "Select an image to insert";
+
+            if (dlg.ShowDialog() != true)
+                return;
+
+            try
+            {
+                InsertImageFromFile(dlg.FileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to insert image:\n\n{ex.Message}",
+                    "Image Insert Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private void InsertImageFromFile(string imagePath)
+        {
+            try
+            {
+                // Create image from file
+                BitmapImage bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+                bitmap.Freeze();
+
+                // Set a max width/height for the image to fit in the note
+                const double maxWidth = 400;
+                const double maxHeight = 300;
+
+                double displayWidth = bitmap.PixelWidth;
+                double displayHeight = bitmap.PixelHeight;
+
+                // Scale down if too large
+                if (displayWidth > maxWidth || displayHeight > maxHeight)
+                {
+                    double aspectRatio = displayWidth / displayHeight;
+                    if (displayWidth > maxWidth)
+                    {
+                        displayWidth = maxWidth;
+                        displayHeight = maxWidth / aspectRatio;
+                    }
+                    if (displayHeight > maxHeight)
+                    {
+                        displayHeight = maxHeight;
+                        displayWidth = maxHeight * aspectRatio;
+                    }
+                }
+
+                // Create Image control
+                Image image = new Image
+                {
+                    Source = bitmap,
+                    Width = displayWidth,
+                    Height = displayHeight,
+                    Stretch = Stretch.UniformToFill,
+                    Margin = new Thickness(0, 10, 0, 10),
+                    ContextMenu = CreateImageContextMenu()
+                };
+
+                // Make image draggable and resizable
+                MakeImageDraggable(image);
+
+                // Create a container for the image
+                InlineUIContainer container = new InlineUIContainer(image)
+                {
+                    BaselineAlignment = BaselineAlignment.Bottom
+                };
+
+                // Get the current paragraph or create a new one
+                TextPointer caretPosition = ContentTextBox.CaretPosition;
+                Paragraph currentParagraph = caretPosition.Paragraph;
+
+                if (currentParagraph == null)
+                {
+                    // If no paragraph exists, create one
+                    currentParagraph = new Paragraph();
+                    ContentTextBox.Document.Blocks.Add(currentParagraph);
+                }
+
+                // Insert the image container at the caret position
+                var insertionPosition = caretPosition.GetInsertionPosition(LogicalDirection.Forward);
+                if (currentParagraph.Inlines.FirstInline != null && insertionPosition != null)
+                {
+                    currentParagraph.Inlines.InsertBefore(currentParagraph.Inlines.FirstInline, container);
+                }
+                else
+                {
+                    currentParagraph.Inlines.Add(container);
+                }
+
+                // Add a new line after image for better spacing
+                currentParagraph.Inlines.Add(new LineBreak());
+
+                // Move caret after the image
+                ContentTextBox.CaretPosition = container.ContentEnd.GetNextInsertionPosition(LogicalDirection.Forward) ?? ContentTextBox.Document.ContentEnd;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error loading image: {ex.Message}", ex);
+            }
+        }
+
+        private ContextMenu CreateImageContextMenu()
+        {
+            var contextMenu = new ContextMenu();
+
+            var removeItem = new MenuItem
+            {
+                Header = "Remove Image"
+            };
+            removeItem.Click += (s, e) =>
+            {
+                // Get the sender's parent
+                if (s is MenuItem menuItem && menuItem.Parent is ContextMenu cm)
+                {
+                    if (cm.PlacementTarget is Image img)
+                    {
+                        // Find and remove the InlineUIContainer
+                        var doc = ContentTextBox.Document;
+                        var start = doc.ContentStart;
+                        var end = doc.ContentEnd;
+
+                        var navigator = start.GetNextInsertionPosition(LogicalDirection.Forward);
+                        while (navigator != null && navigator.CompareTo(end) < 0)
+                        {
+                            if (navigator.Parent is InlineUIContainer container && container.Child == img)
+                            {
+                                ((Paragraph)container.Parent)?.Inlines.Remove(container);
+                                break;
+                            }
+                            navigator = navigator.GetNextInsertionPosition(LogicalDirection.Forward);
+                        }
+                    }
+                }
+            };
+
+            contextMenu.Items.Add(removeItem);
+            return contextMenu;
+        }
+
+        private void MakeImageDraggable(Image image)
+        {
+            bool isDragging = false;
+            double lastX = 0;
+            double lastY = 0;
+
+            image.MouseDown += (s, e) =>
+            {
+                if (e.LeftButton == MouseButtonState.Pressed)
+                {
+                    isDragging = true;
+                    lastX = e.GetPosition(ContentTextBox).X;
+                    lastY = e.GetPosition(ContentTextBox).Y;
+                }
+            };
+
+            image.MouseMove += (s, e) =>
+            {
+                if (isDragging && e.LeftButton == MouseButtonState.Pressed)
+                {
+                    var currentPos = e.GetPosition(ContentTextBox);
+                    double deltaX = currentPos.X - lastX;
+                    double deltaY = currentPos.Y - lastY;
+
+                    // Resize on drag (hold Shift key for resize)
+                    if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
+                    {
+                        image.Width = Math.Max(50, image.Width + deltaX);
+                        image.Height = Math.Max(50, image.Height + deltaY);
+                    }
+
+                    lastX = currentPos.X;
+                    lastY = currentPos.Y;
+                }
+            };
+
+            image.MouseUp += (s, e) =>
+            {
+                isDragging = false;
+            };
+
+            // Add tooltip for resize instruction
+            image.ToolTip = "Shift+Drag to resize image\nRight-click to remove";
         }
     }
 }

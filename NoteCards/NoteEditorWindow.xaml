@@ -299,30 +299,31 @@
             <Border.Effect>
                 <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.08"/>
             </Border.Effect>
-            <RichTextBox x:Name="ContentTextBox"
-                         SelectionChanged="ContentTextBox_SelectionChanged"
-                         Margin="0"
-                         Padding="16"
-                         FontSize="14"
-                         FontFamily="Segoe UI"
-                         AcceptsReturn="True"
-                         VerticalScrollBarVisibility="{Binding EnableScrollbar, Converter={StaticResource BoolToScrollBarVisibilityConverter}}"
-                         BorderThickness="0"
-                         Background="Transparent">
-
-
+			<RichTextBox x:Name="ContentTextBox"
+						 SelectionChanged="ContentTextBox_SelectionChanged"
+						 Margin="0"
+						 Padding="16"
+						 FontSize="14"
+						 FontFamily="Segoe UI"
+						 AcceptsReturn="True"
+						 VerticalScrollBarVisibility="{Binding EnableScrollbar, Converter={StaticResource BoolToScrollBarVisibilityConverter}}"
+						 BorderThickness="0">
 
 			<!-- CONTEXT MENU -->
 			<RichTextBox.ContextMenu>
 				<ContextMenu>
-                  <MenuItem Header="{Binding [Cut], Source={StaticResource Loc}}" Command="Cut"/>
-                    <MenuItem Header="{Binding [Copy], Source={StaticResource Loc}}" Command="Copy"/>
-                    <MenuItem Header="{Binding [Paste], Source={StaticResource Loc}}" Command="Paste"/>
+				  <MenuItem Header="{Binding [Cut], Source={StaticResource Loc}}" Command="Cut"/>
+					<MenuItem Header="{Binding [Copy], Source={StaticResource Loc}}" Command="Copy"/>
+					<MenuItem Header="{Binding [Paste], Source={StaticResource Loc}}" Command="Paste"/>
 					<Separator/>
-                 <MenuItem Header="{Binding [SelectAll], Source={StaticResource Loc}}" Command="SelectAll"/>
+				 <MenuItem Header="{Binding [SelectAll], Source={StaticResource Loc}}" Command="SelectAll"/>
 				</ContextMenu>
 			</RichTextBox.ContextMenu>
-            </RichTextBox>
+
+			<RichTextBox.Background>
+				<SolidColorBrush Color="White"/>
+			</RichTextBox.Background>
+			</RichTextBox>
         </Border>
 
         <Border Grid.Row="1"
@@ -349,6 +350,10 @@
                         Style="{StaticResource EditorSideToolButtonStyle}"
                         ToolTip="{Binding [Export], Source={StaticResource Loc}}"
                         Click="ExportPdfButton_Click"/>
+                <Button Content="🖼"
+                        Style="{StaticResource EditorSideToolButtonStyle}"
+                        ToolTip="{Binding [InsertImage], Source={StaticResource Loc}}"
+                        Click="InsertImageButton_Click"/>
                 <Separator Margin="4,0,4,8"/>
                 <Button x:Name="FontButton"
                         Content="𝑭"
