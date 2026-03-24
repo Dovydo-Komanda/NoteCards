@@ -301,6 +301,7 @@
             </Border.Effect>
 			<RichTextBox x:Name="ContentTextBox"
 						 SelectionChanged="ContentTextBox_SelectionChanged"
+						 PreviewMouseWheel="ContentTextBox_PreviewMouseWheel"
 						 Margin="0"
 						 Padding="16"
 						 FontSize="14"
@@ -360,6 +361,19 @@
                         Style="{StaticResource EditorSideToolButtonStyle}"
                         ToolTip="{Binding [Font], Source={StaticResource Loc}}"
                         Click="FontSettings_Click"/>
+                <Separator Margin="4,0,4,8"/>
+                <Button Content="🔍+"
+                        Style="{StaticResource EditorSideToolButtonStyle}"
+                        ToolTip="Zoom In"
+                        Click="ZoomInButton_Click"/>
+                <Button Content="🔍-"
+                        Style="{StaticResource EditorSideToolButtonStyle}"
+                        ToolTip="Zoom Out"
+                        Click="ZoomOutButton_Click"/>
+                <Button Content="1:1"
+                        Style="{StaticResource EditorSideToolButtonStyle}"
+                        ToolTip="Reset Zoom"
+                        Click="ZoomResetButton_Click"/>
             </StackPanel>
         </Border>
     </Grid>

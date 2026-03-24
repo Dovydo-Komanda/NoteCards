@@ -981,5 +981,51 @@ namespace NoteCards
             // Add tooltip for resize instruction
             image.ToolTip = "Shift+Drag to resize image\nRight-click to remove";
         }
+
+        private double _zoomLevel = 1.0;
+
+        private void ContentTextBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                if (e.Delta > 0)
+                {
+                    _zoomLevel += 0.1;
+                }
+                else if (e.Delta < 0)
+                {
+                    _zoomLevel -= 0.1;
+                }
+
+                ApplyZoom();
+                e.Handled = true;
+            }
+        }
+
+        private void ZoomInButton_Click(object sender, RoutedEventArgs e)
+        {
+            _zoomLevel += 0.1;
+            ApplyZoom();
+        }
+
+        private void ZoomOutButton_Click(object sender, RoutedEventArgs e)
+        {
+            _zoomLevel -= 0.1;
+            ApplyZoom();
+        }
+
+        private void ZoomResetButton_Click(object sender, RoutedEventArgs e)
+        {
+            _zoomLevel = 1.0;
+            ApplyZoom();
+        }
+
+        private void ApplyZoom()
+        {
+            if (_zoomLevel < 0.5) _zoomLevel = 0.5;
+            if (_zoomLevel > 3.0) _zoomLevel = 3.0;
+
+            ContentTextBox.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
+        }
     }
 }
