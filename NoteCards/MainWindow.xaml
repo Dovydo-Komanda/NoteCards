@@ -44,6 +44,81 @@
 			</Setter>
 		</Style>
 
+		<Style x:Key="TopBarIconButtonStyle" TargetType="Button">
+			<Setter Property="OverridesDefaultStyle" Value="True"/>
+			<Setter Property="SnapsToDevicePixels" Value="True"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI, sans-serif"/>
+			<Setter Property="FontSize" Value="14"/>
+			<Setter Property="Foreground" Value="#2B3650"/>
+			<Setter Property="Background" Value="#F5F7FB"/>
+			<Setter Property="BorderBrush" Value="#DDE4F3"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Width" Value="34"/>
+			<Setter Property="Height" Value="32"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="TopBarIconBorder"
+								Background="{TemplateBinding Background}"
+								BorderBrush="{TemplateBinding BorderBrush}"
+								BorderThickness="{TemplateBinding BorderThickness}"
+								CornerRadius="8">
+							<Border.Effect>
+								<DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.08"/>
+							</Border.Effect>
+							<ContentPresenter HorizontalAlignment="Center"
+											  VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="TopBarIconBorder" Property="Background" Value="#EAF0FD"/>
+								<Setter TargetName="TopBarIconBorder" Property="BorderBrush" Value="#C9D7F5"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="TopBarIconBorder" Property="Background" Value="#DCE7FB"/>
+								<Setter TargetName="TopBarIconBorder" Property="BorderBrush" Value="#B8CAF2"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style x:Key="FloatingSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource TopBarIconButtonStyle}">
+			<Setter Property="Width" Value="36"/>
+			<Setter Property="Height" Value="34"/>
+			<Setter Property="FontSize" Value="15"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="FloatingSecondaryBorder"
+								Background="{TemplateBinding Background}"
+								BorderBrush="{TemplateBinding BorderBrush}"
+								BorderThickness="{TemplateBinding BorderThickness}"
+								CornerRadius="10">
+							<Border.Effect>
+								<DropShadowEffect Color="#000000" Opacity="0.20" BlurRadius="16" ShadowDepth="3" Direction="270"/>
+							</Border.Effect>
+							<ContentPresenter HorizontalAlignment="Center"
+											  VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="FloatingSecondaryBorder" Property="Background" Value="#E4EAF8"/>
+								<Setter TargetName="FloatingSecondaryBorder" Property="BorderBrush" Value="#C4D3F3"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="FloatingSecondaryBorder" Property="Background" Value="#D8E2F6"/>
+								<Setter TargetName="FloatingSecondaryBorder" Property="BorderBrush" Value="#B4C8EE"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
 		<Style x:Key="SidebarActionButtonStyle" TargetType="Button">
 			<Setter Property="OverridesDefaultStyle" Value="True"/>
 			<Setter Property="Cursor" Value="Hand"/>
@@ -144,9 +219,9 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI, sans-serif"/>
             <Setter Property="FontSize" Value="26"/>
-            <Setter Property="Foreground" Value="#1C1C1C"/>
-            <Setter Property="Background" Value="#F0F0F2"/>
-            <Setter Property="BorderBrush" Value="#D0D0D6"/>
+            <Setter Property="Foreground" Value="#2B3650"/>
+			<Setter Property="Background" Value="#F5F7FB"/>
+			<Setter Property="BorderBrush" Value="#DDE4F3"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Width" Value="52"/>
             <Setter Property="Height" Value="52"/>
@@ -159,24 +234,24 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="12">
+                                CornerRadius="14">
                             <Border.Effect>
                                 <DropShadowEffect Color="#000000" Opacity="0.20"
-                                                  BlurRadius="16" ShadowDepth="3"
+												  BlurRadius="16" ShadowDepth="3"
                                                   Direction="270"/>
                             </Border.Effect>
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              Margin="0,-5,0,0"/>
+                                              Margin="0,-3,0,0"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="FabBorder" Property="Background" Value="#E4E4E8"/>
-                                <Setter TargetName="FabBorder" Property="BorderBrush" Value="#C2C2CA"/>
+                                <Setter TargetName="FabBorder" Property="Background" Value="#E4EAF8"/>
+								<Setter TargetName="FabBorder" Property="BorderBrush" Value="#C4D3F3"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="FabBorder" Property="Background" Value="#D6D6DC"/>
-                                <Setter TargetName="FabBorder" Property="BorderBrush" Value="#B4B4BE"/>
+                                <Setter TargetName="FabBorder" Property="Background" Value="#D8E2F6"/>
+								<Setter TargetName="FabBorder" Property="BorderBrush" Value="#B4C8EE"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -210,6 +285,141 @@
 					</BeginStoryboard>
 				</EventTrigger>
 			</Style.Triggers>
+		</Style>
+
+		<Style x:Key="DashboardSectionToggleButtonStyle" TargetType="Button">
+			<Setter Property="OverridesDefaultStyle" Value="True"/>
+			<Setter Property="Width" Value="30"/>
+			<Setter Property="Height" Value="30"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Background" Value="#F5F7FB"/>
+			<Setter Property="BorderBrush" Value="#DDE4F3"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Foreground" Value="#4B5878"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Content" Value="▾"/>
+			<Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+			<Setter Property="RenderTransform">
+				<Setter.Value>
+					<RotateTransform Angle="0"/>
+				</Setter.Value>
+			</Setter>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="ToggleBorder"
+								Background="{TemplateBinding Background}"
+								BorderBrush="{TemplateBinding BorderBrush}"
+								BorderThickness="{TemplateBinding BorderThickness}"
+								CornerRadius="9">
+							<Border.Effect>
+								<DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.08"/>
+							</Border.Effect>
+							<ContentPresenter HorizontalAlignment="Center"
+											  VerticalAlignment="Center"
+											  Margin="0,-1,0,0"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="ToggleBorder" Property="Background" Value="#EAF0FD"/>
+								<Setter TargetName="ToggleBorder" Property="BorderBrush" Value="#C9D7F5"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="ToggleBorder" Property="Background" Value="#DCE7FB"/>
+								<Setter TargetName="ToggleBorder" Property="BorderBrush" Value="#B8CAF2"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style x:Key="DashboardSectionMoveButtonStyle" TargetType="Button">
+			<Setter Property="OverridesDefaultStyle" Value="True"/>
+			<Setter Property="Width" Value="28"/>
+			<Setter Property="Height" Value="28"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Background" Value="#F5F7FB"/>
+			<Setter Property="BorderBrush" Value="#DDE4F3"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Foreground" Value="#4B5878"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="MoveBorder"
+								Background="{TemplateBinding Background}"
+								BorderBrush="{TemplateBinding BorderBrush}"
+								BorderThickness="{TemplateBinding BorderThickness}"
+								CornerRadius="8">
+							<Border.Effect>
+								<DropShadowEffect BlurRadius="7" ShadowDepth="1" Opacity="0.07"/>
+							</Border.Effect>
+							<ContentPresenter HorizontalAlignment="Center"
+											  VerticalAlignment="Center"
+											  Margin="0,-1,0,0"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="MoveBorder" Property="Background" Value="#EAF0FD"/>
+								<Setter TargetName="MoveBorder" Property="BorderBrush" Value="#C9D7F5"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="MoveBorder" Property="Background" Value="#DCE7FB"/>
+								<Setter TargetName="MoveBorder" Property="BorderBrush" Value="#B8CAF2"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style x:Key="GroupHeaderMoveButtonStyle" TargetType="Button" BasedOn="{StaticResource DashboardSectionMoveButtonStyle}">
+			<Setter Property="Width" Value="24"/>
+			<Setter Property="Height" Value="24"/>
+			<Setter Property="FontSize" Value="11"/>
+		</Style>
+
+		<Style x:Key="GroupHeaderIconButtonStyle" TargetType="Button">
+			<Setter Property="OverridesDefaultStyle" Value="True"/>
+			<Setter Property="Width" Value="28"/>
+			<Setter Property="Height" Value="28"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Background" Value="#F5F7FB"/>
+			<Setter Property="BorderBrush" Value="#DDE4F3"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Foreground" Value="#4B5878"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="GroupIconBorder"
+								Background="{TemplateBinding Background}"
+								BorderBrush="{TemplateBinding BorderBrush}"
+								BorderThickness="{TemplateBinding BorderThickness}"
+								CornerRadius="8">
+							<Border.Effect>
+								<DropShadowEffect BlurRadius="7" ShadowDepth="1" Opacity="0.07"/>
+							</Border.Effect>
+							<ContentPresenter HorizontalAlignment="Center"
+											  VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="GroupIconBorder" Property="Background" Value="#EAF0FD"/>
+								<Setter TargetName="GroupIconBorder" Property="BorderBrush" Value="#C9D7F5"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="GroupIconBorder" Property="Background" Value="#DCE7FB"/>
+								<Setter TargetName="GroupIconBorder" Property="BorderBrush" Value="#B8CAF2"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
 		</Style>
     </Window.Resources>
     <Window.DataContext>
@@ -300,7 +510,7 @@
 				<Grid>
 					<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
-						<Image Source="Assets/logo.png"
+                     <Image Source="/NoteCards;component/logo.ico"
                                Width="28"
                                Height="28"
                                Margin="0,0,8,0"
@@ -316,7 +526,6 @@
 					<Grid HorizontalAlignment="Right"
 						  VerticalAlignment="Center">
 						<Grid.ColumnDefinitions>
-							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="Auto"/>
@@ -354,51 +563,30 @@
 
 						<Button x:Name="TopSearchButton"
 								Grid.Column="1"
+                                Style="{StaticResource TopBarIconButtonStyle}"
                               Content="🔎"
-								Width="34"
-								Height="32"
-								Padding="0"
                                FontSize="14"
-								Cursor="Hand"
 								Margin="0,0,8,0"
 								ToolTip="{Binding [Search], Source={StaticResource Loc}}"
 								Click="TopSearchButton_Click"/>
 
 						<Button x:Name="SortNotesButton"
 								Grid.Column="2"
+                             Style="{StaticResource TopBarIconButtonStyle}"
 								Content="⇅"
-								Width="34"
-								Height="32"
-								Padding="0"
 								FontSize="14"
-								Cursor="Hand"
 								Margin="0,0,8,0"
 								ToolTip="{Binding SortButtonText}"
 								Click="SortNotesButton_Click"/>
 
 						<Button x:Name="TagsFilterButton"
 							 Grid.Column="3"
+                              Style="{StaticResource TopBarIconButtonStyle}"
 							  Content="🏷"
-								Width="34"
-								Height="32"
-								Padding="0"
 							   FontSize="14"
-								Cursor="Hand"
 								Margin="0,0,8,0"
 								ToolTip="{Binding TagFilterButtonText}"
 								Click="TagsFilterButton_Click"/>
-
-						<Button x:Name="ImportButton"
-								Grid.Column="4"
-								Content="📥"
-								Width="34"
-								Height="32"
-								Padding="0"
-								FontSize="14"
-								Cursor="Hand"
-								Margin="0,0,8,0"
-								ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}"
-								Click="ImportButton_Click"/>
 
 					</Grid>
 				</Grid>
@@ -535,25 +723,11 @@
 								<ColumnDefinition Width="Auto"/>
                                <ColumnDefinition Width="*"/>
 							</Grid.ColumnDefinitions>
-                            <Button Grid.Column="0"
-									Width="28"
-									Height="28"
-									Padding="0"
-									FontSize="15"
-									Background="Transparent"
-									BorderThickness="0"
-									Cursor="Hand"
-                                 ToolTip="Show/Hide recent notes"
+                         <Button Grid.Column="0"
+									ToolTip="Show/Hide recent notes"
 									Click="ToggleRecentSectionButton_Click">
 								<Button.Style>
-									<Style TargetType="Button">
-										<Setter Property="Content" Value="▾"/>
-										<Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
-										<Setter Property="RenderTransform">
-											<Setter.Value>
-												<RotateTransform Angle="0"/>
-											</Setter.Value>
-										</Setter>
+                                 <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
 										<Style.Triggers>
 											<DataTrigger Binding="{Binding IsRecentSectionExpanded}" Value="False">
 												<Setter Property="RenderTransform">
@@ -621,6 +795,7 @@
              <Grid Grid.Row="1">
 				   <ScrollViewer x:Name="NotesScrollViewer"
 								 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Disabled"
 								 Padding="8"
 								 AllowDrop="True"
 								 PreviewDragOver="NotesScrollViewer_PreviewDragOver"
@@ -657,16 +832,11 @@
 											<ColumnDefinition Width="Auto"/>
                                            <ColumnDefinition Width="*"/>
 										</Grid.ColumnDefinitions>
-                                     <Button Grid.Column="0" Width="26" Height="26" Margin="0,0,2,0" Padding="0" FontSize="12" Content="↑" Background="#EAF2FF" Foreground="#2A5BCF" BorderBrush="#BCD2FF" BorderThickness="1" Cursor="Hand" ToolTip="Move groups section up" Click="MoveGroupsUpButton_Click"/>
-									 <Button Grid.Column="1" Width="26" Height="26" Margin="0,0,4,0" Padding="0" FontSize="12" Content="↓" Background="#EAF2FF" Foreground="#2A5BCF" BorderBrush="#BCD2FF" BorderThickness="1" Cursor="Hand" ToolTip="Move groups section down" Click="MoveGroupsDownButton_Click"/>
-										<Button Grid.Column="2" Width="28" Height="28" Padding="0" FontSize="15" Background="#F2F2F5" Foreground="#444" BorderBrush="#D8D8DE" BorderThickness="1" Cursor="Hand" ToolTip="Show/Hide groups" Click="ToggleGroupsSectionButton_Click">
+                                     <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="Move groups section up" Click="MoveGroupsUpButton_Click"/>
+									 <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="Move groups section down" Click="MoveGroupsDownButton_Click"/>
+                                     <Button Grid.Column="2" ToolTip="Show/Hide groups" Click="ToggleGroupsSectionButton_Click">
 											<Button.Style>
-												<Style TargetType="Button">
-													<Setter Property="Content" Value="▾"/>
-													<Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
-													<Setter Property="RenderTransform">
-														<Setter.Value><RotateTransform Angle="0"/></Setter.Value>
-													</Setter>
+                                             <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
 													<Style.Triggers>
 														<DataTrigger Binding="{Binding IsGroupsSectionExpanded}" Value="False">
 															<Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-90"/></Setter.Value></Setter>
@@ -711,44 +881,23 @@
                                                            <ColumnDefinition Width="*"/>
 														</Grid.ColumnDefinitions>
                                                                  <Button Grid.Column="0"
-																  Width="24"
-																	Height="24"
-																	Padding="0"
-																	FontSize="11"
-																	Content="↑"
-																	Background="#EEF5FF"
-																	Foreground="#2A5BCF"
-																	BorderBrush="#C8DAFF"
-																	BorderThickness="1"
-																	Cursor="Hand"
-																	Margin="0,0,3,0"
-																	Tag="{Binding}"
-																	ToolTip="Move this group up"
-																	Click="MoveSingleGroupUpButton_Click"/>
-                                                         <Button Grid.Column="1"
-																  Width="24"
-																	Height="24"
-																	Padding="0"
-																	FontSize="11"
-																	Content="↓"
-																	Background="#EEF5FF"
-																	Foreground="#2A5BCF"
-																	BorderBrush="#C8DAFF"
-																	BorderThickness="1"
-																	Cursor="Hand"
-																	Margin="0,0,4,0"
-																	Tag="{Binding}"
-																	ToolTip="Move this group down"
-																	Click="MoveSingleGroupDownButton_Click"/>
+															Style="{StaticResource GroupHeaderMoveButtonStyle}"
+															Content="↑"
+															Margin="0,0,3,0"
+															Tag="{Binding}"
+															ToolTip="Move this group up"
+															Click="MoveSingleGroupUpButton_Click"/>
+														 <Button Grid.Column="1"
+															Style="{StaticResource GroupHeaderMoveButtonStyle}"
+															Content="↓"
+															Margin="0,0,4,0"
+															Tag="{Binding}"
+															ToolTip="Move this group down"
+															Click="MoveSingleGroupDownButton_Click"/>
                                                          <Button Grid.Column="2"
-                                                              Width="28"
-																Height="28"
-																Padding="0"
+                                                            Style="{StaticResource GroupHeaderIconButtonStyle}"
 																FontSize="13"
 																Content="🎨"
-																Background="Transparent"
-																BorderThickness="0"
-																Cursor="Hand"
 																Margin="0,0,4,0"
 																Tag="{Binding}"
 																ToolTip="{Binding [GroupBackgroundColor], Source={StaticResource Loc}}"
@@ -774,15 +923,10 @@
 															</Button.ContextMenu>
 														</Button>
                                                                  <Button Grid.Column="3"
-																Width="28"
-																Height="28"
-																Padding="0"
+                                                          Style="{StaticResource GroupHeaderIconButtonStyle}"
 																FontSize="16"
 																FontWeight="Bold"
 																Content="&#x22EE;"
-																Background="Transparent"
-																BorderThickness="0"
-																Cursor="Hand"
 																Tag="{Binding}"
 																Click="GroupMenuButton_Click">
 															<Button.ContextMenu>
@@ -852,16 +996,11 @@
 											<ColumnDefinition Width="Auto"/>
                                            <ColumnDefinition Width="*"/>
 										</Grid.ColumnDefinitions>
-                                       <Button Grid.Column="0" Width="26" Height="26" Margin="0,0,2,0" Padding="0" FontSize="12" Content="↑" Background="#FFF4EA" Foreground="#C96A1A" BorderBrush="#FFD6B3" BorderThickness="1" Cursor="Hand" ToolTip="Move ungrouped section up" Click="MoveUngroupedUpButton_Click"/>
-									 <Button Grid.Column="1" Width="26" Height="26" Margin="0,0,4,0" Padding="0" FontSize="12" Content="↓" Background="#FFF4EA" Foreground="#C96A1A" BorderBrush="#FFD6B3" BorderThickness="1" Cursor="Hand" ToolTip="Move ungrouped section down" Click="MoveUngroupedDownButton_Click"/>
-										<Button Grid.Column="2" Width="28" Height="28" Padding="0" FontSize="15" Background="#F2F2F5" Foreground="#444" BorderBrush="#D8D8DE" BorderThickness="1" Cursor="Hand" ToolTip="Show/Hide ungrouped" Click="ToggleUngroupedSectionButton_Click">
+                                     <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="Move ungrouped section up" Click="MoveUngroupedUpButton_Click"/>
+									 <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="Move ungrouped section down" Click="MoveUngroupedDownButton_Click"/>
+                                     <Button Grid.Column="2" ToolTip="Show/Hide ungrouped" Click="ToggleUngroupedSectionButton_Click">
 											<Button.Style>
-												<Style TargetType="Button">
-													<Setter Property="Content" Value="▾"/>
-													<Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
-													<Setter Property="RenderTransform">
-														<Setter.Value><RotateTransform Angle="0"/></Setter.Value>
-													</Setter>
+                                             <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
 													<Style.Triggers>
 														<DataTrigger Binding="{Binding IsUngroupedSectionExpanded}" Value="False">
 															<Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-90"/></Setter.Value></Setter>
@@ -896,6 +1035,14 @@
 							</Border>
 						</Grid>
 					</ScrollViewer>
+                   <Button x:Name="ImportButton"
+                          Style="{StaticResource FloatingSecondaryButtonStyle}"
+						   VerticalAlignment="Bottom"
+						   HorizontalAlignment="Right"
+						   Content="📥"
+						   Margin="0,0,37,84"
+						   ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}"
+                        Click="ImportButton_Click"/>
                    <Button Style="{StaticResource FabStyle}"
 							VerticalAlignment="Bottom"
 							HorizontalAlignment="Right"
@@ -914,5 +1061,13 @@
 						 HorizontalAlignment="Stretch"
 						 VerticalAlignment="Stretch"
 						 Panel.ZIndex="200"/>
+
+		<Views:AboutPanel x:Name="AboutPanelControl"
+					  x:FieldModifier="public"
+					  Grid.ColumnSpan="2"
+					  Visibility="Collapsed"
+					  HorizontalAlignment="Stretch"
+					  VerticalAlignment="Stretch"
+					  Panel.ZIndex="201"/>
 	</Grid>
 </Window>

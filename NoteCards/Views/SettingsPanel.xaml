@@ -6,6 +6,45 @@
              mc:Ignorable="d"
              d:DesignHeight="520"
              d:DesignWidth="960">
+    <UserControl.Resources>
+        <Style x:Key="SettingsCloseIconButtonStyle" TargetType="Button">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#F5F7FB"/>
+            <Setter Property="BorderBrush" Value="#DDE4F3"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="CloseButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CloseButtonBorder" Property="Background" Value="#EAF0FD"/>
+                                <Setter TargetName="CloseButtonBorder" Property="BorderBrush" Value="#C9D7F5"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="CloseButtonBorder" Property="Background" Value="#DCE7FB"/>
+                                <Setter TargetName="CloseButtonBorder" Property="BorderBrush" Value="#B8CAF2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
     <Grid x:Name="OverlayRoot" Background="#66000000" MouseDown="OverlayRoot_MouseDown">
         <Border x:Name="PanelCard"
                 Background="{DynamicResource CardBackground}"
@@ -42,16 +81,8 @@
                                Foreground="{DynamicResource TextColor}"/>
 
                     <Button Grid.Column="1"
+                            Style="{StaticResource SettingsCloseIconButtonStyle}"
                             Content="✕"
-                            Width="30"
-                            Height="30"
-                            Padding="0"
-                            FontSize="14"
-                            FontWeight="SemiBold"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Foreground="{DynamicResource TextColor}"
-                            Cursor="Hand"
                             Click="CloseButton_Click"/>
                 </Grid>
 
@@ -200,12 +231,14 @@
                     </Grid.ColumnDefinitions>
 
                     <Button Content="{Binding [CheckForUpdates], Source={StaticResource Loc}}"
+                            Style="{StaticResource DialogSecondaryButtonStyle}"
                             Padding="14,8"
                             MinWidth="190"
                             HorizontalAlignment="Left"
                             Click="CheckUpdates_Click"/>
 
                     <Button Grid.Column="1"
+                            Style="{StaticResource DialogPrimaryButtonStyle}"
                             Content="{Binding [Close], Source={StaticResource Loc}}"
                             Margin="10,0,0,0"
                             MinWidth="100"

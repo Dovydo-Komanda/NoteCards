@@ -22,9 +22,9 @@
         </StackPanel>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button x:Name="FindNextBtn" Content="Find Next" Width="100" Margin="0,0,8,0" Click="FindNextBtn_Click" />
-            <Button x:Name="ReplaceNextBtn" Content="Replace Next" Width="100" Margin="0,0,8,0" Click="ReplaceNextBtn_Click" />
-            <Button Content="Close" Width="80" Click="Close_Click" />
+            <Button x:Name="FindNextBtn" Content="Find Next" Style="{StaticResource DialogSecondaryButtonStyle}" MinWidth="100" Padding="14,7" Margin="0,0,8,0" Click="FindNextBtn_Click" />
+            <Button x:Name="ReplaceNextBtn" Content="Replace Next" Style="{StaticResource DialogPrimaryButtonStyle}" MinWidth="108" Padding="14,7" Margin="0,0,8,0" Click="ReplaceNextBtn_Click" />
+            <Button Content="Close" Style="{StaticResource DialogSecondaryButtonStyle}" MinWidth="84" Padding="14,7" Click="Close_Click" />
         </StackPanel>
     </Grid>
 </Window>

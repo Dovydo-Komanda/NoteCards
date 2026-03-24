@@ -3,6 +3,7 @@ using NoteCards.Localization;
 using NoteCards.Models;
 using NoteCards.ViewModels;
 using NoteCards.Views;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -27,6 +28,7 @@ namespace NoteCards
 
         private MainViewModel? _observedViewModel;
         private bool _lastKnownGroupsFirst = true;
+        private bool _notesLayoutRefreshQueued;
 
         private FrameworkElement? RecentSectionBodyElement => FindName("RecentSectionBody") as FrameworkElement;
         private FrameworkElement? GroupsSectionBodyElement => FindName("GroupsSectionBody") as FrameworkElement;
@@ -73,15 +75,51 @@ namespace NoteCards
         private void AttachViewModel(MainViewModel? vm)
         {
             if (_observedViewModel != null)
+            {
                 _observedViewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                _observedViewModel.Notes.CollectionChanged -= ViewModel_NotesCollectionChanged;
+                _observedViewModel.NoteGroups.CollectionChanged -= ViewModel_NotesCollectionChanged;
+            }
 
             _observedViewModel = vm;
 
             if (_observedViewModel != null)
             {
                 _observedViewModel.PropertyChanged += ViewModel_PropertyChanged;
+                _observedViewModel.Notes.CollectionChanged += ViewModel_NotesCollectionChanged;
+                _observedViewModel.NoteGroups.CollectionChanged += ViewModel_NotesCollectionChanged;
                 _lastKnownGroupsFirst = _observedViewModel.IsGroupsFirst;
+                QueueNotesLayoutRefresh();
             }
+        }
+
+        private void ViewModel_NotesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            QueueNotesLayoutRefresh();
+        }
+
+        private void QueueNotesLayoutRefresh()
+        {
+            if (_notesLayoutRefreshQueued)
+                return;
+
+            _notesLayoutRefreshQueued = true;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _notesLayoutRefreshQueued = false;
+
+                NotesScrollViewer?.InvalidateMeasure();
+                NotesScrollViewer?.InvalidateArrange();
+                GroupsSectionContainerElement?.InvalidateMeasure();
+                GroupsSectionBodyElement?.InvalidateMeasure();
+                UngroupedSectionContainerElement?.InvalidateMeasure();
+                UngroupedSectionBodyElement?.InvalidateMeasure();
+
+                if (_observedViewModel != null)
+                    EnsureExpandedSectionsNotClipped(_observedViewModel);
+
+                NotesScrollViewer?.UpdateLayout();
+            }), DispatcherPriority.Render);
         }
 
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -506,8 +544,12 @@ namespace NoteCards
 
         private void AboutButton_Click(object sender, RoutedEventArgs e)
         {
-            var about = new Views.AboutWindow { Owner = this };
-            about.ShowDialog();
+            var aboutPanel = this.FindName("AboutPanelControl") as AboutPanel;
+            if (aboutPanel != null)
+            {
+                aboutPanel.DataContext = this.DataContext;
+                aboutPanel.ShowAnimated();
+            }
         }
 
         private void ClearSearchButton_Click(object sender, RoutedEventArgs e)

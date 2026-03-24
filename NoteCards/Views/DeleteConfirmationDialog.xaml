@@ -82,86 +82,17 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Right">
                     <Button Content="{Binding [Cancel], Source={StaticResource Loc}}"
+                            Style="{StaticResource DialogSecondaryButtonStyle}"
                             Padding="20,10"
                             MinWidth="110"
-                            Background="Transparent"
-                            BorderBrush="{DynamicResource BorderColor}"
-                            BorderThickness="1"
-                            Foreground="{DynamicResource TextColor}"
-                            FontSize="13"
-                            FontWeight="SemiBold"
-                            Cursor="Hand"
-                            Click="CancelButton_Click">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="ButtonBorder"
-                                                    Background="{TemplateBinding Background}"
-                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                                    CornerRadius="10"
-                                                    Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#F5F6F9"/>
-                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#D8DAE0"/>
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#EBEDF2"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+                            Click="CancelButton_Click"/>
 
                     <Button Content="{Binding [Confirm], Source={StaticResource Loc}}"
+                            Style="{StaticResource DialogDangerButtonStyle}"
                             Padding="20,10"
                             MinWidth="110"
                             Margin="12,0,0,0"
-                            Background="#DC2626"
-                            BorderBrush="#DC2626"
-                            BorderThickness="1"
-                            Foreground="White"
-                            FontSize="13"
-                            FontWeight="SemiBold"
-                            Cursor="Hand"
-                            Click="ConfirmButton_Click">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="ButtonBorder"
-                                                    Background="{TemplateBinding Background}"
-                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                                    CornerRadius="10"
-                                                    Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#B91C1C"/>
-                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#B91C1C"/>
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#991B1B"/>
-                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#991B1B"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+                            Click="ConfirmButton_Click"/>
                 </StackPanel>
             </Grid>
         </Border>
