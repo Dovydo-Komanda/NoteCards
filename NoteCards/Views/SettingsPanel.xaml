@@ -27,6 +27,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Grid>
@@ -160,7 +161,39 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Grid.Row="3" Margin="0,20,0,0">
+                <!-- Activity Summary Settings -->
+                <Border Grid.Row="3"
+                        Margin="0,14,0,0"
+                        Background="{DynamicResource SidebarBackground}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="16,12">
+                    <StackPanel>
+                        <TextBlock Text="{Binding UserActivitySummaryTitle}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextColor}"
+                                   Margin="0,0,0,12"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="{Binding StatsTotalNotes}" Foreground="{DynamicResource TextColor}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding StatsWordsTyped}" Foreground="{DynamicResource TextColor}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding StatsCharactersTyped}" Foreground="{DynamicResource TextColor}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding StatsTimeSpent}" Foreground="{DynamicResource TextColor}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding StatsLastActive}" Foreground="{DynamicResource TextColor}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Grid Grid.Row="4" Margin="0,20,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>

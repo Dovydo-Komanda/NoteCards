@@ -21,4 +21,10 @@ public class AppSettings
     public bool IsUngroupedSectionExpanded { get; set; } = true;
 
     public bool IsGroupsFirst { get; set; } = true;
+
+    // Activity Tracking
+    public long TotalTimeSpentSeconds { get; set; } = 0;
+    public long TotalWordsTyped { get; set; } = 0;
+    public long TotalCharactersTyped { get; set; } = 0;
+    public DateTime? LastActiveDate { get; set; }
 }

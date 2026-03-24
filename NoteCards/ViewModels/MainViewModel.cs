@@ -97,7 +97,11 @@ public class MainViewModel : ViewModelBase
         {
             RefreshAvailableTags();
             ApplyFilters();
+            RefreshActivityStats();
         };
+        
+        NoteCards.Services.ActivityTracker.ActivityUpdated += RefreshActivityStats;
+        
         RefreshSortOptions();
         RefreshAvailableTags();
         RefreshRecentNotes();
@@ -199,6 +203,29 @@ public class MainViewModel : ViewModelBase
                 SaveAppSettings();
             }
         }
+    }
+
+    // Activity Summary Properties
+    public string UserActivitySummaryTitle => LocalizationService.GetString("UserActivitySummaryTitle") ?? "User Activity Summary";
+    public string StatsTotalNotes => $"Total Notes: {Notes.Count}";
+    public string StatsWordsTyped => $"Total Words: {AppSettingsService.Load().TotalWordsTyped}";
+    public string StatsCharactersTyped => $"Characters Typed: {AppSettingsService.Load().TotalCharactersTyped}";
+    public string StatsTimeSpent => $"Time Spent: {GetTotalTimeSpent()}";
+    public string StatsLastActive => $"Last Active: {AppSettingsService.Load().LastActiveDate?.ToString("yyyy-MM-dd HH:mm") ?? "N/A"}";
+
+    private string GetTotalTimeSpent()
+    {
+        var span = TimeSpan.FromSeconds(AppSettingsService.Load().TotalTimeSpentSeconds);
+        return $"{(int)span.TotalHours}h {span.Minutes}m";
+    }
+
+    public void RefreshActivityStats()
+    {
+        OnPropertyChanged(nameof(StatsTotalNotes));
+        OnPropertyChanged(nameof(StatsWordsTyped));
+        OnPropertyChanged(nameof(StatsCharactersTyped));
+        OnPropertyChanged(nameof(StatsTimeSpent));
+        OnPropertyChanged(nameof(StatsLastActive));
     }
 
     private string _searchQuery = string.Empty;

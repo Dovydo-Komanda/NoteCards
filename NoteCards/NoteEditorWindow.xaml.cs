@@ -338,6 +338,24 @@ namespace NoteCards
 
             // Hook into content changes to track modifications
             ContentTextBox.TextChanged += ContentTextBox_TextChanged;
+            ContentTextBox.PreviewTextInput += ContentTextBox_PreviewTextInput;
+            ContentTextBox.PreviewKeyDown += ContentTextBox_PreviewKeyDown;
+        }
+
+        private void ContentTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(e.Text))
+            {
+                NoteCards.Services.ActivityTracker.RecordTyping(e.Text.Length, 0);
+            }
+        }
+
+        private void ContentTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Space || e.Key == Key.Enter)
+            {
+                NoteCards.Services.ActivityTracker.RecordTyping(0, 1);
+            }
         }
 
         // Start the auto-save timer

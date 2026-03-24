@@ -47,6 +47,7 @@ namespace NoteCards
         public MainWindow()
         {
             InitializeComponent();
+            NoteCards.Services.ActivityTracker.Initialize();
             Loaded += MainWindow_Loaded;
             Unloaded += MainWindow_Unloaded;
             DataContextChanged += MainWindow_DataContextChanged;
