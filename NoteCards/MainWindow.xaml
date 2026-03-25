@@ -1017,21 +1017,40 @@
 												Margin="8,0,0,0"
 												   VerticalAlignment="Center"/>
 									</Grid>
-									<StackPanel x:Name="UngroupedSectionBody">
-										<ItemsControl ItemsSource="{Binding NotesView}">
-										<ItemsControl.ItemsPanel>
-											<ItemsPanelTemplate>
-												<WrapPanel Orientation="Horizontal"/>
-											</ItemsPanelTemplate>
-										</ItemsControl.ItemsPanel>
-										<ItemsControl.ItemTemplate>
-											<DataTemplate DataType="{x:Type vm:NoteCardViewModel}">
-												<controls:NoteCardControl/>
-											</DataTemplate>
-										</ItemsControl.ItemTemplate>
-                                     </ItemsControl>
-									</StackPanel>
-								</StackPanel>
+                                    <StackPanel x:Name="UngroupedSectionBody">
+                                        <ItemsControl ItemsSource="{Binding NotesView}">
+
+                                            <!-- PANEL (grid/list switch) -->
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel>
+                                                        <StackPanel.Style>
+                                                            <Style TargetType="StackPanel">
+                                                                <!-- default = GRID -->
+                                                                <Setter Property="Orientation" Value="Horizontal"/>
+
+                                                                <!-- jei LIST -->
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsListView}" Value="True">
+                                                                        <Setter Property="Orientation" Value="Vertical"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </StackPanel.Style>
+                                                    </StackPanel>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+
+                                            <!-- ITEM TEMPLATE -->
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:NoteCardViewModel}">
+                                                    <controls:NoteCardControl/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </StackPanel>
 							</Border>
 						</Grid>
 					</ScrollViewer>

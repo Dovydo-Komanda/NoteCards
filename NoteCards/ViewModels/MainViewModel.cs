@@ -85,6 +85,7 @@ public class MainViewModel : ViewModelBase
     {
         LoadAppSettings();
 
+
         Notes = new ObservableCollection<NoteCardViewModel>();
         NoteGroups = new ObservableCollection<NoteGroupViewModel>();
         TagFilters = new ObservableCollection<TagFilterItemViewModel>();
@@ -890,6 +891,7 @@ public class MainViewModel : ViewModelBase
         _isGroupsSectionExpanded = settings.IsGroupsSectionExpanded;
         _isUngroupedSectionExpanded = settings.IsUngroupedSectionExpanded;
         _isGroupsFirst = settings.IsGroupsFirst;
+        _viewMode = settings.DefaultViewMode;
 
         LocalizationService.SetCulture(_selectedLanguage);
         ThemeManager.SetTheme(_selectedTheme);
@@ -911,7 +913,8 @@ public class MainViewModel : ViewModelBase
             IsRecentSectionExpanded = _isRecentSectionExpanded,
             IsGroupsSectionExpanded = _isGroupsSectionExpanded,
             IsUngroupedSectionExpanded = _isUngroupedSectionExpanded,
-            IsGroupsFirst = _isGroupsFirst
+            IsGroupsFirst = _isGroupsFirst,
+            DefaultViewMode = _viewMode,
         });
     }
 
@@ -1043,4 +1046,23 @@ public class MainViewModel : ViewModelBase
             SaveNotes();
         }), DispatcherPriority.Background);
     }
+    private string _viewMode = "Grid";
+
+    public string ViewMode
+    {
+        get => _viewMode;
+        set
+        {
+            if (SetProperty(ref _viewMode, value))
+            {
+                OnPropertyChanged(nameof(IsGridView));
+                OnPropertyChanged(nameof(IsListView));
+                SaveAppSettings();
+            }
+        }
+    }
+
+    public bool IsGridView => ViewMode == "Grid";
+    public bool IsListView => ViewMode == "List";
+
 }

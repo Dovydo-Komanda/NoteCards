@@ -1,5 +1,6 @@
 using NoteCards.Localization;
 using NoteCards.Services;
+using NoteCards.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -174,6 +175,22 @@ namespace NoteCards.Views
                             LocalizationService.GetString("AppUpdate"),
                             MessageBoxButton.OK,
                             MessageBoxImage.Information);
+        }
+        private void ViewModeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ViewModeBox.SelectedItem is ComboBoxItem item)
+            {
+                string selected = item.Content.ToString();
+
+                var settings = AppSettingsService.Load();
+                settings.DefaultViewMode = selected;
+                AppSettingsService.Save(settings);
+
+                if (Application.Current.MainWindow.DataContext is MainViewModel vm)
+                {
+                    vm.ViewMode = selected;
+                }
+            }
         }
     }
 }
