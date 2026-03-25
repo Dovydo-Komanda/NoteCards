@@ -3,6 +3,7 @@ using NoteCards.Localization;
 using NoteCards.Models;
 using NoteCards.Services;
 using NoteCards.ViewModels;
+using NoteCards.Views;
 using System.Diagnostics;
 using System.ComponentModel;
 using System.IO;
@@ -34,6 +35,7 @@ namespace NoteCards
         private DateTime _lastAutoSaveTime = DateTime.MinValue;
         private string _lastSavedContent = string.Empty;
         private NoteDocument? _currentDocument;
+        private const int MaxEditHistoryEntries = 100;
 
         public NoteEditorWindow()
         {
@@ -403,6 +405,7 @@ namespace NoteCards
         {
             if (document != null)
             {
+                var previousContent = document.Content ?? string.Empty;
                 document.Title = TitleTextBox.Text;
                 document.Tags = ParseTags(TagsTextBox.Text);
                 document.LastModified = DateTime.Now;
@@ -410,11 +413,33 @@ namespace NoteCards
                 using (MemoryStream ms = new MemoryStream())
                 {
                     tr.Save(ms, DataFormats.Rtf); // save as RTF
-                    document.Content = Convert.ToBase64String(ms.ToArray());
+                    var newContent = Convert.ToBase64String(ms.ToArray());
+                    if (!string.Equals(previousContent, newContent, StringComparison.Ordinal))
+                    {
+                        AppendEditHistoryVersion(document, previousContent);
+                    }
+
+                    document.Content = newContent;
                 }
 
                 document.FontFamily = ContentTextBox.FontFamily.Source;
                 document.FontSize = ContentTextBox.FontSize;
+            }
+        }
+
+        private static void AppendEditHistoryVersion(NoteDocument document, string previousContent)
+        {
+            document.EditHistory ??= new List<NoteEditHistoryEntry>();
+            document.EditHistory.Add(new NoteEditHistoryEntry
+            {
+                Timestamp = DateTime.UtcNow,
+                Content = previousContent
+            });
+
+            if (document.EditHistory.Count > MaxEditHistoryEntries)
+            {
+                var overflow = document.EditHistory.Count - MaxEditHistoryEntries;
+                document.EditHistory.RemoveRange(0, overflow);
             }
         }
 
@@ -738,6 +763,42 @@ namespace NoteCards
                 ContentTextBox.Redo();
         }
 
+        private void EditHistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentDocument == null)
+                return;
+
+            if (_currentDocument.EditHistory == null || _currentDocument.EditHistory.Count == 0)
+            {
+                MessageBox.Show(
+                    LocalizationService.GetString("NoEditHistory"),
+                    LocalizationService.GetString("EditHistoryTitle"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var dialog = new EditHistoryWindow(_currentDocument.EditHistory)
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() != true || dialog.SelectedVersion == null)
+                return;
+
+            ApplyContentToEditor(dialog.SelectedVersion.Content);
+            SaveToDocument(_currentDocument);
+            _lastSavedContent = GetContentAsText();
+
+            if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm)
+            {
+                mainVm.SaveNotes();
+            }
+
+            DocumentAutoSaved?.Invoke(_currentDocument);
+            ShowStatusIndicator(LocalizationService.GetString("VersionRestored"));
+        }
+
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             // Perform manual save
@@ -756,21 +817,61 @@ namespace NoteCards
                 var indicator = FindName("AutoSaveIndicator") as TextBlock;
                 if (indicator != null)
                 {
-                    indicator.Text = LocalizationService.GetString("Saved");
-                    indicator.Visibility = Visibility.Visible;
-                    indicator.Opacity = 1;
-
-                    var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(1.5))
-                    {
-                        BeginTime = TimeSpan.FromSeconds(0.5)
-                    };
-                    fadeOut.Completed += (s, e) => indicator.Visibility = Visibility.Collapsed;
-                    indicator.BeginAnimation(TextBlock.OpacityProperty, fadeOut);
+                    ShowStatusIndicator(LocalizationService.GetString("Saved"));
                 }
             }
 
             // Close the window after saving
             this.Close();
+        }
+
+        private void ApplyContentToEditor(string? content)
+        {
+            TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
+
+            if (string.IsNullOrEmpty(content))
+            {
+                tr.Text = string.Empty;
+                return;
+            }
+
+            try
+            {
+                byte[] bytes = Convert.FromBase64String(content);
+                if (bytes.Length >= 5)
+                {
+                    var hdr = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
+                    if (!hdr.StartsWith("{\\rtf"))
+                        throw new FormatException();
+                }
+
+                using (MemoryStream ms = new MemoryStream(bytes))
+                {
+                    tr.Load(ms, DataFormats.Rtf);
+                }
+            }
+            catch (FormatException)
+            {
+                tr.Text = content;
+            }
+        }
+
+        private void ShowStatusIndicator(string message)
+        {
+            var indicator = FindName("AutoSaveIndicator") as TextBlock;
+            if (indicator == null)
+                return;
+
+            indicator.Text = message;
+            indicator.Visibility = Visibility.Visible;
+            indicator.Opacity = 1;
+
+            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(1.5))
+            {
+                BeginTime = TimeSpan.FromSeconds(0.5)
+            };
+            fadeOut.Completed += (s, e) => indicator.Visibility = Visibility.Collapsed;
+            indicator.BeginAnimation(TextBlock.OpacityProperty, fadeOut);
         }
 
         private void FontFamilyBox_Changed(object sender, SelectionChangedEventArgs e)

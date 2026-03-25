@@ -111,6 +111,13 @@ Atšaukti = nutraukti</value></data>
   <data name="ClearContentPrompt" xml:space="preserve"><value>Ar tikrai norite išvalyti visą šio užrašo turinį? Šis veiksmas negali būti atšauktas.</value></data>
   <data name="Saved" xml:space="preserve"><value>Išsaugota</value></data>
   <data name="AutoSaving" xml:space="preserve"><value>Automatiškai išsaugoma...</value></data>
+  <data name="EditHistory" xml:space="preserve"><value>Redagavimo istorija</value></data>
+  <data name="EditHistoryTitle" xml:space="preserve"><value>Redagavimo istorija</value></data>
+  <data name="NoEditHistory" xml:space="preserve"><value>Išsaugotų versijų dar nėra.</value></data>
+  <data name="RestoreVersion" xml:space="preserve"><value>Atkurti versiją</value></data>
+  <data name="VersionRestored" xml:space="preserve"><value>Versija atkurta</value></data>
+  <data name="EditHistoryEmptyPreview" xml:space="preserve"><value>(Tuščias turinys)</value></data>
+  <data name="EditHistoryUnreadablePreview" xml:space="preserve"><value>(Nepavyko parodyti šios versijos peržiūros)</value></data>
   <data name="Export" xml:space="preserve"><value>Eksportuoti</value></data>
   <data name="Import" xml:space="preserve"><value>Importuoti</value></data>
   <data name="ImportNotes" xml:space="preserve"><value>Importuoti užrašus</value></data>

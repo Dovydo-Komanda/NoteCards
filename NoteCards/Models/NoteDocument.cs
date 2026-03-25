@@ -12,4 +12,11 @@ public class NoteDocument
     public DateTime LastModified { get; set; } = DateTime.Now;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsPinned { get; set; } = false;
+    public List<NoteEditHistoryEntry> EditHistory { get; set; } = new();
+}
+
+public class NoteEditHistoryEntry
+{
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string Content { get; set; } = string.Empty;
 }

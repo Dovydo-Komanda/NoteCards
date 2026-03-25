@@ -13,4 +13,11 @@
     <Resource Include="logo.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Page Update="Views\EditHistoryWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+
 </Project>

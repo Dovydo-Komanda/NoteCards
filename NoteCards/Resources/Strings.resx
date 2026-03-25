@@ -111,6 +111,13 @@ Cancel = abort</value></data>
   <data name="ClearContentPrompt" xml:space="preserve"><value>Are you sure you want to clear all content from this note? This action cannot be undone.</value></data>
   <data name="Saved" xml:space="preserve"><value>Saved</value></data>
   <data name="AutoSaving" xml:space="preserve"><value>Auto-saving...</value></data>
+  <data name="EditHistory" xml:space="preserve"><value>Edit History</value></data>
+  <data name="EditHistoryTitle" xml:space="preserve"><value>Edit History</value></data>
+  <data name="NoEditHistory" xml:space="preserve"><value>No saved versions are available yet.</value></data>
+  <data name="RestoreVersion" xml:space="preserve"><value>Restore Version</value></data>
+  <data name="VersionRestored" xml:space="preserve"><value>Version restored</value></data>
+  <data name="EditHistoryEmptyPreview" xml:space="preserve"><value>(Empty content)</value></data>
+  <data name="EditHistoryUnreadablePreview" xml:space="preserve"><value>(Unable to preview this version)</value></data>
   <data name="Export" xml:space="preserve"><value>Export</value></data>
   <data name="Import" xml:space="preserve"><value>Import</value></data>
   <data name="ImportNotes" xml:space="preserve"><value>Import Notes</value></data>

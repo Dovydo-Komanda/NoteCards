@@ -227,6 +227,10 @@
                             Style="{StaticResource EditorToolIconButtonStyle}"
                             ToolTip="{Binding [Redo], Source={StaticResource Loc}}"
                             Click="RedoButton_Click"/>
+                        <Button Content="🕘"
+                            Style="{StaticResource EditorToolIconButtonStyle}"
+                            ToolTip="{Binding [EditHistory], Source={StaticResource Loc}}"
+                            Click="EditHistoryButton_Click"/>
                         <TextBox x:Name="OnlineSearchTextBox"
                              Style="{StaticResource EditorToolSearchInputStyle}"
                              ToolTip="{Binding [SearchOnlineHint], Source={StaticResource Loc}}"
