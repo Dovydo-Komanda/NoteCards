@@ -885,7 +885,7 @@ public class MainViewModel : ViewModelBase
         _enableScrollbar = settings.EnableScrollbar;
         _selectedLanguage = LocalizationService.NormalizeLanguage(settings.Language);
         _selectedTheme = string.Equals(settings.Theme, "Dark", StringComparison.OrdinalIgnoreCase) ? "Dark" : "Light";
-        _selectedSortOptionKey = NormalizeSortOptionKey(settings.NoteSortOptionKey);
+        _selectedSortOptionKey = NormalizeSortOptionKey(settings.DefaultSortOrder);
         _isRecentSectionExpanded = settings.IsRecentSectionExpanded;
         _isGroupsSectionExpanded = settings.IsGroupsSectionExpanded;
         _isUngroupedSectionExpanded = settings.IsUngroupedSectionExpanded;
@@ -906,7 +906,7 @@ public class MainViewModel : ViewModelBase
         {
             Language = _selectedLanguage,
             Theme = _selectedTheme,
-            NoteSortOptionKey = _selectedSortOptionKey,
+            DefaultSortOrder = _selectedSortOptionKey,
             EnableScrollbar = _enableScrollbar,
             IsRecentSectionExpanded = _isRecentSectionExpanded,
             IsGroupsSectionExpanded = _isGroupsSectionExpanded,

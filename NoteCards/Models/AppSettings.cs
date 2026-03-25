@@ -6,8 +6,6 @@ public class AppSettings
 
     public string Theme { get; set; } = "Light";
 
-    public string NoteSortOptionKey { get; set; } = "last-modified-desc";
-
     public bool EnableScrollbar { get; set; } = true;
     
     public bool EnableAutoSave { get; set; } = true;
@@ -21,6 +19,8 @@ public class AppSettings
     public bool IsUngroupedSectionExpanded { get; set; } = true;
 
     public bool IsGroupsFirst { get; set; } = true;
+
+    public string DefaultSortOrder { get; set; } = "LastModified";
 
     // Activity Tracking
     public long TotalTimeSpentSeconds { get; set; } = 0;
