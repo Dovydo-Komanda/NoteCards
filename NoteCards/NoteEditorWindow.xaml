@@ -372,6 +372,11 @@
                         ToolTip="{Binding [InsertImage], Source={StaticResource Loc}}"
                         Click="InsertImageButton_Click"/>
                 <Separator Margin="4,0,4,8"/>
+                <Button Content="↔"
+                        Style="{StaticResource EditorSideToolButtonStyle}"
+                        ToolTip="Toggle Word Wrap"
+                        Click="ToggleWordWrap_Click"/>
+                <Separator Margin="4,0,4,8"/>
                 <Button x:Name="FontButton"
                         Content="𝑭"
                         Style="{StaticResource EditorSideToolButtonStyle}"

@@ -39,6 +39,7 @@ namespace NoteCards
             InitializeComponent();
             InitializeAutoSave();
             UpdateCounter();
+            ContentTextBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
         }
 
         private void NoteEditorWindow_Closing(object sender, CancelEventArgs e)
@@ -1047,6 +1048,23 @@ namespace NoteCards
 
             ContentTextBox.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
         }
-        
+        private bool _isWordWrapEnabled = true;
+
+        private void ToggleWordWrap_Click(object sender, RoutedEventArgs e)
+        {
+            _isWordWrapEnabled = !_isWordWrapEnabled;
+
+            if (_isWordWrapEnabled)
+            {
+               
+                ContentTextBox.Document.PageWidth = double.NaN;
+            }
+            else
+            {
+                
+                ContentTextBox.Document.PageWidth = 1000;
+            }
+        }
+
     }
 }
