@@ -39,6 +39,9 @@
   <data name="Save" xml:space="preserve"><value>Save</value></data>
   <data name="Print" xml:space="preserve"><value>Print</value></data>
   <data name="Search" xml:space="preserve"><value>Search</value></data>
+  <data name="SearchOnline" xml:space="preserve"><value>Search Online</value></data>
+  <data name="SearchOnlineHint" xml:space="preserve"><value>Select text in note or type a query to search online</value></data>
+  <data name="SearchOnlineFailed" xml:space="preserve"><value>Failed to open online search.</value></data>
   <data name="Font" xml:space="preserve"><value>Font</value></data>
   <data name="FontLabel" xml:space="preserve"><value>Font:</value></data>
   <data name="SizeLabel" xml:space="preserve"><value>Size:</value></data>

@@ -39,6 +39,9 @@
   <data name="Save" xml:space="preserve"><value>Išsaugoti</value></data>
   <data name="Print" xml:space="preserve"><value>Spausdinti</value></data>
   <data name="Search" xml:space="preserve"><value>Ieškoti</value></data>
+  <data name="SearchOnline" xml:space="preserve"><value>Ieškoti internete</value></data>
+  <data name="SearchOnlineHint" xml:space="preserve"><value>Pažymėkite tekstą užraše arba įveskite užklausą paieškai internete</value></data>
+  <data name="SearchOnlineFailed" xml:space="preserve"><value>Nepavyko atidaryti internetinės paieškos.</value></data>
   <data name="Font" xml:space="preserve"><value>Šriftas</value></data>
   <data name="FontLabel" xml:space="preserve"><value>Šriftas:</value></data>
   <data name="SizeLabel" xml:space="preserve"><value>Dydis:</value></data>

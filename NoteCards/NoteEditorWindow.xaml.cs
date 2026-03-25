@@ -3,6 +3,7 @@ using NoteCards.Localization;
 using NoteCards.Models;
 using NoteCards.Services;
 using NoteCards.ViewModels;
+using System.Diagnostics;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -39,6 +40,8 @@ namespace NoteCards
             InitializeComponent();
             InitializeAutoSave();
             UpdateCounter();
+            OnlineSearchTextBox.Text = string.Empty;
+            UpdateOnlineSearchAvailability();
             ContentTextBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
         }
 
@@ -105,7 +108,77 @@ namespace NoteCards
             {
                 ClearAllHighlights();
             }
+            else
+            {
+                var selectedText = sel.Text?.Trim();
+                if (!string.IsNullOrWhiteSpace(selectedText))
+                {
+                    OnlineSearchTextBox.Text = selectedText;
+                    OnlineSearchTextBox.CaretIndex = OnlineSearchTextBox.Text.Length;
+                }
+            }
+
+            UpdateOnlineSearchAvailability();
             UpdateCounter();
+        }
+
+        private void OnlineSearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdateOnlineSearchAvailability();
+        }
+
+        private void OnlineSearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
+                return;
+
+            OpenOnlineSearch();
+            e.Handled = true;
+        }
+
+        private void OnlineSearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenOnlineSearch();
+        }
+
+        private void UpdateOnlineSearchAvailability()
+        {
+            OnlineSearchButton.IsEnabled = !string.IsNullOrWhiteSpace(ResolveOnlineSearchQuery());
+        }
+
+        private string ResolveOnlineSearchQuery()
+        {
+            var selectedText = ContentTextBox.Selection?.Text?.Trim();
+            if (!string.IsNullOrWhiteSpace(selectedText))
+                return selectedText;
+
+            return OnlineSearchTextBox.Text?.Trim() ?? string.Empty;
+        }
+
+        private void OpenOnlineSearch()
+        {
+            var query = ResolveOnlineSearchQuery();
+            if (string.IsNullOrWhiteSpace(query))
+                return;
+
+            var url = $"https://www.google.com/search?q={Uri.EscapeDataString(query)}";
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("SearchOnlineFailed")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
 
         private void SearchButton_Click(object sender, RoutedEventArgs e)
