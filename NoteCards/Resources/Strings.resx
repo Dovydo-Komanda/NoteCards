@@ -118,4 +118,9 @@ Cancel = abort</value></data>
   <data name="InsertImage" xml:space="preserve"><value>Insert Image</value></data>
   <data name="ImageTooltip" xml:space="preserve"><value>Insert an image into the note</value></data>
   <data name="ReplaceFromFile" xml:space="preserve"><value>Replace from file...</value></data>
+  <data name="CloseTab" xml:space="preserve"><value>Close Tab</value></data>
+  <data name="OpenInTab" xml:space="preserve"><value>Open in Tab</value></data>
+  <data name="NewTab" xml:space="preserve"><value>New Tab</value></data>
+  <data name="UnsavedChanges" xml:space="preserve"><value>Unsaved Changes</value></data>
+  <data name="TabCloseWarning" xml:space="preserve"><value>This tab has unsaved changes. Close anyway?</value></data>
 </root>

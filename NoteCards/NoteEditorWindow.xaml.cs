@@ -47,8 +47,9 @@ namespace NoteCards
             if (_isPlayingCloseAnimation)
                 return;
 
-            e.Cancel = true;
-            AnimateAndClose();
+            // For non-modal windows, just close directly
+            // No need for animation since the window will close immediately
+            e.Cancel = false;
         }
 
         private void AnimateAndClose()
@@ -675,8 +676,8 @@ namespace NoteCards
                 }
             }
 
-            _pendingDialogResult = true;
-            AnimateAndClose();
+            // Close the window after saving
+            this.Close();
         }
 
         private void FontFamilyBox_Changed(object sender, SelectionChangedEventArgs e)

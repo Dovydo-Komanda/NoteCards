@@ -633,6 +633,7 @@ namespace NoteCards
         // Open editor for a specific note card
         public void OpenNoteEditor(NoteCardViewModel noteViewModel)
         {
+            // Allow multiple editor windows to be open
             var editor = new NoteEditorWindow();
             // Set DataContext so EnableScrollbar binding works
             editor.DataContext = this.DataContext;
@@ -643,8 +644,13 @@ namespace NoteCards
             void OnAutoSaved(NoteDocument doc) => noteViewModel.NotifyContentChanged();
             editor.DocumentAutoSaved += OnAutoSaved;
 
-            if (editor.ShowDialog() == true)
+            // Show the window non-modally so multiple windows can be open
+            editor.Show();
+
+            // Handle window closed to clean up and save
+            editor.Closed += (s, e) =>
             {
+                // Save document before closing
                 editor.SaveToDocument(noteViewModel.Document);
 
                 // Notify the card's bindings to refresh with the new content/title
@@ -653,10 +659,10 @@ namespace NoteCards
                 var vm = this.DataContext as MainViewModel;
                 vm?.RefreshTagFiltersAfterNoteEdit();
                 vm?.SaveNotes();
-            }
 
-            // Unsubscribe to avoid memory leaks
-            editor.DocumentAutoSaved -= OnAutoSaved;
+                // Unsubscribe to avoid memory leaks
+                editor.DocumentAutoSaved -= OnAutoSaved;
+            };
         }
 
         // Settings menu button click handler

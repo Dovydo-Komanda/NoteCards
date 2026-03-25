@@ -118,4 +118,9 @@ Atšaukti = nutraukti</value></data>
   <data name="InsertImage" xml:space="preserve"><value>Įterpti paveikslėlį</value></data>
   <data name="ImageTooltip" xml:space="preserve"><value>Įterpti paveikslėlį į užrašą</value></data>
   <data name="ReplaceFromFile" xml:space="preserve"><value>Pakeisti iš failo...</value></data>
+  <data name="CloseTab" xml:space="preserve"><value>Uždaryti skirtuką</value></data>
+  <data name="OpenInTab" xml:space="preserve"><value>Atidaryti skirtuke</value></data>
+  <data name="NewTab" xml:space="preserve"><value>Naujas skirtukas</value></data>
+  <data name="UnsavedChanges" xml:space="preserve"><value>Neiššaugoti pakeitimai</value></data>
+  <data name="TabCloseWarning" xml:space="preserve"><value>Šis skirtukas turi neiššaugotus pakeitimus. Uždaryti vis tiek?</value></data>
 </root>
