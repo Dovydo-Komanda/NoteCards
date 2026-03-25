@@ -149,6 +149,7 @@
 			<RowDefinition Height="Auto"/>
          <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Top Bar with Undo/Redo buttons -->
@@ -299,7 +300,7 @@
             <Border.Effect>
                 <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.08"/>
             </Border.Effect>
-			<RichTextBox x:Name="ContentTextBox"
+            <RichTextBox x:Name="ContentTextBox"
 						 SelectionChanged="ContentTextBox_SelectionChanged"
 						 PreviewMouseWheel="ContentTextBox_PreviewMouseWheel"
 						 Margin="0"
@@ -310,7 +311,7 @@
 						 VerticalScrollBarVisibility="{Binding EnableScrollbar, Converter={StaticResource BoolToScrollBarVisibilityConverter}}"
 						 BorderThickness="0">
 
-			<!-- CONTEXT MENU -->
+                <!-- CONTEXT MENU -->
 			<RichTextBox.ContextMenu>
 				<ContextMenu>
 				  <MenuItem Header="{Binding [Cut], Source={StaticResource Loc}}" Command="Cut"/>
@@ -325,6 +326,21 @@
 				<SolidColorBrush Color="White"/>
 			</RichTextBox.Background>
 			</RichTextBox>
+        </Border>
+        <!-- COUNTER -->
+        <Border Grid.Row="4"
+        Grid.Column="0"
+        Margin="20,0,20,10"
+        Padding="8"
+        CornerRadius="8"
+        Background="#F7F8FC"
+        BorderBrush="#DBE3F3"
+        BorderThickness="1">
+
+            <TextBlock x:Name="CounterText"
+               Text="Words: 0 | Characters: 0 | Lines: 0"
+               FontSize="12"
+               Foreground="#6B7280"/>
         </Border>
 
         <Border Grid.Row="1"

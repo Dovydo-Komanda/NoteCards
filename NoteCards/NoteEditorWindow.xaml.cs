@@ -38,6 +38,7 @@ namespace NoteCards
         {
             InitializeComponent();
             InitializeAutoSave();
+            UpdateCounter();
         }
 
         private void NoteEditorWindow_Closing(object sender, CancelEventArgs e)
@@ -76,6 +77,24 @@ namespace NoteCards
             var textRange = new TextRange(doc.ContentStart, doc.ContentEnd);
             textRange.ApplyPropertyValue(TextElement.BackgroundProperty, System.Windows.Media.Brushes.Transparent);
         }
+        private void UpdateCounter()
+        {
+            TextRange textRange = new TextRange(
+                ContentTextBox.Document.ContentStart,
+                ContentTextBox.Document.ContentEnd);
+
+            string text = textRange.Text;
+
+            int characters = text.Length;
+
+            int words = string.IsNullOrWhiteSpace(text)
+                ? 0
+                : text.Split(new[] { ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length;
+
+            int lines = text.Split('\n').Length;
+
+            CounterText.Text = $"Words: {words} | Characters: {characters} | Lines: {lines}";
+        }
 
         private void ContentTextBox_SelectionChanged(object sender, RoutedEventArgs e)
         {
@@ -85,6 +104,7 @@ namespace NoteCards
             {
                 ClearAllHighlights();
             }
+            UpdateCounter();
         }
 
         private void SearchButton_Click(object sender, RoutedEventArgs e)
@@ -383,8 +403,7 @@ namespace NoteCards
         // Content changed event handler
         private void ContentTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // Reset auto-save timer on content change (optional: only auto-save if user stops typing)
-            // For now, we'll auto-save every 30 seconds regardless
+            UpdateCounter();
         }
 
         private void AutoSaveCallback(object? state)
@@ -1028,5 +1047,6 @@ namespace NoteCards
 
             ContentTextBox.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
         }
+        
     }
 }
