@@ -67,14 +67,6 @@ namespace NoteCards.Views
             var settings = AppSettingsService.Load();
             EnableScrollbarCheckBox.IsChecked = settings.EnableScrollbar;
             EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
-            foreach (ComboBoxItem item in SortOrderBox.Items)
-            {
-                if (item.Content.ToString() == settings.DefaultSortOrder)
-                {
-                    SortOrderBox.SelectedItem = item;
-                    break;
-                }
-            }
         }
 
         // auto-save checkbox handlers
@@ -168,14 +160,6 @@ namespace NoteCards.Views
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            var settings = AppSettingsService.Load();
-
-            if (SortOrderBox.SelectedItem is ComboBoxItem item)
-            {
-                settings.DefaultSortOrder = item.Content.ToString();
-            }
-
-            AppSettingsService.Save(settings);
             HideAnimated();
         }
 
@@ -205,31 +189,6 @@ namespace NoteCards.Views
                 if (Application.Current.MainWindow.DataContext is MainViewModel vm)
                 {
                     vm.ViewMode = selected;
-                }
-            }
-        }
-        private void SortOrderBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (SortOrderBox.SelectedItem is ComboBoxItem item)
-            {
-                string selected = item.Content.ToString();
-
-          
-                string key = selected switch
-                {
-                    "Title" => "title-asc",
-                    "Created" => "created-at-desc",
-                    "LastModified" => "last-modified-desc",
-                    _ => "last-modified-desc"
-                };
-
-                var settings = AppSettingsService.Load();
-                settings.DefaultSortOrder = key;
-                AppSettingsService.Save(settings);
-
-                if (Application.Current.MainWindow.DataContext is MainViewModel vm)
-                {
-                    vm.SelectedSortOptionKey = key;
                 }
             }
         }

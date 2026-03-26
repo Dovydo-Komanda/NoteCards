@@ -68,7 +68,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Grid>
@@ -136,33 +135,7 @@
                         </StackPanel>
                     </Grid>
                 </Border>
-                <!-- Sort Order Setting -->
                 <Border Grid.Row="2"
-        Margin="0,14,0,0"
-        Background="{DynamicResource SidebarBackground}"
-        BorderBrush="{DynamicResource BorderColor}"
-        BorderThickness="1"
-        CornerRadius="12"
-        Padding="16,12">
-
-                    <StackPanel>
-                        <TextBlock Text="Sort Order"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextColor}"/>
-
-                        <ComboBox x:Name="SortOrderBox"
-          Margin="0,8,0,0"
-          MinWidth="180"
-          SelectionChanged="SortOrderBox_SelectionChanged">
-
-                            <ComboBoxItem Content="LastModified"/>
-                            <ComboBoxItem Content="Created"/>
-                            <ComboBoxItem Content="Title"/>
-
-                        </ComboBox>
-                    </StackPanel>
-                </Border>
-                <Border Grid.Row="3"
         Margin="0,14,0,0"
         Background="{DynamicResource SidebarBackground}"
         BorderBrush="{DynamicResource BorderColor}"
@@ -186,7 +159,7 @@
                     </StackPanel>
                 </Border>
                 <!-- Scrollbar and Auto-Save Settings -->
-                <Border Grid.Row="4"
+                <Border Grid.Row="3"
         Margin="0,14,0,0"
         Background="{DynamicResource SidebarBackground}"
         BorderBrush="{DynamicResource BorderColor}"
@@ -243,7 +216,7 @@
                 </Border>
 
                 <!-- Activity Summary Settings -->
-                <Border Grid.Row="5"
+                <Border Grid.Row="4"
                         Margin="0,14,0,0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
@@ -274,7 +247,7 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Grid.Row="6" Margin="0,20,0,0">
+                <Grid Grid.Row="5" Margin="0,20,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
