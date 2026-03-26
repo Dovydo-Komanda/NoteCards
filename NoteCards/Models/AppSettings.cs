@@ -6,7 +6,7 @@ public class AppSettings
 
     public string Theme { get; set; } = "Light";
 
-    public string NoteSortOptionKey { get; set; } = "last-modified-desc";
+    public string DefaultSortOrder { get; set; } = "LastModified";
 
     public bool EnableScrollbar { get; set; } = true;
     
