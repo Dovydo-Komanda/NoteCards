@@ -40,6 +40,7 @@ namespace NoteCards
         private FrameworkElement? MassSelectMoreActionsPanelElement => FindName("MassSelectMoreActionsPanel") as FrameworkElement;
         private Button? MassSelectMoreActionsToggleButtonElement => FindName("MassSelectMoreActionsToggleButton") as Button;
         private Popup? SortNotesPopupElement => FindName("SortNotesPopup") as Popup;
+        private Popup? DashboardSectionsPopupElement => FindName("DashboardSectionsPopup") as Popup;
         private ColumnDefinition? SidebarColumnElement => FindName("SidebarColumn") as ColumnDefinition;
         private bool _isMassSelectMoreActionsExpanded;
 
@@ -694,6 +695,8 @@ namespace NoteCards
         {
             CollapseTopSearchPanel();
             TagsFilterPopup.IsOpen = false;
+            if (DashboardSectionsPopupElement != null)
+                DashboardSectionsPopupElement.IsOpen = false;
 
             if (SortNotesPopupElement != null)
                 SortNotesPopupElement.IsOpen = !SortNotesPopupElement.IsOpen;
@@ -704,7 +707,19 @@ namespace NoteCards
             CollapseTopSearchPanel();
             if (SortNotesPopupElement != null)
                 SortNotesPopupElement.IsOpen = false;
+            if (DashboardSectionsPopupElement != null)
+                DashboardSectionsPopupElement.IsOpen = false;
             TagsFilterPopup.IsOpen = !TagsFilterPopup.IsOpen;
+        }
+
+        private void DashboardSectionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            CollapseTopSearchPanel();
+            if (SortNotesPopupElement != null)
+                SortNotesPopupElement.IsOpen = false;
+            TagsFilterPopup.IsOpen = false;
+            if (DashboardSectionsPopupElement != null)
+                DashboardSectionsPopupElement.IsOpen = !DashboardSectionsPopupElement.IsOpen;
         }
 
         private void TopSearchButton_Click(object sender, RoutedEventArgs e)
@@ -752,6 +767,8 @@ namespace NoteCards
             TagsFilterPopup.IsOpen = false;
             if (SortNotesPopupElement != null)
                 SortNotesPopupElement.IsOpen = false;
+            if (DashboardSectionsPopupElement != null)
+                DashboardSectionsPopupElement.IsOpen = false;
 
             TopSearchPanel.Visibility = Visibility.Visible;
             TopSearchPanel.IsHitTestVisible = true;

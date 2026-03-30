@@ -67,6 +67,18 @@ namespace NoteCards.Views
             var settings = AppSettingsService.Load();
             EnableScrollbarCheckBox.IsChecked = settings.EnableScrollbar;
             EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
+
+            var selectedViewMode = string.Equals(settings.DefaultViewMode, "List", StringComparison.OrdinalIgnoreCase)
+                ? "List"
+                : "Grid";
+            foreach (var comboBoxItem in ViewModeBox.Items.OfType<ComboBoxItem>())
+            {
+                if (string.Equals(comboBoxItem.Content?.ToString(), selectedViewMode, StringComparison.OrdinalIgnoreCase))
+                {
+                    ViewModeBox.SelectedItem = comboBoxItem;
+                    break;
+                }
+            }
         }
 
         // auto-save checkbox handlers
@@ -180,7 +192,9 @@ namespace NoteCards.Views
         {
             if (ViewModeBox.SelectedItem is ComboBoxItem item)
             {
-                string selected = item.Content.ToString();
+                var selected = string.Equals(item.Content?.ToString(), "List", StringComparison.OrdinalIgnoreCase)
+                    ? "List"
+                    : "Grid";
 
                 var settings = AppSettingsService.Load();
                 settings.DefaultViewMode = selected;

@@ -49,6 +49,39 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    private bool _isRecentSectionVisible = true;
+    public bool IsRecentSectionVisible
+    {
+        get => _isRecentSectionVisible;
+        set
+        {
+            if (SetProperty(ref _isRecentSectionVisible, value))
+                SaveAppSettings();
+        }
+    }
+
+    private bool _isGroupsSectionVisible = true;
+    public bool IsGroupsSectionVisible
+    {
+        get => _isGroupsSectionVisible;
+        set
+        {
+            if (SetProperty(ref _isGroupsSectionVisible, value))
+                SaveAppSettings();
+        }
+    }
+
+    private bool _isUngroupedSectionVisible = true;
+    public bool IsUngroupedSectionVisible
+    {
+        get => _isUngroupedSectionVisible;
+        set
+        {
+            if (SetProperty(ref _isUngroupedSectionVisible, value))
+                SaveAppSettings();
+        }
+    }
+
     public string SelectedLanguage
     {
         get => _selectedLanguage;
@@ -1248,8 +1281,11 @@ public class MainViewModel : ViewModelBase
         _isRecentSectionExpanded = settings.IsRecentSectionExpanded;
         _isGroupsSectionExpanded = settings.IsGroupsSectionExpanded;
         _isUngroupedSectionExpanded = settings.IsUngroupedSectionExpanded;
+        _isRecentSectionVisible = settings.IsRecentSectionVisible;
+        _isGroupsSectionVisible = settings.IsGroupsSectionVisible;
+        _isUngroupedSectionVisible = settings.IsUngroupedSectionVisible;
         _isGroupsFirst = settings.IsGroupsFirst;
-        _viewMode = settings.DefaultViewMode;
+        _viewMode = NormalizeViewMode(settings.DefaultViewMode);
 
         LocalizationService.SetCulture(_selectedLanguage);
         ThemeManager.SetTheme(_selectedTheme);
@@ -1271,6 +1307,9 @@ public class MainViewModel : ViewModelBase
             IsRecentSectionExpanded = _isRecentSectionExpanded,
             IsGroupsSectionExpanded = _isGroupsSectionExpanded,
             IsUngroupedSectionExpanded = _isUngroupedSectionExpanded,
+            IsRecentSectionVisible = _isRecentSectionVisible,
+            IsGroupsSectionVisible = _isGroupsSectionVisible,
+            IsUngroupedSectionVisible = _isUngroupedSectionVisible,
             IsGroupsFirst = _isGroupsFirst,
             DefaultViewMode = _viewMode,
         });
@@ -1404,6 +1443,9 @@ public class MainViewModel : ViewModelBase
             SaveNotes();
         }), DispatcherPriority.Background);
     }
+    private static string NormalizeViewMode(string? viewMode)
+        => string.Equals(viewMode, "List", StringComparison.OrdinalIgnoreCase) ? "List" : "Grid";
+
     private string _viewMode = "Grid";
 
     public string ViewMode
@@ -1411,7 +1453,8 @@ public class MainViewModel : ViewModelBase
         get => _viewMode;
         set
         {
-            if (SetProperty(ref _viewMode, value))
+            var normalized = NormalizeViewMode(value);
+            if (SetProperty(ref _viewMode, normalized))
             {
                 OnPropertyChanged(nameof(IsGridView));
                 OnPropertyChanged(nameof(IsListView));

@@ -241,6 +241,12 @@
 		
 		
         <converters:BoolToScrollBarVisibilityConverter x:Key="BoolToScrollBarVisibilityConverter" />
+        <ItemsPanelTemplate x:Key="UngroupedGridItemsPanel">
+			<WrapPanel Orientation="Horizontal"/>
+		</ItemsPanelTemplate>
+		<ItemsPanelTemplate x:Key="UngroupedListItemsPanel">
+			<StackPanel Orientation="Vertical"/>
+		</ItemsPanelTemplate>
         <Style x:Key="PopupMenuButtonStyle" TargetType="Button">
             <Setter Property="OverridesDefaultStyle" Value="True"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -610,6 +616,7 @@
 							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="Auto"/>
+                           <ColumnDefinition Width="Auto"/>
 						</Grid.ColumnDefinitions>
 
 						<Border x:Name="TopSearchPanel"
@@ -668,6 +675,15 @@
 								ToolTip="{Binding TagFilterButtonText}"
 								Click="TagsFilterButton_Click"/>
 
+						<Button x:Name="DashboardSectionsButton"
+								Grid.Column="4"
+								Style="{StaticResource TopBarIconButtonStyle}"
+								Content="☷"
+								FontSize="14"
+								Margin="0,0,8,0"
+								ToolTip="Dashboard sections"
+								Click="DashboardSectionsButton_Click"/>
+
 					</Grid>
 				</Grid>
 			</Border>
@@ -709,6 +725,50 @@
 									</DataTemplate>
 								</ItemsControl.ItemTemplate>
 							</ItemsControl>
+						</Border>
+					</StackPanel>
+				</Border>
+			</Popup>
+
+			<Popup x:Name="DashboardSectionsPopup"
+				   Grid.Row="0"
+				   PlacementTarget="{Binding ElementName=DashboardSectionsButton}"
+				   Placement="Bottom"
+				   StaysOpen="False"
+				   AllowsTransparency="True"
+				   PopupAnimation="Fade">
+				<Border Background="{DynamicResource SidebarBackground}"
+						BorderBrush="#D8D8D8"
+						BorderThickness="1"
+						CornerRadius="10"
+						MinWidth="220"
+						MaxWidth="300"
+						Padding="8"
+						Margin="12,10,12,14">
+					<Border.Effect>
+						<DropShadowEffect Color="#000000" Opacity="0.14" BlurRadius="14" ShadowDepth="1" Direction="270"/>
+					</Border.Effect>
+					<StackPanel>
+						<TextBlock Text="Dashboard sections"
+								   FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextColor}"
+								   Margin="6,3,6,8"/>
+						<Border Background="#F5F6FB"
+								CornerRadius="8"
+								Padding="10,10">
+							<StackPanel>
+								<CheckBox Content="{Binding [RecentNotes], Source={StaticResource Loc}}"
+										  IsChecked="{Binding IsRecentSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+										  Margin="0,0,0,6"
+										  Foreground="{DynamicResource TextColor}"/>
+								<CheckBox Content="{Binding [Groups], Source={StaticResource Loc}}"
+										  IsChecked="{Binding IsGroupsSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+										  Margin="0,0,0,6"
+										  Foreground="{DynamicResource TextColor}"/>
+								<CheckBox Content="{Binding [UngroupedNotes], Source={StaticResource Loc}}"
+										  IsChecked="{Binding IsUngroupedSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+										  Foreground="{DynamicResource TextColor}"/>
+							</StackPanel>
 						</Border>
 					</StackPanel>
 				</Border>
@@ -792,6 +852,7 @@
 				</Grid.RowDefinitions>
 				<!-- Recent Notes strip -->
 				<Border Grid.Row="0"
+                        Visibility="{Binding IsRecentSectionVisible, Converter={StaticResource BoolToVis}}"
 						Background="{DynamicResource SidebarBackground}"
 						BorderBrush="{DynamicResource BorderColor}"
                        BorderThickness="0,0,0,1"
@@ -886,14 +947,21 @@
 								<RowDefinition Height="Auto"/>
 							</Grid.RowDefinitions>
 
-							<Border x:Name="GroupsSectionContainer"
-									Visibility="{Binding HasGroups, Converter={StaticResource BoolToVis}}"
+                         <Border x:Name="GroupsSectionContainer"
 									Margin="0,0,0,10"
 									RenderTransformOrigin="0.5,0.5">
 								<Border.Style>
 									<Style TargetType="Border">
+                                     <Setter Property="Visibility" Value="Collapsed"/>
 										<Setter Property="Grid.Row" Value="0"/>
 										<Style.Triggers>
+                                           <MultiDataTrigger>
+												<MultiDataTrigger.Conditions>
+													<Condition Binding="{Binding HasGroups}" Value="True"/>
+													<Condition Binding="{Binding IsGroupsSectionVisible}" Value="True"/>
+												</MultiDataTrigger.Conditions>
+												<Setter Property="Visibility" Value="Visible"/>
+											</MultiDataTrigger>
 											<DataTrigger Binding="{Binding IsGroupsFirst}" Value="False">
 												<Setter Property="Grid.Row" Value="1"/>
 											</DataTrigger>
@@ -1049,6 +1117,7 @@
 							</Border>
 
 							<Border x:Name="UngroupedSectionContainer"
+                                    Visibility="{Binding IsUngroupedSectionVisible, Converter={StaticResource BoolToVis}}"
 									Background="Transparent"
 									AllowDrop="True"
 									DragOver="UngroupedDropZone_DragOver"
@@ -1099,27 +1168,16 @@
 									</Grid>
                                     <StackPanel x:Name="UngroupedSectionBody">
                                         <ItemsControl ItemsSource="{Binding NotesView}">
-
-                                            <!-- PANEL (grid/list switch) -->
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <StackPanel>
-                                                        <StackPanel.Style>
-                                                            <Style TargetType="StackPanel">
-                                                                <!-- default = GRID -->
-                                                                <Setter Property="Orientation" Value="Horizontal"/>
-
-                                                                <!-- jei LIST -->
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsListView}" Value="True">
-                                                                        <Setter Property="Orientation" Value="Vertical"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </StackPanel.Style>
-                                                    </StackPanel>
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
+											<ItemsControl.Style>
+												<Style TargetType="ItemsControl">
+													<Setter Property="ItemsPanel" Value="{StaticResource UngroupedGridItemsPanel}"/>
+													<Style.Triggers>
+														<DataTrigger Binding="{Binding IsListView}" Value="True">
+															<Setter Property="ItemsPanel" Value="{StaticResource UngroupedListItemsPanel}"/>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</ItemsControl.Style>
 
                                             <!-- ITEM TEMPLATE -->
                                             <ItemsControl.ItemTemplate>

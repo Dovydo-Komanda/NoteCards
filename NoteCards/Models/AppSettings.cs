@@ -19,6 +19,13 @@ public class AppSettings
     public bool IsGroupsSectionExpanded { get; set; } = true;
 
     public bool IsUngroupedSectionExpanded { get; set; } = true;
+
+    public bool IsRecentSectionVisible { get; set; } = true;
+
+    public bool IsGroupsSectionVisible { get; set; } = true;
+
+    public bool IsUngroupedSectionVisible { get; set; } = true;
+
     public string DefaultViewMode { get; set; } = "Grid";
 
     public bool IsGroupsFirst { get; set; } = true;
