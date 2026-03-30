@@ -849,19 +849,10 @@ namespace NoteCards
             // Show the window non-modally so multiple windows can be open
             editor.Show();
 
-            // Handle window closed to clean up and save
+            // Handle window closed to clean up subscriptions only.
+            // Persisting is done by explicit save/auto-save inside the editor.
             editor.Closed += (s, e) =>
             {
-                // Save document before closing
-                editor.SaveToDocument(noteViewModel.Document);
-
-                // Notify the card's bindings to refresh with the new content/title
-                noteViewModel.NotifyContentChanged();
-
-                var vm = this.DataContext as MainViewModel;
-                vm?.RefreshTagFiltersAfterNoteEdit();
-                vm?.SaveNotes();
-
                 // Unsubscribe to avoid memory leaks
                 editor.DocumentAutoSaved -= OnAutoSaved;
             };

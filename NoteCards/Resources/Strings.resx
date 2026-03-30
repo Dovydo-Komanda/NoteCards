@@ -27,17 +27,45 @@
   <data name="LanguageLithuanian" xml:space="preserve"><value>Lithuanian</value></data>
   <data name="Scrollbar" xml:space="preserve"><value>Scrollbar:</value></data>
   <data name="EnableScrollbar" xml:space="preserve"><value>Enable scrollbar</value></data>
+  <data name="AutoSave" xml:space="preserve"><value>Auto-save:</value></data>
+  <data name="EnableAutoSave" xml:space="preserve"><value>Enable auto-save</value></data>
   <data name="Theme" xml:space="preserve"><value>Theme:</value></data>
+  <data name="ViewMode" xml:space="preserve"><value>View mode</value></data>
+  <data name="ViewModeGrid" xml:space="preserve"><value>Grid</value></data>
+  <data name="ViewModeList" xml:space="preserve"><value>List</value></data>
   <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
   <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
   <data name="CheckForUpdates" xml:space="preserve"><value>Check for Updates</value></data>
   <data name="LatestVersion" xml:space="preserve"><value>You are using the latest version.</value></data>
   <data name="AppUpdate" xml:space="preserve"><value>App Update</value></data>
+  <data name="DashboardSections" xml:space="preserve"><value>Dashboard sections</value></data>
+  <data name="ToggleRecentNotesSection" xml:space="preserve"><value>Show/hide recent notes</value></data>
+  <data name="MoveGroupsSectionUp" xml:space="preserve"><value>Move groups section up</value></data>
+  <data name="MoveGroupsSectionDown" xml:space="preserve"><value>Move groups section down</value></data>
+  <data name="ToggleGroupsSection" xml:space="preserve"><value>Show/hide groups</value></data>
+  <data name="MoveThisGroupUp" xml:space="preserve"><value>Move this group up</value></data>
+  <data name="MoveThisGroupDown" xml:space="preserve"><value>Move this group down</value></data>
+  <data name="MoveUngroupedSectionUp" xml:space="preserve"><value>Move ungrouped section up</value></data>
+  <data name="MoveUngroupedSectionDown" xml:space="preserve"><value>Move ungrouped section down</value></data>
+  <data name="ToggleUngroupedSection" xml:space="preserve"><value>Show/hide ungrouped notes</value></data>
+  <data name="UserActivitySummaryTitle" xml:space="preserve"><value>Activity Summary</value></data>
+  <data name="StatsTotalNotesFormat" xml:space="preserve"><value>Total notes: {0}</value></data>
+  <data name="StatsWordsTypedFormat" xml:space="preserve"><value>Words typed: {0}</value></data>
+  <data name="StatsCharactersTypedFormat" xml:space="preserve"><value>Characters typed: {0}</value></data>
+  <data name="StatsTimeSpentFormat" xml:space="preserve"><value>Time spent: {0}</value></data>
+  <data name="StatsLastActiveFormat" xml:space="preserve"><value>Last active: {0}</value></data>
+  <data name="NotAvailable" xml:space="preserve"><value>N/A</value></data>
   <data name="NoteEditorTitle" xml:space="preserve"><value>Note Editor</value></data>
   <data name="Undo" xml:space="preserve"><value>Undo</value></data>
   <data name="Redo" xml:space="preserve"><value>Redo</value></data>
   <data name="Save" xml:space="preserve"><value>Save</value></data>
   <data name="Print" xml:space="preserve"><value>Print</value></data>
+  <data name="ExportPdf" xml:space="preserve"><value>Export PDF</value></data>
+  <data name="ToggleWordWrap" xml:space="preserve"><value>Toggle word wrap</value></data>
+  <data name="ZoomIn" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="ZoomOut" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="ZoomReset" xml:space="preserve"><value>Reset zoom</value></data>
+  <data name="EditorCounterFormat" xml:space="preserve"><value>Words: {0} | Characters: {1} | Lines: {2}</value></data>
   <data name="Search" xml:space="preserve"><value>Search</value></data>
   <data name="SearchOnline" xml:space="preserve"><value>Search Online</value></data>
   <data name="SearchOnlineHint" xml:space="preserve"><value>Select text in note or type a query to search online</value></data>
@@ -63,8 +91,22 @@
   <data name="DocumentSentToPrinter" xml:space="preserve"><value>Document sent to printer successfully!</value></data>
   <data name="PrintComplete" xml:space="preserve"><value>Print Complete</value></data>
   <data name="FailedToPrint" xml:space="preserve"><value>Failed to print:</value></data>
-  <data name="FirstNoteTitle" xml:space="preserve"><value>First Note</value></data>
-  <data name="FirstNoteContent" xml:space="preserve"><value>This is a test document to verify NoteCards functionality.</value></data>
+  <data name="PdfExportComplete" xml:space="preserve"><value>PDF export complete!</value></data>
+  <data name="FailedToExportPdf" xml:space="preserve"><value>Failed to export PDF:</value></data>
+  <data name="ExportError" xml:space="preserve"><value>Export Error</value></data>
+  <data name="Success" xml:space="preserve"><value>Success</value></data>
+  <data name="NoContent" xml:space="preserve"><value>(No content)</value></data>
+  <data name="ImageOpenFileDialogFilter" xml:space="preserve"><value>Image files (*.jpg;*.jpeg;*.png;*.bmp;*.gif)|*.jpg;*.jpeg;*.png;*.bmp;*.gif|All files (*.*)|*.*</value></data>
+  <data name="SelectImageToInsert" xml:space="preserve"><value>Select an image to insert</value></data>
+  <data name="FailedToInsertImage" xml:space="preserve"><value>Failed to insert image:</value></data>
+  <data name="ImageInsertError" xml:space="preserve"><value>Image Insert Error</value></data>
+  <data name="ErrorLoadingImage" xml:space="preserve"><value>Error loading image</value></data>
+  <data name="RemoveImage" xml:space="preserve"><value>Remove image</value></data>
+  <data name="PicturePlaceholder" xml:space="preserve"><value>[Picture]</value></data>
+  <data name="ImageResizeTooltip" xml:space="preserve"><value>Shift+Drag to resize image
+Right-click to remove</value></data>
+  <data name="FirstNoteTitle" xml:space="preserve"><value>Welcome to NoteCards</value></data>
+  <data name="FirstNoteContent" xml:space="preserve"><value>Start by creating your first note, adding tags, and organizing notes into groups.</value></data>
   <data name="NewNoteTitle" xml:space="preserve"><value>New Note</value></data>
   <data name="FontButtonFormat" xml:space="preserve"><value>Font: {0}, {1}</value></data>
   <data name="Groups" xml:space="preserve"><value>Groups</value></data>

@@ -27,17 +27,45 @@
   <data name="LanguageLithuanian" xml:space="preserve"><value>Lietuvių</value></data>
   <data name="Scrollbar" xml:space="preserve"><value>Slinkties juosta:</value></data>
   <data name="EnableScrollbar" xml:space="preserve"><value>Rodyti slinkties juostą</value></data>
+  <data name="AutoSave" xml:space="preserve"><value>Automatinis išsaugojimas:</value></data>
+  <data name="EnableAutoSave" xml:space="preserve"><value>Įjungti automatinį išsaugojimą</value></data>
   <data name="Theme" xml:space="preserve"><value>Tema:</value></data>
+  <data name="ViewMode" xml:space="preserve"><value>Peržiūros režimas</value></data>
+  <data name="ViewModeGrid" xml:space="preserve"><value>Tinklelis</value></data>
+  <data name="ViewModeList" xml:space="preserve"><value>Sąrašas</value></data>
   <data name="ThemeLight" xml:space="preserve"><value>Šviesi</value></data>
   <data name="ThemeDark" xml:space="preserve"><value>Tamsi</value></data>
   <data name="CheckForUpdates" xml:space="preserve"><value>Tikrinti atnaujinimus</value></data>
   <data name="LatestVersion" xml:space="preserve"><value>Naudojate naujausią versiją.</value></data>
   <data name="AppUpdate" xml:space="preserve"><value>Programos atnaujinimas</value></data>
+  <data name="DashboardSections" xml:space="preserve"><value>Skydelio sekcijos</value></data>
+  <data name="ToggleRecentNotesSection" xml:space="preserve"><value>Rodyti / slėpti naujausius užrašus</value></data>
+  <data name="MoveGroupsSectionUp" xml:space="preserve"><value>Perkelti grupių sekciją aukštyn</value></data>
+  <data name="MoveGroupsSectionDown" xml:space="preserve"><value>Perkelti grupių sekciją žemyn</value></data>
+  <data name="ToggleGroupsSection" xml:space="preserve"><value>Rodyti / slėpti grupes</value></data>
+  <data name="MoveThisGroupUp" xml:space="preserve"><value>Perkelti šią grupę aukštyn</value></data>
+  <data name="MoveThisGroupDown" xml:space="preserve"><value>Perkelti šią grupę žemyn</value></data>
+  <data name="MoveUngroupedSectionUp" xml:space="preserve"><value>Perkelti nesugrupuotų sekciją aukštyn</value></data>
+  <data name="MoveUngroupedSectionDown" xml:space="preserve"><value>Perkelti nesugrupuotų sekciją žemyn</value></data>
+  <data name="ToggleUngroupedSection" xml:space="preserve"><value>Rodyti / slėpti nesugrupuotus užrašus</value></data>
+  <data name="UserActivitySummaryTitle" xml:space="preserve"><value>Veiklos suvestinė</value></data>
+  <data name="StatsTotalNotesFormat" xml:space="preserve"><value>Iš viso užrašų: {0}</value></data>
+  <data name="StatsWordsTypedFormat" xml:space="preserve"><value>Įvesta žodžių: {0}</value></data>
+  <data name="StatsCharactersTypedFormat" xml:space="preserve"><value>Įvesta simbolių: {0}</value></data>
+  <data name="StatsTimeSpentFormat" xml:space="preserve"><value>Praleistas laikas: {0}</value></data>
+  <data name="StatsLastActiveFormat" xml:space="preserve"><value>Paskutinis aktyvumas: {0}</value></data>
+  <data name="NotAvailable" xml:space="preserve"><value>Nėra duomenų</value></data>
   <data name="NoteEditorTitle" xml:space="preserve"><value>Užrašo redagavimas</value></data>
   <data name="Undo" xml:space="preserve"><value>Anuliuoti</value></data>
   <data name="Redo" xml:space="preserve"><value>Grąžinti</value></data>
   <data name="Save" xml:space="preserve"><value>Išsaugoti</value></data>
   <data name="Print" xml:space="preserve"><value>Spausdinti</value></data>
+  <data name="ExportPdf" xml:space="preserve"><value>Eksportuoti PDF</value></data>
+  <data name="ToggleWordWrap" xml:space="preserve"><value>Perjungti žodžių laužymą</value></data>
+  <data name="ZoomIn" xml:space="preserve"><value>Priartinti</value></data>
+  <data name="ZoomOut" xml:space="preserve"><value>Atitolinti</value></data>
+  <data name="ZoomReset" xml:space="preserve"><value>Atstatyti mastelį</value></data>
+  <data name="EditorCounterFormat" xml:space="preserve"><value>Žodžiai: {0} | Simboliai: {1} | Eilutės: {2}</value></data>
   <data name="Search" xml:space="preserve"><value>Ieškoti</value></data>
   <data name="SearchOnline" xml:space="preserve"><value>Ieškoti internete</value></data>
   <data name="SearchOnlineHint" xml:space="preserve"><value>Pažymėkite tekstą užraše arba įveskite užklausą paieškai internete</value></data>
@@ -63,8 +91,22 @@
   <data name="DocumentSentToPrinter" xml:space="preserve"><value>Dokumentas sėkmingai išsiųstas spausdintuvui!</value></data>
   <data name="PrintComplete" xml:space="preserve"><value>Spausdinimas baigtas</value></data>
   <data name="FailedToPrint" xml:space="preserve"><value>Nepavyko atspausdinti:</value></data>
-  <data name="FirstNoteTitle" xml:space="preserve"><value>Pirmas užrašas</value></data>
-  <data name="FirstNoteContent" xml:space="preserve"><value>Tai bandomasis dokumentas NoteCards veikimui patikrinti.</value></data>
+  <data name="PdfExportComplete" xml:space="preserve"><value>PDF eksportas baigtas!</value></data>
+  <data name="FailedToExportPdf" xml:space="preserve"><value>Nepavyko eksportuoti į PDF:</value></data>
+  <data name="ExportError" xml:space="preserve"><value>Eksporto klaida</value></data>
+  <data name="Success" xml:space="preserve"><value>Sėkmė</value></data>
+  <data name="NoContent" xml:space="preserve"><value>(Nėra turinio)</value></data>
+  <data name="ImageOpenFileDialogFilter" xml:space="preserve"><value>Paveikslėlių failai (*.jpg;*.jpeg;*.png;*.bmp;*.gif)|*.jpg;*.jpeg;*.png;*.bmp;*.gif|Visi failai (*.*)|*.*</value></data>
+  <data name="SelectImageToInsert" xml:space="preserve"><value>Pasirinkite paveikslėlį įterpimui</value></data>
+  <data name="FailedToInsertImage" xml:space="preserve"><value>Nepavyko įterpti paveikslėlio:</value></data>
+  <data name="ImageInsertError" xml:space="preserve"><value>Paveikslėlio įterpimo klaida</value></data>
+  <data name="ErrorLoadingImage" xml:space="preserve"><value>Klaida įkeliant paveikslėlį</value></data>
+  <data name="RemoveImage" xml:space="preserve"><value>Pašalinti paveikslėlį</value></data>
+  <data name="PicturePlaceholder" xml:space="preserve"><value>[Nuotrauka]</value></data>
+  <data name="ImageResizeTooltip" xml:space="preserve"><value>Laikykite Shift ir tempkite, kad keistumėte dydį
+Dešiniu pelės mygtuku pašalinsite</value></data>
+  <data name="FirstNoteTitle" xml:space="preserve"><value>Sveiki atvykę į NoteCards</value></data>
+  <data name="FirstNoteContent" xml:space="preserve"><value>Pradėkite nuo pirmojo užrašo: pridėkite žymes ir suskirstykite užrašus į grupes.</value></data>
   <data name="NewNoteTitle" xml:space="preserve"><value>Naujas užrašas</value></data>
   <data name="FontButtonFormat" xml:space="preserve"><value>Šriftas: {0}, {1}</value></data>
   <data name="Groups" xml:space="preserve"><value>Grupės</value></data>

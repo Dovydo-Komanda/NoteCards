@@ -1,6 +1,7 @@
 using NoteCards.Localization;
 using NoteCards.Models;
 using System.IO;
+using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -97,7 +98,17 @@ public class NoteCardViewModel : ViewModelBase
                     var tr = new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd);
                     tr.Load(ms, DataFormats.Rtf);
                     // Re-create the range after loading so it spans the full inserted content
-                    return new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd).Text?.Trim() ?? string.Empty;
+                    var previewText = new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd).Text?.Trim() ?? string.Empty;
+                    var imageCount = CountImages(flowDoc);
+                    if (imageCount <= 0)
+                        return previewText;
+
+                    var imagePlaceholder = LocalizationService.GetString("PicturePlaceholder");
+                    var imagePlaceholders = BuildImagePlaceholders(imageCount, imagePlaceholder);
+                    if (string.IsNullOrWhiteSpace(previewText))
+                        return imagePlaceholders;
+
+                    return $"{imagePlaceholders} {previewText}";
                 }
             }
             catch (FormatException)
@@ -187,5 +198,35 @@ public class NoteCardViewModel : ViewModelBase
     private void TogglePin()
     {
         _togglePinAction?.Invoke(this);
+    }
+
+    private static int CountImages(FlowDocument document)
+    {
+        var images = new HashSet<Image>();
+        var navigator = document.ContentStart;
+        while (navigator != null && navigator.CompareTo(document.ContentEnd) < 0)
+        {
+            if (navigator.Parent is InlineUIContainer { Child: Image inlineImage })
+                images.Add(inlineImage);
+
+            if (navigator.Parent is BlockUIContainer { Child: Image blockImage })
+                images.Add(blockImage);
+
+            navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+        }
+
+        return images.Count;
+    }
+
+    private static string BuildImagePlaceholders(int count, string placeholder)
+    {
+        if (count <= 1)
+            return placeholder;
+
+        var placeholders = new string[count];
+        for (var i = 0; i < count; i++)
+            placeholders[i] = placeholder;
+
+        return string.Join(" ", placeholders);
     }
 }

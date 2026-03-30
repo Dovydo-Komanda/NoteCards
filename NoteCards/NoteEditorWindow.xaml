@@ -231,11 +231,6 @@
                             Style="{StaticResource EditorToolIconButtonStyle}"
                             ToolTip="{Binding [EditHistory], Source={StaticResource Loc}}"
                             Click="EditHistoryButton_Click"/>
-                        <TextBox x:Name="OnlineSearchTextBox"
-                             Style="{StaticResource EditorToolSearchInputStyle}"
-                             ToolTip="{Binding [SearchOnlineHint], Source={StaticResource Loc}}"
-                             TextChanged="OnlineSearchTextBox_TextChanged"
-                             KeyDown="OnlineSearchTextBox_KeyDown"/>
                         <Button x:Name="OnlineSearchButton"
                             Content="🌐"
                             Style="{StaticResource EditorToolIconButtonStyle}"
@@ -378,7 +373,7 @@
         BorderThickness="1">
 
             <TextBlock x:Name="CounterText"
-               Text="Words: 0 | Characters: 0 | Lines: 0"
+               Text=""
                FontSize="12"
                Foreground="#6B7280"/>
         </Border>
@@ -393,49 +388,54 @@
                 BorderBrush="#DBE3F3"
                 BorderThickness="1"
                 VerticalAlignment="Top">
-            <StackPanel>
-                <Button x:Name="OpenFileButton"
-                        Content="📂"
-                        Style="{StaticResource EditorSideToolButtonStyle}"
-                        ToolTip="{Binding [Open], Source={StaticResource Loc}}"
-                        Click="OpenFromFileButton_Click"/>
-                <Button Content="🖨"
-                        Style="{StaticResource EditorSideToolButtonStyle}"
-                        ToolTip="{Binding [Print], Source={StaticResource Loc}}"
-                        Click="PrintButton_Click"/>
-                <Button Content="📄 Export PDF"
-                        Style="{StaticResource EditorSideToolButtonStyle}"
-                        ToolTip="{Binding [Export], Source={StaticResource Loc}}"
-                        Click="ExportPdfButton_Click"/>
-                <Button Content="🖼"
-                        Style="{StaticResource EditorSideToolButtonStyle}"
-                        ToolTip="{Binding [InsertImage], Source={StaticResource Loc}}"
-                        Click="InsertImageButton_Click"/>
-                <Separator Margin="4,0,4,8"/>
-                <Button Content="↔"
-                        Style="{StaticResource EditorSideToolButtonStyle}"
-                        ToolTip="Toggle Word Wrap"
-                        Click="ToggleWordWrap_Click"/>
-                <Separator Margin="4,0,4,8"/>
-                <Button x:Name="FontButton"
-                        Content="𝑭"
-                        Style="{StaticResource EditorSideToolButtonStyle}"
-                        ToolTip="{Binding [Font], Source={StaticResource Loc}}"
-                        Click="FontSettings_Click"/>
-                <Separator Margin="4,0,4,8"/>
-                <Button Content="🔍+"
-                        Style="{StaticResource EditorSideToolButtonStyle}"
-                        ToolTip="Zoom In"
-                        Click="ZoomInButton_Click"/>
-                <Button Content="🔍-"
-                        Style="{StaticResource EditorSideToolButtonStyle}"
-                        ToolTip="Zoom Out"
-                        Click="ZoomOutButton_Click"/>
-                <Button Content="1:1"
-                        Style="{StaticResource EditorSideToolButtonStyle}"
-                        ToolTip="Reset Zoom"
-                        Click="ZoomResetButton_Click"/>
-            </StackPanel>
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="True"
+                          Padding="0">
+                <StackPanel Margin="0,0,6,0">
+                    <Button x:Name="OpenFileButton"
+                            Content="📂"
+                            Style="{StaticResource EditorSideToolButtonStyle}"
+                            ToolTip="{Binding [Open], Source={StaticResource Loc}}"
+                            Click="OpenFromFileButton_Click"/>
+                    <Button Content="🖨"
+                            Style="{StaticResource EditorSideToolButtonStyle}"
+                            ToolTip="{Binding [Print], Source={StaticResource Loc}}"
+                            Click="PrintButton_Click"/>
+                    <Button Content="📄 Export PDF"
+                            Style="{StaticResource EditorSideToolButtonStyle}"
+                            ToolTip="{Binding [ExportPdf], Source={StaticResource Loc}}"
+                            Click="ExportPdfButton_Click"/>
+                    <Button Content="🖼"
+                            Style="{StaticResource EditorSideToolButtonStyle}"
+                            ToolTip="{Binding [InsertImage], Source={StaticResource Loc}}"
+                            Click="InsertImageButton_Click"/>
+                    <Separator Margin="4,0,4,8"/>
+                    <Button Content="↔"
+                            Style="{StaticResource EditorSideToolButtonStyle}"
+                            ToolTip="{Binding [ToggleWordWrap], Source={StaticResource Loc}}"
+                            Click="ToggleWordWrap_Click"/>
+                    <Separator Margin="4,0,4,8"/>
+                    <Button x:Name="FontButton"
+                            Content="𝑭"
+                            Style="{StaticResource EditorSideToolButtonStyle}"
+                            ToolTip="{Binding [Font], Source={StaticResource Loc}}"
+                            Click="FontSettings_Click"/>
+                    <Separator Margin="4,0,4,8"/>
+                    <Button Content="🔍+"
+                            Style="{StaticResource EditorSideToolButtonStyle}"
+                            ToolTip="{Binding [ZoomIn], Source={StaticResource Loc}}"
+                            Click="ZoomInButton_Click"/>
+                    <Button Content="🔍-"
+                            Style="{StaticResource EditorSideToolButtonStyle}"
+                            ToolTip="{Binding [ZoomOut], Source={StaticResource Loc}}"
+                            Click="ZoomOutButton_Click"/>
+                    <Button Content="1:1"
+                            Style="{StaticResource EditorSideToolButtonStyle}"
+                            ToolTip="{Binding [ZoomReset], Source={StaticResource Loc}}"
+                            Click="ZoomResetButton_Click"/>
+                </StackPanel>
+            </ScrollViewer>
         </Border>
     </Grid>
 </Window>

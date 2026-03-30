@@ -154,15 +154,15 @@ public class MainViewModel : ViewModelBase
         UnpinSelectedNotesCommand = new RelayCommand(UnpinSelectedNotes, CanUnpinSelectedNotes);
         DuplicateSelectedNotesCommand = new RelayCommand(DuplicateSelectedNotes, CanDuplicateSelectedNotes);
 
-        // Try to load saved notes from disk. If none exist, seed a test note.
+        // Try to load saved notes from disk. If none exist, create a starter note.
         if (!LoadNotes())
         {
-            var testDocument = new NoteDocument
+            var starterDocument = new NoteDocument
             {
                 Title = LocalizationService.GetString("FirstNoteTitle"),
                 Content = LocalizationService.GetString("FirstNoteContent")
             };
-            Notes.Add(CreateNoteCard(testDocument));
+            Notes.Add(CreateNoteCard(starterDocument));
             SaveNotes();
         }
 
@@ -266,12 +266,14 @@ public class MainViewModel : ViewModelBase
     }
 
     // Activity Summary Properties
-    public string UserActivitySummaryTitle => LocalizationService.GetString("UserActivitySummaryTitle") ?? "User Activity Summary";
-    public string StatsTotalNotes => $"Total Notes: {Notes.Count}";
-    public string StatsWordsTyped => $"Total Words: {AppSettingsService.Load().TotalWordsTyped}";
-    public string StatsCharactersTyped => $"Characters Typed: {AppSettingsService.Load().TotalCharactersTyped}";
-    public string StatsTimeSpent => $"Time Spent: {GetTotalTimeSpent()}";
-    public string StatsLastActive => $"Last Active: {AppSettingsService.Load().LastActiveDate?.ToString("yyyy-MM-dd HH:mm") ?? "N/A"}";
+    public string UserActivitySummaryTitle => LocalizationService.GetString("UserActivitySummaryTitle");
+    public string StatsTotalNotes => string.Format(LocalizationService.GetString("StatsTotalNotesFormat"), Notes.Count);
+    public string StatsWordsTyped => string.Format(LocalizationService.GetString("StatsWordsTypedFormat"), AppSettingsService.Load().TotalWordsTyped);
+    public string StatsCharactersTyped => string.Format(LocalizationService.GetString("StatsCharactersTypedFormat"), AppSettingsService.Load().TotalCharactersTyped);
+    public string StatsTimeSpent => string.Format(LocalizationService.GetString("StatsTimeSpentFormat"), GetTotalTimeSpent());
+    public string StatsLastActive => string.Format(
+        LocalizationService.GetString("StatsLastActiveFormat"),
+        AppSettingsService.Load().LastActiveDate?.ToString("yyyy-MM-dd HH:mm") ?? LocalizationService.GetString("NotAvailable"));
 
     private string GetTotalTimeSpent()
     {
@@ -1298,21 +1300,21 @@ public class MainViewModel : ViewModelBase
         if (_isLoadingSettings)
             return;
 
-        AppSettingsService.Save(new AppSettings
-        {
-            Language = _selectedLanguage,
-            Theme = _selectedTheme,
-            NoteSortOptionKey = _selectedSortOptionKey,
-            EnableScrollbar = _enableScrollbar,
-            IsRecentSectionExpanded = _isRecentSectionExpanded,
-            IsGroupsSectionExpanded = _isGroupsSectionExpanded,
-            IsUngroupedSectionExpanded = _isUngroupedSectionExpanded,
-            IsRecentSectionVisible = _isRecentSectionVisible,
-            IsGroupsSectionVisible = _isGroupsSectionVisible,
-            IsUngroupedSectionVisible = _isUngroupedSectionVisible,
-            IsGroupsFirst = _isGroupsFirst,
-            DefaultViewMode = _viewMode,
-        });
+        var settings = AppSettingsService.Load();
+        settings.Language = _selectedLanguage;
+        settings.Theme = _selectedTheme;
+        settings.NoteSortOptionKey = _selectedSortOptionKey;
+        settings.EnableScrollbar = _enableScrollbar;
+        settings.IsRecentSectionExpanded = _isRecentSectionExpanded;
+        settings.IsGroupsSectionExpanded = _isGroupsSectionExpanded;
+        settings.IsUngroupedSectionExpanded = _isUngroupedSectionExpanded;
+        settings.IsRecentSectionVisible = _isRecentSectionVisible;
+        settings.IsGroupsSectionVisible = _isGroupsSectionVisible;
+        settings.IsUngroupedSectionVisible = _isUngroupedSectionVisible;
+        settings.IsGroupsFirst = _isGroupsFirst;
+        settings.DefaultViewMode = _viewMode;
+
+        AppSettingsService.Save(settings);
     }
 
     private bool LoadNotes()

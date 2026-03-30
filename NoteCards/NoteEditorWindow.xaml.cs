@@ -42,7 +42,6 @@ namespace NoteCards
             InitializeComponent();
             InitializeAutoSave();
             UpdateCounter();
-            OnlineSearchTextBox.Text = string.Empty;
             UpdateOnlineSearchAvailability();
             ContentTextBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
         }
@@ -99,7 +98,11 @@ namespace NoteCards
 
             int lines = text.Split('\n').Length;
 
-            CounterText.Text = $"Words: {words} | Characters: {characters} | Lines: {lines}";
+            CounterText.Text = string.Format(
+                LocalizationService.GetString("EditorCounterFormat"),
+                words,
+                characters,
+                lines);
         }
 
         private void ContentTextBox_SelectionChanged(object sender, RoutedEventArgs e)
@@ -112,30 +115,11 @@ namespace NoteCards
             }
             else
             {
-                var selectedText = sel.Text?.Trim();
-                if (!string.IsNullOrWhiteSpace(selectedText))
-                {
-                    OnlineSearchTextBox.Text = selectedText;
-                    OnlineSearchTextBox.CaretIndex = OnlineSearchTextBox.Text.Length;
-                }
+                // Selection is used directly for online search.
             }
 
             UpdateOnlineSearchAvailability();
             UpdateCounter();
-        }
-
-        private void OnlineSearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            UpdateOnlineSearchAvailability();
-        }
-
-        private void OnlineSearchTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key != Key.Enter)
-                return;
-
-            OpenOnlineSearch();
-            e.Handled = true;
         }
 
         private void OnlineSearchButton_Click(object sender, RoutedEventArgs e)
@@ -154,7 +138,7 @@ namespace NoteCards
             if (!string.IsNullOrWhiteSpace(selectedText))
                 return selectedText;
 
-            return OnlineSearchTextBox.Text?.Trim() ?? string.Empty;
+            return string.Empty;
         }
 
         private void OpenOnlineSearch()
@@ -406,25 +390,62 @@ namespace NoteCards
             if (document != null)
             {
                 var previousContent = document.Content ?? string.Empty;
-                document.Title = TitleTextBox.Text;
-                document.Tags = ParseTags(TagsTextBox.Text);
-                document.LastModified = DateTime.Now;
+                var previousTitle = document.Title ?? string.Empty;
+                var previousTags = document.Tags ?? new List<string>();
+                var previousFontFamily = document.FontFamily ?? string.Empty;
+                var previousFontSize = document.FontSize;
+
+                var newTitle = TitleTextBox.Text;
+                var newTags = ParseTags(TagsTextBox.Text);
+                var newFontFamily = ContentTextBox.FontFamily.Source;
+                var newFontSize = ContentTextBox.FontSize;
+
                 TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
                 using (MemoryStream ms = new MemoryStream())
                 {
                     tr.Save(ms, DataFormats.Rtf); // save as RTF
                     var newContent = Convert.ToBase64String(ms.ToArray());
-                    if (!string.Equals(previousContent, newContent, StringComparison.Ordinal))
+                    var contentChanged = !string.Equals(previousContent, newContent, StringComparison.Ordinal);
+                    if (contentChanged)
                     {
                         AppendEditHistoryVersion(document, previousContent);
                     }
 
+                    var titleChanged = !string.Equals(previousTitle, newTitle, StringComparison.Ordinal);
+                    var tagsChanged = !AreTagListsEqual(previousTags, newTags);
+                    var fontChanged = !string.Equals(previousFontFamily, newFontFamily, StringComparison.Ordinal)
+                        || !previousFontSize.Equals(newFontSize);
+
+                    if (contentChanged || titleChanged || tagsChanged || fontChanged)
+                    {
+                        document.LastModified = DateTime.Now;
+                    }
+
+                    document.Title = newTitle;
+                    document.Tags = newTags;
                     document.Content = newContent;
                 }
 
-                document.FontFamily = ContentTextBox.FontFamily.Source;
-                document.FontSize = ContentTextBox.FontSize;
+                document.FontFamily = newFontFamily;
+                document.FontSize = newFontSize;
             }
+        }
+
+        private static bool AreTagListsEqual(IReadOnlyList<string>? left, IReadOnlyList<string>? right)
+        {
+            left ??= Array.Empty<string>();
+            right ??= Array.Empty<string>();
+
+            if (left.Count != right.Count)
+                return false;
+
+            for (var i = 0; i < left.Count; i++)
+            {
+                if (!string.Equals(left[i], right[i], StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+
+            return true;
         }
 
         private static void AppendEditHistoryVersion(NoteDocument document, string previousContent)
@@ -574,6 +595,7 @@ namespace NoteCards
                     // Save notes to disk (via MainViewModel)
                     if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm)
                     {
+                        mainVm.RefreshTagFiltersAfterNoteEdit();
                         mainVm.SaveNotes();
                     }
                 }
@@ -658,21 +680,27 @@ namespace NoteCards
         {
             try
             {
-                ExportToPdf(TitleTextBox.Text);
-
-                MessageBox.Show("PDF export complete!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                var exported = ExportToPdf(TitleTextBox.Text);
+                if (exported)
+                {
+                    MessageBox.Show(
+                        LocalizationService.GetString("PdfExportComplete"),
+                        LocalizationService.GetString("Success"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Failed to export PDF:\n\n{ex.Message}",
-                    "Export Error",
+                    $"{LocalizationService.GetString("FailedToExportPdf")}\n\n{ex.Message}",
+                    LocalizationService.GetString("ExportError"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
         }
 
-        private void ExportToPdf(string title)
+        private bool ExportToPdf(string title)
         {
             var exportDoc = new FlowDocument();
             exportDoc.PageWidth = 816;  // A4 at 96 DPI
@@ -711,7 +739,7 @@ namespace NoteCards
             }
             else
             {
-                exportDoc.Blocks.Add(new Paragraph(new Run("(No content)"))
+                exportDoc.Blocks.Add(new Paragraph(new Run(LocalizationService.GetString("NoContent")))
                 {
                     FontSize = 12,
                     Foreground = Brushes.Gray,
@@ -726,10 +754,32 @@ namespace NoteCards
                 "Microsoft Print to PDF");
 
             printDialog.PrintQueue = printQueue;
+            var queuedJobsBefore = GetQueuedJobCount(printQueue);
 
             printDialog.PrintDocument(
                 ((IDocumentPaginatorSource)exportDoc).DocumentPaginator,
                 title);
+
+            System.Threading.Thread.Sleep(150);
+            var queuedJobsAfter = GetQueuedJobCount(printQueue);
+
+            if (queuedJobsBefore < 0 || queuedJobsAfter < 0)
+                return true;
+
+            return queuedJobsAfter > queuedJobsBefore;
+        }
+
+        private static int GetQueuedJobCount(System.Printing.PrintQueue printQueue)
+        {
+            try
+            {
+                printQueue.Refresh();
+                return printQueue.GetPrintJobInfoCollection().Count();
+            }
+            catch
+            {
+                return -1;
+            }
         }
 
         private static List<string> ParseTags(string? rawTags)
@@ -807,9 +857,12 @@ namespace NoteCards
                 SaveToDocument(_currentDocument);
                 _lastSavedContent = GetContentAsText();
 
+                DocumentAutoSaved?.Invoke(_currentDocument);
+
                 // Save to disk
                 if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm)
                 {
+                    mainVm.RefreshTagFiltersAfterNoteEdit();
                     mainVm.SaveNotes();
                 }
 
@@ -985,8 +1038,8 @@ namespace NoteCards
         private void InsertImageButton_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new OpenFileDialog();
-            dlg.Filter = "Image files (*.jpg;*.jpeg;*.png;*.bmp;*.gif)|*.jpg;*.jpeg;*.png;*.bmp;*.gif|All files (*.*)|*.*";
-            dlg.Title = "Select an image to insert";
+            dlg.Filter = LocalizationService.GetString("ImageOpenFileDialogFilter");
+            dlg.Title = LocalizationService.GetString("SelectImageToInsert");
 
             if (dlg.ShowDialog() != true)
                 return;
@@ -998,8 +1051,8 @@ namespace NoteCards
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Failed to insert image:\n\n{ex.Message}",
-                    "Image Insert Error",
+                    $"{LocalizationService.GetString("FailedToInsertImage")}\n\n{ex.Message}",
+                    LocalizationService.GetString("ImageInsertError"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -1090,7 +1143,7 @@ namespace NoteCards
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error loading image: {ex.Message}", ex);
+                throw new Exception($"{LocalizationService.GetString("ErrorLoadingImage")}: {ex.Message}", ex);
             }
         }
 
@@ -1100,7 +1153,7 @@ namespace NoteCards
 
             var removeItem = new MenuItem
             {
-                Header = "Remove Image"
+                Header = LocalizationService.GetString("RemoveImage")
             };
             removeItem.Click += (s, e) =>
             {
@@ -1174,7 +1227,7 @@ namespace NoteCards
             };
 
             // Add tooltip for resize instruction
-            image.ToolTip = "Shift+Drag to resize image\nRight-click to remove";
+            image.ToolTip = LocalizationService.GetString("ImageResizeTooltip");
         }
 
         private double _zoomLevel = 1.0;

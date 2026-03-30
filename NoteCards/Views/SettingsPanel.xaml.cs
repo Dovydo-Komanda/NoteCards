@@ -16,6 +16,7 @@ namespace NoteCards.Views
         private const double PanelOffsetY = 14;
 
         private bool _isClosing;
+        private bool _isApplyingSettings;
 
         public SettingsPanel()
         {
@@ -65,6 +66,7 @@ namespace NoteCards.Views
             translate.BeginAnimation(TranslateTransform.YProperty, openPanelShift);
 
             var settings = AppSettingsService.Load();
+            _isApplyingSettings = true;
             EnableScrollbarCheckBox.IsChecked = settings.EnableScrollbar;
             EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
 
@@ -73,17 +75,21 @@ namespace NoteCards.Views
                 : "Grid";
             foreach (var comboBoxItem in ViewModeBox.Items.OfType<ComboBoxItem>())
             {
-                if (string.Equals(comboBoxItem.Content?.ToString(), selectedViewMode, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(comboBoxItem.Tag?.ToString(), selectedViewMode, StringComparison.OrdinalIgnoreCase))
                 {
                     ViewModeBox.SelectedItem = comboBoxItem;
                     break;
                 }
             }
+            _isApplyingSettings = false;
         }
 
         // auto-save checkbox handlers
         private void EnableAutoSaveCheckBox_Checked(object sender, RoutedEventArgs e)
         {
+            if (_isApplyingSettings)
+                return;
+
             // Enable auto-save in all open editor windows
             foreach (var window in Application.Current.Windows.OfType<NoteEditorWindow>())
             {
@@ -98,6 +104,9 @@ namespace NoteCards.Views
 
         private void EnableAutoSaveCheckBox_Unchecked(object sender, RoutedEventArgs e)
         {
+            if (_isApplyingSettings)
+                return;
+
             // Disable auto-save in all open editor windows
             foreach (var window in Application.Current.Windows.OfType<NoteEditorWindow>())
             {
@@ -192,7 +201,7 @@ namespace NoteCards.Views
         {
             if (ViewModeBox.SelectedItem is ComboBoxItem item)
             {
-                var selected = string.Equals(item.Content?.ToString(), "List", StringComparison.OrdinalIgnoreCase)
+                var selected = string.Equals(item.Tag?.ToString(), "List", StringComparison.OrdinalIgnoreCase)
                     ? "List"
                     : "Grid";
 

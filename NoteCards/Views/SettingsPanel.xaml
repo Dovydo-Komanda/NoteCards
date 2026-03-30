@@ -144,7 +144,7 @@
         Padding="16,12">
 
                     <StackPanel>
-                        <TextBlock Text="View Mode"
+                        <TextBlock Text="{Binding [ViewMode], Source={StaticResource Loc}}"
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource TextColor}"/>
 
@@ -152,8 +152,8 @@
                   Margin="0,8,0,0"
                   SelectionChanged="ViewModeBox_SelectionChanged">
 
-                            <ComboBoxItem Content="Grid"/>
-                            <ComboBoxItem Content="List"/>
+                            <ComboBoxItem Tag="Grid" Content="{Binding [ViewModeGrid], Source={StaticResource Loc}}"/>
+                            <ComboBoxItem Tag="List" Content="{Binding [ViewModeList], Source={StaticResource Loc}}"/>
 
                         </ComboBox>
                     </StackPanel>
@@ -197,18 +197,18 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding [AutoSave], Source={StaticResource Loc}}"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextColor}"/>
-                            </StackPanel>
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding [AutoSave], Source={StaticResource Loc}}"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextColor}"/>
 
                             <CheckBox Grid.Column="1"
                       x:Name="EnableAutoSaveCheckBox"
                       Content="{Binding [EnableAutoSave], Source={StaticResource Loc}}"
+                      Margin="0,0,0,0"
                       HorizontalAlignment="Right"
                       VerticalAlignment="Center"
-                      IsChecked="True"
                       Checked="EnableAutoSaveCheckBox_Checked"
                       Unchecked="EnableAutoSaveCheckBox_Unchecked"/>
                         </Grid>
