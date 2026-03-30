@@ -1,27 +1,54 @@
 ﻿using System.Windows;
+using NoteCards.Localization;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace NoteCards.Views
 {
     public partial class DeleteConfirmationDialog : Window
     {
-        public DeleteConfirmationDialog()
+        private bool _isClosingAnimationRunning;
+        private bool _pendingDialogResult;
+
+        public string TitleText { get; }
+        public string MessageText { get; }
+        public string ConfirmText { get; }
+        public string CancelText { get; }
+
+        public DeleteConfirmationDialog(string? title = null, string? message = null)
         {
+            TitleText = string.IsNullOrWhiteSpace(title)
+                ? LocalizationService.GetString("ConfirmDelete")
+                : title;
+
+            MessageText = string.IsNullOrWhiteSpace(message)
+                ? LocalizationService.GetString("DeleteNoteConfirmation")
+                : message;
+
+            ConfirmText = LocalizationService.GetString("Confirm");
+            CancelText = LocalizationService.GetString("Cancel");
+
             InitializeComponent();
+            DataContext = this;
+            Loaded += DeleteConfirmationDialog_Loaded;
 
             // Ensure dialog is always centered on owner window
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
         }
 
+        private void DeleteConfirmationDialog_Loaded(object sender, RoutedEventArgs e)
+        {
+            BeginOpenAnimation();
+        }
+
         private void ConfirmButton_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = true;
-            Close();
+            BeginCloseAnimation(true);
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = false;
-            Close();
+            BeginCloseAnimation(false);
         }
 
         protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
@@ -29,10 +56,56 @@ namespace NoteCards.Views
             base.OnKeyDown(e);
             if (e.Key == System.Windows.Input.Key.Escape)
             {
-                DialogResult = false;
-                Close();
+                BeginCloseAnimation(false);
                 e.Handled = true;
             }
+        }
+
+        private void BeginOpenAnimation()
+        {
+            Opacity = 0;
+
+            if (DialogCard.RenderTransform is not TranslateTransform translate)
+            {
+                translate = new TranslateTransform();
+                DialogCard.RenderTransform = translate;
+            }
+
+            translate.Y = 12;
+
+            var duration = TimeSpan.FromMilliseconds(190);
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+            BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration) { EasingFunction = ease });
+            translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(12, 0, duration) { EasingFunction = ease });
+        }
+
+        private void BeginCloseAnimation(bool dialogResult)
+        {
+            if (_isClosingAnimationRunning)
+                return;
+
+            _isClosingAnimationRunning = true;
+            _pendingDialogResult = dialogResult;
+
+            if (DialogCard.RenderTransform is not TranslateTransform translate)
+            {
+                translate = new TranslateTransform();
+                DialogCard.RenderTransform = translate;
+            }
+
+            var duration = TimeSpan.FromMilliseconds(150);
+            var ease = new CubicEase { EasingMode = EasingMode.EaseIn };
+
+            var fadeOut = new DoubleAnimation(Opacity, 0, duration) { EasingFunction = ease };
+            fadeOut.Completed += (_, _) =>
+            {
+                DialogResult = _pendingDialogResult;
+                Close();
+            };
+
+            BeginAnimation(OpacityProperty, fadeOut);
+            translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(translate.Y, 8, duration) { EasingFunction = ease });
         }
     }
 }

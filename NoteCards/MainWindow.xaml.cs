@@ -36,8 +36,12 @@ namespace NoteCards
         private FrameworkElement? UngroupedSectionBodyElement => FindName("UngroupedSectionBody") as FrameworkElement;
         private FrameworkElement? GroupsSectionContainerElement => FindName("GroupsSectionContainer") as FrameworkElement;
         private FrameworkElement? UngroupedSectionContainerElement => FindName("UngroupedSectionContainer") as FrameworkElement;
+        private FrameworkElement? MassSelectOverlayToolbarElement => FindName("MassSelectOverlayToolbar") as FrameworkElement;
+        private FrameworkElement? MassSelectMoreActionsPanelElement => FindName("MassSelectMoreActionsPanel") as FrameworkElement;
+        private Button? MassSelectMoreActionsToggleButtonElement => FindName("MassSelectMoreActionsToggleButton") as Button;
         private Popup? SortNotesPopupElement => FindName("SortNotesPopup") as Popup;
         private ColumnDefinition? SidebarColumnElement => FindName("SidebarColumn") as ColumnDefinition;
+        private bool _isMassSelectMoreActionsExpanded;
 
         internal static bool IsNoteDragInProgress { get; private set; }
 
@@ -156,6 +160,10 @@ namespace NoteCards
                 {
                     AnimateSidebarWidth(vm.SidebarWidth);
                 }
+                else if (e.PropertyName == nameof(MainViewModel.IsMassSelectMode))
+                {
+                    AnimateMassSelectOverlay(vm.IsMassSelectMode);
+                }
             });
         }
 
@@ -168,8 +176,185 @@ namespace NoteCards
             SetSectionVisibilityImmediately(GroupsSectionBodyElement, vm.IsGroupsSectionExpanded);
             SetSectionVisibilityImmediately(UngroupedSectionBodyElement, vm.IsUngroupedSectionExpanded);
             SetSidebarWidthImmediately(vm.SidebarWidth);
+            SetMassSelectOverlayStateImmediately(vm.IsMassSelectMode);
             EnsureExpandedSectionsNotClipped(vm);
             _lastKnownGroupsFirst = vm.IsGroupsFirst;
+        }
+
+        private void SetMassSelectOverlayStateImmediately(bool isVisible)
+        {
+            var overlay = MassSelectOverlayToolbarElement;
+            if (overlay is null)
+                return;
+
+            overlay.BeginAnimation(OpacityProperty, null);
+            var translate = EnsureMassOverlayTranslateTransform(overlay);
+            translate.BeginAnimation(TranslateTransform.YProperty, null);
+
+            if (isVisible)
+            {
+                overlay.Visibility = Visibility.Visible;
+                overlay.Opacity = 1;
+                translate.Y = 0;
+                return;
+            }
+
+            overlay.Visibility = Visibility.Collapsed;
+            overlay.Opacity = 0;
+            translate.Y = -12;
+            SetMassSelectMoreActionsStateImmediately(false);
+        }
+
+        private void AnimateMassSelectOverlay(bool isVisible)
+        {
+            var overlay = MassSelectOverlayToolbarElement;
+            if (overlay is null)
+                return;
+
+            overlay.BeginAnimation(OpacityProperty, null);
+            var translate = EnsureMassOverlayTranslateTransform(overlay);
+            translate.BeginAnimation(TranslateTransform.YProperty, null);
+
+            var duration = TimeSpan.FromMilliseconds(190);
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+            if (isVisible)
+            {
+                overlay.Visibility = Visibility.Visible;
+                overlay.Opacity = 0;
+                translate.Y = -12;
+
+                overlay.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration) { EasingFunction = ease });
+                translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(-12, 0, duration) { EasingFunction = ease });
+                return;
+            }
+
+            if (overlay.Visibility != Visibility.Visible)
+                return;
+
+            var fadeOut = new DoubleAnimation(overlay.Opacity, 0, duration) { EasingFunction = ease };
+            fadeOut.Completed += (_, _) =>
+            {
+                overlay.Visibility = Visibility.Collapsed;
+                overlay.Opacity = 0;
+                translate.Y = -12;
+            };
+
+            overlay.BeginAnimation(OpacityProperty, fadeOut);
+            translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(translate.Y, -12, duration) { EasingFunction = ease });
+            SetMassSelectMoreActionsStateImmediately(false);
+        }
+
+        private static TranslateTransform EnsureMassOverlayTranslateTransform(FrameworkElement overlay)
+        {
+            if (overlay.RenderTransform is TranslateTransform translate)
+                return translate;
+
+            var created = new TranslateTransform(0, 0);
+            overlay.RenderTransform = created;
+            return created;
+        }
+
+        private void SetMassSelectMoreActionsStateImmediately(bool isExpanded)
+        {
+            _isMassSelectMoreActionsExpanded = isExpanded;
+            UpdateMassSelectMoreActionsToggleIcon();
+
+            var panel = MassSelectMoreActionsPanelElement;
+            if (panel is null)
+                return;
+
+            panel.BeginAnimation(OpacityProperty, null);
+            var scale = EnsureMassMoreActionsScaleTransform(panel);
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+
+            if (isExpanded)
+            {
+                panel.Visibility = Visibility.Visible;
+                panel.Opacity = 1;
+                scale.ScaleX = 1;
+                scale.ScaleY = 1;
+                return;
+            }
+
+            panel.Visibility = Visibility.Collapsed;
+            panel.Opacity = 0;
+            scale.ScaleX = 0.92;
+            scale.ScaleY = 0.92;
+        }
+
+        private void ToggleMassSelectMoreActionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel { IsMassSelectMode: true })
+                return;
+
+            AnimateMassSelectMoreActions(!_isMassSelectMoreActionsExpanded);
+        }
+
+        private void AnimateMassSelectMoreActions(bool expand)
+        {
+            _isMassSelectMoreActionsExpanded = expand;
+            UpdateMassSelectMoreActionsToggleIcon();
+
+            var panel = MassSelectMoreActionsPanelElement;
+            if (panel is null)
+                return;
+
+            panel.BeginAnimation(OpacityProperty, null);
+            var scale = EnsureMassMoreActionsScaleTransform(panel);
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+
+            var duration = TimeSpan.FromMilliseconds(170);
+            var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+            if (expand)
+            {
+                panel.Visibility = Visibility.Visible;
+                panel.Opacity = 0;
+                scale.ScaleX = 0.92;
+                scale.ScaleY = 0.92;
+
+                panel.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration) { EasingFunction = easing });
+                scale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.92, 1, duration) { EasingFunction = easing });
+                scale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.92, 1, duration) { EasingFunction = easing });
+                return;
+            }
+
+            if (panel.Visibility != Visibility.Visible)
+                return;
+
+            var fadeOut = new DoubleAnimation(panel.Opacity, 0, duration) { EasingFunction = easing };
+            fadeOut.Completed += (_, _) =>
+            {
+                panel.Visibility = Visibility.Collapsed;
+                panel.Opacity = 0;
+                scale.ScaleX = 0.92;
+                scale.ScaleY = 0.92;
+            };
+
+            panel.BeginAnimation(OpacityProperty, fadeOut);
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(scale.ScaleX, 0.92, duration) { EasingFunction = easing });
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(scale.ScaleY, 0.92, duration) { EasingFunction = easing });
+        }
+
+        private void UpdateMassSelectMoreActionsToggleIcon()
+        {
+            if (MassSelectMoreActionsToggleButtonElement is not Button toggle)
+                return;
+
+            toggle.Content = _isMassSelectMoreActionsExpanded ? "<" : ">";
+        }
+
+        private static ScaleTransform EnsureMassMoreActionsScaleTransform(FrameworkElement panel)
+        {
+            if (panel.RenderTransform is ScaleTransform scale)
+                return scale;
+
+            var created = new ScaleTransform(0.92, 0.92);
+            panel.RenderTransform = created;
+            return created;
         }
 
         private void SetSidebarWidthImmediately(double width)
@@ -697,6 +882,53 @@ namespace NoteCards
         {
             if (DataContext is MainViewModel vm)
                 vm.IsUngroupedSectionExpanded = !vm.IsUngroupedSectionExpanded;
+        }
+
+        private void ExitMassSelectButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.ExitMassSelect();
+        }
+
+        private void AddTagsToSelectedButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm || !vm.IsMassSelectMode)
+                return;
+
+            var dialog = new SimpleInputDialog(
+                LocalizationService.GetString("MassSelectAddTagsTitle"),
+                LocalizationService.GetString("MassSelectAddTagsPrompt"))
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            vm.AddTagsToSelected(dialog.InputText);
+        }
+
+        private void DeleteSelectedMassButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm || !vm.IsMassSelectMode || vm.SelectedNotesCount <= 0)
+                return;
+
+            var message = string.Format(
+                LocalizationService.GetString("DeleteSelectedNotesConfirmation"),
+                vm.SelectedNotesCount);
+
+            var dialog = new DeleteConfirmationDialog(
+                title: LocalizationService.GetString("DeleteNotesTitle"),
+                message: message)
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            if (vm.DeleteSelectedNotesCommand.CanExecute(null))
+                vm.DeleteSelectedNotesCommand.Execute(null);
         }
 
         private void MoveGroupsUpButton_Click(object sender, RoutedEventArgs e)

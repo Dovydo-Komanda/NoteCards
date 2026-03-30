@@ -12,7 +12,8 @@
         Topmost="True">
 
     <Grid Background="Transparent">
-        <Border Background="{DynamicResource CardBackground}"
+        <Border x:Name="DialogCard"
+                Background="{DynamicResource CardBackground}"
                 BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
                 CornerRadius="16"
@@ -59,7 +60,7 @@
 
                     <!-- Title -->
                     <StackPanel Grid.Column="1" Margin="16,4,0,0">
-                        <TextBlock Text="{Binding [ConfirmDelete], Source={StaticResource Loc}}"
+                        <TextBlock Text="{Binding TitleText}"
                                    FontSize="20"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextColor}"
@@ -69,7 +70,7 @@
 
                 <!-- Message -->
                 <TextBlock Grid.Row="1"
-                           Text="{Binding [DeleteNoteConfirmation], Source={StaticResource Loc}}"
+                           Text="{Binding MessageText}"
                            FontSize="14"
                            Foreground="{DynamicResource TextColor}"
                            Opacity="0.85"
@@ -81,13 +82,13 @@
                 <StackPanel Grid.Row="2"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right">
-                    <Button Content="{Binding [Cancel], Source={StaticResource Loc}}"
+                    <Button Content="{Binding CancelText}"
                             Style="{StaticResource DialogSecondaryButtonStyle}"
                             Padding="20,10"
                             MinWidth="110"
                             Click="CancelButton_Click"/>
 
-                    <Button Content="{Binding [Confirm], Source={StaticResource Loc}}"
+                    <Button Content="{Binding ConfirmText}"
                             Style="{StaticResource DialogDangerButtonStyle}"
                             Padding="20,10"
                             MinWidth="110"

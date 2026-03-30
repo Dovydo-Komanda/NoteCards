@@ -12,7 +12,8 @@
         Topmost="True">
 
     <Grid Background="Transparent">
-        <Border Background="{DynamicResource CardBackground}"
+        <Border x:Name="DialogCard"
+                Background="{DynamicResource CardBackground}"
                 BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
                 CornerRadius="16"

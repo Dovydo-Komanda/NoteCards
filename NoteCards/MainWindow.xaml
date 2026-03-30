@@ -42,6 +42,55 @@
 					</ControlTemplate>
 				</Setter.Value>
 			</Setter>
+            <Style.Triggers>
+				<DataTrigger Binding="{Binding DataContext.IsMassSelectMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+					<Setter Property="IsEnabled" Value="False"/>
+					<Setter Property="Opacity" Value="0.55"/>
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+
+		<Style x:Key="MassActionIconButtonStyle" TargetType="Button">
+			<Setter Property="OverridesDefaultStyle" Value="True"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Width" Value="34"/>
+			<Setter Property="Height" Value="34"/>
+			<Setter Property="Margin" Value="0,0,6,0"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="FontSize" Value="14"/>
+			<Setter Property="Foreground" Value="#2B3650"/>
+			<Setter Property="Background" Value="#F5F7FB"/>
+			<Setter Property="BorderBrush" Value="#DDE4F3"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="MassActionBorder"
+								Background="{TemplateBinding Background}"
+								BorderBrush="{TemplateBinding BorderBrush}"
+								BorderThickness="{TemplateBinding BorderThickness}"
+								CornerRadius="9">
+							<Border.Effect>
+								<DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.08"/>
+							</Border.Effect>
+							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="MassActionBorder" Property="Background" Value="#EAF0FD"/>
+								<Setter TargetName="MassActionBorder" Property="BorderBrush" Value="#C9D7F5"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="MassActionBorder" Property="Background" Value="#DCE7FB"/>
+								<Setter TargetName="MassActionBorder" Property="BorderBrush" Value="#B8CAF2"/>
+							</Trigger>
+							<Trigger Property="IsEnabled" Value="False">
+								<Setter Property="Opacity" Value="0.45"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
 		</Style>
 
 		<Style x:Key="TopBarIconButtonStyle" TargetType="Button">
@@ -84,6 +133,12 @@
 					</ControlTemplate>
 				</Setter.Value>
 			</Setter>
+            <Style.Triggers>
+				<DataTrigger Binding="{Binding IsMassSelectMode}" Value="True">
+					<Setter Property="IsEnabled" Value="False"/>
+					<Setter Property="Opacity" Value="0.55"/>
+				</DataTrigger>
+			</Style.Triggers>
 		</Style>
 
 		<Style x:Key="FloatingSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource TopBarIconButtonStyle}">
@@ -117,6 +172,12 @@
 					</ControlTemplate>
 				</Setter.Value>
 			</Setter>
+            <Style.Triggers>
+				<DataTrigger Binding="{Binding IsMassSelectMode}" Value="True">
+					<Setter Property="IsEnabled" Value="False"/>
+					<Setter Property="Opacity" Value="0.55"/>
+				</DataTrigger>
+			</Style.Triggers>
 		</Style>
 
 		<Style x:Key="SidebarActionButtonStyle" TargetType="Button">
@@ -159,6 +220,12 @@
 					</ControlTemplate>
 				</Setter.Value>
 			</Setter>
+            <Style.Triggers>
+				<DataTrigger Binding="{Binding DataContext.IsMassSelectMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+					<Setter Property="IsEnabled" Value="False"/>
+					<Setter Property="Opacity" Value="0.55"/>
+				</DataTrigger>
+			</Style.Triggers>
 		</Style>
 
 		<Style x:Key="SidebarLabelTextStyle" TargetType="TextBlock">
@@ -253,6 +320,12 @@
                                 <Setter TargetName="FabBorder" Property="Background" Value="#D8E2F6"/>
 								<Setter TargetName="FabBorder" Property="BorderBrush" Value="#B4C8EE"/>
                             </Trigger>
+                           <Trigger Property="IsEnabled" Value="False">
+								<Setter Property="Foreground" Value="#A4AFC8"/>
+								<Setter TargetName="FabBorder" Property="Background" Value="#EEF1F7"/>
+								<Setter TargetName="FabBorder" Property="BorderBrush" Value="#D8DFEE"/>
+								<Setter TargetName="FabBorder" Property="Opacity" Value="0.62"/>
+							</Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -328,6 +401,12 @@
 							<Trigger Property="IsPressed" Value="True">
 								<Setter TargetName="ToggleBorder" Property="Background" Value="#DCE7FB"/>
 								<Setter TargetName="ToggleBorder" Property="BorderBrush" Value="#B8CAF2"/>
+							</Trigger>
+                         <Trigger Property="IsEnabled" Value="False">
+								<Setter Property="Foreground" Value="#9BA8C5"/>
+								<Setter TargetName="ToggleBorder" Property="Background" Value="#EEF1F7"/>
+								<Setter TargetName="ToggleBorder" Property="BorderBrush" Value="#D8DFEE"/>
+								<Setter TargetName="ToggleBorder" Property="Opacity" Value="0.65"/>
 							</Trigger>
 						</ControlTemplate.Triggers>
 					</ControlTemplate>
@@ -437,6 +516,7 @@
 				Background="{DynamicResource SidebarBackground}"
 				BorderBrush="#E0E0E0"
 				BorderThickness="0,0,1,0"
+             IsEnabled="{Binding IsNotMassSelectMode}"
 				Padding="8,10">
 			<Grid>
 				<Grid.RowDefinitions>
@@ -714,7 +794,7 @@
 				<Border Grid.Row="0"
 						Background="{DynamicResource SidebarBackground}"
 						BorderBrush="{DynamicResource BorderColor}"
-						BorderThickness="0,0,0,1"
+                       BorderThickness="0,0,0,1"
 						Padding="16,12">
                     <StackPanel>
 						<Grid>
@@ -1056,6 +1136,7 @@
 					</ScrollViewer>
                    <Button x:Name="ImportButton"
                           Style="{StaticResource FloatingSecondaryButtonStyle}"
+                          IsEnabled="{Binding IsNotMassSelectMode}"
 						   VerticalAlignment="Bottom"
 						   HorizontalAlignment="Right"
 						   Content="📥"
@@ -1063,12 +1144,117 @@
 						   ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}"
                         Click="ImportButton_Click"/>
                    <Button Style="{StaticResource FabStyle}"
+                          IsEnabled="{Binding IsNotMassSelectMode}"
 							VerticalAlignment="Bottom"
 							HorizontalAlignment="Right"
 							Margin="0,0,28,24"
 							Content="+"
                             ToolTip="{Binding [AddNote], Source={StaticResource Loc}}"
 							Command="{Binding AddNoteCommand}"/>
+                  <Border x:Name="MassSelectOverlayToolbar"
+							Panel.ZIndex="80"
+							Visibility="Collapsed"
+							Opacity="0"
+							HorizontalAlignment="Right"
+							VerticalAlignment="Top"
+							Margin="0,10,14,0"
+							Background="{DynamicResource SidebarBackground}"
+							BorderBrush="#D5DCEC"
+							BorderThickness="1"
+							Padding="10"
+							CornerRadius="12">
+                      <Border.RenderTransform>
+							<TranslateTransform Y="-12"/>
+						</Border.RenderTransform>
+                      <Border.Effect>
+							<DropShadowEffect Color="#000000" Opacity="0.16" BlurRadius="18" ShadowDepth="2" Direction="270"/>
+						</Border.Effect>
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="Auto"/>
+							</Grid.ColumnDefinitions>
+							<StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
+								<TextBlock Text="{Binding [MassSelectModeTitle], Source={StaticResource Loc}}"
+										   FontWeight="SemiBold"
+										   FontSize="13"
+										   Foreground="{DynamicResource TextColor}"/>
+								<TextBlock Text="{Binding MassSelectSelectionText}"
+										   Foreground="#4D5A79"
+										   FontSize="12"
+										   Margin="0,2,0,0"/>
+							</StackPanel>
+                          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+								<WrapPanel VerticalAlignment="Center">
+								<Button Style="{StaticResource MassActionIconButtonStyle}"
+										Content="☑"
+										ToolTip="{Binding [MassSelectSelectAll], Source={StaticResource Loc}}"
+										Command="{Binding SelectAllVisibleNotesCommand}"/>
+								<Button Style="{StaticResource MassActionIconButtonStyle}"
+										Content="🗑"
+										ToolTip="{Binding [MassSelectDeleteSelected], Source={StaticResource Loc}}"
+                                            Click="DeleteSelectedMassButton_Click"/>
+                                  <Button x:Name="MassSelectMoreActionsToggleButton"
+											Style="{StaticResource MassActionIconButtonStyle}"
+                                         Content=">"
+											ToolTip="{Binding [MassSelectMoreActions], Source={StaticResource Loc}}"
+											Click="ToggleMassSelectMoreActionsButton_Click"/>
+                                </WrapPanel>
+
+								<Border x:Name="MassSelectMoreActionsPanel"
+										Margin="8,0,0,0"
+										Padding="6,0,0,0"
+										BorderBrush="#E1E6F2"
+										BorderThickness="1,0,0,0"
+										Visibility="Collapsed"
+										Opacity="0"
+										RenderTransformOrigin="0,0.5">
+									<Border.RenderTransform>
+										<ScaleTransform ScaleX="0.92" ScaleY="0.92"/>
+									</Border.RenderTransform>
+									<WrapPanel VerticalAlignment="Center">
+										<Button Style="{StaticResource MassActionIconButtonStyle}"
+												Content="🧩"
+												ToolTip="{Binding [MassSelectGroupSelected], Source={StaticResource Loc}}"
+												Command="{Binding GroupSelectedNotesCommand}"/>
+										<Button Style="{StaticResource MassActionIconButtonStyle}"
+												Content="↩"
+												ToolTip="{Binding [MassSelectUngroupSelected], Source={StaticResource Loc}}"
+												Command="{Binding RemoveSelectedFromGroupsCommand}"/>
+										<Button Style="{StaticResource MassActionIconButtonStyle}"
+												Content="📌"
+												ToolTip="{Binding [MassSelectPinSelected], Source={StaticResource Loc}}"
+												Command="{Binding PinSelectedNotesCommand}"/>
+										<Button Style="{StaticResource MassActionIconButtonStyle}"
+												Content="📍"
+												ToolTip="{Binding [MassSelectUnpinSelected], Source={StaticResource Loc}}"
+												Command="{Binding UnpinSelectedNotesCommand}"/>
+										<Button Style="{StaticResource MassActionIconButtonStyle}"
+												Content="⧉"
+												ToolTip="{Binding [MassSelectDuplicateSelected], Source={StaticResource Loc}}"
+												Command="{Binding DuplicateSelectedNotesCommand}"/>
+										<Button Style="{StaticResource MassActionIconButtonStyle}"
+												Margin="0"
+												Content="🏷"
+												ToolTip="{Binding [MassSelectAddTags], Source={StaticResource Loc}}"
+												Click="AddTagsToSelectedButton_Click"/>
+									</WrapPanel>
+								</Border>
+
+								<Border Margin="8,0,0,0"
+										Padding="8,0,0,0"
+										BorderBrush="#D5DCEC"
+										BorderThickness="1,0,0,0"
+										VerticalAlignment="Stretch">
+									<Button Style="{StaticResource MassActionIconButtonStyle}"
+											Margin="0"
+											Content="✕"
+											ToolTip="{Binding [Close], Source={StaticResource Loc}}"
+											Click="ExitMassSelectButton_Click"/>
+								</Border>
+							</StackPanel>
+						</Grid>
+					</Border>
 				</Grid>
 			</Grid>
 		</Grid>

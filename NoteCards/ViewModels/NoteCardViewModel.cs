@@ -11,6 +11,7 @@ public class NoteCardViewModel : ViewModelBase
 {
     private bool _isMenuVisible;
     private bool _isDeleting;
+    private bool _isSelectedInMassSelect;
     private readonly Action<NoteCardViewModel> _deleteAction;
     private readonly Action<NoteCardViewModel>? _removeFromGroupAction;
     private readonly Action<NoteCardViewModel>? _duplicateAction;
@@ -122,6 +123,12 @@ public class NoteCardViewModel : ViewModelBase
     {
         get => _isDeleting;
         set => SetProperty(ref _isDeleting, value);
+    }
+
+    public bool IsSelectedInMassSelect
+    {
+        get => _isSelectedInMassSelect;
+        set => SetProperty(ref _isSelectedInMassSelect, value);
     }
 
     private async void ConfirmAndDelete()

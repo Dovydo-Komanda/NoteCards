@@ -133,4 +133,23 @@ Cancel = abort</value></data>
   <data name="NewTab" xml:space="preserve"><value>New Tab</value></data>
   <data name="UnsavedChanges" xml:space="preserve"><value>Unsaved Changes</value></data>
   <data name="TabCloseWarning" xml:space="preserve"><value>This tab has unsaved changes. Close anyway?</value></data>
+  <data name="SelectMultiple" xml:space="preserve"><value>Select note</value></data>
+  <data name="MassSelectModeTitle" xml:space="preserve"><value>Select note</value></data>
+  <data name="MassSelectSelectedCount" xml:space="preserve"><value>Selected: {0}</value></data>
+  <data name="MassSelectMoreActions" xml:space="preserve"><value>More actions</value></data>
+  <data name="MassSelectSelectAll" xml:space="preserve"><value>Select all visible</value></data>
+  <data name="MassSelectUngroupSelected" xml:space="preserve"><value>Move to ungrouped</value></data>
+  <data name="MassSelectAddTags" xml:space="preserve"><value>Add tags</value></data>
+  <data name="MassSelectDeleteSelected" xml:space="preserve"><value>Delete selected</value></data>
+  <data name="MassSelectGroupSelected" xml:space="preserve"><value>Group selected</value></data>
+  <data name="MassSelectPinSelected" xml:space="preserve"><value>Pin selected</value></data>
+  <data name="MassSelectUnpinSelected" xml:space="preserve"><value>Unpin selected</value></data>
+  <data name="MassSelectDuplicateSelected" xml:space="preserve"><value>Duplicate selected</value></data>
+  <data name="MassSelectAddTagsTitle" xml:space="preserve"><value>Add tags to selected notes</value></data>
+  <data name="MassSelectAddTagsPrompt" xml:space="preserve"><value>Enter tags separated by commas (example: work, urgent):</value></data>
+  <data name="ConfirmDelete" xml:space="preserve"><value>Delete note</value></data>
+  <data name="DeleteNotesTitle" xml:space="preserve"><value>Delete notes</value></data>
+  <data name="DeleteNoteConfirmation" xml:space="preserve"><value>Are you sure you want to delete this note? This action cannot be undone.</value></data>
+  <data name="Confirm" xml:space="preserve"><value>Delete</value></data>
+  <data name="DeleteSelectedNotesConfirmation" xml:space="preserve"><value>Are you sure you want to delete {0} selected notes? This action cannot be undone.</value></data>
 </root>

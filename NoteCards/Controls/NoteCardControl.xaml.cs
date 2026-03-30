@@ -37,6 +37,13 @@ public partial class NoteCardControl : UserControl
         // Get the ViewModel from DataContext
         var viewModel = DataContext as NoteCardViewModel;
         var mainWindow = Window.GetWindow(this) as MainWindow;
+        var mainVm = mainWindow?.DataContext as MainViewModel;
+
+        if (viewModel != null && mainVm?.IsMassSelectMode == true)
+        {
+            mainVm.ToggleMassSelectForNote(viewModel);
+            return;
+        }
 
         // Only proceed if both exist
         if (viewModel != null && mainWindow != null)
@@ -50,6 +57,9 @@ public partial class NoteCardControl : UserControl
 
     private void OnMouseMove(object sender, MouseEventArgs e)
     {
+        if (Window.GetWindow(this) is MainWindow { DataContext: MainViewModel { IsMassSelectMode: true } })
+            return;
+
         if (e.LeftButton != MouseButtonState.Pressed)
             return;
 
@@ -79,6 +89,13 @@ public partial class NoteCardControl : UserControl
 
     private void OnDragOver(object sender, DragEventArgs e)
     {
+        if (Window.GetWindow(this) is MainWindow { DataContext: MainViewModel { IsMassSelectMode: true } })
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
         if (DataContext is not NoteCardViewModel target)
         {
             e.Effects = DragDropEffects.None;
@@ -108,6 +125,9 @@ public partial class NoteCardControl : UserControl
     {
         try
         {
+            if (Window.GetWindow(this) is MainWindow { DataContext: MainViewModel { IsMassSelectMode: true } })
+                return;
+
             if (DataContext is not NoteCardViewModel targetNote)
                 return;
 
@@ -145,6 +165,9 @@ public partial class NoteCardControl : UserControl
 
     private bool CanAcceptDrop(DragEventArgs e)
     {
+        if (Window.GetWindow(this) is MainWindow { DataContext: MainViewModel { IsMassSelectMode: true } })
+            return false;
+
         if (DataContext is not NoteCardViewModel target)
             return false;
 
@@ -191,6 +214,9 @@ public partial class NoteCardControl : UserControl
 
     private void OnMouseEnter(object sender, MouseEventArgs e)
     {
+        if (Window.GetWindow(this) is MainWindow { DataContext: MainViewModel { IsMassSelectMode: true } })
+            return;
+
         if (DataContext is NoteCardViewModel vm)
             vm.IsMenuVisible = true;
     }
@@ -199,6 +225,17 @@ public partial class NoteCardControl : UserControl
     {
         if (DataContext is NoteCardViewModel vm)
             vm.IsMenuVisible = false;
+    }
+
+    private void OnStartMassSelectMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not NoteCardViewModel note)
+            return;
+
+        if (Window.GetWindow(this) is not MainWindow { DataContext: MainViewModel mainVm })
+            return;
+
+        mainVm.EnterMassSelect(note);
     }
 
     private void OnMenuButtonClick(object sender, RoutedEventArgs e)

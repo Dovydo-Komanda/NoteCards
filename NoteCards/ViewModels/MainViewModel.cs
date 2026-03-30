@@ -32,6 +32,8 @@ public class MainViewModel : ViewModelBase
     private string _selectedSortOptionKey = SortLastModifiedDesc;
     private readonly Dictionary<Guid, NoteGroupData> _groupMetadata = new();
     private readonly HashSet<string> _selectedTags = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<Guid> _massSelectedNoteIds = new();
+    private bool _isMassSelectMode;
 
     public bool EnableScrollbar
     {
@@ -99,6 +101,7 @@ public class MainViewModel : ViewModelBase
             RefreshAvailableTags();
             ApplyFilters();
             RefreshActivityStats();
+            EnsureMassSelectionConsistency();
         };
         
         NoteCards.Services.ActivityTracker.ActivityUpdated += RefreshActivityStats;
@@ -109,6 +112,14 @@ public class MainViewModel : ViewModelBase
         AddNoteCommand = new RelayCommand(AddNote);
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
         ClearTagFiltersCommand = new RelayCommand(ClearTagFilters, () => HasActiveTagFilters);
+        ExitMassSelectCommand = new RelayCommand(ExitMassSelect, () => IsMassSelectMode);
+        SelectAllVisibleNotesCommand = new RelayCommand(SelectAllVisibleNotes, () => IsMassSelectMode);
+        DeleteSelectedNotesCommand = new RelayCommand(DeleteSelectedNotes, () => IsMassSelectMode && SelectedNotesCount > 0);
+        RemoveSelectedFromGroupsCommand = new RelayCommand(RemoveSelectedFromGroups, CanUngroupSelectedNotes);
+        GroupSelectedNotesCommand = new RelayCommand(GroupSelectedNotes, CanGroupSelectedNotes);
+        PinSelectedNotesCommand = new RelayCommand(PinSelectedNotes, CanPinSelectedNotes);
+        UnpinSelectedNotesCommand = new RelayCommand(UnpinSelectedNotes, CanUnpinSelectedNotes);
+        DuplicateSelectedNotesCommand = new RelayCommand(DuplicateSelectedNotes, CanDuplicateSelectedNotes);
 
         // Try to load saved notes from disk. If none exist, seed a test note.
         if (!LoadNotes())
@@ -132,6 +143,21 @@ public class MainViewModel : ViewModelBase
     public bool HasGroups => NoteGroups.Count > 0;
     public bool HasTagFilters => TagFilters.Count > 0;
     public bool HasActiveTagFilters => _selectedTags.Count > 0;
+    public bool IsMassSelectMode
+    {
+        get => _isMassSelectMode;
+        private set
+        {
+            if (!SetProperty(ref _isMassSelectMode, value))
+                return;
+
+            OnPropertyChanged(nameof(IsNotMassSelectMode));
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+    public bool IsNotMassSelectMode => !IsMassSelectMode;
+    public int SelectedNotesCount => _massSelectedNoteIds.Count;
+    public string MassSelectSelectionText => string.Format(LocalizationService.GetString("MassSelectSelectedCount"), SelectedNotesCount);
     public string TagFilterButtonText => HasActiveTagFilters
         ? $"{LocalizationService.GetString("FilterTags")} ({_selectedTags.Count})"
         : LocalizationService.GetString("FilterTags");
@@ -253,6 +279,14 @@ public class MainViewModel : ViewModelBase
     public ICommand MoveUngroupedUpCommand { get; }
     public ICommand MoveUngroupedDownCommand { get; }
     public ICommand ClearTagFiltersCommand { get; }
+    public ICommand ExitMassSelectCommand { get; }
+    public ICommand SelectAllVisibleNotesCommand { get; }
+    public ICommand DeleteSelectedNotesCommand { get; }
+    public ICommand RemoveSelectedFromGroupsCommand { get; }
+    public ICommand GroupSelectedNotesCommand { get; }
+    public ICommand PinSelectedNotesCommand { get; }
+    public ICommand UnpinSelectedNotesCommand { get; }
+    public ICommand DuplicateSelectedNotesCommand { get; }
 
     public void SetTagFilterSelected(string tag, bool isSelected)
     {
@@ -322,6 +356,77 @@ public class MainViewModel : ViewModelBase
         NormalizeGroups();
         RebuildGroups();
         SaveNotes();
+    }
+
+    public void EnterMassSelect(NoteCardViewModel initialNote)
+    {
+        IsMassSelectMode = true;
+        SetNoteSelectedState(initialNote, true);
+    }
+
+    public void ToggleMassSelectForNote(NoteCardViewModel note)
+    {
+        if (!IsMassSelectMode)
+            return;
+
+        SetNoteSelectedState(note, !_massSelectedNoteIds.Contains(note.Document.Id));
+    }
+
+    public void ExitMassSelect()
+    {
+        if (!IsMassSelectMode)
+            return;
+
+        _massSelectedNoteIds.Clear();
+        foreach (var note in Notes)
+            note.IsSelectedInMassSelect = false;
+
+        IsMassSelectMode = false;
+        NotifyMassSelectionChanged();
+    }
+
+    public int AddTagsToSelected(string tagsInput)
+    {
+        if (!IsMassSelectMode || string.IsNullOrWhiteSpace(tagsInput))
+            return 0;
+
+        var tags = tagsInput
+            .Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (tags.Count == 0)
+            return 0;
+
+        var affected = 0;
+        foreach (var note in GetMassSelectedNotes())
+        {
+            var changed = false;
+            foreach (var tag in tags)
+            {
+                if (note.Document.Tags.Any(existing => string.Equals(existing, tag, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                note.Document.Tags.Add(tag);
+                changed = true;
+            }
+
+            if (!changed)
+                continue;
+
+            affected++;
+            note.Document.LastModified = DateTime.Now;
+            note.NotifyContentChanged();
+        }
+
+        if (affected == 0)
+            return 0;
+
+        RefreshAvailableTags();
+        ApplyFilters();
+        SaveNotes();
+        return affected;
     }
 
     public bool TryGroupNotes(NoteCardViewModel draggedNote, NoteCardViewModel targetNote)
@@ -644,6 +749,259 @@ public class MainViewModel : ViewModelBase
         _notesView.Refresh();
         RebuildGroups();
         RefreshRecentNotes();
+    }
+
+    private void SelectAllVisibleNotes()
+    {
+        if (!IsMassSelectMode)
+            return;
+
+        var visibleNotes = Notes.Where(MatchesSearch).ToList();
+        if (visibleNotes.Count == 0)
+            return;
+
+        var allVisibleSelected = visibleNotes.All(note => _massSelectedNoteIds.Contains(note.Document.Id));
+        if (allVisibleSelected)
+        {
+            foreach (var note in Notes)
+                SetNoteSelectedState(note, false, notify: false);
+        }
+        else
+        {
+            foreach (var note in visibleNotes)
+                SetNoteSelectedState(note, true, notify: false);
+        }
+
+        NotifyMassSelectionChanged();
+    }
+
+    private void DeleteSelectedNotes()
+    {
+        var selected = GetMassSelectedNotes();
+        if (selected.Count == 0)
+            return;
+
+        foreach (var note in selected)
+            Notes.Remove(note);
+
+        NormalizeGroups();
+        RebuildGroups();
+        SaveNotes();
+        NotifyMassSelectionChanged();
+    }
+
+    private void RemoveSelectedFromGroups()
+    {
+        var selected = GetMassSelectedNotes();
+        if (selected.Count == 0 || selected.Any(note => !note.Document.GroupId.HasValue))
+            return;
+
+        foreach (var note in selected)
+        {
+            if (!note.Document.GroupId.HasValue)
+                continue;
+
+            note.Document.GroupId = null;
+            note.Document.LastModified = DateTime.Now;
+            note.NotifyGroupChanged();
+        }
+
+        NormalizeGroups();
+        RebuildGroups();
+        SaveNotes();
+    }
+
+    private void GroupSelectedNotes()
+    {
+        var selected = GetMassSelectedNotes();
+        if (selected.Count < 2)
+            return;
+
+        var selectedGroupIds = selected
+            .Select(note => note.Document.GroupId)
+            .Distinct()
+            .ToList();
+
+        if (selectedGroupIds.Count == 1 && selectedGroupIds[0].HasValue)
+            return;
+
+        var targetGroupId = selected.FirstOrDefault(note => note.Document.GroupId.HasValue)?.Document.GroupId ?? Guid.NewGuid();
+        EnsureGroupMetadata(targetGroupId);
+
+        foreach (var note in selected)
+        {
+            if (note.Document.GroupId == targetGroupId)
+                continue;
+
+            note.Document.GroupId = targetGroupId;
+            note.Document.LastModified = DateTime.Now;
+            note.NotifyGroupChanged();
+        }
+
+        NormalizeGroups();
+        RebuildGroups();
+        SaveNotes();
+    }
+
+    private void PinSelectedNotes()
+    {
+        var selected = GetMassSelectedNotes();
+        if (selected.Count == 0)
+            return;
+
+        var changed = false;
+        foreach (var note in selected.Where(note => !note.Document.IsPinned))
+        {
+            note.Document.IsPinned = true;
+            note.Document.LastModified = DateTime.Now;
+            changed = true;
+        }
+
+        if (!changed)
+            return;
+
+        RebuildGroups();
+        ApplyFilters();
+        SaveNotes();
+    }
+
+    private void UnpinSelectedNotes()
+    {
+        var selected = GetMassSelectedNotes();
+        if (selected.Count == 0)
+            return;
+
+        var changed = false;
+        foreach (var note in selected.Where(note => note.Document.IsPinned))
+        {
+            note.Document.IsPinned = false;
+            note.Document.LastModified = DateTime.Now;
+            changed = true;
+        }
+
+        if (!changed)
+            return;
+
+        RebuildGroups();
+        ApplyFilters();
+        SaveNotes();
+    }
+
+    private void DuplicateSelectedNotes()
+    {
+        var selected = GetMassSelectedNotes();
+        if (selected.Count == 0)
+            return;
+
+        var duplicates = selected
+            .Select(note => new NoteDocument
+            {
+                Title = $"{note.Document.Title} (Copy)",
+                Content = note.Document.Content,
+                Tags = note.Document.Tags?.ToList() ?? new List<string>(),
+                FontFamily = note.Document.FontFamily,
+                FontSize = note.Document.FontSize,
+                CreatedAt = DateTime.Now,
+                LastModified = DateTime.Now,
+                GroupId = null,
+                IsPinned = note.Document.IsPinned
+            })
+            .ToList();
+
+        foreach (var document in duplicates)
+            Notes.Add(CreateNoteCard(document));
+
+        RebuildGroups();
+        ApplyFilters();
+        SaveNotes();
+    }
+
+    private bool CanUngroupSelectedNotes()
+    {
+        if (!IsMassSelectMode || SelectedNotesCount == 0)
+            return false;
+
+        return GetMassSelectedNotes().All(note => note.Document.GroupId.HasValue);
+    }
+
+    private bool CanGroupSelectedNotes()
+    {
+        if (!IsMassSelectMode || SelectedNotesCount < 2)
+            return false;
+
+        var selectedGroupIds = GetMassSelectedNotes()
+            .Select(note => note.Document.GroupId)
+            .Distinct()
+            .ToList();
+
+        return selectedGroupIds.Count > 1 || !selectedGroupIds[0].HasValue;
+    }
+
+    private bool CanPinSelectedNotes()
+    {
+        if (!IsMassSelectMode || SelectedNotesCount == 0)
+            return false;
+
+        return GetMassSelectedNotes().Any(note => !note.Document.IsPinned);
+    }
+
+    private bool CanUnpinSelectedNotes()
+    {
+        if (!IsMassSelectMode || SelectedNotesCount == 0)
+            return false;
+
+        return GetMassSelectedNotes().Any(note => note.Document.IsPinned);
+    }
+
+    private bool CanDuplicateSelectedNotes()
+    {
+        return IsMassSelectMode && SelectedNotesCount > 0;
+    }
+
+    private List<NoteCardViewModel> GetMassSelectedNotes()
+    {
+        if (_massSelectedNoteIds.Count == 0)
+            return new List<NoteCardViewModel>();
+
+        return Notes
+            .Where(note => _massSelectedNoteIds.Contains(note.Document.Id))
+            .ToList();
+    }
+
+    private void SetNoteSelectedState(NoteCardViewModel note, bool isSelected, bool notify = true)
+    {
+        if (isSelected)
+        {
+            if (_massSelectedNoteIds.Add(note.Document.Id))
+                note.IsSelectedInMassSelect = true;
+        }
+        else
+        {
+            if (_massSelectedNoteIds.Remove(note.Document.Id))
+                note.IsSelectedInMassSelect = false;
+        }
+
+        if (notify)
+            NotifyMassSelectionChanged();
+    }
+
+    private void EnsureMassSelectionConsistency()
+    {
+        var existingIds = Notes.Select(note => note.Document.Id).ToHashSet();
+        if (_massSelectedNoteIds.Count > 0)
+            _massSelectedNoteIds.RemoveWhere(id => !existingIds.Contains(id));
+
+        foreach (var note in Notes)
+            note.IsSelectedInMassSelect = _massSelectedNoteIds.Contains(note.Document.Id);
+
+        NotifyMassSelectionChanged();
+    }
+
+    private void NotifyMassSelectionChanged()
+    {
+        OnPropertyChanged(nameof(SelectedNotesCount));
+        OnPropertyChanged(nameof(MassSelectSelectionText));
+        CommandManager.InvalidateRequerySuggested();
     }
 
     private void SetSortOptionSelected(string key, bool isSelected)

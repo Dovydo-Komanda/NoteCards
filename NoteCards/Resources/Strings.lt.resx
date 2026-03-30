@@ -133,4 +133,23 @@ Atšaukti = nutraukti</value></data>
   <data name="NewTab" xml:space="preserve"><value>Naujas skirtukas</value></data>
   <data name="UnsavedChanges" xml:space="preserve"><value>Neiššaugoti pakeitimai</value></data>
   <data name="TabCloseWarning" xml:space="preserve"><value>Šis skirtukas turi neiššaugotus pakeitimus. Uždaryti vis tiek?</value></data>
+  <data name="SelectMultiple" xml:space="preserve"><value>Pažymėti užrašą</value></data>
+  <data name="MassSelectModeTitle" xml:space="preserve"><value>Pažymėti užrašą</value></data>
+  <data name="MassSelectSelectedCount" xml:space="preserve"><value>Pažymėta: {0}</value></data>
+  <data name="MassSelectMoreActions" xml:space="preserve"><value>Daugiau veiksmų</value></data>
+  <data name="MassSelectSelectAll" xml:space="preserve"><value>Pažymėti visus matomus</value></data>
+  <data name="MassSelectUngroupSelected" xml:space="preserve"><value>Perkelti į nesugrupuotus</value></data>
+  <data name="MassSelectAddTags" xml:space="preserve"><value>Pridėti žymes</value></data>
+  <data name="MassSelectDeleteSelected" xml:space="preserve"><value>Ištrinti pažymėtus</value></data>
+  <data name="MassSelectGroupSelected" xml:space="preserve"><value>Sugrupuoti pažymėtus</value></data>
+  <data name="MassSelectPinSelected" xml:space="preserve"><value>Prisegti pažymėtus</value></data>
+  <data name="MassSelectUnpinSelected" xml:space="preserve"><value>Atsegti pažymėtus</value></data>
+  <data name="MassSelectDuplicateSelected" xml:space="preserve"><value>Kopijuoti pažymėtus</value></data>
+  <data name="MassSelectAddTagsTitle" xml:space="preserve"><value>Pridėti žymes pažymėtiems užrašams</value></data>
+  <data name="MassSelectAddTagsPrompt" xml:space="preserve"><value>Įveskite žymes atskirtas kableliais (pvz.: darbas, skubu):</value></data>
+  <data name="ConfirmDelete" xml:space="preserve"><value>Ištrinti užrašą</value></data>
+  <data name="DeleteNotesTitle" xml:space="preserve"><value>Ištrinti užrašus</value></data>
+  <data name="DeleteNoteConfirmation" xml:space="preserve"><value>Ar tikrai norite ištrinti šį užrašą? Šio veiksmo negalima atšaukti.</value></data>
+  <data name="Confirm" xml:space="preserve"><value>Ištrinti</value></data>
+  <data name="DeleteSelectedNotesConfirmation" xml:space="preserve"><value>Ar tikrai norite ištrinti {0} pažymėtus užrašus? Šio veiksmo negalima atšaukti.</value></data>
 </root>
