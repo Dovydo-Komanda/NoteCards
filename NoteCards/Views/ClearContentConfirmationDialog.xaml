@@ -8,6 +8,10 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
         ShowInTaskbar="False"
         Topmost="True">
 
@@ -63,7 +67,7 @@
                                Text="{Binding [ClearContentTitle], Source={StaticResource Loc}}"
                                FontSize="18"
                                FontWeight="SemiBold"
-                               Foreground="#1C1C1C"
+                               Foreground="{DynamicResource TextColor}"
                                VerticalAlignment="Center"
                                TextWrapping="Wrap"/>
                 </Grid>
@@ -72,7 +76,7 @@
                 <TextBlock Grid.Row="1"
                            Text="{Binding [ClearContentPrompt], Source={StaticResource Loc}}"
                            FontSize="14"
-                           Foreground="#4B5563"
+                           Foreground="{DynamicResource TextColorSecondary}"
                            TextWrapping="Wrap"
                            Margin="0,0,0,24"
                            LineHeight="20"/>

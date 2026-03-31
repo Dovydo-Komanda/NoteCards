@@ -4,6 +4,10 @@
         Title="{Binding [NoteEditorTitle], Source={StaticResource Loc}}" Height="600" Width="800"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource WindowBackground}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
         Closing="NoteEditorWindow_Closing"
         xmlns:converters="clr-namespace:NoteCards.Converters">
     <Window.Resources>
@@ -469,6 +473,10 @@
                              SelectionChanged="ContentTextBox_SelectionChanged"
                              PreviewMouseWheel="ContentTextBox_PreviewMouseWheel"
                              TextChanged="ContentTextBox_TextChanged"
+                             SnapsToDevicePixels="True"
+                             TextOptions.TextFormattingMode="Display"
+                             TextOptions.TextRenderingMode="ClearType"
+                             RenderOptions.ClearTypeHint="Enabled"
                              Margin="0"
                              Padding="16"
                              FontSize="14"
