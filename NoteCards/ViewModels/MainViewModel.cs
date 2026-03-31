@@ -95,6 +95,8 @@ public class MainViewModel : ViewModelBase
                 LocalizationService.SetCulture(_selectedLanguage);
                 RefreshSortOptions();
                 OnPropertyChanged(nameof(SortButtonText));
+                OnPropertyChanged(nameof(UserActivitySummaryTitle));
+                RefreshActivityStats();
                 SaveAppSettings();
             }
         }

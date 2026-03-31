@@ -237,15 +237,20 @@
                 BorderThickness="1"
                 CornerRadius="16"
                 Padding="24"
-                Width="560"
+                Width="Auto"
+                MaxHeight="{Binding ActualHeight, ElementName=OverlayRoot}"
                 MaxWidth="560"
+                Margin="20"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center">
             <Border.Effect>
                 <DropShadowEffect Color="#000000" Opacity="0.20" BlurRadius="24" ShadowDepth="0"/>
             </Border.Effect>
 
-            <Grid>
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="True">
+                <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -453,7 +458,8 @@
                             Padding="14,8"
                             Click="CloseButton_Click"/>
                 </Grid>
-            </Grid>
+                </Grid>
+            </ScrollViewer>
         </Border>
     </Grid>
 </UserControl>

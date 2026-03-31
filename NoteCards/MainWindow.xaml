@@ -30,9 +30,10 @@
 							<Border.Effect>
 								<DropShadowEffect BlurRadius="6" ShadowDepth="1" Opacity="0.08"/>
 							</Border.Effect>
-							<TextBlock Text="{TemplateBinding Content}"
-									   Foreground="{TemplateBinding Foreground}"
-									   TextWrapping="Wrap"/>
+                         <ContentPresenter Content="{TemplateBinding Content}"
+											  ContentTemplate="{TemplateBinding ContentTemplate}"
+											  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+											  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
 						</Border>
 						<ControlTemplate.Triggers>
 							<Trigger Property="IsMouseOver" Value="True">
@@ -164,12 +165,12 @@
 						</Border>
 						<ControlTemplate.Triggers>
 							<Trigger Property="IsMouseOver" Value="True">
-								<Setter TargetName="FloatingSecondaryBorder" Property="Background" Value="#E4EAF8"/>
-								<Setter TargetName="FloatingSecondaryBorder" Property="BorderBrush" Value="#C4D3F3"/>
+                                <Setter TargetName="FloatingSecondaryBorder" Property="Background" Value="{DynamicResource IconButtonHoverBackground}"/>
+								<Setter TargetName="FloatingSecondaryBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
 							</Trigger>
 							<Trigger Property="IsPressed" Value="True">
-								<Setter TargetName="FloatingSecondaryBorder" Property="Background" Value="#D8E2F6"/>
-								<Setter TargetName="FloatingSecondaryBorder" Property="BorderBrush" Value="#B4C8EE"/>
+                                <Setter TargetName="FloatingSecondaryBorder" Property="Background" Value="{DynamicResource IconButtonPressedBackground}"/>
+								<Setter TargetName="FloatingSecondaryBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
 							</Trigger>
 						</ControlTemplate.Triggers>
 					</ControlTemplate>
@@ -208,11 +209,12 @@
 						</Border>
 						<ControlTemplate.Triggers>
 							<Trigger Property="IsMouseOver" Value="True">
-								<Setter TargetName="SidebarButtonBorder" Property="Background" Value="#EEF2FB"/>
-								<Setter TargetName="SidebarButtonBorder" Property="BorderBrush" Value="#D6E0F5"/>
+                                <Setter TargetName="SidebarButtonBorder" Property="Background" Value="{DynamicResource IconButtonHoverBackground}"/>
+								<Setter TargetName="SidebarButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
 							</Trigger>
 							<Trigger Property="IsPressed" Value="True">
-								<Setter TargetName="SidebarButtonBorder" Property="Background" Value="#E2EAF8"/>
+                                <Setter TargetName="SidebarButtonBorder" Property="Background" Value="{DynamicResource IconButtonPressedBackground}"/>
+								<Setter TargetName="SidebarButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
 							</Trigger>
 							<DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
 								<Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -569,6 +571,15 @@
 							</StackPanel>
 						</Button>
 
+						<Button Style="{StaticResource SidebarActionButtonStyle}"
+								Click="ImportButton_Click"
+								ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}">
+							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+								<TextBlock Text="📥" FontSize="14" Width="20" TextAlignment="Center" VerticalAlignment="Center"/>
+								<TextBlock Style="{StaticResource SidebarLabelTextStyle}" Text="{Binding [ImportNotes], Source={StaticResource Loc}}"/>
+							</StackPanel>
+						</Button>
+
 						<Separator Margin="6,10,6,10"/>
 
 						<Button Style="{StaticResource SidebarActionButtonStyle}"
@@ -640,14 +651,14 @@
 								Margin="0,0,8,0"
 								Padding="10,0"
 								Visibility="Collapsed"
-								Background="#F5F7FB"
-								BorderBrush="#DDE4F3"
+                                Background="{DynamicResource CardBackground}"
+								BorderBrush="{DynamicResource BorderColor}"
 								BorderThickness="1"
 								CornerRadius="8"
 								Opacity="0">
 							<DockPanel LastChildFill="True">
                               <TextBlock Text="🔎"
-										   Foreground="#74809A"
+                                    Foreground="{DynamicResource TextColorSecondary}"
 										   Margin="0,0,8,0"
                                         VerticalAlignment="Center"
 										   FontSize="13"/>
@@ -655,6 +666,7 @@
 										 BorderThickness="0"
 										 Background="Transparent"
 										 Foreground="{DynamicResource TextColor}"
+                                       CaretBrush="{DynamicResource TextColor}"
 										 VerticalContentAlignment="Center"
 										 Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
 										 ToolTip="{Binding [SearchNotesHint], Source={StaticResource Loc}}"

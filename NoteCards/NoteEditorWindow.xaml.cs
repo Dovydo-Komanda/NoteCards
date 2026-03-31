@@ -117,15 +117,28 @@ namespace NoteCards
                 ContentTextBox.Document.ContentStart,
                 ContentTextBox.Document.ContentEnd);
 
-            string text = textRange.Text;
+            var text = textRange.Text;
 
-            int characters = text.Length;
+            // RichTextBox/FlowDocument always includes one trailing paragraph break.
+            // Remove only that synthetic ending so empty notes are not counted as 2 chars/2 lines.
+            if (text.EndsWith("\r\n", StringComparison.Ordinal))
+                text = text[..^2];
+            else if (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal))
+                text = text[..^1];
 
-            int words = string.IsNullOrWhiteSpace(text)
+            var normalizedText = text
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace('\r', '\n');
+
+            int characters = normalizedText.Length;
+
+            int words = string.IsNullOrWhiteSpace(normalizedText)
                 ? 0
-                : text.Split(new[] { ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length;
+                : normalizedText.Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries).Length;
 
-            int lines = text.Split('\n').Length;
+            int lines = string.IsNullOrEmpty(normalizedText)
+                ? 1
+                : normalizedText.Split('\n').Length;
 
             CounterText.Text = string.Format(
                 LocalizationService.GetString("EditorCounterFormat"),

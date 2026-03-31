@@ -24,8 +24,8 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Background" Value="#F5F7FB"/>
-            <Setter Property="BorderBrush" Value="#DDE4F3"/>
+            <Setter Property="Background" Value="{DynamicResource IconButtonBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource IconButtonBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -40,12 +40,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="CloseButtonBorder" Property="Background" Value="#EAF0FD"/>
-                                <Setter TargetName="CloseButtonBorder" Property="BorderBrush" Value="#C9D7F5"/>
+                                <Setter TargetName="CloseButtonBorder" Property="Background" Value="{DynamicResource IconButtonHoverBackground}"/>
+                                <Setter TargetName="CloseButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="CloseButtonBorder" Property="Background" Value="#DCE7FB"/>
-                                <Setter TargetName="CloseButtonBorder" Property="BorderBrush" Value="#B8CAF2"/>
+                                <Setter TargetName="CloseButtonBorder" Property="Background" Value="{DynamicResource IconButtonPressedBackground}"/>
+                                <Setter TargetName="CloseButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -60,15 +60,20 @@
                 BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
                 CornerRadius="16"
-                Width="500"
+                Width="Auto"
+                MaxHeight="{Binding ActualHeight, ElementName=OverlayRoot}"
                 MaxWidth="500"
+                Margin="20"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center">
             <Border.Effect>
                 <DropShadowEffect Color="#000000" Opacity="0.20" BlurRadius="24" ShadowDepth="0"/>
             </Border.Effect>
 
-            <Grid>
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="True">
+                <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -92,24 +97,18 @@
                 </Grid>
 
                 <StackPanel Grid.Row="1" x:Name="ContentPanel" Margin="20,12,20,18">
-                    <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" Padding="18,16,18,14">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#EEF2FF" Offset="0"/>
-                                <GradientStop Color="#F3F4F6" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
+                    <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" Padding="18,16,18,14" Background="{DynamicResource WindowBackground}">
                         <StackPanel HorizontalAlignment="Center">
                             <Border CornerRadius="14"
                                     Width="54"
                                     Height="54"
-                                    Background="#FFFFFF"
-                                    BorderBrush="#DCE4F5"
+                                    Background="{DynamicResource CardBackground}"
+                                    BorderBrush="{DynamicResource BorderColor}"
                                     BorderThickness="1"
                                     HorizontalAlignment="Center"
                                     Margin="0,0,0,10">
                                 <Border.Effect>
-                                    <DropShadowEffect Color="#5B7FEE" Opacity="0.24" BlurRadius="12" ShadowDepth="2" Direction="270"/>
+                                    <DropShadowEffect Color="#000000" Opacity="0.18" BlurRadius="12" ShadowDepth="2" Direction="270"/>
                                 </Border.Effect>
                                 <Image Source="/NoteCards;component/logo.ico"
                                        Width="30"
@@ -125,7 +124,7 @@
                                        FontFamily="Segoe UI Variable, Segoe UI, sans-serif"/>
                             <TextBlock Text="v1.0.0_alpha-1"
                                        FontSize="11"
-                                       Foreground="#9CA3AF"
+                                       Foreground="{DynamicResource TextColorSecondary}"
                                        HorizontalAlignment="Center"
                                        Margin="0,4,0,0"
                                        FontFamily="Segoe UI Variable, Segoe UI, sans-serif"/>
@@ -147,7 +146,7 @@
                         <TextBlock Text="{Binding [Authors], Source={StaticResource Loc}}"
                                    FontSize="10"
                                    FontWeight="Bold"
-                                   Foreground="#9CA3AF"
+                                   Foreground="{DynamicResource TextColorSecondary}"
                                    Margin="0,0,0,6"
                                    FontFamily="Segoe UI Variable, Segoe UI, sans-serif"/>
 
@@ -166,7 +165,8 @@
                                 Click="CloseButton_Click"/>
                     </StackPanel>
                 </StackPanel>
-            </Grid>
+                </Grid>
+            </ScrollViewer>
         </Border>
     </Grid>
 </UserControl>
