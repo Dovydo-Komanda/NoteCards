@@ -44,6 +44,9 @@ namespace NoteCards
             UpdateCounter();
             UpdateOnlineSearchAvailability();
             ContentTextBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+
+            // Subscribe to theme changes to update RichTextBox foreground
+            ThemeManager.ThemeChanged += (s, e) => ApplyRichTextBoxTheme();
         }
 
         private void NoteEditorWindow_Closing(object sender, CancelEventArgs e)
@@ -82,6 +85,32 @@ namespace NoteCards
             var textRange = new TextRange(doc.ContentStart, doc.ContentEnd);
             textRange.ApplyPropertyValue(TextElement.BackgroundProperty, System.Windows.Media.Brushes.Transparent);
         }
+
+        private void ApplyRichTextBoxTheme()
+        {
+            try
+            {
+                // Get the foreground color from the application theme resources
+                if (Application.Current.Resources.Contains("RichTextBoxForeground"))
+                {
+                    var foregroundBrush = (Brush)Application.Current.Resources["RichTextBoxForeground"];
+                    var doc = ContentTextBox.Document;
+
+                    // Set default foreground for the entire document
+                    doc.Foreground = foregroundBrush;
+
+                    // Apply foreground to entire document text range
+                    var textRange = new TextRange(doc.ContentStart, doc.ContentEnd);
+                    textRange.ApplyPropertyValue(TextElement.ForegroundProperty, foregroundBrush);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log or handle error silently - theme application shouldn't crash the app
+                System.Diagnostics.Debug.WriteLine($"Error applying RichTextBox theme: {ex.Message}");
+            }
+        }
+
         private void UpdateCounter()
         {
             TextRange textRange = new TextRange(
@@ -119,6 +148,12 @@ namespace NoteCards
             }
 
             UpdateOnlineSearchAvailability();
+            UpdateCounter();
+        }
+
+        private void ContentTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // Only update counter, not theme (theme is applied during load and on theme change)
             UpdateCounter();
         }
 
@@ -309,47 +344,65 @@ namespace NoteCards
         // Load data FROM a NoteDocument
         public void LoadFromDocument(NoteDocument document)
         {
-            if (document != null)
+            try
             {
-                _currentDocument = document; // Set current document
-                TitleTextBox.Text = document.Title;
-                TagsTextBox.Text = string.Join(", ", document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
-
-                if (!string.IsNullOrEmpty(document.Content))
+                if (document != null)
                 {
-                    TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
+                    _currentDocument = document; // Set current document
+                    TitleTextBox.Text = document.Title;
+                    TagsTextBox.Text = string.Join(", ", document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
 
-                    try
+                    if (!string.IsNullOrEmpty(document.Content))
                     {
-                        // Try load as Base64 RTF, but verify decoded bytes look like RTF to avoid
-                        // misinterpreting plain text that happens to be valid Base64.
-                        byte[] bytes = Convert.FromBase64String(document.Content);
-                        // Check for RTF header at start of decoded bytes ("{\rtf")
-                        if (bytes.Length >= 5)
-                        {
-                            var hdr = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
-                            if (!hdr.StartsWith("{\\rtf"))
-                                throw new FormatException();
-                        }
+                        TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
 
-                        using (MemoryStream ms = new MemoryStream(bytes))
+                        try
                         {
-                            tr.Load(ms, DataFormats.Rtf);
+                            // Try load as Base64 RTF, but verify decoded bytes look like RTF to avoid
+                            // misinterpreting plain text that happens to be valid Base64.
+                            byte[] bytes = Convert.FromBase64String(document.Content);
+                            // Check for RTF header at start of decoded bytes ("{\rtf")
+                            if (bytes.Length >= 5)
+                            {
+                                var hdr = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
+                                if (!hdr.StartsWith("{\\rtf"))
+                                    throw new FormatException();
+                            }
+
+                            using (MemoryStream ms = new MemoryStream(bytes))
+                            {
+                                tr.Load(ms, DataFormats.Rtf);
+                            }
+                        }
+                        catch (FormatException)
+                        {
+                            // If not Base64, just load as plain text
+                            tr.Text = document.Content;
                         }
                     }
-                    catch (FormatException)
-                    {
-                        // If not Base64, just load as plain text
-                        tr.Text = document.Content;
-                    }
+
+                    ContentTextBox.FontFamily = new FontFamily(document.FontFamily);
+                    ContentTextBox.FontSize = document.FontSize;
+                    UpdateFontButtonText();
+
+                    // Initialize last saved content
+                    _lastSavedContent = GetContentAsText();
+
+                    // Apply theme colors to the loaded content
+                    ApplyRichTextBoxTheme();
+
+                    // Clear any selection and move caret to start
+                    ContentTextBox.CaretPosition = ContentTextBox.Document.ContentStart;
                 }
-
-                ContentTextBox.FontFamily = new FontFamily(document.FontFamily);
-                ContentTextBox.FontSize = document.FontSize;
-                UpdateFontButtonText();
-
-                // Initialize last saved content
-                _lastSavedContent = GetContentAsText();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading document: {ex.Message}");
+                MessageBox.Show(
+                    $"Error loading document: {ex.Message}",
+                    "Load Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
@@ -520,8 +573,8 @@ namespace NoteCards
             _autoSaveTimer = null;
         }
 
-        // Content changed event handler
-        private void ContentTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        // Content changed event handler - apply theme and update counter
+        private void ContentTextBox_TextChanged_Old(object sender, TextChangedEventArgs e)
         {
             UpdateCounter();
         }

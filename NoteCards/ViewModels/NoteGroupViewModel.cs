@@ -1,12 +1,13 @@
 using System.Collections.ObjectModel;
 using System.Windows.Media;
+using System.Windows;
 
 namespace NoteCards.ViewModels;
 
 public class NoteGroupViewModel : ViewModelBase
 {
     private string _name;
-    private Brush _backgroundBrush = Brushes.White;
+    private Brush _backgroundBrush;
 
     public NoteGroupViewModel(Guid groupId, string name, string backgroundColor, IEnumerable<NoteCardViewModel> notes)
     {
@@ -45,6 +46,10 @@ public class NoteGroupViewModel : ViewModelBase
     {
         if (ColorConverter.ConvertFromString(backgroundColor) is Color color)
             return new SolidColorBrush(color);
+
+        // Return theme-aware default background instead of hardcoded white
+        if (Application.Current.Resources.Contains("CardBackground"))
+            return (Brush)Application.Current.Resources["CardBackground"];
 
         return Brushes.White;
     }

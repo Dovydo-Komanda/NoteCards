@@ -110,8 +110,8 @@
         </EventTrigger>
     </UserControl.Triggers>
     <Border x:Name="CardBorder"
-            Background="#FFFFFF"
-            BorderBrush="#E4E4E7"
+            Background="{DynamicResource NoteCardBackground}"
+            BorderBrush="{DynamicResource NoteCardBorder}"
             BorderThickness="1"
             CornerRadius="12"
             Padding="14">
@@ -127,8 +127,8 @@
                             <Condition Binding="{Binding DataContext.IsMassSelectMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
                             <Condition Binding="{Binding IsSelectedInMassSelect}" Value="True"/>
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Background" Value="#F2F6FF"/>
-                        <Setter Property="BorderBrush" Value="#3E5FC3"/>
+                        <Setter Property="Background" Value="{DynamicResource NoteCardSelection}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource NoteCardSelectionBorder}"/>
                         <Setter Property="BorderThickness" Value="2"/>
                     </MultiDataTrigger>
                 </Style.Triggers>
@@ -165,7 +165,7 @@
                                ToolTip="{Binding [Pin], Source={StaticResource Loc}}"/>
                     <TextBlock Text="{Binding Title}"
                                FontSize="15" FontWeight="SemiBold"
-                               Foreground="#1C1C1C"
+                               Foreground="{DynamicResource NoteCardTitle}"
                                TextTrimming="CharacterEllipsis"
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -225,8 +225,8 @@
                     <CheckBox.Template>
                         <ControlTemplate TargetType="CheckBox">
                             <Border x:Name="SelectionBox"
-                                    Background="#F5F7FB"
-                                    BorderBrush="#DDE4F3"
+                                    Background="{DynamicResource MassSelectBoxBackground}"
+                                    BorderBrush="{DynamicResource MassSelectBoxBorder}"
                                     BorderThickness="1"
                                     CornerRadius="7">
                                 <Border.RenderTransform>
@@ -242,10 +242,10 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="SelectionBox" Property="Background" Value="#4A6EE0"/>
-                                    <Setter TargetName="SelectionBox" Property="BorderBrush" Value="#3D5FC7"/>
+                                    <Setter TargetName="SelectionBox" Property="Background" Value="{DynamicResource MassSelectBoxCheckedBackground}"/>
+                                    <Setter TargetName="SelectionBox" Property="BorderBrush" Value="{DynamicResource MassSelectBoxCheckedBorder}"/>
                                     <Setter TargetName="SelectionGlyph" Property="Text" Value="✓"/>
-                                    <Setter TargetName="SelectionGlyph" Property="Foreground" Value="White"/>
+                                    <Setter TargetName="SelectionGlyph" Property="Foreground" Value="{DynamicResource MassSelectBoxGlyph}"/>
                                     <Trigger.EnterActions>
                                         <BeginStoryboard>
                                             <Storyboard>

@@ -1,10 +1,50 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- Window and Container Colors -->
     <SolidColorBrush x:Key="WindowBackground" Color="#EBEBEF"/>
     <SolidColorBrush x:Key="SidebarBackground" Color="#F3F3F3"/>
-    <SolidColorBrush x:Key="TextColor" Color="#1C1C1C"/>
     <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="BorderColor" Color="#D9D9DF"/>
+
+    <!-- Text Colors -->
+    <SolidColorBrush x:Key="TextColor" Color="#1C1C1C"/>
+    <SolidColorBrush x:Key="TextColorSecondary" Color="#5C5C5C"/>
+
+    <!-- Card/Note Colors -->
+    <SolidColorBrush x:Key="NoteCardBackground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="NoteCardBorder" Color="#E4E4E7"/>
+    <SolidColorBrush x:Key="NoteCardTitle" Color="#1C1C1C"/>
+    <SolidColorBrush x:Key="NoteCardSelection" Color="#F2F6FF"/>
+    <SolidColorBrush x:Key="NoteCardSelectionBorder" Color="#3E5FC3"/>
+
+    <!-- Button Colors -->
+    <SolidColorBrush x:Key="ButtonBackground" Color="#F5F7FB"/>
+    <SolidColorBrush x:Key="ButtonBorder" Color="#DDE4F3"/>
+    <SolidColorBrush x:Key="ButtonForeground" Color="#2B3650"/>
+    <SolidColorBrush x:Key="ButtonHoverBackground" Color="#EAF0FD"/>
+    <SolidColorBrush x:Key="ButtonPressedBackground" Color="#DCE7FB"/>
+
+    <!-- Icon Button Colors -->
+    <SolidColorBrush x:Key="IconButtonBackground" Color="#F5F7FB"/>
+    <SolidColorBrush x:Key="IconButtonBorder" Color="#DDE4F3"/>
+    <SolidColorBrush x:Key="IconButtonForeground" Color="#2B3650"/>
+    <SolidColorBrush x:Key="IconButtonHoverBackground" Color="#EAF0FD"/>
+    <SolidColorBrush x:Key="IconButtonPressedBackground" Color="#DCE7FB"/>
+
+    <!-- Mass Select Colors -->
+    <SolidColorBrush x:Key="MassSelectBoxBackground" Color="#F5F7FB"/>
+    <SolidColorBrush x:Key="MassSelectBoxBorder" Color="#DDE4F3"/>
+    <SolidColorBrush x:Key="MassSelectBoxCheckedBackground" Color="#4A6EE0"/>
+    <SolidColorBrush x:Key="MassSelectBoxCheckedBorder" Color="#3D5FC7"/>
+    <SolidColorBrush x:Key="MassSelectBoxGlyph" Color="#FFFFFF"/>
+
+    <!-- Selection/Hover Colors -->
+    <SolidColorBrush x:Key="SelectionBackground" Color="#F5F5F8"/>
+    <SolidColorBrush x:Key="HoverBackground" Color="#FAFBFC"/>
+
+    <!-- RichTextBox Colors -->
+    <SolidColorBrush x:Key="RichTextBoxBackground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="RichTextBoxForeground" Color="#1C1C1C"/>
 
 </ResourceDictionary>

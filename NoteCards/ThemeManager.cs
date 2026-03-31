@@ -4,7 +4,20 @@ namespace NoteCards
 {
     public static class ThemeManager
     {
+        public static event EventHandler? ThemeChanged;
+
+        private static string _currentTheme = "Light";
+
+        public static string CurrentTheme => _currentTheme;
+
         public static void SetTheme(string theme)
+        {
+            _currentTheme = theme;
+            ApplyTheme(theme);
+            ThemeChanged?.Invoke(null, EventArgs.Empty);
+        }
+
+        private static void ApplyTheme(string theme)
         {
             var dict = new ResourceDictionary();
 
@@ -13,8 +26,32 @@ namespace NoteCards
             else
                 dict.Source = new Uri("Themes/LightTheme.xaml", UriKind.Relative);
 
-            Application.Current.Resources.MergedDictionaries.Clear();
-            Application.Current.Resources.MergedDictionaries.Add(dict);
+            // Find and replace existing theme dictionary, preserving other dictionaries
+            var themeDictIndex = -1;
+            for (int i = 0; i < Application.Current.Resources.MergedDictionaries.Count; i++)
+            {
+                var md = Application.Current.Resources.MergedDictionaries[i];
+                if (md.Source != null && (md.Source.OriginalString.Contains("DarkTheme") || md.Source.OriginalString.Contains("LightTheme")))
+                {
+                    themeDictIndex = i;
+                    break;
+                }
+            }
+
+            if (themeDictIndex >= 0)
+            {
+                Application.Current.Resources.MergedDictionaries[themeDictIndex] = dict;
+            }
+            else
+            {
+                Application.Current.Resources.MergedDictionaries.Insert(0, dict);
+            }
+
+            // Invalidate all windows
+            foreach (Window window in Application.Current.Windows)
+            {
+                window.InvalidateVisual();
+            }
         }
     }
 }

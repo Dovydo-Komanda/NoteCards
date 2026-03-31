@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{Binding [NoteEditorTitle], Source={StaticResource Loc}}" Height="600" Width="800"
         WindowStartupLocation="CenterScreen"
-        Background="#EBEBEF"
+        Background="{DynamicResource WindowBackground}"
         Closing="NoteEditorWindow_Closing"
         xmlns:converters="clr-namespace:NoteCards.Converters">
     <Window.Resources>
@@ -29,31 +29,33 @@
             <Setter Property="OverridesDefaultStyle" Value="True"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI, sans-serif"/>
-            <Setter Property="Foreground" Value="#243047"/>
-            <Setter Property="Background" Value="#F1F4FA"/>
-            <Setter Property="BorderBrush" Value="#D9E1F2"/>
+            <Setter Property="Foreground" Value="{DynamicResource IconButtonForeground}"/>
+            <Setter Property="Background" Value="{DynamicResource IconButtonBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource IconButtonBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="ButtonBorder"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="9">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#E7EDF9"/>
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#C7D4EE"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#DCE6F6"/>
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#B9CAE9"/>
-                            </Trigger>
+                    <Border x:Name="ButtonBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="9">
+                        <TextBlock Text="{TemplateBinding Content}"
+                                   Foreground="{TemplateBinding Foreground}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource IconButtonHoverBackground}"/>
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource IconButtonPressedBackground}"/>
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                        </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.55"/>
                             </Trigger>
@@ -76,10 +78,10 @@
             <Setter Property="Height" Value="34"/>
             <Setter Property="Margin" Value="0,0,6,0"/>
             <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="BorderBrush" Value="#D8E0F1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="#FFFFFF"/>
-            <Setter Property="Foreground" Value="#1C1C1C"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -112,8 +114,10 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="9">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -137,6 +141,11 @@
             <Setter Property="Margin" Value="0,0,0,8"/>
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="EditorRichTextBoxStyle" TargetType="RichTextBox">
+            <Setter Property="Background" Value="{DynamicResource RichTextBoxBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource RichTextBoxForeground}"/>
         </Style>
     </Window.Resources>
     <Window.Triggers>
@@ -180,8 +189,8 @@
         <!-- Top Bar with Undo/Redo buttons -->
         <Border Grid.Row="0"
                 Grid.ColumnSpan="2"
-                Background="#F7F8FC"
-                BorderBrush="#E2E8F5"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="0,0,0,1"
                 Padding="14,12">
             <Grid>
@@ -192,8 +201,8 @@
 
                 <Border Grid.Column="0"
                         Margin="0,0,14,0"
-                        Background="#FFFFFF"
-                        BorderBrush="#D8E0F1"
+                        Background="{DynamicResource CardBackground}"
+                        BorderBrush="{DynamicResource BorderColor}"
                         BorderThickness="1"
                         CornerRadius="10"
                         Padding="12,4">
@@ -202,7 +211,7 @@
                              FontWeight="SemiBold"
                              BorderThickness="0"
                              Background="Transparent"
-                             Foreground="#1C1C1C"
+                             Foreground="{DynamicResource TextColor}"
                              VerticalAlignment="Center"
                              ToolTip="{Binding [NoteEditorTitle], Source={StaticResource Loc}}"/>
                 </Border>
@@ -260,8 +269,8 @@
                 Margin="20,10,20,0"
                 Padding="12,8"
                 CornerRadius="10"
-                Background="#FFFFFF"
-                BorderBrush="#DBE3F3"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -271,14 +280,14 @@
                 <TextBlock Text="{Binding [Tags], Source={StaticResource Loc}}"
                            VerticalAlignment="Center"
                            Margin="0,0,10,0"
-                           Foreground="#425170"
+                           Foreground="{DynamicResource TextColor}"
                            FontWeight="SemiBold"/>
                 <TextBox x:Name="TagsTextBox"
                          Grid.Column="1"
                          BorderThickness="0"
                          Background="Transparent"
                          VerticalContentAlignment="Center"
-                         Foreground="#2C3650"
+                         Foreground="{DynamicResource TextColor}"
                          ToolTip="{Binding [TagsHint], Source={StaticResource Loc}}"/>
             </Grid>
         </Border>
@@ -290,8 +299,8 @@
                 Margin="20,10,20,0"
                 Padding="12,8"
                 CornerRadius="10"
-                Background="#FFFFFF"
-                BorderBrush="#DBE3F3"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
                 Visibility="Collapsed">
             <StackPanel Orientation="Horizontal">
@@ -299,7 +308,7 @@
                            VerticalAlignment="Center"
                            Margin="0,0,6,0"
                            FontWeight="SemiBold"
-                           Foreground="#425170"/>
+                           Foreground="{DynamicResource TextColor}"/>
                 <ComboBox x:Name="FontFamilyBox" Width="160" SelectionChanged="FontFamilyBox_Changed">
                     <ComboBoxItem Content="Segoe UI"/>
                     <ComboBoxItem Content="Arial"/>
@@ -311,7 +320,7 @@
                            Margin="12,0,6,0"
                            VerticalAlignment="Center"
                            FontWeight="SemiBold"
-                           Foreground="#425170"/>
+                           Foreground="{DynamicResource TextColor}"/>
                 <ComboBox x:Name="FontSizeBox" Width="70" SelectionChanged="FontSizeBox_Changed">
                     <ComboBoxItem Content="12"/>
                     <ComboBoxItem Content="14"/>
@@ -329,15 +338,17 @@
                 Margin="20,10,20,20"
                 Padding="2"
                 CornerRadius="12"
-                BorderBrush="#D8E1F4"
+                BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
-                Background="#FFFFFF">
+                Background="{DynamicResource CardBackground}">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.08"/>
             </Border.Effect>
-            <RichTextBox x:Name="ContentTextBox"
+			<RichTextBox x:Name="ContentTextBox"
+						 Style="{StaticResource EditorRichTextBoxStyle}"
 						 SelectionChanged="ContentTextBox_SelectionChanged"
 						 PreviewMouseWheel="ContentTextBox_PreviewMouseWheel"
+						 TextChanged="ContentTextBox_TextChanged"
 						 Margin="0"
 						 Padding="16"
 						 FontSize="14"
@@ -356,10 +367,6 @@
 				 <MenuItem Header="{Binding [SelectAll], Source={StaticResource Loc}}" Command="SelectAll"/>
 				</ContextMenu>
 			</RichTextBox.ContextMenu>
-
-			<RichTextBox.Background>
-				<SolidColorBrush Color="White"/>
-			</RichTextBox.Background>
 			</RichTextBox>
         </Border>
         <!-- COUNTER -->
@@ -368,14 +375,14 @@
         Margin="20,0,20,10"
         Padding="8"
         CornerRadius="8"
-        Background="#F7F8FC"
-        BorderBrush="#DBE3F3"
+        Background="{DynamicResource CardBackground}"
+        BorderBrush="{DynamicResource BorderColor}"
         BorderThickness="1">
 
             <TextBlock x:Name="CounterText"
                Text=""
                FontSize="12"
-               Foreground="#6B7280"/>
+               Foreground="{DynamicResource TextColorSecondary}"/>
         </Border>
 
         <Border Grid.Row="1"
@@ -384,8 +391,8 @@
                 Margin="0,10,20,20"
                 Padding="8"
                 CornerRadius="10"
-                Background="#FFFFFF"
-                BorderBrush="#DBE3F3"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
                 VerticalAlignment="Top">
             <ScrollViewer VerticalScrollBarVisibility="Auto"
