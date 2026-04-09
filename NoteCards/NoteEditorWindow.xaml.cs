@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using NoteCards.Animations;
 using NoteCards.Localization;
 using NoteCards.Models;
 using NoteCards.Services;
@@ -36,6 +37,10 @@ namespace NoteCards
         private string _lastSavedContent = string.Empty;
         private NoteDocument? _currentDocument;
         private const int MaxEditHistoryEntries = 100;
+        private readonly FlashcardConversionService _flashcardConversionService = new();
+        private bool _isConvertingToFlashcards;
+        private CancellationTokenSource? _flashcardConversionCancellationSource;
+        private const double StatusIndicatorExpandedHeight = 20;
 
         public NoteEditorWindow()
         {
@@ -52,6 +57,7 @@ namespace NoteCards
         private void NoteEditorWindow_Closing(object sender, CancelEventArgs e)
         {
             StopAutoSaveTimer();
+            _flashcardConversionCancellationSource?.Cancel();
 
             if (_isPlayingCloseAnimation)
                 return;
@@ -227,6 +233,175 @@ namespace NoteCards
                 _lastSearchQuery = dlg.SearchText;
                 _lastReplacementText = dlg.ReplacementText;
             }
+        }
+
+        private async void ConvertToFlashcardsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isConvertingToFlashcards)
+                return;
+
+            var plainText = GetEditorPlainText();
+            if (string.IsNullOrWhiteSpace(plainText))
+            {
+                MessageBox.Show(
+                    LocalizationService.GetString("ConvertToFlashcardsEmpty"),
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            _isConvertingToFlashcards = true;
+            ConvertToFlashcardsButton.IsEnabled = false;
+            ShowPersistentStatusIndicator(LocalizationService.GetString("ConvertToFlashcardsInProgress"));
+
+            _flashcardConversionCancellationSource?.Dispose();
+            _flashcardConversionCancellationSource = new CancellationTokenSource();
+
+            var progress = new Progress<BundledModelHostService.FlashcardProgress>(status =>
+            {
+                var baseText = LocalizationService.GetString(status.StatusKey);
+                string text;
+
+                if (status.GeneratedChars.HasValue)
+                {
+                    text = string.Format(
+                        LocalizationService.GetString("ConvertToFlashcardsStatusGeneratedCharsFormat"),
+                        baseText,
+                        status.GeneratedChars.Value);
+                }
+                else if (status.Percent.HasValue)
+                {
+                    text = string.Format(LocalizationService.GetString("ConvertToFlashcardsStatusPercentFormat"), baseText, status.Percent.Value);
+                }
+                else
+                {
+                    text = baseText;
+                }
+
+                ShowPersistentStatusIndicator(text);
+            });
+
+            try
+            {
+                var flashcards = await _flashcardConversionService.ConvertToFlashcardsAsync(
+                    plainText,
+                    progress,
+                    _flashcardConversionCancellationSource.Token);
+
+                if (flashcards.Count == 0)
+                {
+                    HideStatusIndicator();
+                    MessageBox.Show(
+                        LocalizationService.GetString("ConvertToFlashcardsParseFailed"),
+                        LocalizationService.GetString("Error"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                var modelDisplayName = BundledModelHostService.Instance.GetSelectedModelDisplayName();
+                var preview = new FlashcardsPreviewWindow(flashcards, modelDisplayName)
+                {
+                    Owner = this
+                };
+
+                preview.ShowDialog();
+                ShowStatusIndicator(LocalizationService.GetString("ConvertToFlashcardsSuccess"));
+            }
+            catch (OperationCanceledException ex)
+            {
+                HideStatusIndicator();
+                if (_flashcardConversionCancellationSource?.IsCancellationRequested == true)
+                    return;
+
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("ConvertToFlashcardsFailed")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            catch (Exception ex)
+            {
+                HideStatusIndicator();
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("ConvertToFlashcardsFailed")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isConvertingToFlashcards = false;
+                ConvertToFlashcardsButton.IsEnabled = true;
+                _flashcardConversionCancellationSource?.Dispose();
+                _flashcardConversionCancellationSource = null;
+            }
+        }
+
+        private void ShowPersistentStatusIndicator(string message)
+        {
+            AnimateStatusIndicatorRow(expand: true);
+            StatusIndicatorText.BeginAnimation(TextBlock.OpacityProperty, null);
+            StatusIndicatorText.Text = message;
+            StatusIndicatorText.Visibility = Visibility.Visible;
+
+            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220))
+            {
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+            StatusIndicatorText.BeginAnimation(TextBlock.OpacityProperty, fadeIn);
+        }
+
+        private void HideStatusIndicator()
+        {
+            if (StatusIndicatorText.Visibility != Visibility.Visible)
+            {
+                AnimateStatusIndicatorRow(expand: false);
+                return;
+            }
+
+            StatusIndicatorText.BeginAnimation(TextBlock.OpacityProperty, null);
+
+            var fadeOut = new DoubleAnimation(StatusIndicatorText.Opacity, 0, TimeSpan.FromMilliseconds(280))
+            {
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+            fadeOut.Completed += (s, e) =>
+            {
+                StatusIndicatorText.Visibility = Visibility.Collapsed;
+                StatusIndicatorText.Text = string.Empty;
+                AnimateStatusIndicatorRow(expand: false);
+            };
+            StatusIndicatorText.BeginAnimation(TextBlock.OpacityProperty, fadeOut);
+        }
+
+        private void AnimateStatusIndicatorRow(bool expand)
+        {
+            if (StatusIndicatorRow == null)
+                return;
+
+            var targetHeight = expand ? StatusIndicatorExpandedHeight : 0;
+            var currentHeight = StatusIndicatorRow.ActualHeight;
+            if (currentHeight <= 0)
+                currentHeight = StatusIndicatorRow.Height.Value;
+
+            if (Math.Abs(currentHeight - targetHeight) < 0.5)
+            {
+                StatusIndicatorRow.BeginAnimation(RowDefinition.HeightProperty, null);
+                StatusIndicatorRow.Height = new GridLength(targetHeight, GridUnitType.Pixel);
+                return;
+            }
+
+            var animation = new GridLengthAnimation
+            {
+                From = new GridLength(currentHeight, GridUnitType.Pixel),
+                To = new GridLength(targetHeight, GridUnitType.Pixel),
+                Duration = TimeSpan.FromMilliseconds(220),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            StatusIndicatorRow.BeginAnimation(RowDefinition.HeightProperty, animation);
         }
 
         private void PerformFind(string query)
@@ -638,6 +813,18 @@ namespace NoteCards
             return textRange.Text;
         }
 
+        private string GetEditorPlainText()
+        {
+            var text = GetContentAsText();
+
+            if (text.EndsWith("\r\n", StringComparison.Ordinal))
+                text = text[..^2];
+            else if (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal))
+                text = text[..^1];
+
+            return text.Trim();
+        }
+
         // Perform auto-save
         private void PerformAutoSave()
         {
@@ -676,40 +863,7 @@ namespace NoteCards
         // Show visual auto-save indicator
         private void ShowAutoSaveIndicator()
         {
-            // Find or create the auto-save indicator
-            var indicator = FindName("AutoSaveIndicator") as TextBlock;
-            if (indicator == null)
-            {
-                // Create indicator if it doesn't exist
-                indicator = new TextBlock
-                {
-                    Name = "AutoSaveIndicator",
-                    FontSize = 11,
-                    Foreground = Brushes.Gray,
-                    FontStyle = FontStyles.Italic,
-                    Margin = new Thickness(10, 0, 0, 0),
-                    Visibility = Visibility.Collapsed
-                };
-
-                // Add to top bar (find the StackPanel with buttons)
-                if (FindName("TopBarStackPanel") is StackPanel topBarPanel)
-                {
-                    topBarPanel.Children.Add(indicator);
-                }
-            }
-
-            // Show "Auto-saving..." message
-            indicator.Text = LocalizationService.GetString("AutoSaving");
-            indicator.Visibility = Visibility.Visible;
-            indicator.Opacity = 1;
-
-            // Fade out after 2 seconds
-            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(2))
-            {
-                BeginTime = TimeSpan.FromSeconds(1)
-            };
-            fadeOut.Completed += (s, e) => indicator.Visibility = Visibility.Collapsed;
-            indicator.BeginAnimation(TextBlock.OpacityProperty, fadeOut);
+            ShowStatusIndicator(LocalizationService.GetString("AutoSaving"));
         }
 
         // Enable/disable auto-save
@@ -932,12 +1086,7 @@ namespace NoteCards
                     mainVm.SaveNotes();
                 }
 
-                // Show auto-save indicator with "Saved" message
-                var indicator = FindName("AutoSaveIndicator") as TextBlock;
-                if (indicator != null)
-                {
-                    ShowStatusIndicator(LocalizationService.GetString("Saved"));
-                }
+                ShowStatusIndicator(LocalizationService.GetString("Saved"));
             }
 
             // Close the window after saving
@@ -977,20 +1126,20 @@ namespace NoteCards
 
         private void ShowStatusIndicator(string message)
         {
-            var indicator = FindName("AutoSaveIndicator") as TextBlock;
-            if (indicator == null)
-                return;
+            ShowPersistentStatusIndicator(message);
 
-            indicator.Text = message;
-            indicator.Visibility = Visibility.Visible;
-            indicator.Opacity = 1;
-
-            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(1.5))
+            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(800))
             {
-                BeginTime = TimeSpan.FromSeconds(0.5)
+                BeginTime = TimeSpan.FromSeconds(1.15),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
             };
-            fadeOut.Completed += (s, e) => indicator.Visibility = Visibility.Collapsed;
-            indicator.BeginAnimation(TextBlock.OpacityProperty, fadeOut);
+            fadeOut.Completed += (s, e) =>
+            {
+                StatusIndicatorText.Visibility = Visibility.Collapsed;
+                StatusIndicatorText.Text = string.Empty;
+                AnimateStatusIndicatorRow(expand: false);
+            };
+            StatusIndicatorText.BeginAnimation(TextBlock.OpacityProperty, fadeOut);
         }
 
         private void FontFamilyBox_Changed(object sender, SelectionChangedEventArgs e)
@@ -1091,13 +1240,33 @@ namespace NoteCards
         private void ClearContentButton_Click(object sender, RoutedEventArgs e)
         {
             // Show confirmation dialog
-            var dlg = new Views.ClearContentConfirmationDialog();
-            dlg.Owner = this;
-            if (dlg.ShowDialog() == true)
+            var mainWindow = Application.Current.MainWindow;
+            var previousEditorOpacity = Opacity;
+            var previousMainOpacity = mainWindow is not null ? mainWindow.Opacity : 1.0;
+
+            try
             {
-                // Clear all content from the RichTextBox
-                TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
-                tr.Text = string.Empty;
+                Opacity = 0.82;
+                if (mainWindow is not null && !ReferenceEquals(mainWindow, this))
+                    mainWindow.Opacity = 0.82;
+
+                var dlg = new Views.ClearContentConfirmationDialog
+                {
+                    Owner = this
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    // Clear all content from the RichTextBox
+                    TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
+                    tr.Text = string.Empty;
+                }
+            }
+            finally
+            {
+                Opacity = previousEditorOpacity;
+                if (mainWindow is not null && !ReferenceEquals(mainWindow, this))
+                    mainWindow.Opacity = previousMainOpacity;
             }
         }
 

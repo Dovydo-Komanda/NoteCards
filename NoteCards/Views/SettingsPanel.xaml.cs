@@ -1,6 +1,7 @@
 using NoteCards.Localization;
 using NoteCards.Services;
 using NoteCards.ViewModels;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,10 +18,25 @@ namespace NoteCards.Views
 
         private bool _isClosing;
         private bool _isApplyingSettings;
+        private string _lastSelectedFlashcardModelKey = "Qwen3.5-0.8B";
 
         public SettingsPanel()
         {
             InitializeComponent();
+            LocalizationProvider.Instance.PropertyChanged += LocalizationProvider_PropertyChanged;
+            Unloaded += (_, _) => LocalizationProvider.Instance.PropertyChanged -= LocalizationProvider_PropertyChanged;
+        }
+
+        private void LocalizationProvider_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (!string.Equals(e.PropertyName, "Item[]", StringComparison.Ordinal))
+                return;
+
+            var machineMemoryBytes = BundledModelHostService.GetTotalPhysicalMemoryBytesForCurrentMachine();
+            RefreshFlashcardModelOptions(machineMemoryBytes);
+
+            var selectedKey = GetSelectedFlashcardModelKey() ?? _lastSelectedFlashcardModelKey;
+            UpdateFlashcardModelWarning(selectedKey, machineMemoryBytes);
         }
 
         public void ShowAnimated()
@@ -66,9 +82,18 @@ namespace NoteCards.Views
             translate.BeginAnimation(TranslateTransform.YProperty, openPanelShift);
 
             var settings = AppSettingsService.Load();
+            var machineMemoryBytes = BundledModelHostService.GetTotalPhysicalMemoryBytesForCurrentMachine();
+            var recommendedModelKey = BundledModelHostService.GetRecommendedFlashcardModelKey(machineMemoryBytes);
+            var flashcardModelBox = FindName("FlashcardModelBox") as ComboBox;
+
             _isApplyingSettings = true;
             EnableScrollbarCheckBox.IsChecked = settings.EnableScrollbar;
             EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
+            RefreshFlashcardModelOptions(machineMemoryBytes);
+            if (flashcardModelBox is not null)
+                SelectComboBoxItemByTag(flashcardModelBox, settings.FlashcardModelKey, recommendedModelKey);
+            _lastSelectedFlashcardModelKey = GetSelectedFlashcardModelKey() ?? recommendedModelKey;
+            UpdateFlashcardModelWarning(_lastSelectedFlashcardModelKey, machineMemoryBytes);
 
             var selectedViewMode = string.Equals(settings.DefaultViewMode, "List", StringComparison.OrdinalIgnoreCase)
                 ? "List"
@@ -82,6 +107,86 @@ namespace NoteCards.Views
                 }
             }
             _isApplyingSettings = false;
+        }
+
+        private void RefreshFlashcardModelOptions(long machineMemoryBytes)
+        {
+            var flashcardModelBox = FindName("FlashcardModelBox") as ComboBox;
+            if (flashcardModelBox is null)
+                return;
+
+            foreach (var comboBoxItem in flashcardModelBox.Items.OfType<ComboBoxItem>())
+            {
+                var key = comboBoxItem.Tag?.ToString();
+                if (string.IsNullOrWhiteSpace(key))
+                    continue;
+
+                var isCompatible = BundledModelHostService.IsFlashcardModelCompatibleWithMemory(key, machineMemoryBytes);
+                comboBoxItem.Content = BundledModelHostService.GetFlashcardModelDisplayLabel(key, includeWarningPrefix: true, isCompatible: isCompatible);
+            }
+
+            if (FindName("FlashcardModelContextMenu") is ContextMenu flashcardModelContextMenu)
+            {
+                foreach (var menuItem in flashcardModelContextMenu.Items.OfType<MenuItem>())
+                {
+                    var key = menuItem.Tag?.ToString();
+                    if (string.IsNullOrWhiteSpace(key))
+                        continue;
+
+                    var isCompatible = BundledModelHostService.IsFlashcardModelCompatibleWithMemory(key, machineMemoryBytes);
+                    menuItem.Header = BundledModelHostService.GetFlashcardModelDisplayLabel(key, includeWarningPrefix: true, isCompatible: isCompatible);
+                }
+            }
+        }
+
+        private string? GetSelectedFlashcardModelKey()
+        {
+            return FindName("FlashcardModelBox") is ComboBox flashcardModelBox && flashcardModelBox.SelectedItem is ComboBoxItem item
+                ? item.Tag?.ToString()
+                : null;
+        }
+
+        private void UpdateFlashcardModelWarning(string selectedKey, long machineMemoryBytes)
+        {
+            var warningTextBlock = FindName("FlashcardModelWarningText") as TextBlock;
+            if (warningTextBlock is null)
+                return;
+
+            var isCompatible = BundledModelHostService.IsFlashcardModelCompatibleWithMemory(selectedKey, machineMemoryBytes);
+            if (isCompatible)
+            {
+                warningTextBlock.Visibility = Visibility.Collapsed;
+                warningTextBlock.Text = string.Empty;
+                return;
+            }
+
+            warningTextBlock.Text = string.Format(
+                LocalizationService.GetString("FlashcardModelWarningText"),
+                BundledModelHostService.GetFlashcardModelDisplayName(selectedKey));
+            warningTextBlock.Visibility = Visibility.Visible;
+        }
+
+        private static void SelectComboBoxItemByTag(ComboBox comboBox, string? tag, string fallbackTag)
+        {
+            var selectedTag = string.IsNullOrWhiteSpace(tag) ? fallbackTag : tag;
+
+            foreach (var comboBoxItem in comboBox.Items.OfType<ComboBoxItem>())
+            {
+                if (string.Equals(comboBoxItem.Tag?.ToString(), selectedTag, StringComparison.OrdinalIgnoreCase))
+                {
+                    comboBox.SelectedItem = comboBoxItem;
+                    return;
+                }
+            }
+
+            foreach (var comboBoxItem in comboBox.Items.OfType<ComboBoxItem>())
+            {
+                if (string.Equals(comboBoxItem.Tag?.ToString(), fallbackTag, StringComparison.OrdinalIgnoreCase))
+                {
+                    comboBox.SelectedItem = comboBoxItem;
+                    return;
+                }
+            }
         }
 
         // auto-save checkbox handlers
@@ -117,6 +222,77 @@ namespace NoteCards.Views
             var settings = AppSettingsService.Load();
             settings.EnableAutoSave = false;
             AppSettingsService.Save(settings);
+        }
+
+        private void FlashcardModelBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            HandleFlashcardModelSelection(sender);
+        }
+
+        private void FlashcardModelMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            HandleFlashcardModelSelection(sender);
+        }
+
+        private void HandleFlashcardModelSelection(object sender)
+        {
+            if (_isApplyingSettings)
+                return;
+
+            var selected = sender switch
+            {
+                ComboBox comboBox when comboBox.SelectedItem is ComboBoxItem comboItem => comboItem.Tag?.ToString(),
+                MenuItem menuItem => menuItem.Tag?.ToString(),
+                _ => null
+            };
+
+            if (string.IsNullOrWhiteSpace(selected))
+                return;
+
+            var machineMemoryBytes = BundledModelHostService.GetTotalPhysicalMemoryBytesForCurrentMachine();
+            var isCompatible = BundledModelHostService.IsFlashcardModelCompatibleWithMemory(selected, machineMemoryBytes);
+            if (!isCompatible)
+            {
+                var warning = string.Format(
+                    LocalizationService.GetString("FlashcardModelWarningPrompt"),
+                    BundledModelHostService.GetFlashcardModelDisplayName(selected));
+
+                var dialog = new ModelCompatibilityWarningDialog(
+                    LocalizationService.GetString("FlashcardModelWarningTitle"),
+                    warning)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+
+                var result = dialog.ShowDialog();
+
+                if (result != true)
+                {
+                    if (FindName("FlashcardModelBox") is ComboBox flashcardModelBox)
+                    {
+                        _isApplyingSettings = true;
+                        SelectComboBoxItemByTag(flashcardModelBox, _lastSelectedFlashcardModelKey, _lastSelectedFlashcardModelKey);
+                        _isApplyingSettings = false;
+                    }
+
+                    UpdateFlashcardModelWarning(_lastSelectedFlashcardModelKey, machineMemoryBytes);
+                    return;
+                }
+            }
+
+            if (FindName("FlashcardModelBox") is ComboBox flashcardModelBox2)
+            {
+                _isApplyingSettings = true;
+                SelectComboBoxItemByTag(flashcardModelBox2, selected, selected);
+                _isApplyingSettings = false;
+            }
+
+            var settings = AppSettingsService.Load();
+            settings.FlashcardModelKey = selected;
+            AppSettingsService.Save(settings);
+
+            _lastSelectedFlashcardModelKey = selected;
+            UpdateFlashcardModelWarning(selected, machineMemoryBytes);
         }
 
         public void HideAnimated()
@@ -192,13 +368,20 @@ namespace NoteCards.Views
 
         private void CheckUpdates_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(LocalizationService.GetString("LatestVersion"),
-                            LocalizationService.GetString("AppUpdate"),
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Information);
+            var dialog = new ModernInfoDialog(
+                LocalizationService.GetString("AppUpdate"),
+                LocalizationService.GetString("LatestVersion"))
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            dialog.ShowDialog();
         }
         private void ViewModeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (_isApplyingSettings)
+                return;
+
             if (ViewModeBox.SelectedItem is ComboBoxItem item)
             {
                 var selected = string.Equals(item.Tag?.ToString(), "List", StringComparison.OrdinalIgnoreCase)

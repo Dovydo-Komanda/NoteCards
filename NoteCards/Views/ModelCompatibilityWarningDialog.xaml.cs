@@ -1,11 +1,12 @@
-﻿using System.Windows;
+using System;
 using NoteCards.Localization;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace NoteCards.Views
 {
-    public partial class DeleteConfirmationDialog : Window
+    public partial class ModelCompatibilityWarningDialog : Window
     {
         private bool _isClosingAnimationRunning;
         private bool _pendingDialogResult;
@@ -15,22 +16,22 @@ namespace NoteCards.Views
         public string ConfirmText { get; }
         public string CancelText { get; }
 
-        public DeleteConfirmationDialog(string? title = null, string? message = null)
+        public ModelCompatibilityWarningDialog(string? title = null, string? message = null)
         {
             TitleText = string.IsNullOrWhiteSpace(title)
-                ? LocalizationService.GetString("ConfirmDelete")
+                ? LocalizationService.GetString("FlashcardModelWarningTitle")
                 : title;
 
             MessageText = string.IsNullOrWhiteSpace(message)
-                ? LocalizationService.GetString("DeleteNoteConfirmation")
+                ? LocalizationService.GetString("FlashcardModelWarningPrompt")
                 : message;
 
-            ConfirmText = LocalizationService.GetString("Confirm");
+            ConfirmText = LocalizationService.GetString("ContinueAnyway");
             CancelText = LocalizationService.GetString("Cancel");
 
             InitializeComponent();
             DataContext = this;
-            Loaded += DeleteConfirmationDialog_Loaded;
+            Loaded += ModelCompatibilityWarningDialog_Loaded;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -54,7 +55,7 @@ namespace NoteCards.Views
             Height = ownerHeight;
         }
 
-        private void DeleteConfirmationDialog_Loaded(object sender, RoutedEventArgs e)
+        private void ModelCompatibilityWarningDialog_Loaded(object sender, RoutedEventArgs e)
         {
             BeginOpenAnimation();
         }

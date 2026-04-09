@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -13,8 +14,6 @@ namespace NoteCards.Views
         {
             InitializeComponent();
             Loaded += ClearContentConfirmationDialog_Loaded;
-
-            // Ensure dialog is always centered on owner window
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
         }
 

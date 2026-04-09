@@ -312,8 +312,25 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition x:Name="StatusIndicatorRow" Height="0"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock x:Name="StatusIndicatorText"
+                           Grid.Row="0"
+                           Grid.Column="0"
+                           Margin="2,0,14,4"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextColorSecondary}"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Opacity="0"
+                           Visibility="Collapsed"/>
 
                 <Border Grid.Column="0"
+                        Grid.Row="1"
                         Margin="0,0,14,0"
                         Background="{DynamicResource CardBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
@@ -332,17 +349,10 @@
                 </Border>
 
                 <StackPanel Grid.Column="1"
+                            Grid.Row="1"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
-                    <!-- Auto-Save Indicator -->
-                    <TextBlock x:Name="AutoSaveIndicator"
-                            FontSize="11"
-                            Foreground="#6B7280"
-                            FontStyle="Italic"
-                            Margin="10,0,10,0"
-                            VerticalAlignment="Center"
-                            Visibility="Collapsed"/>
                     <Button Content="↶"
                             Style="{StaticResource EditorToolIconButtonStyle}"
                             ToolTip="{Binding [Undo], Source={StaticResource Loc}}"
@@ -361,6 +371,11 @@
                             ToolTip="{Binding [SearchOnline], Source={StaticResource Loc}}"
                             IsEnabled="False"
                             Click="OnlineSearchButton_Click"/>
+                     <Button x:Name="ConvertToFlashcardsButton"
+                             Content="🧠"
+                             Style="{StaticResource EditorToolIconButtonStyle}"
+                             ToolTip="{Binding [ConvertToFlashcards], Source={StaticResource Loc}}"
+                             Click="ConvertToFlashcardsButton_Click"/>
                     <Button x:Name="SearchButton"
                             Content="🔎"
                             Style="{StaticResource EditorToolIconButtonStyle}"
@@ -508,7 +523,6 @@
         Background="{DynamicResource CardBackground}"
         BorderBrush="{DynamicResource BorderColor}"
         BorderThickness="1">
-
             <TextBlock x:Name="CounterText"
                Text=""
                FontSize="12"

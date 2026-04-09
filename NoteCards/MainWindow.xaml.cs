@@ -837,6 +837,7 @@ namespace NoteCards
         {
             // Allow multiple editor windows to be open
             var editor = new NoteEditorWindow();
+            editor.Owner = this;
             // Set DataContext so EnableScrollbar binding works
             editor.DataContext = this.DataContext;
             editor.LoadFromDocument(noteViewModel.Document);
@@ -1156,18 +1157,17 @@ namespace NoteCards
             if (group is null || DataContext is not MainViewModel vm)
                 return;
 
-            var result = MessageBox.Show(
-                LocalizationService.GetString("DisbandGroupPrompt"),
+            var dialog = new GroupDisbandConfirmationDialog(
                 LocalizationService.GetString("DisbandGroup"),
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question,
-                MessageBoxResult.Yes);
+                LocalizationService.GetString("DisbandGroupPrompt"))
+            {
+                Owner = this
+            };
 
-            if (result == MessageBoxResult.Cancel)
+            if (dialog.ShowDialog() != true || dialog.SelectedChoice == GroupDisbandChoice.Cancel)
                 return;
 
-            var keepNotesUngrouped = result == MessageBoxResult.Yes;
-            vm.DisbandGroup(group, deleteNotes: !keepNotesUngrouped);
+            vm.DisbandGroup(group, deleteNotes: dialog.SelectedChoice == GroupDisbandChoice.DeleteNotes);
         }
 
         private static NoteGroupViewModel? ResolveGroupFromMenuSender(object sender)

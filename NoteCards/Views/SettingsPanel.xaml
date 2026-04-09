@@ -258,6 +258,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Grid>
@@ -326,6 +327,43 @@
                     </Grid>
                 </Border>
                 <Border Grid.Row="2"
+                        Margin="0,14,0,0"
+                        Background="{DynamicResource SidebarBackground}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="16,12">
+                    <StackPanel>
+                        <TextBlock Text="{Binding [FlashcardModel], Source={StaticResource Loc}}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextColor}">
+                            <TextBlock.ContextMenu>
+                                <ContextMenu x:Name="FlashcardModelContextMenu">
+                                    <MenuItem Tag="Qwen3.5-0.8B" Click="FlashcardModelMenuItem_Click"/>
+                                    <MenuItem Tag="Qwen3.5-2B" Click="FlashcardModelMenuItem_Click"/>
+                                    <MenuItem Tag="Qwen3.5-4B" Click="FlashcardModelMenuItem_Click"/>
+                                </ContextMenu>
+                            </TextBlock.ContextMenu>
+                        </TextBlock>
+
+                        <ComboBox x:Name="FlashcardModelBox"
+                                  Margin="0,8,0,0"
+                                  SelectedValuePath="Tag"
+                                  SelectionChanged="FlashcardModelBox_SelectionChanged">
+                            <ComboBoxItem Tag="Qwen3.5-0.8B" Content="{Binding [FlashcardModel08B], Source={StaticResource Loc}}"/>
+                            <ComboBoxItem Tag="Qwen3.5-2B" Content="{Binding [FlashcardModel2B], Source={StaticResource Loc}}"/>
+                            <ComboBoxItem Tag="Qwen3.5-4B" Content="{Binding [FlashcardModel4B], Source={StaticResource Loc}}"/>
+                        </ComboBox>
+
+                        <TextBlock x:Name="FlashcardModelWarningText"
+                                   Margin="0,8,0,0"
+                                   Foreground="#D97706"
+                                   TextWrapping="Wrap"
+                                   Visibility="Collapsed"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="3"
         Margin="0,14,0,0"
         Background="{DynamicResource SidebarBackground}"
         BorderBrush="{DynamicResource BorderColor}"
@@ -349,7 +387,7 @@
                     </StackPanel>
                 </Border>
                 <!-- Scrollbar and Auto-Save Settings -->
-                <Border Grid.Row="3"
+                <Border Grid.Row="4"
         Margin="0,14,0,0"
         Background="{DynamicResource SidebarBackground}"
         BorderBrush="{DynamicResource BorderColor}"
@@ -406,7 +444,7 @@
                 </Border>
 
                 <!-- Activity Summary Settings -->
-                <Border Grid.Row="4"
+                <Border Grid.Row="5"
                         Margin="0,14,0,0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
@@ -437,7 +475,7 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Grid.Row="5" Margin="0,20,0,0">
+                <Grid Grid.Row="6" Margin="0,20,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>

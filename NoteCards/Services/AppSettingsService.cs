@@ -19,7 +19,15 @@ public static class AppSettingsService
         {
             var path = GetSettingsFilePath();
             if (!File.Exists(path))
-                return new AppSettings();
+            {
+                var defaultSettings = new AppSettings
+                {
+                    FlashcardModelKey = BundledModelHostService.GetRecommendedFlashcardModelKeyForCurrentMachine()
+                };
+
+                Save(defaultSettings);
+                return defaultSettings;
+            }
 
             var json = File.ReadAllText(path);
             var settings = JsonSerializer.Deserialize<AppSettings>(json);

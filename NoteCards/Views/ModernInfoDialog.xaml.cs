@@ -1,36 +1,30 @@
-﻿using System.Windows;
+using System;
 using NoteCards.Localization;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace NoteCards.Views
 {
-    public partial class DeleteConfirmationDialog : Window
+    public partial class ModernInfoDialog : Window
     {
         private bool _isClosingAnimationRunning;
-        private bool _pendingDialogResult;
 
         public string TitleText { get; }
         public string MessageText { get; }
-        public string ConfirmText { get; }
-        public string CancelText { get; }
+        public string OkText { get; }
 
-        public DeleteConfirmationDialog(string? title = null, string? message = null)
+        public ModernInfoDialog(string? title = null, string? message = null)
         {
-            TitleText = string.IsNullOrWhiteSpace(title)
-                ? LocalizationService.GetString("ConfirmDelete")
-                : title;
+            TitleText = title ?? LocalizationService.GetString("AppUpdate");
 
-            MessageText = string.IsNullOrWhiteSpace(message)
-                ? LocalizationService.GetString("DeleteNoteConfirmation")
-                : message;
+            MessageText = message ?? LocalizationService.GetString("LatestVersion");
 
-            ConfirmText = LocalizationService.GetString("Confirm");
-            CancelText = LocalizationService.GetString("Cancel");
+            OkText = LocalizationService.GetString("Ok");
 
             InitializeComponent();
             DataContext = this;
-            Loaded += DeleteConfirmationDialog_Loaded;
+            Loaded += ModernInfoDialog_Loaded;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -54,19 +48,14 @@ namespace NoteCards.Views
             Height = ownerHeight;
         }
 
-        private void DeleteConfirmationDialog_Loaded(object sender, RoutedEventArgs e)
+        private void ModernInfoDialog_Loaded(object sender, RoutedEventArgs e)
         {
             BeginOpenAnimation();
         }
 
-        private void ConfirmButton_Click(object sender, RoutedEventArgs e)
+        private void OkButton_Click(object sender, RoutedEventArgs e)
         {
-            BeginCloseAnimation(true);
-        }
-
-        private void CancelButton_Click(object sender, RoutedEventArgs e)
-        {
-            BeginCloseAnimation(false);
+            BeginCloseAnimation();
         }
 
         protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
@@ -74,7 +63,7 @@ namespace NoteCards.Views
             base.OnKeyDown(e);
             if (e.Key == System.Windows.Input.Key.Escape)
             {
-                BeginCloseAnimation(false);
+                BeginCloseAnimation();
                 e.Handled = true;
             }
         }
@@ -98,13 +87,12 @@ namespace NoteCards.Views
             translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(12, 0, duration) { EasingFunction = ease });
         }
 
-        private void BeginCloseAnimation(bool dialogResult)
+        private void BeginCloseAnimation()
         {
             if (_isClosingAnimationRunning)
                 return;
 
             _isClosingAnimationRunning = true;
-            _pendingDialogResult = dialogResult;
 
             if (DialogCard.RenderTransform is not TranslateTransform translate)
             {
@@ -118,7 +106,7 @@ namespace NoteCards.Views
             var fadeOut = new DoubleAnimation(Opacity, 0, duration) { EasingFunction = ease };
             fadeOut.Completed += (_, _) =>
             {
-                DialogResult = _pendingDialogResult;
+                DialogResult = true;
                 Close();
             };
 

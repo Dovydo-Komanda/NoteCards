@@ -1,42 +1,57 @@
-﻿using System.Windows;
+using System;
 using NoteCards.Localization;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace NoteCards.Views
 {
-    public partial class DeleteConfirmationDialog : Window
+    public enum GroupDisbandChoice
+    {
+        Cancel,
+        KeepNotesUngrouped,
+        DeleteNotes
+    }
+
+    public partial class GroupDisbandConfirmationDialog : Window
     {
         private bool _isClosingAnimationRunning;
-        private bool _pendingDialogResult;
 
         public string TitleText { get; }
         public string MessageText { get; }
-        public string ConfirmText { get; }
+        public string KeepNotesText { get; }
+        public string DeleteNotesText { get; }
         public string CancelText { get; }
+        public GroupDisbandChoice SelectedChoice { get; private set; } = GroupDisbandChoice.Cancel;
 
-        public DeleteConfirmationDialog(string? title = null, string? message = null)
+        public GroupDisbandConfirmationDialog(string? title = null, string? message = null)
         {
             TitleText = string.IsNullOrWhiteSpace(title)
-                ? LocalizationService.GetString("ConfirmDelete")
+                ? LocalizationService.GetString("DisbandGroup")
                 : title;
 
             MessageText = string.IsNullOrWhiteSpace(message)
-                ? LocalizationService.GetString("DeleteNoteConfirmation")
+                ? LocalizationService.GetString("DisbandGroupPrompt")
                 : message;
 
-            ConfirmText = LocalizationService.GetString("Confirm");
+            KeepNotesText = LocalizationService.GetString("KeepNotesUngrouped");
+            DeleteNotesText = LocalizationService.GetString("DeleteGroupNotes");
             CancelText = LocalizationService.GetString("Cancel");
 
             InitializeComponent();
             DataContext = this;
-            Loaded += DeleteConfirmationDialog_Loaded;
+            Loaded += GroupDisbandConfirmationDialog_Loaded;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
             ApplyOwnerBounds();
+        }
+
+        private void GroupDisbandConfirmationDialog_Loaded(object sender, RoutedEventArgs e)
+        {
+            BeginOpenAnimation();
         }
 
         private void ApplyOwnerBounds()
@@ -54,18 +69,21 @@ namespace NoteCards.Views
             Height = ownerHeight;
         }
 
-        private void DeleteConfirmationDialog_Loaded(object sender, RoutedEventArgs e)
+        private void KeepNotesButton_Click(object sender, RoutedEventArgs e)
         {
-            BeginOpenAnimation();
+            SelectedChoice = GroupDisbandChoice.KeepNotesUngrouped;
+            BeginCloseAnimation(true);
         }
 
-        private void ConfirmButton_Click(object sender, RoutedEventArgs e)
+        private void DeleteNotesButton_Click(object sender, RoutedEventArgs e)
         {
+            SelectedChoice = GroupDisbandChoice.DeleteNotes;
             BeginCloseAnimation(true);
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
+            SelectedChoice = GroupDisbandChoice.Cancel;
             BeginCloseAnimation(false);
         }
 
@@ -74,6 +92,7 @@ namespace NoteCards.Views
             base.OnKeyDown(e);
             if (e.Key == System.Windows.Input.Key.Escape)
             {
+                SelectedChoice = GroupDisbandChoice.Cancel;
                 BeginCloseAnimation(false);
                 e.Handled = true;
             }
@@ -104,7 +123,6 @@ namespace NoteCards.Views
                 return;
 
             _isClosingAnimationRunning = true;
-            _pendingDialogResult = dialogResult;
 
             if (DialogCard.RenderTransform is not TranslateTransform translate)
             {
@@ -118,7 +136,7 @@ namespace NoteCards.Views
             var fadeOut = new DoubleAnimation(Opacity, 0, duration) { EasingFunction = ease };
             fadeOut.Completed += (_, _) =>
             {
-                DialogResult = _pendingDialogResult;
+                DialogResult = dialogResult;
                 Close();
             };
 

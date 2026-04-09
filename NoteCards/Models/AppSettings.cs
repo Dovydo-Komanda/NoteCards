@@ -30,6 +30,8 @@ public class AppSettings
 
     public bool IsGroupsFirst { get; set; } = true;
 
+    public string FlashcardModelKey { get; set; } = "AutoSelect";
+
     // Activity Tracking
     public long TotalTimeSpentSeconds { get; set; } = 0;
     public long TotalWordsTyped { get; set; } = 0;

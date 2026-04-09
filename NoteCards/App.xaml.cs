@@ -17,4 +17,10 @@ public partial class App : Application
         var window = new MainWindow();
         window.Show();
     }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        BundledModelHostService.Instance.Stop();
+        base.OnExit(e);
+    }
 }

@@ -29,6 +29,20 @@
   <data name="EnableScrollbar" xml:space="preserve"><value>Rodyti slinkties juostą</value></data>
   <data name="AutoSave" xml:space="preserve"><value>Automatinis išsaugojimas:</value></data>
   <data name="EnableAutoSave" xml:space="preserve"><value>Įjungti automatinį išsaugojimą</value></data>
+  <data name="FlashcardModel" xml:space="preserve"><value>DI modelis:</value></data>
+  <data name="FlashcardModel08BDescription" xml:space="preserve"><value>greitesnis, lengvas</value></data>
+  <data name="FlashcardModel2BDescription" xml:space="preserve"><value>subalansuotas, geresnė kokybė</value></data>
+  <data name="FlashcardModel4BDescription" xml:space="preserve"><value>daugiau kokybės, lėtesnis</value></data>
+  <data name="FlashcardModel08B" xml:space="preserve"><value>Qwen3.5-0.8B — greitesnis, lengvas</value></data>
+  <data name="FlashcardModel2B" xml:space="preserve"><value>Qwen3.5-2B — subalansuotas, geresnė kokybė</value></data>
+  <data name="FlashcardModel4B" xml:space="preserve"><value>Qwen3.5-4B — daugiau kokybės, lėtesnis</value></data>
+  <data name="FlashcardModelWarningTitle" xml:space="preserve"><value>Modelio suderinamumo įspėjimas</value></data>
+  <data name="FlashcardModelWarningText" xml:space="preserve"><value>Įspėjimas: {0} gali būti per sunkus šiam kompiuteriui.</value></data>
+  <data name="FlashcardModelWarningPrompt" xml:space="preserve"><value>Šis kompiuteris gali neturėti pakankamai RAM modeliui {0}. Tęsti vis tiek?</value></data>
+  <data name="ContinueAnyway" xml:space="preserve"><value>Tęsti vis tiek</value></data>
+  <data name="FlashcardsGeneratedWithModel" xml:space="preserve"><value>Sugeneruota su modeliu: {0}</value></data>
+  <data name="KeepNotesUngrouped" xml:space="preserve"><value>Palikti užrašus nesugrupuotus</value></data>
+  <data name="DeleteGroupNotes" xml:space="preserve"><value>Ištrinti grupės užrašus</value></data>
   <data name="Theme" xml:space="preserve"><value>Tema:</value></data>
   <data name="ViewMode" xml:space="preserve"><value>Peržiūros režimas</value></data>
   <data name="ViewModeGrid" xml:space="preserve"><value>Tinklelis</value></data>
@@ -122,10 +136,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="GroupColorAmber" xml:space="preserve"><value>Gintarinė</value></data>
   <data name="GroupColorLilac" xml:space="preserve"><value>Alyvinė</value></data>
   <data name="DisbandGroup" xml:space="preserve"><value>Išformuoti grupę</value></data>
-  <data name="DisbandGroupPrompt" xml:space="preserve"><value>Išformuoti šią grupę?
-Taip = palikti užrašus nesugrupuotus
-Ne = išformuoti ir ištrinti visus grupės užrašus
-Atšaukti = nutraukti</value></data>
+  <data name="DisbandGroupPrompt" xml:space="preserve"><value>Pasirinkite, ką daryti su šia grupe.</value></data>
   <data name="DropToUngroup" xml:space="preserve"><value>Numeskite čia, kad pašalintumėte užrašą iš grupės</value></data>
   <data name="Tags" xml:space="preserve"><value>Žymės:</value></data>
   <data name="TagsHint" xml:space="preserve"><value>Pavyzdys: darbas, skubu, idėja</value></data>
@@ -194,4 +205,29 @@ Atšaukti = nutraukti</value></data>
   <data name="DeleteNoteConfirmation" xml:space="preserve"><value>Ar tikrai norite ištrinti šį užrašą? Šio veiksmo negalima atšaukti.</value></data>
   <data name="Confirm" xml:space="preserve"><value>Ištrinti</value></data>
   <data name="DeleteSelectedNotesConfirmation" xml:space="preserve"><value>Ar tikrai norite ištrinti {0} pažymėtus užrašus? Šio veiksmo negalima atšaukti.</value></data>
+  <data name="ConvertToFlashcards" xml:space="preserve"><value>Paversti į mokymosi korteles</value></data>
+  <data name="ConvertToFlashcardsEmpty" xml:space="preserve"><value>Prieš konvertuodami į mokymosi korteles, įrašykite užrašo tekstą.</value></data>
+  <data name="ConvertToFlashcardsInProgress" xml:space="preserve"><value>Generuojamos mokymosi kortelės...</value></data>
+  <data name="ConvertToFlashcardsUnavailable" xml:space="preserve"><value>Su programėle pateiktas Qwen modelis kortelių nesugeneravo.</value></data>
+  <data name="ConvertToFlashcardsFailed" xml:space="preserve"><value>Nepavyko paversti užrašo į mokymosi korteles naudojant su programėle pateiktą Qwen modelį.</value></data>
+  <data name="ConvertToFlashcardsSuccess" xml:space="preserve"><value>Mokymosi kortelės sugeneruotos</value></data>
+  <data name="ConvertToFlashcardsStatusPreparingAssets" xml:space="preserve"><value>Paruošiami DI resursai...</value></data>
+  <data name="ConvertToFlashcardsStatusDownloadingRuntime" xml:space="preserve"><value>Atsiunčiamas DI vykdymo modulis...</value></data>
+  <data name="ConvertToFlashcardsStatusDownloadingModel" xml:space="preserve"><value>Atsiunčiamas pasirinktas Qwen modelis...</value></data>
+  <data name="ConvertToFlashcardsStatusDownloadingModel08B" xml:space="preserve"><value>Atsiunčiamas Qwen3.5-0.8B modelis...</value></data>
+  <data name="ConvertToFlashcardsStatusDownloadingModel2B" xml:space="preserve"><value>Atsiunčiamas Qwen3.5-2B modelis...</value></data>
+  <data name="ConvertToFlashcardsStatusAssetsReady" xml:space="preserve"><value>DI resursai paruošti.</value></data>
+  <data name="ConvertToFlashcardsStatusProcessing" xml:space="preserve"><value>DI generuoja mokymosi korteles...</value></data>
+  <data name="ConvertToFlashcardsStatusFinalizing" xml:space="preserve"><value>Baigiama formuoti korteles...</value></data>
+  <data name="ConvertToFlashcardsStatusPercentFormat" xml:space="preserve"><value>{0} ({1}%)</value></data>
+  <data name="ConvertToFlashcardsStatusGeneratedCharsFormat" xml:space="preserve"><value>{0} ({1} simb.)</value></data>
+  <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Sugeneruotos kortelės</value></data>
+  <data name="FlashcardQuestion" xml:space="preserve"><value>Klausimas</value></data>
+  <data name="FlashcardAnswer" xml:space="preserve"><value>Atsakymas</value></data>
+  <data name="ConvertToFlashcardsParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamų Q/A kortelių.</value></data>
+  <data name="FlashcardsTapHint" xml:space="preserve"><value>Spustelėkite kortelę, kad apverstumėte</value></data>
+  <data name="FlashcardSideQuestion" xml:space="preserve"><value>KLAUSIMAS</value></data>
+  <data name="FlashcardSideAnswer" xml:space="preserve"><value>ATSAKYMAS</value></data>
+  <data name="FlashcardsShowQuestions" xml:space="preserve"><value>Rodyti klausimus</value></data>
+  <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Rodyti atsakymus</value></data>
 </root>
