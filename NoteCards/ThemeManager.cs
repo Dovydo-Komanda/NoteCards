@@ -22,9 +22,9 @@ namespace NoteCards
             var dict = new ResourceDictionary();
 
             if (theme == "Dark")
-                dict.Source = new Uri("Themes/DarkTheme.xaml", UriKind.Relative);
+                dict.Source = new Uri("pack://application:,,,/NoteCards;component/Themes/DarkTheme.xaml", UriKind.Absolute);
             else
-                dict.Source = new Uri("Themes/LightTheme.xaml", UriKind.Relative);
+                dict.Source = new Uri("pack://application:,,,/NoteCards;component/Themes/LightTheme.xaml", UriKind.Absolute);
 
             // Find and replace existing theme dictionary, preserving other dictionaries
             var themeDictIndex = -1;

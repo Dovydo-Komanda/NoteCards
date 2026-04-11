@@ -168,6 +168,13 @@
                                VerticalAlignment="Center"
                                Visibility="{Binding Document.IsPinned, Converter={StaticResource BoolToVis}}"
                                ToolTip="{Binding [Pin], Source={StaticResource Loc}}"/>
+                    <TextBlock Text="🕒"
+                               Foreground="{DynamicResource NoteCardTitle}"
+                               FontSize="13"
+                               Margin="0,0,6,0"
+                               VerticalAlignment="Center"
+                               Visibility="{Binding HasSchedule, Converter={StaticResource BoolToVis}}"
+                               ToolTip="{Binding Document.ScheduledAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"/>
                     <TextBlock Text="{Binding Title}"
                                FontSize="15" FontWeight="SemiBold"
                                Foreground="{DynamicResource NoteCardTitle}"
@@ -255,6 +262,7 @@
                             <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}" Click="OnOpenMenuClick"/>
                             <MenuItem Header="{Binding [ReplaceFromFile], Source={StaticResource Loc}}" Click="OnOpenFromFileClick"/>
                             <MenuItem Header="{Binding [SelectMultiple], Source={StaticResource Loc}}" Click="OnStartMassSelectMenuClick"/>
+                            <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="OnAssignScheduleMenuClick"/>
                             <Separator/>
                             <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
                                       Command="{Binding TogglePinCommand}"

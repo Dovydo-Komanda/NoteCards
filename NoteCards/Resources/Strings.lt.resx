@@ -53,6 +53,8 @@
   <data name="LatestVersion" xml:space="preserve"><value>Naudojate naujausią versiją.</value></data>
   <data name="AppUpdate" xml:space="preserve"><value>Programos atnaujinimas</value></data>
   <data name="DashboardSections" xml:space="preserve"><value>Skydelio sekcijos</value></data>
+  <data name="CalendarSection" xml:space="preserve"><value>Kalendorius</value></data>
+  <data name="ToggleCalendarSection" xml:space="preserve"><value>Rodyti / slėpti kalendorių</value></data>
   <data name="ToggleRecentNotesSection" xml:space="preserve"><value>Rodyti / slėpti naujausius užrašus</value></data>
   <data name="MoveGroupsSectionUp" xml:space="preserve"><value>Perkelti grupių sekciją aukštyn</value></data>
   <data name="MoveGroupsSectionDown" xml:space="preserve"><value>Perkelti grupių sekciją žemyn</value></data>
@@ -61,6 +63,8 @@
   <data name="MoveThisGroupDown" xml:space="preserve"><value>Perkelti šią grupę žemyn</value></data>
   <data name="MoveUngroupedSectionUp" xml:space="preserve"><value>Perkelti nesugrupuotų sekciją aukštyn</value></data>
   <data name="MoveUngroupedSectionDown" xml:space="preserve"><value>Perkelti nesugrupuotų sekciją žemyn</value></data>
+  <data name="MoveCalendarSectionUp" xml:space="preserve"><value>Perkelti kalendoriaus sekciją aukštyn</value></data>
+  <data name="MoveCalendarSectionDown" xml:space="preserve"><value>Perkelti kalendoriaus sekciją žemyn</value></data>
   <data name="ToggleUngroupedSection" xml:space="preserve"><value>Rodyti / slėpti nesugrupuotus užrašus</value></data>
   <data name="UserActivitySummaryTitle" xml:space="preserve"><value>Veiklos suvestinė</value></data>
   <data name="StatsTotalNotesFormat" xml:space="preserve"><value>Iš viso užrašų: {0}</value></data>
@@ -187,6 +191,20 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="UnsavedChanges" xml:space="preserve"><value>Neiššaugoti pakeitimai</value></data>
   <data name="TabCloseWarning" xml:space="preserve"><value>Šis skirtukas turi neiššaugotus pakeitimus. Uždaryti vis tiek?</value></data>
   <data name="SelectMultiple" xml:space="preserve"><value>Pažymėti užrašą</value></data>
+  <data name="CalendarAssignMenu" xml:space="preserve"><value>Priskirti kalendoriui...</value></data>
+  <data name="CalendarAssignTitle" xml:space="preserve"><value>Užrašo planavimas</value></data>
+  <data name="CalendarAssignHint" xml:space="preserve"><value>Pridėkite vieną ar kelias priminimo datas šiam užrašui.</value></data>
+  <data name="CalendarDateTime" xml:space="preserve"><value>Data ir laikas</value></data>
+  <data name="CalendarHourShort" xml:space="preserve"><value>Val.</value></data>
+  <data name="CalendarMinuteShort" xml:space="preserve"><value>Min.</value></data>
+  <data name="CalendarNote" xml:space="preserve"><value>Pastaba</value></data>
+  <data name="CalendarExistingSchedules" xml:space="preserve"><value>Suplanuoti priminimai</value></data>
+  <data name="CalendarAddSchedule" xml:space="preserve"><value>Pridėti priminimą</value></data>
+  <data name="CalendarRemoveSchedule" xml:space="preserve"><value>Pašalinti priminimą</value></data>
+  <data name="CalendarEditSchedule" xml:space="preserve"><value>Redaguoti planavimą</value></data>
+  <data name="CalendarNoSchedulesForDay" xml:space="preserve"><value>Šiai dienai suplanuotų užrašų nėra.</value></data>
+  <data name="CalendarClearSchedule" xml:space="preserve"><value>Išvalyti planavimą</value></data>
+  <data name="CalendarDateRequired" xml:space="preserve"><value>Pasirinkite priminimo datą.</value></data>
   <data name="MassSelectModeTitle" xml:space="preserve"><value>Pažymėti užrašą</value></data>
   <data name="MassSelectSelectedCount" xml:space="preserve"><value>Pažymėta: {0}</value></data>
   <data name="MassSelectMoreActions" xml:space="preserve"><value>Daugiau veiksmų</value></data>

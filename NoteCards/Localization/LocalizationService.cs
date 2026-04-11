@@ -30,6 +30,8 @@ public static class LocalizationService
     public const string English = "en";
     public const string Lithuanian = "lt";
 
+    public static event EventHandler? CultureChanged;
+
     public static string GetString(string key)
     {
         return LocalizationProvider.Instance[key];
@@ -53,5 +55,6 @@ public static class LocalizationService
         CultureInfo.DefaultThreadCurrentUICulture = culture;
 
         LocalizationProvider.Instance.Refresh();
+        CultureChanged?.Invoke(null, EventArgs.Empty);
     }
 }

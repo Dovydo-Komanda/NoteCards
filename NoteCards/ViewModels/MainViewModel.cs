@@ -34,6 +34,7 @@ public class MainViewModel : ViewModelBase
     private readonly HashSet<string> _selectedTags = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<Guid> _massSelectedNoteIds = new();
     private bool _isMassSelectMode;
+    private DateTime _calendarSelectedDate = DateTime.Today;
 
     public bool EnableScrollbar
     {
@@ -49,6 +50,31 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    private bool _isCalendarFirst = true;
+    public bool IsCalendarFirst
+    {
+        get => _isCalendarFirst;
+        set
+        {
+            if (SetProperty(ref _isCalendarFirst, value))
+            {
+                CommandManager.InvalidateRequerySuggested();
+                SaveAppSettings();
+            }
+        }
+    }
+
+    private bool _isCalendarSectionVisible = true;
+    public bool IsCalendarSectionVisible
+    {
+        get => _isCalendarSectionVisible;
+        set
+        {
+            if (SetProperty(ref _isCalendarSectionVisible, value))
+                SaveAppSettings();
+        }
+    }
+
     private bool _isRecentSectionVisible = true;
     public bool IsRecentSectionVisible
     {
@@ -56,6 +82,17 @@ public class MainViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _isRecentSectionVisible, value))
+                SaveAppSettings();
+        }
+    }
+
+    private bool _isCalendarSectionExpanded = true;
+    public bool IsCalendarSectionExpanded
+    {
+        get => _isCalendarSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isCalendarSectionExpanded, value))
                 SaveAppSettings();
         }
     }
@@ -96,6 +133,7 @@ public class MainViewModel : ViewModelBase
                 RefreshSortOptions();
                 OnPropertyChanged(nameof(SortButtonText));
                 OnPropertyChanged(nameof(UserActivitySummaryTitle));
+                OnPropertyChanged(nameof(CalendarSelectedDateDisplay));
                 RefreshActivityStats();
                 SaveAppSettings();
             }
@@ -127,6 +165,7 @@ public class MainViewModel : ViewModelBase
         NoteGroups = new ObservableCollection<NoteGroupViewModel>();
         TagFilters = new ObservableCollection<TagFilterItemViewModel>();
         SortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
+        CalendarScheduledNotes = new ObservableCollection<CalendarScheduledItemViewModel>();
         // Create a view for Notes so we can apply filtering for search
         _notesView = CollectionViewSource.GetDefaultView(Notes);
         _notesView.Filter = FilterUngroupedNotes;
@@ -144,6 +183,7 @@ public class MainViewModel : ViewModelBase
         RefreshSortOptions();
         RefreshAvailableTags();
         RefreshRecentNotes();
+        RefreshCalendarScheduledNotes();
         AddNoteCommand = new RelayCommand(AddNote);
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
         ClearTagFiltersCommand = new RelayCommand(ClearTagFilters, () => HasActiveTagFilters);
@@ -175,6 +215,7 @@ public class MainViewModel : ViewModelBase
     public ObservableCollection<NoteGroupViewModel> NoteGroups { get; }
     public ObservableCollection<TagFilterItemViewModel> TagFilters { get; }
     public ObservableCollection<NoteSortOptionItemViewModel> SortOptions { get; }
+    public ObservableCollection<CalendarScheduledItemViewModel> CalendarScheduledNotes { get; }
     public bool HasGroups => NoteGroups.Count > 0;
     public bool HasTagFilters => TagFilters.Count > 0;
     public bool HasActiveTagFilters => _selectedTags.Count > 0;
@@ -199,6 +240,23 @@ public class MainViewModel : ViewModelBase
     public string SortButtonText => string.Format(
         LocalizationService.GetString("SortButtonFormat"),
         GetSortOptionDisplayName(_selectedSortOptionKey));
+    public bool HasCalendarScheduledNotes => CalendarScheduledNotes.Count > 0;
+
+    public DateTime CalendarSelectedDate
+    {
+        get => _calendarSelectedDate;
+        set
+        {
+            var normalized = value.Date;
+            if (!SetProperty(ref _calendarSelectedDate, normalized))
+                return;
+
+            RefreshCalendarScheduledNotes();
+            OnPropertyChanged(nameof(CalendarSelectedDateDisplay));
+        }
+    }
+
+    public string CalendarSelectedDateDisplay => CalendarSelectedDate.ToString("dddd, dd MMM yyyy", CultureInfo.CurrentCulture);
 
     public string SelectedSortOptionKey
     {
@@ -709,6 +767,7 @@ public class MainViewModel : ViewModelBase
         var groupName = GetNoteGroupName(note);
         var lastModified = note.Document.LastModified.ToString("yyyy-MM-dd HH:mm dd MMM yyyy", CultureInfo.CurrentCulture);
         var createdAt = note.Document.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm dd MMM yyyy", CultureInfo.CurrentCulture);
+        var scheduleSearchText = BuildScheduleSearchText(note.Document);
         var groupState = note.Document.GroupId.HasValue
             ? LocalizationService.GetString("Groups")
             : LocalizationService.GetString("UngroupedNotes");
@@ -722,7 +781,18 @@ public class MainViewModel : ViewModelBase
             note.Document.FontFamily,
             note.Document.FontSize.ToString(CultureInfo.InvariantCulture),
             lastModified,
-            createdAt);
+            createdAt,
+            scheduleSearchText);
+    }
+
+    private static string BuildScheduleSearchText(NoteDocument document)
+    {
+        var schedules = GetEffectiveSchedules(document);
+        if (schedules.Count == 0)
+            return string.Empty;
+
+        return string.Join(' ', schedules.Select(entry =>
+            $"{entry.ScheduledAt:yyyy-MM-dd HH:mm dd MMM yyyy} {entry.Note}"));
     }
 
     private string GetNoteGroupName(NoteCardViewModel note)
@@ -786,6 +856,7 @@ public class MainViewModel : ViewModelBase
         _notesView.Refresh();
         RebuildGroups();
         RefreshRecentNotes();
+        RefreshCalendarScheduledNotes();
     }
 
     private void SelectAllVisibleNotes()
@@ -1177,6 +1248,122 @@ public class MainViewModel : ViewModelBase
         ApplyFilters();
     }
 
+    public void SetNoteSchedules(NoteCardViewModel note, IEnumerable<NoteScheduleEntry>? schedules)
+    {
+        if (note is null)
+            return;
+
+        var normalized = NormalizeScheduleEntries(schedules);
+        var current = GetEffectiveSchedules(note.Document);
+        var changed = !AreSchedulesEqual(current, normalized);
+
+        if (!changed)
+            return;
+
+        note.Document.Schedules = normalized;
+        SyncLegacyScheduleFields(note.Document);
+        note.Document.LastModified = DateTime.Now;
+        note.NotifyContentChanged();
+
+        ApplyFilters();
+        SaveNotes();
+    }
+
+    private void RefreshCalendarScheduledNotes()
+    {
+        var selected = CalendarSelectedDate.Date;
+        var items = Notes
+            .Where(MatchesSearch)
+            .SelectMany(note => GetEffectiveSchedules(note.Document).Select(entry => new CalendarScheduledItemViewModel
+            {
+                Note = note,
+                ScheduledAt = entry.ScheduledAt,
+                ScheduleNote = entry.Note ?? string.Empty
+            }))
+            .Where(item => item.ScheduledAt.Date == selected)
+            .OrderBy(item => item.ScheduledAt)
+            .ThenBy(item => item.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        CalendarScheduledNotes.Clear();
+        foreach (var item in items)
+            CalendarScheduledNotes.Add(item);
+
+        OnPropertyChanged(nameof(HasCalendarScheduledNotes));
+        OnPropertyChanged(nameof(CalendarSelectedDateDisplay));
+    }
+
+    private static bool AreSchedulesEqual(IReadOnlyList<NoteScheduleEntry> left, IReadOnlyList<NoteScheduleEntry> right)
+    {
+        if (left.Count != right.Count)
+            return false;
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            if (left[i].ScheduledAt != right[i].ScheduledAt)
+                return false;
+
+            if (!string.Equals(left[i].Note ?? string.Empty, right[i].Note ?? string.Empty, StringComparison.Ordinal))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static List<NoteScheduleEntry> NormalizeScheduleEntries(IEnumerable<NoteScheduleEntry>? schedules)
+    {
+        if (schedules is null)
+            return new List<NoteScheduleEntry>();
+
+        return schedules
+            .Where(entry => entry != null)
+            .Select(entry => new NoteScheduleEntry
+            {
+                ScheduledAt = entry.ScheduledAt,
+                Note = (entry.Note ?? string.Empty).Trim()
+            })
+            .OrderBy(entry => entry.ScheduledAt)
+            .ThenBy(entry => entry.Note, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
+    private static IReadOnlyList<NoteScheduleEntry> GetEffectiveSchedules(NoteDocument document)
+    {
+        EnsureDocumentSchedules(document);
+        return document.Schedules;
+    }
+
+    private static void EnsureDocumentSchedules(NoteDocument document)
+    {
+        document.Schedules ??= new List<NoteScheduleEntry>();
+
+        if (document.Schedules.Count == 0 && document.ScheduledAt.HasValue)
+        {
+            document.Schedules.Add(new NoteScheduleEntry
+            {
+                ScheduledAt = document.ScheduledAt.Value,
+                Note = document.ScheduleNote ?? string.Empty
+            });
+        }
+
+        document.Schedules = NormalizeScheduleEntries(document.Schedules);
+        SyncLegacyScheduleFields(document);
+    }
+
+    private static void SyncLegacyScheduleFields(NoteDocument document)
+    {
+        if (document.Schedules is null || document.Schedules.Count == 0)
+        {
+            document.ScheduledAt = null;
+            document.ScheduleNote = string.Empty;
+            return;
+        }
+
+        var primary = document.Schedules[0];
+        document.ScheduledAt = primary.ScheduledAt;
+        document.ScheduleNote = primary.Note ?? string.Empty;
+    }
+
     private void NormalizeGroups()
     {
         var grouped = Notes
@@ -1285,10 +1472,13 @@ public class MainViewModel : ViewModelBase
         _isRecentSectionExpanded = settings.IsRecentSectionExpanded;
         _isGroupsSectionExpanded = settings.IsGroupsSectionExpanded;
         _isUngroupedSectionExpanded = settings.IsUngroupedSectionExpanded;
+        _isCalendarSectionExpanded = settings.IsCalendarSectionExpanded;
         _isRecentSectionVisible = settings.IsRecentSectionVisible;
         _isGroupsSectionVisible = settings.IsGroupsSectionVisible;
         _isUngroupedSectionVisible = settings.IsUngroupedSectionVisible;
+        _isCalendarSectionVisible = settings.IsCalendarSectionVisible;
         _isGroupsFirst = settings.IsGroupsFirst;
+        _isCalendarFirst = settings.IsCalendarFirst;
         _viewMode = NormalizeViewMode(settings.DefaultViewMode);
 
         LocalizationService.SetCulture(_selectedLanguage);
@@ -1310,10 +1500,13 @@ public class MainViewModel : ViewModelBase
         settings.IsRecentSectionExpanded = _isRecentSectionExpanded;
         settings.IsGroupsSectionExpanded = _isGroupsSectionExpanded;
         settings.IsUngroupedSectionExpanded = _isUngroupedSectionExpanded;
+        settings.IsCalendarSectionExpanded = _isCalendarSectionExpanded;
         settings.IsRecentSectionVisible = _isRecentSectionVisible;
         settings.IsGroupsSectionVisible = _isGroupsSectionVisible;
         settings.IsUngroupedSectionVisible = _isUngroupedSectionVisible;
+        settings.IsCalendarSectionVisible = _isCalendarSectionVisible;
         settings.IsGroupsFirst = _isGroupsFirst;
+        settings.IsCalendarFirst = _isCalendarFirst;
         settings.DefaultViewMode = _viewMode;
 
         AppSettingsService.Save(settings);
@@ -1349,12 +1542,16 @@ public class MainViewModel : ViewModelBase
 
             Notes.Clear();
             foreach (var doc in docs)
+            {
+                EnsureDocumentSchedules(doc);
                 Notes.Add(CreateNoteCard(doc));
+            }
 
             RefreshAvailableTags();
             NormalizeGroups();
             RebuildGroups();
             RefreshRecentNotes();
+            RefreshCalendarScheduledNotes();
 
             return true;
         }

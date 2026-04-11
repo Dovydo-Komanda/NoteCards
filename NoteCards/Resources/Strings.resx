@@ -53,6 +53,8 @@
   <data name="LatestVersion" xml:space="preserve"><value>You are using the latest version.</value></data>
   <data name="AppUpdate" xml:space="preserve"><value>App Update</value></data>
   <data name="DashboardSections" xml:space="preserve"><value>Dashboard sections</value></data>
+  <data name="CalendarSection" xml:space="preserve"><value>Calendar</value></data>
+  <data name="ToggleCalendarSection" xml:space="preserve"><value>Show/hide calendar</value></data>
   <data name="ToggleRecentNotesSection" xml:space="preserve"><value>Show/hide recent notes</value></data>
   <data name="MoveGroupsSectionUp" xml:space="preserve"><value>Move groups section up</value></data>
   <data name="MoveGroupsSectionDown" xml:space="preserve"><value>Move groups section down</value></data>
@@ -61,6 +63,8 @@
   <data name="MoveThisGroupDown" xml:space="preserve"><value>Move this group down</value></data>
   <data name="MoveUngroupedSectionUp" xml:space="preserve"><value>Move ungrouped section up</value></data>
   <data name="MoveUngroupedSectionDown" xml:space="preserve"><value>Move ungrouped section down</value></data>
+  <data name="MoveCalendarSectionUp" xml:space="preserve"><value>Move calendar section up</value></data>
+  <data name="MoveCalendarSectionDown" xml:space="preserve"><value>Move calendar section down</value></data>
   <data name="ToggleUngroupedSection" xml:space="preserve"><value>Show/hide ungrouped notes</value></data>
   <data name="UserActivitySummaryTitle" xml:space="preserve"><value>Activity Summary</value></data>
   <data name="StatsTotalNotesFormat" xml:space="preserve"><value>Total notes: {0}</value></data>
@@ -187,6 +191,20 @@ Right-click to remove</value></data>
   <data name="UnsavedChanges" xml:space="preserve"><value>Unsaved Changes</value></data>
   <data name="TabCloseWarning" xml:space="preserve"><value>This tab has unsaved changes. Close anyway?</value></data>
   <data name="SelectMultiple" xml:space="preserve"><value>Select note</value></data>
+  <data name="CalendarAssignMenu" xml:space="preserve"><value>Schedule in calendar...</value></data>
+  <data name="CalendarAssignTitle" xml:space="preserve"><value>Schedule note</value></data>
+  <data name="CalendarAssignHint" xml:space="preserve"><value>Add one or more reminder dates for this note.</value></data>
+  <data name="CalendarDateTime" xml:space="preserve"><value>Date and time</value></data>
+  <data name="CalendarHourShort" xml:space="preserve"><value>Hour</value></data>
+  <data name="CalendarMinuteShort" xml:space="preserve"><value>Min</value></data>
+  <data name="CalendarNote" xml:space="preserve"><value>Reminder note</value></data>
+  <data name="CalendarExistingSchedules" xml:space="preserve"><value>Scheduled reminders</value></data>
+  <data name="CalendarAddSchedule" xml:space="preserve"><value>Add reminder</value></data>
+  <data name="CalendarRemoveSchedule" xml:space="preserve"><value>Remove reminder</value></data>
+  <data name="CalendarEditSchedule" xml:space="preserve"><value>Edit schedule</value></data>
+  <data name="CalendarNoSchedulesForDay" xml:space="preserve"><value>No scheduled notes for this day.</value></data>
+  <data name="CalendarClearSchedule" xml:space="preserve"><value>Clear schedule</value></data>
+  <data name="CalendarDateRequired" xml:space="preserve"><value>Please select a date for the reminder.</value></data>
   <data name="MassSelectModeTitle" xml:space="preserve"><value>Select note</value></data>
   <data name="MassSelectSelectedCount" xml:space="preserve"><value>Selected: {0}</value></data>
   <data name="MassSelectMoreActions" xml:space="preserve"><value>More actions</value></data>

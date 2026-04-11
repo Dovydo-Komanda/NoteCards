@@ -38,6 +38,8 @@ public class NoteCardViewModel : ViewModelBase
 
     public bool HasTags => Document.Tags?.Count > 0;
 
+    public bool HasSchedule => Document.ScheduledAt.HasValue || (Document.Schedules?.Count ?? 0) > 0;
+
     public string TagsDisplay
     {
         get
@@ -178,6 +180,7 @@ public class NoteCardViewModel : ViewModelBase
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(Content));
         OnPropertyChanged(nameof(HasTags));
+        OnPropertyChanged(nameof(HasSchedule));
         OnPropertyChanged(nameof(TagsDisplay));
         OnPropertyChanged(nameof(TagsSearchText));
         OnPropertyChanged(nameof(IsGrouped));

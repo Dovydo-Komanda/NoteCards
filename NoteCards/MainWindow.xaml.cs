@@ -7,6 +7,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -14,6 +15,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using System.Windows.Markup;
 
 namespace NoteCards
 {
@@ -31,9 +33,11 @@ namespace NoteCards
         private bool _notesLayoutRefreshQueued;
 
         private FrameworkElement? RecentSectionBodyElement => FindName("RecentSectionBody") as FrameworkElement;
+        private FrameworkElement? CalendarSectionBodyElement => FindName("CalendarSectionBody") as FrameworkElement;
         private FrameworkElement? GroupsSectionBodyElement => FindName("GroupsSectionBody") as FrameworkElement;
         private ItemsControl? GroupsItemsControlElement => FindName("GroupsItemsControl") as ItemsControl;
         private FrameworkElement? UngroupedSectionBodyElement => FindName("UngroupedSectionBody") as FrameworkElement;
+        private FrameworkElement? CalendarSectionContainerElement => FindName("CalendarSectionContainer") as FrameworkElement;
         private FrameworkElement? GroupsSectionContainerElement => FindName("GroupsSectionContainer") as FrameworkElement;
         private FrameworkElement? UngroupedSectionContainerElement => FindName("UngroupedSectionContainer") as FrameworkElement;
         private FrameworkElement? MassSelectOverlayToolbarElement => FindName("MassSelectOverlayToolbar") as FrameworkElement;
@@ -55,9 +59,21 @@ namespace NoteCards
         {
             InitializeComponent();
             NoteCards.Services.ActivityTracker.Initialize();
+            ApplyCurrentLanguage();
+            LocalizationService.CultureChanged += LocalizationService_CultureChanged;
             Loaded += MainWindow_Loaded;
             Unloaded += MainWindow_Unloaded;
             DataContextChanged += MainWindow_DataContextChanged;
+        }
+
+        private void LocalizationService_CultureChanged(object? sender, EventArgs e)
+        {
+            Dispatcher.Invoke(ApplyCurrentLanguage);
+        }
+
+        private void ApplyCurrentLanguage()
+        {
+            Language = XmlLanguage.GetLanguage(CultureInfo.CurrentUICulture.IetfLanguageTag);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -68,6 +84,7 @@ namespace NoteCards
 
         private void MainWindow_Unloaded(object sender, RoutedEventArgs e)
         {
+            LocalizationService.CultureChanged -= LocalizationService_CultureChanged;
             AttachViewModel(null);
         }
 
@@ -115,6 +132,8 @@ namespace NoteCards
 
                 NotesScrollViewer?.InvalidateMeasure();
                 NotesScrollViewer?.InvalidateArrange();
+                CalendarSectionContainerElement?.InvalidateMeasure();
+                CalendarSectionBodyElement?.InvalidateMeasure();
                 GroupsSectionContainerElement?.InvalidateMeasure();
                 GroupsSectionBodyElement?.InvalidateMeasure();
                 UngroupedSectionContainerElement?.InvalidateMeasure();
@@ -136,6 +155,8 @@ namespace NoteCards
             {
                 if (e.PropertyName == nameof(MainViewModel.IsRecentSectionExpanded))
                     AnimateSectionVisibility(RecentSectionBodyElement, vm.IsRecentSectionExpanded);
+                else if (e.PropertyName == nameof(MainViewModel.IsCalendarSectionExpanded))
+                    AnimateSectionVisibility(CalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
                 else if (e.PropertyName == nameof(MainViewModel.IsGroupsSectionExpanded))
                     AnimateSectionVisibility(GroupsSectionBodyElement, vm.IsGroupsSectionExpanded);
                 else if (e.PropertyName == nameof(MainViewModel.IsUngroupedSectionExpanded))
@@ -174,6 +195,7 @@ namespace NoteCards
                 return;
 
             SetSectionVisibilityImmediately(RecentSectionBodyElement, vm.IsRecentSectionExpanded);
+            SetSectionVisibilityImmediately(CalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
             SetSectionVisibilityImmediately(GroupsSectionBodyElement, vm.IsGroupsSectionExpanded);
             SetSectionVisibilityImmediately(UngroupedSectionBodyElement, vm.IsUngroupedSectionExpanded);
             SetSidebarWidthImmediately(vm.SidebarWidth);
@@ -398,6 +420,9 @@ namespace NoteCards
             if (vm.IsRecentSectionExpanded && window.RecentSectionBodyElement is FrameworkElement recent)
                 recent.MaxHeight = double.PositiveInfinity;
 
+            if (vm.IsCalendarSectionExpanded && window.CalendarSectionBodyElement is FrameworkElement calendar)
+                calendar.MaxHeight = double.PositiveInfinity;
+
             if (vm.IsGroupsSectionExpanded && window.GroupsSectionBodyElement is FrameworkElement groups)
                 groups.MaxHeight = double.PositiveInfinity;
 
@@ -524,6 +549,15 @@ namespace NoteCards
         {
             AnimateSectionReflow(GroupsSectionContainerElement, groupsOffset);
             AnimateSectionReflow(UngroupedSectionContainerElement, ungroupedOffset);
+        }
+
+        private void DashboardCalendar_SelectedDatesChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm || sender is not System.Windows.Controls.Calendar calendar)
+                return;
+
+            if (calendar.SelectedDate.HasValue)
+                vm.CalendarSelectedDate = calendar.SelectedDate.Value.Date;
         }
 
         private static void AnimateSectionReflow(FrameworkElement? element, double startOffset)
@@ -859,6 +893,28 @@ namespace NoteCards
             };
         }
 
+        public void OpenNoteSchedule(NoteCardViewModel noteViewModel)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            var schedulePanel = FindName("NoteSchedulePanelControl") as NoteSchedulePanel;
+            schedulePanel?.ShowAnimated(vm, noteViewModel);
+        }
+
+        private static bool IsWithinCalendarScheduleGearButton(DependencyObject? source)
+        {
+            while (source != null)
+            {
+                if (source is Button button && string.Equals(button.Name, "CalendarScheduleGearButton", StringComparison.Ordinal))
+                    return true;
+
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            return false;
+        }
+
         // Settings menu button click handler
         private void SettingsMenuButton_Click(object sender, RoutedEventArgs e)
         {
@@ -875,6 +931,23 @@ namespace NoteCards
                 OpenNoteEditor(noteVm);
         }
 
+        private void CalendarScheduledItemCard_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is DependencyObject source && IsWithinCalendarScheduleGearButton(source))
+                return;
+
+            if (sender is Border { Tag: NoteCardViewModel noteVm })
+                OpenNoteEditor(noteVm);
+        }
+
+        private void CalendarScheduleGearButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: NoteCardViewModel noteVm })
+                OpenNoteSchedule(noteVm);
+
+            e.Handled = true;
+        }
+
         private void ToggleRecentSectionButton_Click(object sender, RoutedEventArgs e)
         {
             if (DataContext is MainViewModel vm)
@@ -885,6 +958,12 @@ namespace NoteCards
         {
             if (DataContext is MainViewModel vm)
                 vm.IsGroupsSectionExpanded = !vm.IsGroupsSectionExpanded;
+        }
+
+        private void ToggleCalendarSectionButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.IsCalendarSectionExpanded = !vm.IsCalendarSectionExpanded;
         }
 
         private void ToggleUngroupedSectionButton_Click(object sender, RoutedEventArgs e)
@@ -962,6 +1041,18 @@ namespace NoteCards
         {
             if (DataContext is MainViewModel vm)
                 vm.IsGroupsFirst = true;
+        }
+
+        private void MoveCalendarUpButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.IsCalendarFirst = true;
+        }
+
+        private void MoveCalendarDownButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.IsCalendarFirst = false;
         }
 
         private void MoveSingleGroupUpButton_Click(object sender, RoutedEventArgs e)

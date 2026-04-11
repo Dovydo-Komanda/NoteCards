@@ -1,5 +1,6 @@
 using NoteCards.ViewModels;
 using NoteCards.Localization;
+using NoteCards.Views;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -324,5 +325,16 @@ public partial class NoteCardControl : UserControl
                 MessageBox.Show(LocalizationService.GetString("FailedToOpenFile"), LocalizationService.GetString("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+    }
+
+    private void OnAssignScheduleMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not NoteCardViewModel noteVm)
+            return;
+
+        if (Window.GetWindow(this) is not MainWindow mainWindow)
+            return;
+
+        mainWindow.OpenNoteSchedule(noteVm);
     }
 }

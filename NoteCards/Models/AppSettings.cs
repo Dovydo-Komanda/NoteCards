@@ -26,6 +26,12 @@ public class AppSettings
 
     public bool IsUngroupedSectionVisible { get; set; } = true;
 
+    public bool IsCalendarSectionExpanded { get; set; } = true;
+
+    public bool IsCalendarSectionVisible { get; set; } = true;
+
+    public bool IsCalendarFirst { get; set; } = true;
+
     public string DefaultViewMode { get; set; } = "Grid";
 
     public bool IsGroupsFirst { get; set; } = true;
