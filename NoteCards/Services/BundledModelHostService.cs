@@ -43,7 +43,6 @@ public sealed class BundledModelHostService
     private static readonly TimeSpan InferenceInactivityTimeout = TimeSpan.FromSeconds(90);
 
     private const string RuntimeExeName = "llama-completion.exe";
-    private const string LegacyRuntimeExeName = "llama-cli.exe";
     private const string RuntimeArchivePrefix = "notecards-model-runtime";
     private const string DefaultModelKey = "Qwen3.5-0.8B";
     private static readonly string[] RuntimeReleaseApiUrls =
@@ -558,17 +557,7 @@ public sealed class BundledModelHostService
 
                 var extractedRuntimePath = Directory
                     .EnumerateFiles(extractDir, "*.exe", SearchOption.AllDirectories)
-                    .Where(path =>
-                    {
-                        var name = Path.GetFileName(path);
-                        return string.Equals(name, RuntimeExeName, StringComparison.OrdinalIgnoreCase)
-                            || string.Equals(name, LegacyRuntimeExeName, StringComparison.OrdinalIgnoreCase);
-                    })
-                    .OrderBy(path =>
-                    {
-                        var name = Path.GetFileName(path);
-                        return string.Equals(name, RuntimeExeName, StringComparison.OrdinalIgnoreCase) ? 0 : 1;
-                    })
+                    .Where(path => string.Equals(Path.GetFileName(path), RuntimeExeName, StringComparison.OrdinalIgnoreCase))
                     .FirstOrDefault();
 
                 if (string.IsNullOrWhiteSpace(extractedRuntimePath))
@@ -576,15 +565,6 @@ public sealed class BundledModelHostService
 
                 TryDeleteDirectory(runtimeCacheDir);
                 CopyRuntimePayload(extractedRuntimePath, Path.Combine(runtimeCacheDir, RuntimeExeName));
-
-                if (!File.Exists(Path.Combine(runtimeCacheDir, RuntimeExeName)))
-                {
-                    var legacyPath = Path.Combine(runtimeCacheDir, LegacyRuntimeExeName);
-                    if (File.Exists(legacyPath))
-                    {
-                        File.Copy(legacyPath, Path.Combine(runtimeCacheDir, RuntimeExeName), overwrite: true);
-                    }
-                }
 
                 return;
             }
