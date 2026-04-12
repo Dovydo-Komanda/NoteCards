@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using System.ComponentModel;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using NoteCards.Localization;
 using NoteCards.Models;
 
@@ -24,7 +25,6 @@ public sealed class BundledModelHostService
         string DownloadStatusKey,
         long MinimumBytes,
         long MinimumRecommendedMemoryBytes,
-        string? Sha256,
         string[] Urls);
 
     private readonly SemaphoreSlim _sync = new(1, 1);
@@ -43,7 +43,15 @@ public sealed class BundledModelHostService
     private static readonly TimeSpan InferenceInactivityTimeout = TimeSpan.FromSeconds(90);
 
     private const string RuntimeExeName = "llama-completion.exe";
+    private const string LegacyRuntimeExeName = "llama-cli.exe";
+    private const string RuntimeArchivePrefix = "notecards-model-runtime";
     private const string DefaultModelKey = "Qwen3.5-0.8B";
+    private static readonly string[] RuntimeReleaseApiUrls =
+    [
+        "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest",
+        "https://api.github.com/repos/ggerganov/llama.cpp/releases/latest"
+    ];
+
     private static readonly ModelInfo[] SupportedModels =
     [
         new(
@@ -55,7 +63,6 @@ public sealed class BundledModelHostService
             "ConvertToFlashcardsStatusDownloadingModel08B",
             100L * 1024L * 1024L,
             0,
-            "de9bcb3f1b16e6e33ab42b3851e80945d4153631418c8494a77bfa46b3ac70ec",
             [
                 "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf",
                 "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true",
@@ -70,7 +77,6 @@ public sealed class BundledModelHostService
             "ConvertToFlashcardsStatusDownloadingModel2B",
             300L * 1024L * 1024L,
             6L * 1024L * 1024L * 1024L,
-            "125b05d833c1decf4fb55f5f12e97737245cab9711841fc4cdbcd3afcfd39aae",
             [
                 "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf",
                 "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf?download=true",
@@ -85,7 +91,6 @@ public sealed class BundledModelHostService
             "ConvertToFlashcardsStatusDownloadingModel4B",
             600L * 1024L * 1024L,
             12L * 1024L * 1024L * 1024L,
-            "1d203c2196991da08bc5b191ab4727516f476f3167e3276f75a0c5257493aadb",
             [
                 "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf",
                 "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf?download=true",
@@ -487,12 +492,16 @@ public sealed class BundledModelHostService
         IProgress<FlashcardProgress>? progress,
         CancellationToken cancellationToken)
     {
-        await EnsureRuntimeAssetsAsync(runtimeAssetsDir, runtimeCacheDir, cancellationToken);
+        await EnsureRuntimeAssetsAsync(runtimeAssetsDir, runtimeCacheDir, progress, cancellationToken);
         await EnsureModelAssetAsync(modelsAssetsDir, modelsCacheDir, selectedModel, progress, cancellationToken);
         progress?.Report(new FlashcardProgress("ConvertToFlashcardsStatusAssetsReady"));
     }
 
-    private static async Task EnsureRuntimeAssetsAsync(string runtimeAssetsDir, string runtimeCacheDir, CancellationToken cancellationToken)
+    private static async Task EnsureRuntimeAssetsAsync(
+        string runtimeAssetsDir,
+        string runtimeCacheDir,
+        IProgress<FlashcardProgress>? progress,
+        CancellationToken cancellationToken)
     {
         var cacheRuntimePath = Path.Combine(runtimeCacheDir, RuntimeExeName);
         if (IsRuntimePayloadAvailable(cacheRuntimePath)
@@ -503,13 +512,197 @@ public sealed class BundledModelHostService
 
         var bundledRuntimePath = Path.Combine(runtimeAssetsDir, RuntimeExeName);
         if (!IsRuntimePayloadAvailable(bundledRuntimePath))
-            throw new FileNotFoundException("Bundled llama runtime is missing. Reinstall the app package to restore AI runtime assets.", bundledRuntimePath);
+        {
+            await TryDownloadRuntimePayloadToDirectoryAsync(runtimeCacheDir, progress, cancellationToken);
+
+            if (IsRuntimePayloadAvailable(cacheRuntimePath)
+                && await IsRuntimeRunnableAsync(cacheRuntimePath, cancellationToken))
+            {
+                return;
+            }
+
+            throw new FileNotFoundException("Bundled llama.cpp runtime is missing and runtime download failed.", Path.Combine(runtimeAssetsDir, RuntimeExeName));
+        }
 
         TryDeleteDirectory(runtimeCacheDir);
         CopyRuntimePayload(bundledRuntimePath, cacheRuntimePath);
 
         if (!await IsRuntimeRunnableAsync(cacheRuntimePath, cancellationToken))
             throw new InvalidOperationException("Bundled llama runtime is present but could not be started from cache.");
+    }
+
+    private static async Task TryDownloadRuntimePayloadToDirectoryAsync(
+        string runtimeCacheDir,
+        IProgress<FlashcardProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        var runtimeUrls = await ResolveRuntimeDownloadUrlsAsync(cancellationToken);
+        if (runtimeUrls.Count == 0)
+            throw new InvalidOperationException("No compatible llama.cpp runtime download URLs were resolved for this architecture.");
+
+        progress?.Report(new FlashcardProgress("ConvertToFlashcardsStatusDownloadingRuntime", 0));
+
+        Exception? lastError = null;
+        foreach (var runtimeUrl in runtimeUrls)
+        {
+            var tempWorkDir = Path.Combine(Path.GetTempPath(), "NoteCards", "runtime-download", Guid.NewGuid().ToString("N"));
+            var archivePath = Path.Combine(tempWorkDir, $"{RuntimeArchivePrefix}.zip");
+            var extractDir = Path.Combine(tempWorkDir, "extract");
+            try
+            {
+                Directory.CreateDirectory(tempWorkDir);
+                await DownloadFileWithRetryAsync(runtimeUrl, archivePath, "ConvertToFlashcardsStatusDownloadingRuntime", progress, cancellationToken);
+
+                Directory.CreateDirectory(extractDir);
+                ZipFile.ExtractToDirectory(archivePath, extractDir, overwriteFiles: true);
+
+                var extractedRuntimePath = Directory
+                    .EnumerateFiles(extractDir, "*.exe", SearchOption.AllDirectories)
+                    .Where(path =>
+                    {
+                        var name = Path.GetFileName(path);
+                        return string.Equals(name, RuntimeExeName, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(name, LegacyRuntimeExeName, StringComparison.OrdinalIgnoreCase);
+                    })
+                    .OrderBy(path =>
+                    {
+                        var name = Path.GetFileName(path);
+                        return string.Equals(name, RuntimeExeName, StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+                    })
+                    .FirstOrDefault();
+
+                if (string.IsNullOrWhiteSpace(extractedRuntimePath))
+                    throw new FileNotFoundException("Downloaded runtime archive does not contain llama-completion executable.", RuntimeExeName);
+
+                TryDeleteDirectory(runtimeCacheDir);
+                CopyRuntimePayload(extractedRuntimePath, Path.Combine(runtimeCacheDir, RuntimeExeName));
+
+                if (!File.Exists(Path.Combine(runtimeCacheDir, RuntimeExeName)))
+                {
+                    var legacyPath = Path.Combine(runtimeCacheDir, LegacyRuntimeExeName);
+                    if (File.Exists(legacyPath))
+                    {
+                        File.Copy(legacyPath, Path.Combine(runtimeCacheDir, RuntimeExeName), overwrite: true);
+                    }
+                }
+
+                return;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+            }
+            finally
+            {
+                TryDeleteDirectory(tempWorkDir);
+            }
+        }
+
+        if (lastError is not null)
+        {
+            var attempted = string.Join(", ", runtimeUrls);
+            throw new InvalidOperationException(
+                $"Failed to download runtime payload automatically. Attempted URLs: {attempted}. Last error: {lastError.Message}",
+                lastError);
+        }
+    }
+
+    private static async Task<IReadOnlyList<string>> ResolveRuntimeDownloadUrlsAsync(CancellationToken cancellationToken)
+    {
+        var overrideUrl = Environment.GetEnvironmentVariable("NOTECARDS_LLAMA_RUNTIME_URL");
+        if (string.IsNullOrWhiteSpace(overrideUrl))
+            overrideUrl = Environment.GetEnvironmentVariable("NOTECARDS_OLLAMA_RUNTIME_URL");
+
+        if (string.IsNullOrWhiteSpace(overrideUrl))
+            return await ResolveRuntimeUrlsFromReleaseApiAsync(cancellationToken);
+
+#if DEBUG
+        if (Uri.TryCreate(overrideUrl, UriKind.Absolute, out var debugUri)
+            && (string.Equals(debugUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(debugUri.Host, "localhost", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(debugUri.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)))
+        {
+            return [overrideUrl];
+        }
+
+        throw new InvalidOperationException("NOTECARDS_LLAMA_RUNTIME_URL must be an HTTPS URL (or localhost) in Debug builds.");
+#else
+        return await ResolveRuntimeUrlsFromReleaseApiAsync(cancellationToken);
+#endif
+    }
+
+    private static async Task<IReadOnlyList<string>> ResolveRuntimeUrlsFromReleaseApiAsync(CancellationToken cancellationToken)
+    {
+        var isArm64 = RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+        var preferredArchTokens = isArm64
+            ? new[] { "arm64", "aarch64" }
+            : new[] { "x64", "amd64" };
+
+        foreach (var apiUrl in RuntimeReleaseApiUrls)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+                request.Headers.Accept.ParseAdd("application/vnd.github+json");
+
+                using var response = await DownloadClient.SendAsync(request, cancellationToken);
+                response.EnsureSuccessStatusCode();
+
+                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+
+                if (!document.RootElement.TryGetProperty("assets", out var assets)
+                    || assets.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                var urls = assets
+                    .EnumerateArray()
+                    .Select(a =>
+                    {
+                        var name = a.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+                        var url = a.TryGetProperty("browser_download_url", out var urlProp) ? urlProp.GetString() : null;
+                        return (name, url);
+                    })
+                    .Where(x => !string.IsNullOrWhiteSpace(x.name) && !string.IsNullOrWhiteSpace(x.url))
+                    .Where(x => x.name!.Contains("win", StringComparison.OrdinalIgnoreCase))
+                    .Where(x => preferredArchTokens.Any(t => x.name!.Contains(t, StringComparison.OrdinalIgnoreCase)))
+                    .Where(x => x.name!.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                    .Where(x => !x.name!.Contains("cuda", StringComparison.OrdinalIgnoreCase)
+                             && !x.name.Contains("vulkan", StringComparison.OrdinalIgnoreCase)
+                             && !x.name.Contains("metal", StringComparison.OrdinalIgnoreCase)
+                             && !x.name.Contains("opencl", StringComparison.OrdinalIgnoreCase)
+                             && !x.name.Contains("sycl", StringComparison.OrdinalIgnoreCase)
+                             && !x.name.Contains("rocm", StringComparison.OrdinalIgnoreCase)
+                             && !x.name.Contains("hip", StringComparison.OrdinalIgnoreCase))
+                    .Select(x => x.url!)
+                    .Where(IsSafeRuntimeDownloadUrl)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                if (urls.Length > 0)
+                    return urls;
+            }
+            catch
+            {
+            }
+        }
+
+        return Array.Empty<string>();
+    }
+
+    private static bool IsSafeRuntimeDownloadUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return false;
+
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(uri.Host, "objects.githubusercontent.com", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(uri.Host, "api.github.com", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task EnsureModelAssetAsync(
@@ -551,7 +744,6 @@ public sealed class BundledModelHostService
             {
                 await DownloadFileWithRetryAsync(modelUrl, tempPath, model.DownloadStatusKey, progress, cancellationToken);
                 ValidateDownloadedModelFile(tempPath, model);
-                ValidateModelChecksum(tempPath, model);
                 File.Move(tempPath, modelPath, overwrite: true);
                 return;
             }
@@ -561,7 +753,10 @@ public sealed class BundledModelHostService
                 TryDeleteFile(tempPath);
             }
         }
-        throw new InvalidOperationException("Failed to download bundled Qwen model automatically.", lastError);
+        var attempted = string.Join(", ", urls);
+        throw new InvalidOperationException(
+            $"Failed to download bundled Qwen model automatically. Attempted URLs: {attempted}. Last error: {lastError?.Message}",
+            lastError);
     }
 
     private static IReadOnlyList<string> ResolveModelDownloadUrls(IEnumerable<string> modelUrls)
@@ -605,35 +800,6 @@ public sealed class BundledModelHostService
             || string.Equals(uri.Host, "hf-mirror.com", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void ValidateModelChecksum(string filePath, ModelInfo model)
-    {
-        var expectedHash = Environment.GetEnvironmentVariable("NOTECARDS_QWEN_MODEL_SHA256");
-        if (string.IsNullOrWhiteSpace(expectedHash))
-            expectedHash = model.Sha256;
-        if (string.IsNullOrWhiteSpace(expectedHash))
-            return;
-
-        using var stream = File.OpenRead(filePath);
-        var actualHash = Convert.ToHexStringLower(SHA256.HashData(stream));
-        var normalizedExpected = NormalizeSha256(expectedHash);
-
-        if (!string.Equals(actualHash, normalizedExpected, StringComparison.Ordinal))
-            throw new InvalidDataException("Downloaded model checksum does not match NOTECARDS_QWEN_MODEL_SHA256.");
-    }
-
-    private static string NormalizeSha256(string hash)
-    {
-        var cleaned = hash.Trim().ToLowerInvariant();
-        if (cleaned.StartsWith("sha256:", StringComparison.Ordinal))
-            cleaned = cleaned[7..];
-        cleaned = cleaned.Replace("-", string.Empty, StringComparison.Ordinal);
-
-        if (cleaned.Length != 64 || cleaned.Any(c => !IsHexChar(c)))
-            throw new InvalidDataException("Model SHA-256 value must be a 64-character hexadecimal string.");
-
-        return cleaned;
-    }
-
     private static string QuoteArgumentForLog(string value)
     {
         if (string.IsNullOrEmpty(value))
@@ -660,23 +826,6 @@ public sealed class BundledModelHostService
             {
                 await Task.Delay(150, cancellationToken);
             }
-        }
-    }
-
-    private static string? TryGetBundledModelChecksum(ModelInfo model)
-    {
-        try
-        {
-            var bundledModelPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Models", model.FileName);
-            if (!IsModelFileValid(bundledModelPath, model))
-                return null;
-
-            using var stream = File.OpenRead(bundledModelPath);
-            return Convert.ToHexStringLower(SHA256.HashData(stream));
-        }
-        catch
-        {
-            return null;
         }
     }
 

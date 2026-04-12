@@ -262,6 +262,7 @@ namespace NoteCards
             {
                 var baseText = LocalizationService.GetString(status.StatusKey);
                 string text;
+                var useAnimation = true;
 
                 if (status.GeneratedChars.HasValue)
                 {
@@ -273,13 +274,17 @@ namespace NoteCards
                 else if (status.Percent.HasValue)
                 {
                     text = string.Format(LocalizationService.GetString("ConvertToFlashcardsStatusPercentFormat"), baseText, status.Percent.Value);
+                    useAnimation = false;
                 }
                 else
                 {
                     text = baseText;
                 }
 
-                ShowPersistentStatusIndicator(text);
+                if (useAnimation)
+                    ShowPersistentStatusIndicator(text);
+                else
+                    ShowPersistentStatusIndicatorWithoutAnimation(text);
             });
 
             try
@@ -352,6 +357,15 @@ namespace NoteCards
             };
             StatusIndicatorText.BeginAnimation(TextBlock.OpacityProperty, fadeIn);
         }
+
+    private void ShowPersistentStatusIndicatorWithoutAnimation(string message)
+    {
+        AnimateStatusIndicatorRow(expand: true);
+        StatusIndicatorText.BeginAnimation(TextBlock.OpacityProperty, null);
+        StatusIndicatorText.Opacity = 1;
+        StatusIndicatorText.Text = message;
+        StatusIndicatorText.Visibility = Visibility.Visible;
+    }
 
         private void HideStatusIndicator()
         {
