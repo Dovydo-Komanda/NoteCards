@@ -38,6 +38,8 @@ public class AppSettings
 
     public string FlashcardModelKey { get; set; } = "AutoSelect";
 
+    public int FlashcardFlipDelayMilliseconds { get; set; } = 300;
+
     // Activity Tracking
     public long TotalTimeSpentSeconds { get; set; } = 0;
     public long TotalWordsTyped { get; set; } = 0;

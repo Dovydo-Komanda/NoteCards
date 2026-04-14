@@ -253,4 +253,6 @@ Right-click to remove</value></data>
   <data name="FlashcardSideAnswer" xml:space="preserve"><value>ANSWER</value></data>
   <data name="FlashcardsShowQuestions" xml:space="preserve"><value>Show questions</value></data>
   <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Show answers</value></data>
+  <data name="FlashcardFlipSpeed" xml:space="preserve"><value>Flip speed:</value></data>
+  <data name="FlashcardFlipSpeedDescription" xml:space="preserve"><value>Control how fast flashcards flip between question and answer</value></data>
 </root>

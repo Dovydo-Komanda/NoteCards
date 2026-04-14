@@ -91,6 +91,8 @@ namespace NoteCards.Views
             _isApplyingSettings = true;
             EnableScrollbarCheckBox.IsChecked = settings.EnableScrollbar;
             EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
+            if (FindName("FlashcardFlipSpeedSlider") is Slider flipSpeedSlider)
+                flipSpeedSlider.Value = settings.FlashcardFlipDelayMilliseconds;
             RefreshFlashcardModelOptions(machineMemoryBytes);
             if (flashcardModelBox is not null)
                 SelectComboBoxItemByTag(flashcardModelBox, settings.FlashcardModelKey, recommendedModelKey);
@@ -463,6 +465,27 @@ namespace NoteCards.Views
                     vm.ViewMode = selected;
                 }
             }
+        }
+
+        private void FlashcardFlipSpeedSlider_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            SaveFlashcardFlipSpeed();
+        }
+
+        private void FlashcardFlipSpeedSlider_PreviewMouseUp(object sender, MouseEventArgs e)
+        {
+            SaveFlashcardFlipSpeed();
+        }
+
+        private void SaveFlashcardFlipSpeed()
+        {
+            if (_isApplyingSettings || FindName("FlashcardFlipSpeedSlider") is not Slider slider)
+                return;
+
+            var flipDelayMs = (int)slider.Value;
+            var settings = AppSettingsService.Load();
+            settings.FlashcardFlipDelayMilliseconds = flipDelayMs;
+            AppSettingsService.Save(settings);
         }
     }
 }

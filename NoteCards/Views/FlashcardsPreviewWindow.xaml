@@ -122,6 +122,32 @@
         <StackPanel Grid.Row="8"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right">
+            <StackPanel Orientation="Horizontal" 
+                        VerticalAlignment="Center"
+                        Margin="0,0,15,0">
+                <TextBlock Text="{Binding [FlashcardFlipSpeed], Source={StaticResource Loc}}"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextColor}"
+                           Margin="0,0,8,0"/>
+                <Slider x:Name="FlipSpeedSlider"
+                        Width="120"
+                        Minimum="100"
+                        Maximum="1000"
+                        TickPlacement="BottomRight"
+                        TickFrequency="100"
+                        IsSnapToTickEnabled="True"
+                        Height="20"
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0"/>
+                <TextBlock VerticalAlignment="Center"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextColorSecondary}"
+                           MinWidth="45">
+                    <Run Text="{Binding ElementName=FlipSpeedSlider, Path=Value}"/>
+                    <Run Text="ms"/>
+                </TextBlock>
+            </StackPanel>
             <Button Content="{Binding [FlashcardsShowQuestions], Source={StaticResource Loc}}"
                     Style="{StaticResource DialogSecondaryButtonStyle}"
                     MinWidth="170"

@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 
 namespace NoteCards.Views;
 
@@ -34,7 +35,25 @@ public partial class FlashcardsPreviewWindow : Window
     {
         if ((sender as FrameworkElement)?.DataContext is FlashcardPreviewItem item)
         {
-            item.IsFlipped = !item.IsFlipped;
+            if (sender is Border card)
+            {
+                // Fade out
+                var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150));
+                fadeOut.Completed += (_, _) =>
+                {
+                    // Toggle the flip in the middle of the animation
+                    item.IsFlipped = !item.IsFlipped;
+
+                    // Fade back in
+                    var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150));
+                    card.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+                };
+                card.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+            }
+            else
+            {
+                item.IsFlipped = !item.IsFlipped;
+            }
         }
     }
 

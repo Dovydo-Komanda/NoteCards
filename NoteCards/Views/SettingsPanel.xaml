@@ -260,6 +260,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Grid>
@@ -373,6 +374,52 @@
         Padding="16,12">
 
                     <StackPanel>
+                        <TextBlock Text="{Binding [FlashcardFlipSpeed], Source={StaticResource Loc}}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextColor}"/>
+
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Slider x:Name="FlashcardFlipSpeedSlider"
+                    Grid.Column="0"
+                    Minimum="100"
+                    Maximum="1000"
+                    TickPlacement="BottomRight"
+                    TickFrequency="100"
+                    IsSnapToTickEnabled="True"
+                    Height="24"
+                    VerticalAlignment="Center"
+                    PreviewMouseLeftButtonUp="FlashcardFlipSpeedSlider_PreviewMouseLeftButtonUp"
+                    PreviewMouseUp="FlashcardFlipSpeedSlider_PreviewMouseUp"/>
+
+                            <TextBlock Grid.Column="1"
+                   Margin="12,0,0,0"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextColor}">
+                                <Run Text="{Binding ElementName=FlashcardFlipSpeedSlider, Path=Value}"/>
+                                <Run Text="ms"/>
+                            </TextBlock>
+                        </Grid>
+
+                        <TextBlock Margin="0,8,0,0"
+                   Foreground="{DynamicResource TextColorSecondary}"
+                   FontSize="12"
+                   Text="{Binding [FlashcardFlipSpeedDescription], Source={StaticResource Loc}}"/>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Row="4"
+        Margin="0,14,0,0"
+        Background="{DynamicResource SidebarBackground}"
+        BorderBrush="{DynamicResource BorderColor}"
+        BorderThickness="1"
+        CornerRadius="12"
+        Padding="16,12">
+
+                    <StackPanel>
                         <TextBlock Text="{Binding [ViewMode], Source={StaticResource Loc}}"
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource TextColor}"/>
@@ -388,7 +435,7 @@
                     </StackPanel>
                 </Border>
                 <!-- Scrollbar and Auto-Save Settings -->
-                <Border Grid.Row="4"
+                <Border Grid.Row="5"
         Margin="0,14,0,0"
         Background="{DynamicResource SidebarBackground}"
         BorderBrush="{DynamicResource BorderColor}"
@@ -445,7 +492,7 @@
                 </Border>
 
                 <!-- Activity Summary Settings -->
-                <Border Grid.Row="5"
+                <Border Grid.Row="6"
                         Margin="0,14,0,0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
@@ -477,7 +524,7 @@
                 </Border>
 
                 <!-- Reset Factory Settings Section -->
-                <Border Grid.Row="6"
+                <Border Grid.Row="7"
                         Margin="0,14,0,0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
@@ -504,7 +551,7 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Grid.Row="7" Margin="0,20,0,0">
+                <Grid Grid.Row="8" Margin="0,20,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
