@@ -148,7 +148,6 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ClearFilters" xml:space="preserve"><value>Išvalyti</value></data>
   <data name="NoTagsFound" xml:space="preserve"><value>Žymių dar nėra.</value></data>
   <data name="SearchNotesHint" xml:space="preserve"><value>Momentinė paieška pagal pavadinimą, tekstą, žymes, grupę, datą, šriftą...</value></data>
-  <data name="SortButtonFormat" xml:space="preserve"><value>Rikiavimas: {0}</value></data>
   <data name="SortByLastModifiedDesc" xml:space="preserve"><value>Naujausiai redaguoti</value></data>
   <data name="SortByLastModifiedAsc" xml:space="preserve"><value>Seniausiai redaguoti</value></data>
   <data name="SortByCreatedAtDesc" xml:space="preserve"><value>Naujausiai sukurti</value></data>
@@ -248,4 +247,9 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardSideAnswer" xml:space="preserve"><value>ATSAKYMAS</value></data>
   <data name="FlashcardsShowQuestions" xml:space="preserve"><value>Rodyti klausimus</value></data>
   <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Rodyti atsakymus</value></data>
+  <data name="ResetFactorySettings" xml:space="preserve"><value>Atstatyti gamyklos nustatymus</value></data>
+  <data name="ResetFactorySettingsTitle" xml:space="preserve"><value>Atstatyti gamyklos nustatymus</value></data>
+  <data name="ResetFactorySettingsDescription" xml:space="preserve"><value>Atstatyti visus nustatymus ir duomenis į numatytuosius. Šis veiksmas negali būti anuliuotas.</value></data>
+  <data name="ResetFactorySettingsPrompt" xml:space="preserve"><value>Tai atstatys visus nustatymus ir duomenis į numatytuosius. Šio veiksmo negalima anuliuoti. Tęsti?</value></data>
+  <data name="ResetFactorySettingsWarning" xml:space="preserve"><value>⚠ Dėmesio: Šio veiksmo negalima anuliuoti.</value></data>
 </root>

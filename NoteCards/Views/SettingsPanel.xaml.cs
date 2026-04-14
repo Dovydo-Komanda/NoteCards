@@ -1,6 +1,8 @@
 using NoteCards.Localization;
+using NoteCards.Models;
 using NoteCards.Services;
 using NoteCards.ViewModels;
+using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -377,6 +379,70 @@ namespace NoteCards.Views
 
             dialog.ShowDialog();
         }
+
+        private void ResetFactorySettings_Click(object sender, RoutedEventArgs e)
+        {
+            var confirmDialog = new ResetFactorySettingsDialog
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            var result = confirmDialog.ShowDialog();
+
+            if (result == true)
+            {
+                PerformFactoryReset();
+            }
+        }
+
+        private void PerformFactoryReset()
+        {
+            try
+            {
+                // Reset all settings to defaults
+                var defaultSettings = new AppSettings
+                {
+                    FlashcardModelKey = BundledModelHostService.GetRecommendedFlashcardModelKeyForCurrentMachine()
+                };
+
+                AppSettingsService.Save(defaultSettings);
+
+                // Apply language change to reflect new settings
+                LocalizationService.SetCulture(defaultSettings.Language);
+
+                // Apply theme change
+                ThemeManager.SetTheme(defaultSettings.Theme);
+
+                // Reload the settings in this panel to reflect the reset
+                HideAnimated();
+
+                // Show confirmation message
+                var confirmMessage = new ModernInfoDialog(
+                    LocalizationService.GetString("Success"),
+                    "Settings have been reset to factory defaults. The app will now restart.")
+                {
+                    Owner = Window.GetWindow(this)
+                };
+
+                confirmMessage.ShowDialog();
+
+                // Restart the application
+                System.Diagnostics.Process.Start(System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "");
+                Application.Current.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                var errorDialog = new ModernInfoDialog(
+                    LocalizationService.GetString("Error"),
+                    $"Failed to reset factory settings: {ex.Message}")
+                {
+                    Owner = Window.GetWindow(this)
+                };
+
+                errorDialog.ShowDialog();
+            }
+        }
+
         private void ViewModeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_isApplyingSettings)

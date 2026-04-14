@@ -259,6 +259,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Grid>
@@ -475,7 +476,35 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Grid.Row="6" Margin="0,20,0,0">
+                <!-- Reset Factory Settings Section -->
+                <Border Grid.Row="6"
+                        Margin="0,14,0,0"
+                        Background="{DynamicResource SidebarBackground}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="16,12">
+                    <StackPanel>
+                        <TextBlock Text="{Binding [ResetFactorySettings], Source={StaticResource Loc}}"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextColor}"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="Reset all settings and data to default. This action cannot be undone."
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextColorSecondary}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
+                        <Button Content="{Binding [ResetFactorySettings], Source={StaticResource Loc}}"
+                                Style="{StaticResource DialogDangerButtonStyle}"
+                                Padding="14,8"
+                                MinWidth="140"
+                                HorizontalAlignment="Left"
+                                Click="ResetFactorySettings_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <Grid Grid.Row="7" Margin="0,20,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
