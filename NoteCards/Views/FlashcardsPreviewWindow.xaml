@@ -86,6 +86,9 @@
                                         Cursor="Hand">
                                     <Border.ContextMenu>
                                         <ContextMenu>
+                                            <MenuItem Header="{Binding [Edit], Source={StaticResource Loc}}"
+                                            Click="EditFlashcardMenuItem_Click"/>
+                                            <Separator/>
                                             <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
                                             Click="DeleteFlashcardMenuItem_Click"/>
                                         </ContextMenu>
@@ -100,7 +103,7 @@
                                             <RowDefinition Height="*"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
-
+                                        
                                         <TextBlock FontSize="12"
                                                    FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextColorSecondary}">
@@ -181,6 +184,17 @@
         CornerRadius="12"
         MouseLeftButtonUp="StudyModeCard_MouseLeftButtonUp"
         Cursor="Hand">
+
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{Binding [Edit], Source={StaticResource Loc}}"
+                      Click="EditFlashcardMenuItem_Click"/>
+                                <Separator/>
+                                <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
+                      Click="DeleteFlashcardMenuItem_Click"/>
+                            </ContextMenu>
+                        </Border.ContextMenu>
+
                         <Border.Effect>
                             <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.18"/>
                         </Border.Effect>

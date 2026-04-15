@@ -198,6 +198,8 @@ public partial class FlashcardsPreviewWindow : Window
         private bool _isFlipped;
         private bool _isKnown;
         private bool _isUnknown;
+        private string _question; 
+        private string _answer;   
 
         public FlashcardPreviewItem(string question, string answer, int setIndex)
         {
@@ -206,8 +208,32 @@ public partial class FlashcardsPreviewWindow : Window
             SetIndex = setIndex;
         }
 
-        public string Question { get; }
-        public string Answer { get; }
+        public string Question
+        {
+            get => _question;
+            set
+            {
+                if (_question != value)
+                {
+                    _question = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string Answer
+        {
+            get => _answer;
+            set
+            {
+                if (_answer != value)
+                {
+                    _answer = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public int SetIndex { get; }
 
         public bool IsFlipped
@@ -319,11 +345,35 @@ public partial class FlashcardsPreviewWindow : Window
         ApplyStudyModeState();
     }
 
-    private void DeleteFlashcardMenuItem_Click(object sender, RoutedEventArgs e)
+    private async void EditFlashcardMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as MenuItem)?.DataContext is not FlashcardPreviewItem flashcard)
+        if (sender is not MenuItem menuItem || menuItem.DataContext is not FlashcardPreviewItem flashcard)
             return;
 
+        var dialog = new EditFlashcardDialog
+        {
+            Owner = this,
+            Question = flashcard.Question,
+            Answer = flashcard.Answer
+        };
+
+        var result = dialog.ShowDialog();
+
+        if (result == true)
+        {
+            // Directly update the flashcard
+            flashcard.Question = dialog.Question;
+            flashcard.Answer = dialog.Answer;
+        }
+    }
+
+    // ? Delete flashcard menu item handler
+    private async void DeleteFlashcardMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem menuItem || menuItem.DataContext is not FlashcardPreviewItem flashcard)
+            return;
+
+        // Show confirmation dialog
         var result = MessageBox.Show(
             LocalizationService.GetString("DeleteFlashcardConfirmation"),
             LocalizationService.GetString("DeleteFlashcard"),
@@ -331,19 +381,25 @@ public partial class FlashcardsPreviewWindow : Window
             MessageBoxImage.Warning,
             MessageBoxResult.No);
 
-        if (result == MessageBoxResult.Yes)
-        {
-            _items.Remove(flashcard);
-            var itemToRemove = _allItems.FirstOrDefault(i =>
-                i.Question == flashcard.Question && i.Answer == flashcard.Answer);
-            if (itemToRemove != null)
-                _allItems.Remove(itemToRemove);
+        if (result != MessageBoxResult.Yes)
+            return;
 
-            if (_studyModeIndex >= _items.Count)
-                _studyModeIndex = Math.Max(0, _items.Count - 1);
+        // Remove from all items
+        _items.Remove(flashcard);
 
-            ApplyStudyModeState();
-        }
+        // Also remove from all items collection
+        var itemToRemove = _allItems.FirstOrDefault(i =>
+            i.Question == flashcard.Question && i.Answer == flashcard.Answer);
+
+        if (itemToRemove != null)
+            _allItems.Remove(itemToRemove);
+
+        // Adjust study mode index if needed
+        if (_studyModeIndex >= _items.Count)
+            _studyModeIndex = Math.Max(0, _items.Count - 1);
+
+        ApplyStudyModeState();
+        InitializeSetOptions(); // Refresh set options if needed
     }
 
     private sealed class FlashcardSetOption
