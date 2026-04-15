@@ -104,6 +104,47 @@
             <Setter Property="MinHeight" Value="32"/>
             <Setter Property="FontSize" Value="12"/>
         </Style>
+
+        <Style x:Key="FlashcardSearchIconButtonStyle" TargetType="Button">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI, sans-serif"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{DynamicResource IconButtonForeground}"/>
+            <Setter Property="Background" Value="{DynamicResource IconButtonBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource IconButtonBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="SearchIconBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.08"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="SearchIconBorder" Property="Background" Value="{DynamicResource IconButtonHoverBackground}"/>
+                                <Setter TargetName="SearchIconBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="SearchIconBorder" Property="Background" Value="{DynamicResource IconButtonPressedBackground}"/>
+                                <Setter TargetName="SearchIconBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="16">
@@ -135,10 +176,51 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <TextBlock Text="{Binding [FlashcardsTapHint], Source={StaticResource Loc}}"
-                       Foreground="{DynamicResource TextColorSecondary}"
-                       FontSize="13"
-                       VerticalAlignment="Center"/>
+                <StackPanel Orientation="Vertical"
+                            VerticalAlignment="Center">
+                <TextBlock Text="{Binding [FlashcardsTapHint], Source={StaticResource Loc}}"
+                               Foreground="{DynamicResource TextColorSecondary}"
+                               FontSize="13"
+                               VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal"
+                                Margin="0,6,0,0"
+                                VerticalAlignment="Center">
+                    <Button x:Name="FlashcardSearchToggleButton"
+                                Content="⌕"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource FlashcardSearchIconButtonStyle}"
+                                ToolTip="{Binding [Search], Source={StaticResource Loc}}"
+                                Click="FlashcardSearchToggleButton_Click"/>
+                        <Border x:Name="FlashcardSearchPanel"
+                                Width="0"
+                                Height="30"
+                                Padding="10,0"
+                                Visibility="Collapsed"
+                                IsHitTestVisible="False"
+                                Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Opacity="0">
+                            <DockPanel LastChildFill="True">
+                                <TextBlock Text="⌕"
+                                           Foreground="{DynamicResource TextColorSecondary}"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="13"/>
+                                <TextBox x:Name="FlashcardSearchTextBox"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         Foreground="{DynamicResource TextColor}"
+                                         CaretBrush="{DynamicResource TextColor}"
+                                         VerticalContentAlignment="Center"
+                                         TextChanged="FlashcardSearchTextBox_TextChanged"
+                                         KeyDown="FlashcardSearchTextBox_KeyDown"
+                                         ToolTip="{Binding [FlashcardSearchHint], Source={StaticResource Loc}}"/>
+                            </DockPanel>
+                    </Border>
+                </StackPanel>
+                </StackPanel>
 
                         <StackPanel Grid.Column="1"
                                                 Orientation="Horizontal"

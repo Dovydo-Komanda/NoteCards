@@ -13,11 +13,15 @@ namespace NoteCards.Views;
 public partial class FlashcardsPreviewWindow : Window
 {
     private const int DefaultSetIndex = 1;
+    private const double FlashcardSearchExpandedWidth = 260;
+    private const int FlashcardSearchAnimationMs = 240;
     private readonly List<FlashcardPreviewItem> _allItems;
     private readonly ObservableCollection<FlashcardPreviewItem> _items;
     private readonly ObservableCollection<FlashcardSetOption> _setOptions;
     private bool _isStudyMode;
     private int _studyModeIndex;
+    private int _currentSetIndex = DefaultSetIndex;
+    private string _searchText = string.Empty;
 
     public FlashcardsPreviewWindow(IEnumerable<FlashcardItem> items, string? modelDisplayName = null)
     {
@@ -69,14 +73,118 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void ApplySetFilter(int setIndex)
     {
-        var normalizedSetIndex = Math.Max(DefaultSetIndex, setIndex);
+        _currentSetIndex = Math.Max(DefaultSetIndex, setIndex);
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var normalizedQuery = (_searchText ?? string.Empty).Trim();
+
+        var filteredItems = _allItems.Where(item => item.SetIndex == _currentSetIndex);
+        if (!string.IsNullOrWhiteSpace(normalizedQuery))
+        {
+            filteredItems = filteredItems.Where(item =>
+                item.Question.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase)
+                || item.Answer.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase));
+        }
 
         _items.Clear();
-        foreach (var item in _allItems.Where(item => item.SetIndex == normalizedSetIndex))
+        foreach (var item in filteredItems)
             _items.Add(item);
 
         _studyModeIndex = 0;
         ApplyStudyModeState();
+    }
+
+    private void FlashcardSearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        _searchText = FlashcardSearchTextBox.Text ?? string.Empty;
+        ApplyFilters();
+    }
+
+    private void FlashcardSearchToggleButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (FlashcardSearchPanel.Visibility == Visibility.Visible)
+        {
+            CollapseFlashcardSearchPanel();
+            return;
+        }
+
+        ExpandFlashcardSearchPanel();
+    }
+
+    private void FlashcardSearchTextBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape)
+            return;
+
+        CollapseFlashcardSearchPanel();
+        e.Handled = true;
+    }
+
+    private void ExpandFlashcardSearchPanel()
+    {
+        FlashcardSearchPanel.Visibility = Visibility.Visible;
+        FlashcardSearchPanel.IsHitTestVisible = true;
+        FlashcardSearchPanel.BeginAnimation(FrameworkElement.WidthProperty, null);
+        FlashcardSearchPanel.BeginAnimation(OpacityProperty, null);
+
+        FlashcardSearchPanel.Width = 0;
+        FlashcardSearchPanel.Opacity = 0;
+
+        var duration = TimeSpan.FromMilliseconds(FlashcardSearchAnimationMs);
+        var easeOut = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+        FlashcardSearchPanel.BeginAnimation(FrameworkElement.WidthProperty, new DoubleAnimation(0, FlashcardSearchExpandedWidth, duration)
+        {
+            EasingFunction = easeOut
+        });
+        FlashcardSearchPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration)
+        {
+            EasingFunction = easeOut
+        });
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            FlashcardSearchTextBox.Focus();
+            FlashcardSearchTextBox.SelectAll();
+        }, System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    private void CollapseFlashcardSearchPanel()
+    {
+        if (FlashcardSearchPanel.Visibility != Visibility.Visible)
+            return;
+
+        var startWidth = FlashcardSearchPanel.ActualWidth > 0
+            ? FlashcardSearchPanel.ActualWidth
+            : Math.Max(FlashcardSearchPanel.Width, 1);
+        var startOpacity = FlashcardSearchPanel.Opacity;
+
+        if (startOpacity <= 0)
+            startOpacity = 1;
+
+        var duration = TimeSpan.FromMilliseconds(FlashcardSearchAnimationMs);
+        var easeIn = new CubicEase { EasingMode = EasingMode.EaseIn };
+
+        var widthAnimation = new DoubleAnimation(startWidth, 0, duration)
+        {
+            EasingFunction = easeIn
+        };
+        widthAnimation.Completed += (_, _) =>
+        {
+            FlashcardSearchPanel.Visibility = Visibility.Collapsed;
+            FlashcardSearchPanel.IsHitTestVisible = false;
+            FlashcardSearchPanel.Width = 0;
+            FlashcardSearchPanel.Opacity = 0;
+        };
+
+        FlashcardSearchPanel.BeginAnimation(FrameworkElement.WidthProperty, widthAnimation);
+        FlashcardSearchPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(startOpacity, 0, duration)
+        {
+            EasingFunction = easeIn
+        });
     }
 
     private int? GetSelectedSetIndex()

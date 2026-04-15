@@ -247,6 +247,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardSideAnswer" xml:space="preserve"><value>ATSAKYMAS</value></data>
   <data name="FlashcardsShowQuestions" xml:space="preserve"><value>Rodyti klausimus</value></data>
   <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Rodyti atsakymus</value></data>
+  <data name="FlashcardSearchHint" xml:space="preserve"><value>Rašykite, kad ieškotumėte klausimuose ir atsakymuose...</value></data>
   <data name="FlashcardSetLabel" xml:space="preserve"><value>Rinkinys:</value></data>
   <data name="FlashcardSetFormat" xml:space="preserve"><value>Rinkinys {0}</value></data>
   <data name="CreateFlashcardSet" xml:space="preserve"><value>Kurti rinkinį</value></data>
