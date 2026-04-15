@@ -467,25 +467,5 @@ namespace NoteCards.Views
             }
         }
 
-        private void FlashcardFlipSpeedSlider_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            SaveFlashcardFlipSpeed();
+            }
         }
-
-        private void FlashcardFlipSpeedSlider_PreviewMouseUp(object sender, MouseEventArgs e)
-        {
-            SaveFlashcardFlipSpeed();
-        }
-
-        private void SaveFlashcardFlipSpeed()
-        {
-            if (_isApplyingSettings || FindName("FlashcardFlipSpeedSlider") is not Slider slider)
-                return;
-
-            var flipDelayMs = (int)slider.Value;
-            var settings = AppSettingsService.Load();
-            settings.FlashcardFlipDelayMilliseconds = flipDelayMs;
-            AppSettingsService.Save(settings);
-        }
-    }
-}
