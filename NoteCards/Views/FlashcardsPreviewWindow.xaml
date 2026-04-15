@@ -31,10 +31,31 @@
                    Foreground="{DynamicResource TextColorSecondary}"
                    FontSize="13"/>
 
-        <TextBlock Grid.Row="4"
-                   Text="{Binding [FlashcardsTapHint], Source={StaticResource Loc}}"
-                   Foreground="{DynamicResource TextColorSecondary}"
-                   FontSize="13"/>
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="{Binding [FlashcardsTapHint], Source={StaticResource Loc}}"
+                       Foreground="{DynamicResource TextColorSecondary}"
+                       FontSize="13"
+                       VerticalAlignment="Center"/>
+
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center">
+                <TextBlock Text="{Binding [FlashcardSetLabel], Source={StaticResource Loc}}"
+                           Foreground="{DynamicResource TextColorSecondary}"
+                           FontSize="13"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <ComboBox x:Name="SetSelectorComboBox"
+                          Width="170"
+                          DisplayMemberPath="DisplayName"
+                          SelectionChanged="SetSelectorComboBox_SelectionChanged"/>
+            </StackPanel>
+        </Grid>
 
         <Grid Grid.Row="6">
             <Border x:Name="FlashcardsGridViewBorder"

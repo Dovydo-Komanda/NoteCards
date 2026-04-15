@@ -30,7 +30,7 @@ public sealed class FlashcardConversionService
                 chunkPrompt, nPredict: 1200, temperature: 0.25, progress: progress, cancellationToken);
 
             outputs.Add(result);
-            AddParsedFlashcards(cards, result);
+            AddParsedFlashcards(cards, result, i + 1);
         }
 
         if (cards.Count > 0)
@@ -43,7 +43,14 @@ public sealed class FlashcardConversionService
 
         var repairedParsed = ParseFlashcards(repaired);
         if (repairedParsed.Count > 0)
-            return repairedParsed;
+            return repairedParsed
+                .Select(card => new FlashcardItem
+                {
+                    Question = card.Question,
+                    Answer = card.Answer,
+                    SetIndex = 1
+                })
+                .ToList();
 
         var diagnosticPath = WriteParseDiagnostic(noteText, string.Join("\n\n--- CHUNK OUTPUT ---\n\n", outputs), repaired);
         throw new InvalidOperationException($"Unable to parse AI output into valid flashcards. Diagnostic log: {diagnosticPath}");
@@ -123,10 +130,17 @@ SOURCE NOTE:
         return items;
     }
 
-    private static void AddParsedFlashcards(ICollection<FlashcardItem> cards, string rawOutput)
+    private static void AddParsedFlashcards(ICollection<FlashcardItem> cards, string rawOutput, int setIndex)
     {
         foreach (var card in ParseFlashcards(rawOutput))
-            cards.Add(card);
+        {
+            cards.Add(new FlashcardItem
+            {
+                Question = card.Question,
+                Answer = card.Answer,
+                SetIndex = Math.Max(1, setIndex)
+            });
+        }
     }
 
     private static IReadOnlyList<FlashcardItem> DeduplicateFlashcards(IEnumerable<FlashcardItem> cards)
@@ -136,7 +150,7 @@ SOURCE NOTE:
 
         foreach (var card in cards)
         {
-            var key = $"{NormalizeCardKey(card.Question)}\u001F{NormalizeCardKey(card.Answer)}";
+            var key = $"{card.SetIndex}\u001F{NormalizeCardKey(card.Question)}\u001F{NormalizeCardKey(card.Answer)}";
             if (!seen.Add(key))
                 continue;
 
