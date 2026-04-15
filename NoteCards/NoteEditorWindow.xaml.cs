@@ -7,6 +7,7 @@ using NoteCards.ViewModels;
 using NoteCards.Views;
 using System.Diagnostics;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -42,6 +43,7 @@ namespace NoteCards
         private readonly FlashcardConversionService _flashcardConversionService = new();
         private bool _isConvertingToFlashcards;
         private CancellationTokenSource? _flashcardConversionCancellationSource;
+        private bool _isSyncingFontSelectors;
         private const double StatusIndicatorExpandedHeight = 20;
 
         public NoteEditorWindow()
@@ -628,8 +630,28 @@ namespace NoteCards
                         }
                     }
 
-                    ContentTextBox.FontFamily = new FontFamily(document.FontFamily);
-                    ContentTextBox.FontSize = document.FontSize;
+                    var settings = AppSettingsService.Load();
+                    var preferredFontFamily = string.IsNullOrWhiteSpace(settings.PreferredFontFamily)
+                        ? "Segoe UI"
+                        : settings.PreferredFontFamily;
+                    var preferredFontSize = settings.PreferredFontSize > 0
+                        ? settings.PreferredFontSize
+                        : 14;
+
+                    var targetFontFamily = string.IsNullOrWhiteSpace(document.FontFamily)
+                        ? preferredFontFamily
+                        : document.FontFamily;
+                    var targetFontSize = document.FontSize > 0
+                        ? document.FontSize
+                        : preferredFontSize;
+
+                    ContentTextBox.FontFamily = new FontFamily(targetFontFamily);
+                    ContentTextBox.FontSize = targetFontSize;
+
+                    document.FontFamily = ContentTextBox.FontFamily.Source;
+                    document.FontSize = ContentTextBox.FontSize;
+
+                    SyncFontSelectorsFromEditor();
                     UpdateFontButtonText();
 
                     // Initialize last saved content
@@ -1206,6 +1228,9 @@ namespace NoteCards
 
         private void FontFamilyBox_Changed(object sender, SelectionChangedEventArgs e)
         {
+            if (_isSyncingFontSelectors)
+                return;
+
             if (FontFamilyBox.SelectedItem is ComboBoxItem item && item.Content != null)
             {
                 string? fontName = item.Content.ToString();
@@ -1219,6 +1244,9 @@ namespace NoteCards
                     {
                         ContentTextBox.FontFamily = new FontFamily(fontName);
                     }
+
+                    SavePreferredTypography(ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
+                    SyncFontSelectorsFromEditor();
                     UpdateFontButtonText();
                 }
             }
@@ -1226,10 +1254,14 @@ namespace NoteCards
 
         private void FontSizeBox_Changed(object sender, SelectionChangedEventArgs e)
         {
+            if (_isSyncingFontSelectors)
+                return;
+
             if (FontSizeBox.SelectedItem is ComboBoxItem item && item.Content != null)
             {
                 string? sizeText = item.Content.ToString();
-                if (!string.IsNullOrEmpty(sizeText) && double.TryParse(sizeText, out double size))
+                if (!string.IsNullOrEmpty(sizeText)
+                    && double.TryParse(sizeText, NumberStyles.Float, CultureInfo.InvariantCulture, out double size))
                 {
                     if (ContentTextBox.Selection != null && !ContentTextBox.Selection.IsEmpty)
                     {
@@ -1239,6 +1271,9 @@ namespace NoteCards
                     {
                         ContentTextBox.FontSize = size;
                     }
+
+                    SavePreferredTypography(ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
+                    SyncFontSelectorsFromEditor();
                     UpdateFontButtonText();
                 }
             }
@@ -1254,12 +1289,96 @@ namespace NoteCards
             UpdateFontButtonText();
         }
 
+        private void ToggleBoldButton_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleSelectionTextStyle(TextElement.FontWeightProperty, FontWeights.Bold, FontWeights.Normal);
+        }
+
+        private void ToggleItalicButton_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleSelectionTextStyle(TextElement.FontStyleProperty, FontStyles.Italic, FontStyles.Normal);
+        }
+
+        private void ToggleUnderlineButton_Click(object sender, RoutedEventArgs e)
+        {
+            var selection = ContentTextBox.Selection;
+            var currentValue = selection.GetPropertyValue(Inline.TextDecorationsProperty);
+            var isUnderlined = currentValue != DependencyProperty.UnsetValue
+                && currentValue is TextDecorationCollection decorations
+                && decorations == TextDecorations.Underline;
+
+            selection.ApplyPropertyValue(
+                Inline.TextDecorationsProperty,
+                isUnderlined ? DependencyProperty.UnsetValue : TextDecorations.Underline);
+
+            ContentTextBox.Focus();
+        }
+
+        private void ToggleSelectionTextStyle(DependencyProperty property, object enabledValue, object disabledValue)
+        {
+            var selection = ContentTextBox.Selection;
+            var currentValue = selection.GetPropertyValue(property);
+            var shouldEnable = currentValue == DependencyProperty.UnsetValue || !Equals(currentValue, enabledValue);
+
+            selection.ApplyPropertyValue(property, shouldEnable ? enabledValue : disabledValue);
+            ContentTextBox.Focus();
+        }
+
         private void UpdateFontButtonText()
         {
             if (FindName("FontButton") is Button fontButton)
             {
                 fontButton.ToolTip = string.Format(LocalizationService.GetString("FontButtonFormat"), ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
             }
+        }
+
+        private void SyncFontSelectorsFromEditor()
+        {
+            _isSyncingFontSelectors = true;
+
+            try
+            {
+                SelectComboBoxItemByContent(FontFamilyBox, ContentTextBox.FontFamily.Source, "Segoe UI", StringComparison.OrdinalIgnoreCase);
+
+                var fontSizeText = Math.Round(ContentTextBox.FontSize).ToString(CultureInfo.InvariantCulture);
+                SelectComboBoxItemByContent(FontSizeBox, fontSizeText, "14", StringComparison.Ordinal);
+            }
+            finally
+            {
+                _isSyncingFontSelectors = false;
+            }
+        }
+
+        private static void SelectComboBoxItemByContent(ComboBox comboBox, string preferredContent, string fallbackContent, StringComparison comparison)
+        {
+            if (!TrySelectComboBoxItemByContent(comboBox, preferredContent, comparison)
+                && !TrySelectComboBoxItemByContent(comboBox, fallbackContent, comparison)
+                && comboBox.Items.Count > 0)
+            {
+                comboBox.SelectedIndex = 0;
+            }
+        }
+
+        private static bool TrySelectComboBoxItemByContent(ComboBox comboBox, string content, StringComparison comparison)
+        {
+            foreach (var option in comboBox.Items.OfType<ComboBoxItem>())
+            {
+                if (string.Equals(option.Content?.ToString(), content, comparison))
+                {
+                    comboBox.SelectedItem = option;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void SavePreferredTypography(string fontFamily, double fontSize)
+        {
+            var settings = AppSettingsService.Load();
+            settings.PreferredFontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Segoe UI" : fontFamily;
+            settings.PreferredFontSize = fontSize > 0 ? fontSize : 14;
+            AppSettingsService.Save(settings);
         }
 
         private void OpenFromFileButton_Click(object sender, RoutedEventArgs e)

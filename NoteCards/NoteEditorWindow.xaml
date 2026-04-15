@@ -46,10 +46,10 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="9">
-                        <TextBlock Text="{TemplateBinding Content}"
-                                   Foreground="{TemplateBinding Foreground}"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="0"
+                                          RecognizesAccessKey="True"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -446,8 +446,15 @@
                           SelectionChanged="FontFamilyBox_Changed">
                     <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Segoe UI"/>
                     <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Arial"/>
-                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Times New Roman"/>
                     <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Calibri"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Times New Roman"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Verdana"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Tahoma"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Georgia"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Trebuchet MS"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Cambria"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Garamond"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="Consolas"/>
                 </ComboBox>
 
                 <TextBlock Text="{Binding [SizeLabel], Source={StaticResource Loc}}"
@@ -459,12 +466,46 @@
                           Width="80"
                           Style="{StaticResource EditorFontComboBoxStyle}"
                           SelectionChanged="FontSizeBox_Changed">
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="10"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="11"/>
                     <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="12"/>
                     <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="14"/>
                     <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="16"/>
                     <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="18"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="20"/>
                     <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="24"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="28"/>
+                    <ComboBoxItem Style="{StaticResource EditorFontComboBoxItemStyle}" Content="32"/>
                 </ComboBox>
+
+                <Separator Margin="12,0,8,0" VerticalAlignment="Center" Height="18"/>
+
+                <Button Content="B"
+                        Width="32"
+                        Height="32"
+                        Margin="0,0,6,0"
+                        Style="{StaticResource EditorToolButtonBaseStyle}"
+                        FontWeight="Bold"
+                        ToolTip="Bold"
+                        Click="ToggleBoldButton_Click"/>
+
+                <Button Content="I"
+                        Width="32"
+                        Height="32"
+                        Margin="0,0,6,0"
+                        Style="{StaticResource EditorToolButtonBaseStyle}"
+                        FontStyle="Italic"
+                        ToolTip="Italic"
+                        Click="ToggleItalicButton_Click"/>
+
+                <Button
+                        Width="32"
+                        Height="32"
+                        Style="{StaticResource EditorToolButtonBaseStyle}"
+                        ToolTip="Underline"
+                        Click="ToggleUnderlineButton_Click">
+                    <TextBlock Text="U" TextDecorations="Underline"/>
+                </Button>
             </StackPanel>
         </Border>
 		

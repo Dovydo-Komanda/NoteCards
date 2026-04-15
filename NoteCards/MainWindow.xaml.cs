@@ -1,6 +1,7 @@
 using NoteCards.Animations;
 using NoteCards.Localization;
 using NoteCards.Models;
+using NoteCards.Services;
 using NoteCards.ViewModels;
 using NoteCards.Views;
 using System.Collections.Specialized;
@@ -690,10 +691,20 @@ namespace NoteCards
                 }
                 else
                 {
+                    var settings = AppSettingsService.Load();
+                    var preferredFontFamily = string.IsNullOrWhiteSpace(settings.PreferredFontFamily)
+                        ? "Segoe UI"
+                        : settings.PreferredFontFamily;
+                    var preferredFontSize = settings.PreferredFontSize > 0
+                        ? settings.PreferredFontSize
+                        : 14;
+
                     var doc = new NoteCards.Models.NoteDocument
                     {
                         Title = System.IO.Path.GetFileNameWithoutExtension(path),
-                        Content = content
+                        Content = content,
+                        FontFamily = preferredFontFamily,
+                        FontSize = preferredFontSize
                     };
                     target = vm.AddNoteFromDocument(doc);
                 }

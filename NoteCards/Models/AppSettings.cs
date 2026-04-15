@@ -36,6 +36,10 @@ public class AppSettings
 
     public bool IsGroupsFirst { get; set; } = true;
 
+    public string PreferredFontFamily { get; set; } = "Segoe UI";
+
+    public double PreferredFontSize { get; set; } = 14;
+
     public string FlashcardModelKey { get; set; } = "AutoSelect";
 
     public int FlashcardFlipDelayMilliseconds { get; set; } = 300;
