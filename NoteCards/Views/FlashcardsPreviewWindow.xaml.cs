@@ -319,6 +319,33 @@ public partial class FlashcardsPreviewWindow : Window
         ApplyStudyModeState();
     }
 
+    private void DeleteFlashcardMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as MenuItem)?.DataContext is not FlashcardPreviewItem flashcard)
+            return;
+
+        var result = MessageBox.Show(
+            LocalizationService.GetString("DeleteFlashcardConfirmation"),
+            LocalizationService.GetString("DeleteFlashcard"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            _items.Remove(flashcard);
+            var itemToRemove = _allItems.FirstOrDefault(i =>
+                i.Question == flashcard.Question && i.Answer == flashcard.Answer);
+            if (itemToRemove != null)
+                _allItems.Remove(itemToRemove);
+
+            if (_studyModeIndex >= _items.Count)
+                _studyModeIndex = Math.Max(0, _items.Count - 1);
+
+            ApplyStudyModeState();
+        }
+    }
+
     private sealed class FlashcardSetOption
     {
         public int SetIndex { get; set; }
