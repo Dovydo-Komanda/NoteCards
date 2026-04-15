@@ -247,6 +247,11 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardSideAnswer" xml:space="preserve"><value>ATSAKYMAS</value></data>
   <data name="FlashcardsShowQuestions" xml:space="preserve"><value>Rodyti klausimus</value></data>
   <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Rodyti atsakymus</value></data>
+  <data name="StudyModeStart" xml:space="preserve"><value>Pradėti mokymosi režimą</value></data>
+  <data name="StudyModeExit" xml:space="preserve"><value>Baigti mokymosi režimą</value></data>
+  <data name="StudyModePrevious" xml:space="preserve"><value>Ankstesnė</value></data>
+  <data name="StudyModeNext" xml:space="preserve"><value>Kita</value></data>
+  <data name="StudyModeProgress" xml:space="preserve"><value>Kortelė {0} iš {1}</value></data>
   <data name="FlashcardFlipSpeed" xml:space="preserve"><value>Apvertimo greitis:</value></data>
   <data name="FlashcardFlipSpeedDescription" xml:space="preserve"><value>Valdykite, kaip greitai mokymosi kortelÄ—s suktÄ—s tarp klausimo ir atsakymo</value></data>
   <data name="ResetFactorySettings" xml:space="preserve"><value>Atstatyti gamyklos nustatymus</value></data>
