@@ -24,12 +24,14 @@ namespace NoteCards
     {
         private bool? _pendingDialogResult = null;
         private bool _isPlayingCloseAnimation = false;
+        private bool _isHostedInTab;
         // Last search/replace state for Find Next / Replace Next functionality
         private string? _lastSearchQuery = null;
         private string? _lastReplacementText = null;
 
         // Auto-save fields
         public event Action<NoteDocument>? DocumentAutoSaved;
+        public event Action<NoteEditorWindow>? CloseRequested;
         private System.Threading.Timer? _autoSaveTimer;
         private bool _isAutoSaveEnabled = true;
         private const int AutoSaveIntervalMs = 30000; // 30 seconds
@@ -51,13 +53,56 @@ namespace NoteCards
             ContentTextBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
 
             // Subscribe to theme changes to update RichTextBox foreground
-            ThemeManager.ThemeChanged += (s, e) => ApplyRichTextBoxTheme();
+            ThemeManager.ThemeChanged += ThemeManager_ThemeChanged;
+        }
+
+        private void ThemeManager_ThemeChanged(object? sender, EventArgs e)
+        {
+            ApplyRichTextBoxTheme();
+        }
+
+        public void EnableTabMode()
+        {
+            _isHostedInTab = true;
+
+            // In standalone mode the window-level Loaded trigger animates RootGrid from Opacity=0.
+            // When hosted inside tabs, the window is never shown, so force visible state here.
+            if (RootGrid != null)
+            {
+                RootGrid.BeginAnimation(UIElement.OpacityProperty, null);
+                RootGrid.Opacity = 1;
+
+                if (RootGrid.RenderTransform is TranslateTransform translate)
+                    translate.Y = 0;
+            }
+        }
+
+        public UIElement? DetachEditorContentForHosting()
+        {
+            var root = Content as UIElement;
+            Content = null;
+            return root;
+        }
+
+        public void DisposeHostedEditor()
+        {
+            StopAutoSaveTimer();
+            _flashcardConversionCancellationSource?.Cancel();
+            _flashcardConversionCancellationSource?.Dispose();
+            _flashcardConversionCancellationSource = null;
+            ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
+        }
+
+        private Window GetDialogOwnerWindow()
+        {
+            return Window.GetWindow(ContentTextBox) ?? this;
         }
 
         private void NoteEditorWindow_Closing(object sender, CancelEventArgs e)
         {
             StopAutoSaveTimer();
             _flashcardConversionCancellationSource?.Cancel();
+            ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
 
             if (_isPlayingCloseAnimation)
                 return;
@@ -225,7 +270,7 @@ namespace NoteCards
         {
             // Open combined Find/Replace dialog
             var dlg = new Views.SearchReplaceDialogLocalized(_lastSearchQuery, _lastReplacementText);
-            dlg.Owner = this;
+            dlg.Owner = GetDialogOwnerWindow();
             var res = dlg.ShowDialog();
             if (res == true)
             {
@@ -308,7 +353,7 @@ namespace NoteCards
                 var modelDisplayName = BundledModelHostService.Instance.GetSelectedModelDisplayName();
                 var preview = new FlashcardsPreviewWindow(flashcards, modelDisplayName)
                 {
-                    Owner = this
+                    Owner = GetDialogOwnerWindow()
                 };
 
                 preview.ShowDialog();
@@ -1064,7 +1109,7 @@ namespace NoteCards
 
             var dialog = new EditHistoryWindow(_currentDocument.EditHistory)
             {
-                Owner = this
+                Owner = GetDialogOwnerWindow()
             };
 
             if (dialog.ShowDialog() != true || dialog.SelectedVersion == null)
@@ -1104,7 +1149,10 @@ namespace NoteCards
             }
 
             // Close the window after saving
-            this.Close();
+            if (_isHostedInTab)
+                CloseRequested?.Invoke(this);
+            else
+                Close();
         }
 
         private void ApplyContentToEditor(string? content)
@@ -1266,7 +1314,7 @@ namespace NoteCards
 
                 var dlg = new Views.ClearContentConfirmationDialog
                 {
-                    Owner = this
+                    Owner = GetDialogOwnerWindow()
                 };
 
                 if (dlg.ShowDialog() == true)
