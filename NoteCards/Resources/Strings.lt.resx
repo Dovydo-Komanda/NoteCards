@@ -249,6 +249,11 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Rodyti atsakymus</value></data>
   <data name="FlashcardSetLabel" xml:space="preserve"><value>Rinkinys:</value></data>
   <data name="FlashcardSetFormat" xml:space="preserve"><value>Rinkinys {0}</value></data>
+  <data name="CreateFlashcardSet" xml:space="preserve"><value>Kurti rinkinį</value></data>
+  <data name="CreateFlashcardSetTitle" xml:space="preserve"><value>Kurti kortelių rinkinį</value></data>
+  <data name="CreateFlashcardSetPrompt" xml:space="preserve"><value>Įveskite rinkinio pavadinimą:</value></data>
+  <data name="CreateFlashcardSetAndMove" xml:space="preserve"><value>Kurti rinkinį ir perkelti kortelę</value></data>
+  <data name="MoveToSet" xml:space="preserve"><value>Perkelti į rinkinį</value></data>
   <data name="StudyModeStart" xml:space="preserve"><value>Pradėti mokymosi režimą</value></data>
   <data name="StudyModeExit" xml:space="preserve"><value>Baigti mokymosi režimą</value></data>
   <data name="StudyModePrevious" xml:space="preserve"><value>Ankstesnė</value></data>

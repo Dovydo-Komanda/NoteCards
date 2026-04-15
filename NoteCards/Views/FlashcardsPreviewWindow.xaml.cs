@@ -12,6 +12,7 @@ namespace NoteCards.Views;
 
 public partial class FlashcardsPreviewWindow : Window
 {
+    private const int DefaultSetIndex = 1;
     private readonly List<FlashcardPreviewItem> _allItems;
     private readonly ObservableCollection<FlashcardPreviewItem> _items;
     private readonly ObservableCollection<FlashcardSetOption> _setOptions;
@@ -22,7 +23,7 @@ public partial class FlashcardsPreviewWindow : Window
     {
         InitializeComponent();
         _allItems = items
-            .Select(i => new FlashcardPreviewItem(i.Question, i.Answer, Math.Max(1, i.SetIndex)))
+            .Select(i => new FlashcardPreviewItem(i.Question, i.Answer, Math.Max(DefaultSetIndex, i.SetIndex)))
             .ToList();
         _items = new ObservableCollection<FlashcardPreviewItem>();
         _setOptions = new ObservableCollection<FlashcardSetOption>();
@@ -33,11 +34,11 @@ public partial class FlashcardsPreviewWindow : Window
         if (FindName("ModelInfoText") is TextBlock modelInfoText)
             modelInfoText.Text = string.Format(LocalizationService.GetString("FlashcardsGeneratedWithModel"), modelName);
 
-        InitializeSetOptions();
+        InitializeSetOptionsFromItems();
         ApplyStudyModeState();
     }
 
-    private void InitializeSetOptions()
+    private void InitializeSetOptionsFromItems()
     {
         _setOptions.Clear();
 
@@ -45,26 +46,17 @@ public partial class FlashcardsPreviewWindow : Window
             .Select(item => item.SetIndex)
             .Distinct()
             .OrderBy(index => index)
+            .DefaultIfEmpty(DefaultSetIndex)
             .ToList();
 
         foreach (var setIndex in setIndexes)
         {
-            _setOptions.Add(new FlashcardSetOption
-            {
-                SetIndex = setIndex,
-                DisplayName = string.Format(LocalizationService.GetString("FlashcardSetFormat"), setIndex)
-            });
+            AddSetOption(setIndex, selectSet: false);
         }
 
-        SetSelectorComboBox.IsEnabled = _setOptions.Count > 1;
-
-        if (_setOptions.Count == 0)
-        {
-            ApplySetFilter(1);
-            return;
-        }
-
-        SetSelectorComboBox.SelectedIndex = 0;
+        SetSelectorComboBox.SelectedItem = _setOptions
+            .OrderBy(option => option.SetIndex)
+            .FirstOrDefault();
     }
 
     private void SetSelectorComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -77,7 +69,7 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void ApplySetFilter(int setIndex)
     {
-        var normalizedSetIndex = Math.Max(1, setIndex);
+        var normalizedSetIndex = Math.Max(DefaultSetIndex, setIndex);
 
         _items.Clear();
         foreach (var item in _allItems.Where(item => item.SetIndex == normalizedSetIndex))
@@ -85,6 +77,174 @@ public partial class FlashcardsPreviewWindow : Window
 
         _studyModeIndex = 0;
         ApplyStudyModeState();
+    }
+
+    private int? GetSelectedSetIndex()
+    {
+        return SetSelectorComboBox.SelectedItem is FlashcardSetOption set
+            ? set.SetIndex
+            : null;
+    }
+
+    private int GetNextSetIndex()
+    {
+        return _setOptions.Count == 0
+            ? DefaultSetIndex
+            : _setOptions.Max(option => option.SetIndex) + 1;
+    }
+
+    private void UpdateSetSelectorState()
+    {
+        SetSelectorComboBox.IsEnabled = _setOptions.Count > 0;
+    }
+
+    private FlashcardSetOption AddSetOption(int setIndex, string? displayName = null, bool selectSet = false)
+    {
+        var normalizedSetIndex = Math.Max(DefaultSetIndex, setIndex);
+        var existing = _setOptions.FirstOrDefault(option => option.SetIndex == normalizedSetIndex);
+        if (existing is not null)
+        {
+            if (!string.IsNullOrWhiteSpace(displayName))
+                existing.DisplayName = displayName;
+
+            if (selectSet)
+                SetSelectorComboBox.SelectedItem = existing;
+
+            return existing;
+        }
+
+        var option = new FlashcardSetOption
+        {
+            SetIndex = normalizedSetIndex,
+            DisplayName = string.IsNullOrWhiteSpace(displayName)
+                ? string.Format(LocalizationService.GetString("FlashcardSetFormat"), normalizedSetIndex)
+                : displayName.Trim()
+        };
+
+        _setOptions.Add(option);
+        ReorderSetOptions();
+
+        if (selectSet)
+            SetSelectorComboBox.SelectedItem = _setOptions.FirstOrDefault(o => o.SetIndex == option.SetIndex);
+
+        UpdateSetSelectorState();
+        return option;
+    }
+
+    private void ReorderSetOptions()
+    {
+        var selectedSetIndex = GetSelectedSetIndex();
+        var ordered = _setOptions.OrderBy(option => option.SetIndex).ToList();
+        _setOptions.Clear();
+
+        foreach (var option in ordered)
+            _setOptions.Add(option);
+
+        if (selectedSetIndex.HasValue)
+            SetSelectorComboBox.SelectedItem = _setOptions.FirstOrDefault(option => option.SetIndex == selectedSetIndex.Value);
+
+        if (SetSelectorComboBox.SelectedItem is null && _setOptions.Count > 0)
+            SetSelectorComboBox.SelectedIndex = 0;
+    }
+
+    private bool TryCreateSet(out FlashcardSetOption createdSet, bool selectSet)
+    {
+        var nextSetIndex = GetNextSetIndex();
+        var defaultName = string.Format(LocalizationService.GetString("FlashcardSetFormat"), nextSetIndex);
+
+        var dialog = new SimpleInputDialog(
+            LocalizationService.GetString("CreateFlashcardSetTitle"),
+            LocalizationService.GetString("CreateFlashcardSetPrompt"),
+            defaultName)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            createdSet = null!;
+            return false;
+        }
+
+        var setName = string.IsNullOrWhiteSpace(dialog.InputText)
+            ? defaultName
+            : dialog.InputText.Trim();
+
+        createdSet = AddSetOption(nextSetIndex, setName, selectSet);
+        return true;
+    }
+
+    private void CreateSetButton_Click(object sender, RoutedEventArgs e)
+    {
+        TryCreateSet(out _, selectSet: true);
+    }
+
+    private static FlashcardPreviewItem? ResolveFlashcardFromMenuItem(MenuItem menuItem)
+    {
+        if (menuItem.DataContext is FlashcardPreviewItem flashcard)
+            return flashcard;
+
+        if (menuItem.Parent is ContextMenu { PlacementTarget: FrameworkElement placementTarget }
+            && placementTarget.DataContext is FlashcardPreviewItem placementFlashcard)
+        {
+            return placementFlashcard;
+        }
+
+        return null;
+    }
+
+    private void MoveFlashcardToSet(FlashcardPreviewItem flashcard, int targetSetIndex)
+    {
+        var normalizedSetIndex = Math.Max(DefaultSetIndex, targetSetIndex);
+        if (flashcard.SetIndex == normalizedSetIndex)
+            return;
+
+        var selectedSetIndex = GetSelectedSetIndex();
+        flashcard.SetIndex = normalizedSetIndex;
+
+        if (selectedSetIndex.HasValue)
+            ApplySetFilter(selectedSetIndex.Value);
+    }
+
+    private void MoveToSetMenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem moveToSetMenu)
+            return;
+
+        var flashcard = ResolveFlashcardFromMenuItem(moveToSetMenu);
+        if (flashcard is null)
+            return;
+
+        moveToSetMenu.Items.Clear();
+
+        foreach (var setOption in _setOptions.OrderBy(option => option.SetIndex))
+        {
+            var targetSetIndex = setOption.SetIndex;
+            var setItem = new MenuItem
+            {
+                Header = setOption.DisplayName,
+                IsEnabled = flashcard.SetIndex != targetSetIndex
+            };
+
+            setItem.Click += (_, _) => MoveFlashcardToSet(flashcard, targetSetIndex);
+            moveToSetMenu.Items.Add(setItem);
+        }
+
+        moveToSetMenu.Items.Add(new Separator());
+
+        var createAndMoveItem = new MenuItem
+        {
+            Header = LocalizationService.GetString("CreateFlashcardSetAndMove")
+        };
+        createAndMoveItem.Click += (_, _) =>
+        {
+            if (!TryCreateSet(out var createdSet, selectSet: false))
+                return;
+
+            MoveFlashcardToSet(flashcard, createdSet.SetIndex);
+        };
+
+        moveToSetMenu.Items.Add(createAndMoveItem);
     }
 
     private void StartStudyModeButton_Click(object sender, RoutedEventArgs e)
@@ -198,8 +358,9 @@ public partial class FlashcardsPreviewWindow : Window
         private bool _isFlipped;
         private bool _isKnown;
         private bool _isUnknown;
-        private string _question; 
-        private string _answer;   
+        private string _question = string.Empty;
+        private string _answer = string.Empty;
+        private int _setIndex;
 
         public FlashcardPreviewItem(string question, string answer, int setIndex)
         {
@@ -234,7 +395,18 @@ public partial class FlashcardsPreviewWindow : Window
             }
         }
 
-        public int SetIndex { get; }
+        public int SetIndex
+        {
+            get => _setIndex;
+            set
+            {
+                if (_setIndex == value)
+                    return;
+
+                _setIndex = Math.Max(DefaultSetIndex, value);
+                OnPropertyChanged();
+            }
+        }
 
         public bool IsFlipped
         {
@@ -387,19 +559,13 @@ public partial class FlashcardsPreviewWindow : Window
         // Remove from all items
         _items.Remove(flashcard);
 
-        // Also remove from all items collection
-        var itemToRemove = _allItems.FirstOrDefault(i =>
-            i.Question == flashcard.Question && i.Answer == flashcard.Answer);
-
-        if (itemToRemove != null)
-            _allItems.Remove(itemToRemove);
+        _allItems.Remove(flashcard);
 
         // Adjust study mode index if needed
         if (_studyModeIndex >= _items.Count)
             _studyModeIndex = Math.Max(0, _items.Count - 1);
 
         ApplyStudyModeState();
-        InitializeSetOptions(); // Refresh set options if needed
     }
 
     private sealed class FlashcardSetOption
