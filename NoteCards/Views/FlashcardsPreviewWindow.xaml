@@ -539,6 +539,11 @@
                     MinWidth="170"
                     Margin="10,0,0,0"
                     Click="ShowAnswersButton_Click"/>
+                <Button x:Name="ShuffleModeButton"
+                    Style="{StaticResource DialogSecondaryButtonStyle}"
+                    MinWidth="120"
+                    Margin="10,0,0,0"
+                    Click="ShuffleModeButton_Click"/>
             <Button x:Name="StartStudyModeButton"
                     Content="{Binding [StudyModeStart], Source={StaticResource Loc}}"
                     Style="{StaticResource DialogSecondaryButtonStyle}"

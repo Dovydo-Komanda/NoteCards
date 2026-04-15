@@ -18,7 +18,9 @@ public partial class FlashcardsPreviewWindow : Window
     private readonly List<FlashcardPreviewItem> _allItems;
     private readonly ObservableCollection<FlashcardPreviewItem> _items;
     private readonly ObservableCollection<FlashcardSetOption> _setOptions;
+    private readonly Random _random = new();
     private bool _isStudyMode;
+    private bool _isShuffleMode;
     private int _studyModeIndex;
     private int _currentSetIndex = DefaultSetIndex;
     private string _searchText = string.Empty;
@@ -38,6 +40,7 @@ public partial class FlashcardsPreviewWindow : Window
         if (FindName("ModelInfoText") is TextBlock modelInfoText)
             modelInfoText.Text = string.Format(LocalizationService.GetString("FlashcardsGeneratedWithModel"), modelName);
 
+        UpdateShuffleButtonState();
         InitializeSetOptionsFromItems();
         ApplyStudyModeState();
     }
@@ -89,12 +92,31 @@ public partial class FlashcardsPreviewWindow : Window
                 || item.Answer.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase));
         }
 
+        var orderedItems = _isShuffleMode
+            ? filteredItems.OrderBy(_ => _random.Next()).ToList()
+            : filteredItems.ToList();
+
         _items.Clear();
-        foreach (var item in filteredItems)
+        foreach (var item in orderedItems)
             _items.Add(item);
 
         _studyModeIndex = 0;
         ApplyStudyModeState();
+    }
+
+    private void UpdateShuffleButtonState()
+    {
+        if (ShuffleModeButton is null)
+            return;
+
+        ShuffleModeButton.Content = LocalizationService.GetString(_isShuffleMode ? "ShuffleModeOn" : "ShuffleModeOff");
+    }
+
+    private void ShuffleModeButton_Click(object sender, RoutedEventArgs e)
+    {
+        _isShuffleMode = !_isShuffleMode;
+        UpdateShuffleButtonState();
+        ApplyFilters();
     }
 
     private void FlashcardSearchTextBox_TextChanged(object sender, TextChangedEventArgs e)

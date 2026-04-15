@@ -253,6 +253,8 @@ Right-click to remove</value></data>
   <data name="FlashcardSideAnswer" xml:space="preserve"><value>ANSWER</value></data>
   <data name="FlashcardsShowQuestions" xml:space="preserve"><value>Show questions</value></data>
   <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Show answers</value></data>
+  <data name="ShuffleModeOn" xml:space="preserve"><value>Shuffle: On</value></data>
+  <data name="ShuffleModeOff" xml:space="preserve"><value>Shuffle: Off</value></data>
   <data name="FlashcardSearchHint" xml:space="preserve"><value>Type to search questions and answers...</value></data>
   <data name="FlashcardSetLabel" xml:space="preserve"><value>Set:</value></data>
   <data name="FlashcardSetFormat" xml:space="preserve"><value>Set {0}</value></data>
