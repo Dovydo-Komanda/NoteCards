@@ -99,24 +99,6 @@ public partial class FlashcardsPreviewWindow : Window
         ApplyStudyModeState();
     }
 
-    private void StudyModePreviousButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_items.Count == 0 || _studyModeIndex <= 0)
-            return;
-
-        _studyModeIndex--;
-        ApplyStudyModeState();
-    }
-
-    private void StudyModeNextButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_items.Count == 0 || _studyModeIndex >= _items.Count - 1)
-            return;
-
-        _studyModeIndex++;
-        ApplyStudyModeState();
-    }
-
     private void StudyModeCard_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (StudyModeCard.DataContext is FlashcardPreviewItem item)
@@ -167,10 +149,11 @@ public partial class FlashcardsPreviewWindow : Window
             _studyModeIndex = 0;
         }
 
+        // Ensure index is within bounds
         if (_studyModeIndex < 0)
             _studyModeIndex = 0;
-        if (_studyModeIndex >= _items.Count && _items.Count > 0)
-            _studyModeIndex = _items.Count - 1;
+        if (_studyModeIndex >= _items.Count)
+            _studyModeIndex = Math.Max(0, _items.Count - 1);
 
         FlashcardsGridViewBorder.Visibility = _isStudyMode ? Visibility.Collapsed : Visibility.Visible;
         StudyModeViewBorder.Visibility = _isStudyMode ? Visibility.Visible : Visibility.Collapsed;
@@ -180,15 +163,41 @@ public partial class FlashcardsPreviewWindow : Window
         if (!_isStudyMode || _items.Count == 0)
             return;
 
-        StudyModeCard.DataContext = _items[_studyModeIndex];
-        StudyModeProgressText.Text = string.Format(LocalizationService.GetString("StudyModeProgress"), _studyModeIndex + 1, _items.Count);
+        // Get current card
+        var currentItem = _items[_studyModeIndex];
+        StudyModeCard.DataContext = currentItem;
+
+        // Count unknown and known cards for progress
+        var knownCount = _items.Count(i => i.IsKnown);
+        var remainingCount = _items.Count - knownCount;
+
+        // Show completion if all cards are known
+        if (remainingCount == 0)
+        {
+            StudyModeProgressText.Text = LocalizationService.GetString("StudyModeComplete");
+            StudyModePreviousButton.IsEnabled = false;
+            StudyModeNextButton.IsEnabled = false;
+            StudyModeMarkKnownButton.IsEnabled = false;
+            StudyModeMarkUnknownButton.IsEnabled = false;
+            return;
+        }
+
+        StudyModeProgressText.Text = string.Format(
+            LocalizationService.GetString("StudyModeProgress"),
+            _items.Count(i => !i.IsKnown && _items.IndexOf(i) <= _studyModeIndex),
+            remainingCount);
+
         StudyModePreviousButton.IsEnabled = _studyModeIndex > 0;
         StudyModeNextButton.IsEnabled = _studyModeIndex < _items.Count - 1;
+        StudyModeMarkKnownButton.IsEnabled = true;
+        StudyModeMarkUnknownButton.IsEnabled = true;
     }
 
     private sealed class FlashcardPreviewItem : INotifyPropertyChanged
     {
         private bool _isFlipped;
+        private bool _isKnown;
+        private bool _isUnknown;
 
         public FlashcardPreviewItem(string question, string answer, int setIndex)
         {
@@ -208,8 +217,31 @@ public partial class FlashcardsPreviewWindow : Window
             {
                 if (_isFlipped == value)
                     return;
-
                 _isFlipped = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsKnown
+        {
+            get => _isKnown;
+            set
+            {
+                if (_isKnown == value)
+                    return;
+                _isKnown = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsUnknown
+        {
+            get => _isUnknown;
+            set
+            {
+                if (_isUnknown == value)
+                    return;
+                _isUnknown = value;
                 OnPropertyChanged();
             }
         }
@@ -220,6 +252,71 @@ public partial class FlashcardsPreviewWindow : Window
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    private void StudyModeMarkKnownButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_items.Count == 0 || _studyModeIndex < 0 || _studyModeIndex >= _items.Count)
+            return;
+
+        var currentItem = _items[_studyModeIndex];
+        currentItem.IsKnown = true;
+        currentItem.IsUnknown = false; // Clear unknown status
+
+        // Move to next card
+        if (_studyModeIndex < _items.Count - 1)
+        {
+            _studyModeIndex++;
+            // Skip known cards when advancing
+            while (_studyModeIndex < _items.Count && _items[_studyModeIndex].IsKnown)
+            {
+                _studyModeIndex++;
+            }
+        }
+
+        ApplyStudyModeState();
+    }
+
+    private void StudyModeMarkUnknownButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_items.Count == 0 || _studyModeIndex < 0 || _studyModeIndex >= _items.Count)
+            return;
+
+        var currentItem = _items[_studyModeIndex];
+        currentItem.IsUnknown = !currentItem.IsUnknown; // Toggle
+        currentItem.IsKnown = false; // Clear known status if marking unknown
+
+        ApplyStudyModeState();
+    }
+
+    private void StudyModePreviousButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_items.Count == 0 || _studyModeIndex <= 0)
+            return;
+
+        _studyModeIndex--;
+
+        while (_studyModeIndex >= 0 && _items[_studyModeIndex].IsKnown)
+        {
+            _studyModeIndex--;
+        }
+
+        ApplyStudyModeState();
+    }
+
+    private void StudyModeNextButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_items.Count == 0 || _studyModeIndex >= _items.Count - 1)
+            return;
+
+        _studyModeIndex++;
+
+        while (_studyModeIndex < _items.Count && _items[_studyModeIndex].IsKnown)
+        {
+            _studyModeIndex++;
+        }
+
+        ApplyStudyModeState();
     }
 
     private sealed class FlashcardSetOption
