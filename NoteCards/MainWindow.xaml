@@ -1686,13 +1686,75 @@
 											Content="✕"
 											ToolTip="{Binding [Close], Source={StaticResource Loc}}"
 											Click="ExitMassSelectButton_Click"/>
-								</Border>
-							</StackPanel>
-						</Grid>
-					</Border>
-				</Grid>
-			</Grid>
-		</Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+                <!-- FLASHCARDS VIEW -->
+                <Grid Visibility="{Binding IsFlashcardsView, Converter={StaticResource BoolToVis}}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="350">
+
+                        <TextBlock Text="Flashcards"
+               FontSize="30"
+               FontWeight="Bold"
+               Margin="0,0,0,20"
+               HorizontalAlignment="Center"/>
+
+                        <!-- INPUT -->
+                        <TextBlock Text="Question" Foreground="White"/>
+                        <TextBox Text="{Binding NewFlashcardQuestion}" Margin="0,5"/>
+
+                        <TextBlock Text="Answer" Foreground="White"/>
+                        <TextBox Text="{Binding NewFlashcardAnswer}" Margin="0,5"/>
+
+                        <Button Content="Add Flashcard"
+            Command="{Binding AddFlashcardCommand}"
+            Margin="0,10"/>
+
+                        <!-- LIST -->
+                        <ItemsControl ItemsSource="{Binding Flashcards}"
+              Margin="0,20,0,0"
+              Width="300">
+
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.OpenFlashcardCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    CommandParameter="{Binding}"
+                    Margin="5"
+                    Padding="10">
+
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Question}" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding Answer}" Opacity="0.6"/>
+                                        </StackPanel>
+
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                    </StackPanel>
+
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                        
+
+                        
+
+                    </StackPanel>
+
+                </Grid>
+            </Grid>
+        </Grid>
 
 		<Views:SettingsPanel x:Name="SettingsPanelControl"
 						 x:FieldModifier="public"
@@ -1717,5 +1779,5 @@
 							 HorizontalAlignment="Stretch"
 							 VerticalAlignment="Stretch"
 							 Panel.ZIndex="202"/>
-	</Grid>
+        </Grid>
 </Window>

@@ -49,6 +49,14 @@ public class MainViewModel : ViewModelBase
             }
         }
     }
+    private string GetFlashcardsFilePath()
+    {
+        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NoteCards");
+        Directory.CreateDirectory(dir);
+        return Path.Combine(dir, "flashcards.json");
+    }
+    
+   
 
     private bool _isCalendarFirst = true;
     public bool IsCalendarFirst
@@ -166,6 +174,7 @@ public class MainViewModel : ViewModelBase
         TagFilters = new ObservableCollection<TagFilterItemViewModel>();
         SortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
         CalendarScheduledNotes = new ObservableCollection<CalendarScheduledItemViewModel>();
+        Flashcards = new ObservableCollection<FlashcardItem>();
         // Create a view for Notes so we can apply filtering for search
         _notesView = CollectionViewSource.GetDefaultView(Notes);
         _notesView.Filter = FilterUngroupedNotes;
@@ -184,6 +193,7 @@ public class MainViewModel : ViewModelBase
         RefreshAvailableTags();
         RefreshRecentNotes();
         RefreshCalendarScheduledNotes();
+        LoadFlashcards();
         AddNoteCommand = new RelayCommand(AddNote);
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
         ClearTagFiltersCommand = new RelayCommand(ClearTagFilters, () => HasActiveTagFilters);
@@ -195,6 +205,52 @@ public class MainViewModel : ViewModelBase
         PinSelectedNotesCommand = new RelayCommand(PinSelectedNotes, CanPinSelectedNotes);
         UnpinSelectedNotesCommand = new RelayCommand(UnpinSelectedNotes, CanUnpinSelectedNotes);
         DuplicateSelectedNotesCommand = new RelayCommand(DuplicateSelectedNotes, CanDuplicateSelectedNotes);
+       
+
+
+
+        CurrentView = "Notes";
+
+        ShowNotesCommand = new RelayCommand(() =>
+        {
+            CurrentView = "Notes";
+        });
+
+        ShowFlashcardsCommand = new RelayCommand(() =>
+        {
+            CurrentView = "Flashcards";
+        });
+        // 🔧 FIX – inicializuojam visus command, kad ViewModel nelūžtų
+        MoveGroupsUpCommand = new RelayCommand(() => { });
+        MoveGroupsDownCommand = new RelayCommand(() => { });
+        MoveUngroupedUpCommand = new RelayCommand(() => { });
+        MoveUngroupedDownCommand = new RelayCommand(() => { });
+        ToggleGroupsSectionCommand = new RelayCommand(() => { });
+        ToggleRecentSectionCommand = new RelayCommand(() => { });
+        ToggleUngroupedSectionCommand = new RelayCommand(() => { });
+
+
+        AddFlashcardCommand = new RelayCommand(AddFlashcard);
+
+
+        _settings = AppSettingsService.Load();
+
+        CurrentView = _settings.LastView ?? "Notes";
+        OpenFlashcardCommand = new RelayCommand<FlashcardItem>(f =>
+        {
+            SelectedFlashcard = f;
+            IsShowingAnswer = false;
+        });
+
+        CloseFlashcardCommand = new RelayCommand(() =>
+        {
+            SelectedFlashcard = null;
+        });
+
+        FlipFlashcardCommand = new RelayCommand(() =>
+        {
+            IsShowingAnswer = !IsShowingAnswer;
+        });
 
         // Try to load saved notes from disk. If none exist, create a starter note.
         if (!LoadNotes())
@@ -210,12 +266,24 @@ public class MainViewModel : ViewModelBase
 
         RebuildGroups();
     }
+    private void AddFlashcard()
+    {
+        Flashcards.Add(new FlashcardItem
+        {
+            Question = NewFlashcardQuestion,
+            Answer = NewFlashcardAnswer
+        });
+
+        NewFlashcardQuestion = "";
+        NewFlashcardAnswer = "";
+    }
 
     public ObservableCollection<NoteCardViewModel> Notes { get; }
     public ObservableCollection<NoteGroupViewModel> NoteGroups { get; }
     public ObservableCollection<TagFilterItemViewModel> TagFilters { get; }
     public ObservableCollection<NoteSortOptionItemViewModel> SortOptions { get; }
     public ObservableCollection<CalendarScheduledItemViewModel> CalendarScheduledNotes { get; }
+    public ObservableCollection<FlashcardItem> Flashcards { get; }
     public bool HasGroups => NoteGroups.Count > 0;
     public bool HasTagFilters => TagFilters.Count > 0;
     public bool HasActiveTagFilters => _selectedTags.Count > 0;
@@ -382,6 +450,7 @@ public class MainViewModel : ViewModelBase
     public ICommand PinSelectedNotesCommand { get; }
     public ICommand UnpinSelectedNotesCommand { get; }
     public ICommand DuplicateSelectedNotesCommand { get; }
+    public ICommand AddFlashcardCommand { get; }
 
     public void SetTagFilterSelected(string tag, bool isSelected)
     {
@@ -724,6 +793,29 @@ public class MainViewModel : ViewModelBase
         RecentNotes.Clear();
         foreach (var note in recent)
             RecentNotes.Add(note);
+    }
+    public ObservableCollection<FlashcardItem> Flashcards { get; set; } = new();
+
+    private string _newFlashcardQuestion;
+    public string NewFlashcardQuestion
+    {
+        get => _newFlashcardQuestion;
+        set
+        {
+            _newFlashcardQuestion = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private string _newFlashcardAnswer;
+    public string NewFlashcardAnswer
+    {
+        get => _newFlashcardAnswer;
+        set
+        {
+            _newFlashcardAnswer = value;
+            OnPropertyChanged();
+        }
     }
 
     private bool FilterUngroupedNotes(object? obj)
