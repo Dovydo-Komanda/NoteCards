@@ -1,6 +1,7 @@
 using NoteCards.Animations;
 using NoteCards.Localization;
 using NoteCards.Models;
+using NoteCards.Services;
 using NoteCards.ViewModels;
 using NoteCards.Views;
 using System.Collections.Specialized;
@@ -31,6 +32,7 @@ namespace NoteCards
         private MainViewModel? _observedViewModel;
         private bool _lastKnownGroupsFirst = true;
         private bool _notesLayoutRefreshQueued;
+        private NoteEditorTabsWindow? _noteEditorTabsWindow;
 
         private FrameworkElement? RecentSectionBodyElement => FindName("RecentSectionBody") as FrameworkElement;
         private FrameworkElement? CalendarSectionBodyElement => FindName("CalendarSectionBody") as FrameworkElement;
@@ -689,10 +691,20 @@ namespace NoteCards
                 }
                 else
                 {
+                    var settings = AppSettingsService.Load();
+                    var preferredFontFamily = string.IsNullOrWhiteSpace(settings.PreferredFontFamily)
+                        ? "Segoe UI"
+                        : settings.PreferredFontFamily;
+                    var preferredFontSize = settings.PreferredFontSize > 0
+                        ? settings.PreferredFontSize
+                        : 14;
+
                     var doc = new NoteCards.Models.NoteDocument
                     {
                         Title = System.IO.Path.GetFileNameWithoutExtension(path),
-                        Content = content
+                        Content = content,
+                        FontFamily = preferredFontFamily,
+                        FontSize = preferredFontSize
                     };
                     target = vm.AddNoteFromDocument(doc);
                 }
@@ -869,28 +881,23 @@ namespace NoteCards
         // Open editor for a specific note card
         public void OpenNoteEditor(NoteCardViewModel noteViewModel)
         {
-            // Allow multiple editor windows to be open
-            var editor = new NoteEditorWindow();
-            editor.Owner = this;
-            // Set DataContext so EnableScrollbar binding works
-            editor.DataContext = this.DataContext;
-            editor.LoadFromDocument(noteViewModel.Document);
-            editor.SetCurrentDocument(noteViewModel.Document); // Set current document for auto-save
-
-            // Subscribe to auto-save event to refresh the card UI
-            void OnAutoSaved(NoteDocument doc) => noteViewModel.NotifyContentChanged();
-            editor.DocumentAutoSaved += OnAutoSaved;
-
-            // Show the window non-modally so multiple windows can be open
-            editor.Show();
-
-            // Handle window closed to clean up subscriptions only.
-            // Persisting is done by explicit save/auto-save inside the editor.
-            editor.Closed += (s, e) =>
+            if (_noteEditorTabsWindow == null || !_noteEditorTabsWindow.IsLoaded)
             {
-                // Unsubscribe to avoid memory leaks
-                editor.DocumentAutoSaved -= OnAutoSaved;
-            };
+                _noteEditorTabsWindow = new NoteEditorTabsWindow
+                {
+                    Owner = this
+                };
+
+                _noteEditorTabsWindow.Closed += (_, _) =>
+                {
+                    _noteEditorTabsWindow = null;
+                };
+
+                _noteEditorTabsWindow.Show();
+            }
+
+            _noteEditorTabsWindow.OpenOrFocusNote(noteViewModel, DataContext);
+            _noteEditorTabsWindow.Activate();
         }
 
         public void OpenNoteSchedule(NoteCardViewModel noteViewModel)

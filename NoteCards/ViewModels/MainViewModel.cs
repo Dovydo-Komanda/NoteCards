@@ -492,6 +492,7 @@ public class MainViewModel : ViewModelBase
 
     public NoteCardViewModel AddNoteFromDocument(NoteDocument document)
     {
+        EnsureDocumentTypography(document);
         var note = CreateNoteCard(document);
         Notes.Add(note);
         SaveNotes();
@@ -500,12 +501,42 @@ public class MainViewModel : ViewModelBase
 
     private void AddNote()
     {
+        var (fontFamily, fontSize) = GetPreferredTypography();
+
         var document = new NoteDocument
         {
             Title = LocalizationService.GetString("NewNoteTitle"),
-            Content = string.Empty
+            Content = string.Empty,
+            FontFamily = fontFamily,
+            FontSize = fontSize
         };
         AddNoteFromDocument(document);
+    }
+
+    private static void EnsureDocumentTypography(NoteDocument document)
+    {
+        var (fontFamily, fontSize) = GetPreferredTypography();
+
+        if (string.IsNullOrWhiteSpace(document.FontFamily))
+            document.FontFamily = fontFamily;
+
+        if (document.FontSize <= 0)
+            document.FontSize = fontSize;
+    }
+
+    private static (string FontFamily, double FontSize) GetPreferredTypography()
+    {
+        var settings = AppSettingsService.Load();
+
+        var fontFamily = string.IsNullOrWhiteSpace(settings.PreferredFontFamily)
+            ? "Segoe UI"
+            : settings.PreferredFontFamily;
+
+        var fontSize = settings.PreferredFontSize > 0
+            ? settings.PreferredFontSize
+            : 14;
+
+        return (fontFamily, fontSize);
     }
 
     private void DuplicateNote(NoteCardViewModel noteCard)
