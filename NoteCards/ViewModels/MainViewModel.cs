@@ -165,7 +165,7 @@ public class MainViewModel : ViewModelBase
         }
     }
     public object CurrentView { get; set; }
-
+    public bool IsFlashcardsView { get; set; }
     public FlashcardItem SelectedFlashcard { get; set; }
 
     public bool IsShowingAnswer { get; set; }
@@ -216,21 +216,39 @@ public class MainViewModel : ViewModelBase
 
 
         ShowFlashcardsCommand = new RelayCommand(() => { });
-        OpenFlashcardCommand = new RelayCommand(() => { });
-        FlipFlashcardCommand = new RelayCommand(() => { });
-        CloseFlashcardCommand = new RelayCommand(() => { });
+        OpenFlashcardCommand = new RelayCommand<FlashcardItem>(f =>
+        {
+            SelectedFlashcard = f;
+            IsShowingAnswer = false;
+
+            OnPropertyChanged(nameof(SelectedFlashcard));
+            OnPropertyChanged(nameof(IsShowingAnswer));
+        });
+        CloseFlashcardCommand = new RelayCommand(() =>
+        {
+            SelectedFlashcard = null;
+            OnPropertyChanged(nameof(SelectedFlashcard));
+        });
+
+        FlipFlashcardCommand = new RelayCommand(() =>
+        {
+            IsShowingAnswer = !IsShowingAnswer;
+            OnPropertyChanged(nameof(IsShowingAnswer));
+        });
 
 
         CurrentView = "Notes";
 
         ShowNotesCommand = new RelayCommand(() =>
         {
-            CurrentView = "Notes";
+            IsFlashcardsView = false;
+            OnPropertyChanged(nameof(IsFlashcardsView));
         });
 
         ShowFlashcardsCommand = new RelayCommand(() =>
         {
-            CurrentView = "Flashcards";
+            IsFlashcardsView = true;
+            OnPropertyChanged(nameof(IsFlashcardsView));
         });
         // 🔧 FIX – inicializuojam visus command, kad ViewModel nelūžtų
         MoveGroupsUpCommand = new RelayCommand(() => { });
@@ -248,21 +266,7 @@ public class MainViewModel : ViewModelBase
         _settings = AppSettingsService.Load();
 
         CurrentView = _settings.LastView ?? "Notes";
-        OpenFlashcardCommand = new RelayCommand<FlashcardItem>(f =>
-        {
-            SelectedFlashcard = f;
-            IsShowingAnswer = false;
-        });
-
-        CloseFlashcardCommand = new RelayCommand(() =>
-        {
-            SelectedFlashcard = null;
-        });
-
-        FlipFlashcardCommand = new RelayCommand(() =>
-        {
-            IsShowingAnswer = !IsShowingAnswer;
-        });
+        
 
         // Try to load saved notes from disk. If none exist, create a starter note.
         if (!LoadNotes())
@@ -288,11 +292,31 @@ public class MainViewModel : ViewModelBase
 
         NewFlashcardQuestion = "";
         NewFlashcardAnswer = "";
+
+        SaveFlashcards(); // 🔥 svarbiausia
     }
 
     private void LoadFlashcards()
     {
-        Flashcards = new ObservableCollection<FlashcardItem>();
+        var path = GetFlashcardsFilePath();
+
+        if (File.Exists(path))
+        {
+            var json = File.ReadAllText(path);
+            var data = JsonSerializer.Deserialize<List<FlashcardItem>>(json);
+
+            Flashcards = new ObservableCollection<FlashcardItem>(data ?? new());
+        }
+        else
+        {
+            Flashcards = new ObservableCollection<FlashcardItem>();
+        }
+    }
+    private void SaveFlashcards()
+    {
+        var path = GetFlashcardsFilePath();
+        var json = JsonSerializer.Serialize(Flashcards);
+        File.WriteAllText(path, json);
     }
 
 
