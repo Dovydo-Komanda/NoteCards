@@ -37,6 +37,7 @@ public class AppSettings
     public bool IsGroupsFirst { get; set; } = true;
 
     public string FlashcardModelKey { get; set; } = "AutoSelect";
+    public string? LastView { get; set; }
 
     public int FlashcardFlipDelayMilliseconds { get; set; } = 300;
 

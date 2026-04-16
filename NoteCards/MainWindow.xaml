@@ -1081,8 +1081,8 @@
 					</StackPanel>
 				</Border>
 				<!-- All Notes + FAB -->
-             <Grid Grid.Row="1">
-				   <ScrollViewer x:Name="NotesScrollViewer"
+                <Grid Grid.Row="1">
+                    <ScrollViewer x:Name="NotesScrollViewer"
 								 VerticalScrollBarVisibility="Auto"
                                  HorizontalScrollBarVisibility="Disabled"
 								 Padding="8"
@@ -1090,13 +1090,13 @@
 								 PreviewDragOver="NotesScrollViewer_PreviewDragOver"
 								 PreviewMouseWheel="NotesScrollViewer_PreviewMouseWheel">
                         <Grid Margin="0,0,0,18">
-							<Grid.RowDefinitions>
-                              <RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-							</Grid.RowDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-							<Border x:Name="CalendarSectionContainer"
+                            <Border x:Name="CalendarSectionContainer"
 									Visibility="{Binding IsCalendarSectionVisible, Converter={StaticResource BoolToVis}}"
                                     Background="{DynamicResource SidebarBackground}"
 									BorderBrush="{DynamicResource BorderColor}"
@@ -1105,80 +1105,84 @@
 									Padding="12"
 									Margin="8,0,8,10"
 									RenderTransformOrigin="0.5,0.5">
-                              <Border.Effect>
-									<DropShadowEffect Color="#000000" Opacity="0.08" BlurRadius="14" ShadowDepth="1" Direction="270"/>
-								</Border.Effect>
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000" Opacity="0.08" BlurRadius="14" ShadowDepth="1" Direction="270"/>
+                                </Border.Effect>
                                 <Border.Style>
-									<Style TargetType="Border">
-										<Setter Property="Grid.Row" Value="0"/>
-										<Style.Triggers>
-											<DataTrigger Binding="{Binding IsCalendarFirst}" Value="False">
-												<Setter Property="Grid.Row" Value="2"/>
-											</DataTrigger>
-										</Style.Triggers>
-									</Style>
-								</Border.Style>
-								<StackPanel>
-									<Grid Margin="2,0,2,8">
-										<Grid.ColumnDefinitions>
-											<ColumnDefinition Width="Auto"/>
-											<ColumnDefinition Width="Auto"/>
-                                           <ColumnDefinition Width="Auto"/>
-											<ColumnDefinition Width="Auto"/>
-											<ColumnDefinition Width="*"/>
-										</Grid.ColumnDefinitions>
-										<Button Grid.Column="0"
+                                    <Style TargetType="Border">
+                                        <Setter Property="Grid.Row" Value="0"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCalendarFirst}" Value="False">
+                                                <Setter Property="Grid.Row" Value="2"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <Grid Margin="2,0,2,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0"
                                                 Style="{StaticResource DashboardSectionMoveButtonStyle}"
 												Content="↑"
 												Margin="0,0,2,0"
 												ToolTip="{Binding [MoveCalendarSectionUp], Source={StaticResource Loc}}"
 												Click="MoveCalendarUpButton_Click"/>
-										<Button Grid.Column="1"
+                                        <Button Grid.Column="1"
 												Style="{StaticResource DashboardSectionMoveButtonStyle}"
 												Content="↓"
 												Margin="0,0,4,0"
 												ToolTip="{Binding [MoveCalendarSectionDown], Source={StaticResource Loc}}"
 												Click="MoveCalendarDownButton_Click"/>
-										<Button Grid.Column="2"
+                                        <Button Grid.Column="2"
 												ToolTip="{Binding [ToggleCalendarSection], Source={StaticResource Loc}}"
 												Click="ToggleCalendarSectionButton_Click">
-											<Button.Style>
-												<Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
-													<Style.Triggers>
-														<DataTrigger Binding="{Binding IsCalendarSectionExpanded}" Value="False">
-															<Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-90"/></Setter.Value></Setter>
-														</DataTrigger>
-													</Style.Triggers>
-												</Style>
-											</Button.Style>
-										</Button>
-                                      <TextBlock Grid.Column="3"
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsCalendarSectionExpanded}" Value="False">
+                                                            <Setter Property="RenderTransform">
+                                                                <Setter.Value>
+                                                                    <RotateTransform Angle="-90"/>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <TextBlock Grid.Column="3"
 												   Text="{Binding [CalendarSection], Source={StaticResource Loc}}"
 												   FontSize="14"
 												   FontWeight="SemiBold"
 												   Foreground="{DynamicResource TextColor}"
 												   Margin="8,0,0,0"
 												   VerticalAlignment="Center"/>
-									</Grid>
+                                    </Grid>
                                     <Grid x:Name="CalendarSectionBody" Margin="2,0,2,2" Height="220">
-										<Grid.ColumnDefinitions>
-                                         <ColumnDefinition Width="210"/>
-											<ColumnDefinition Width="8"/>
-											<ColumnDefinition Width="*"/>
-										</Grid.ColumnDefinitions>
-										<Border Grid.Column="0"
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="210"/>
+                                            <ColumnDefinition Width="8"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0"
 												Background="{DynamicResource CardBackground}"
 												BorderBrush="{DynamicResource BorderColor}"
                                              BorderThickness="0"
                                                CornerRadius="12"
                                                Padding="8">
-											<Calendar x:Name="DashboardCalendar"
+                                            <Calendar x:Name="DashboardCalendar"
                                               Style="{StaticResource DashboardCalendarControlStyle}"
 													 SelectedDate="{Binding CalendarSelectedDate, Mode=TwoWay}"
 													 SelectionMode="SingleDate"
 													 SelectedDatesChanged="DashboardCalendar_SelectedDatesChanged"/>
-										</Border>
-                                     <Border Grid.Column="2"
+                                        </Border>
+                                        <Border Grid.Column="2"
 												Background="{DynamicResource CardBackground}"
 												BorderBrush="{DynamicResource BorderColor}"
 												BorderThickness="1"
@@ -1186,30 +1190,30 @@
                                                 Padding="8"
                                                ClipToBounds="True"
                                                Height="220">
-											<Grid>
-												<Grid.RowDefinitions>
-													<RowDefinition Height="Auto"/>
-													<RowDefinition Height="*"/>
-												</Grid.RowDefinitions>
-												<TextBlock Text="{Binding CalendarSelectedDateDisplay}"
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Text="{Binding CalendarSelectedDateDisplay}"
 														   FontWeight="SemiBold"
 														   Foreground="{DynamicResource TextColor}"
                                                       Margin="2,2,2,8"/>
-                                              <Grid Grid.Row="1">
-													<ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="146">
-														<ItemsControl ItemsSource="{Binding CalendarScheduledNotes}">
-														<ItemsControl.ItemTemplate>
-                                                          <DataTemplate DataType="{x:Type vm:CalendarScheduledItemViewModel}">
-                                       <Border Style="{StaticResource CalendarScheduledItemCardStyle}"
+                                                <Grid Grid.Row="1">
+                                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="146">
+                                                        <ItemsControl ItemsSource="{Binding CalendarScheduledNotes}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate DataType="{x:Type vm:CalendarScheduledItemViewModel}">
+                                                                    <Border Style="{StaticResource CalendarScheduledItemCardStyle}"
 												Tag="{Binding Note}"
 												MouseLeftButtonUp="CalendarScheduledItemCard_MouseLeftButtonUp">
-											<Grid>
-												<Grid.ColumnDefinitions>
-													<ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-													<ColumnDefinition Width="Auto"/>
-												</Grid.ColumnDefinitions>
-                                               <Button x:Name="CalendarScheduleGearButton"
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <Button x:Name="CalendarScheduleGearButton"
 														Grid.Column="0"
                                                      Content="✎"
 														Style="{StaticResource TopBarIconButtonStyle}"
@@ -1220,57 +1224,57 @@
 														Tag="{Binding Note}"
 														ToolTip="{Binding [CalendarEditSchedule], Source={StaticResource Loc}}"
 														Click="CalendarScheduleGearButton_Click"/>
-                                             <StackPanel Grid.Column="1" Margin="0,0,8,0">
-													<TextBlock Text="{Binding Title}"
+                                                                            <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                                                                <TextBlock Text="{Binding Title}"
 															   FontWeight="SemiBold"
 															   Foreground="{DynamicResource TextColor}"
 															   TextTrimming="CharacterEllipsis"
 															   VerticalAlignment="Center"
 															   Margin="0,0,0,6"/>
-													<TextBlock Text="{Binding ScheduleNote}"
+                                                                                <TextBlock Text="{Binding ScheduleNote}"
 														   TextWrapping="Wrap"
 														   MaxHeight="34"
 														   Foreground="{DynamicResource TextColorSecondary}">
-															<TextBlock.Style>
-																<Style TargetType="TextBlock">
-																	<Setter Property="Visibility" Value="Visible"/>
-																	<Style.Triggers>
-																		<Trigger Property="Text" Value="">
-																			<Setter Property="Visibility" Value="Collapsed"/>
-																		</Trigger>
-																	</Style.Triggers>
-																</Style>
-															</TextBlock.Style>
-														</TextBlock>
-												</StackPanel>
-                                             <Border Grid.Column="2"
+                                                                                    <TextBlock.Style>
+                                                                                        <Style TargetType="TextBlock">
+                                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                                            <Style.Triggers>
+                                                                                                <Trigger Property="Text" Value="">
+                                                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                                                </Trigger>
+                                                                                            </Style.Triggers>
+                                                                                        </Style>
+                                                                                    </TextBlock.Style>
+                                                                                </TextBlock>
+                                                                            </StackPanel>
+                                                                            <Border Grid.Column="2"
 														Background="{DynamicResource SelectionBackground}"
 														BorderBrush="{DynamicResource BorderColor}"
 														BorderThickness="1"
 														CornerRadius="8"
 														Padding="8,2"
 														VerticalAlignment="Center">
-													<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-														<TextBlock Text="🕒" Margin="0,0,4,0" FontSize="10" VerticalAlignment="Center"/>
-														<TextBlock Text="{Binding TimeText}"
+                                                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                                    <TextBlock Text="🕒" Margin="0,0,4,0" FontSize="10" VerticalAlignment="Center"/>
+                                                                                    <TextBlock Text="{Binding TimeText}"
 															   FontSize="11"
 															   Foreground="{DynamicResource TextColor}"
 															   VerticalAlignment="Center"
 															   FontWeight="SemiBold"/>
-													</StackPanel>
-												</Border>
-											</Grid>
-										</Border>
-									</DataTemplate>
-														</ItemsControl.ItemTemplate>
-                                                     <ItemsControl.ItemsPanel>
-															<ItemsPanelTemplate>
-																<StackPanel/>
-															</ItemsPanelTemplate>
-														</ItemsControl.ItemsPanel>
-                                                 </ItemsControl>
-													</ScrollViewer>
-													<TextBlock Text="{Binding [CalendarNoSchedulesForDay], Source={StaticResource Loc}}"
+                                                                                </StackPanel>
+                                                                            </Border>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <StackPanel/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                        </ItemsControl>
+                                                    </ScrollViewer>
+                                                    <TextBlock Text="{Binding [CalendarNoSchedulesForDay], Source={StaticResource Loc}}"
 														   Foreground="{DynamicResource TextColorSecondary}"
 														   FontStyle="Italic"
 														   TextWrapping="Wrap"
@@ -1278,97 +1282,101 @@
 														   VerticalAlignment="Center"
 														   TextAlignment="Center"
 														   Margin="10,10,10,10">
-														<TextBlock.Style>
-															<Style TargetType="TextBlock">
-																<Setter Property="Visibility" Value="Collapsed"/>
-																<Style.Triggers>
-																	<DataTrigger Binding="{Binding HasCalendarScheduledNotes}" Value="False">
-																		<Setter Property="Visibility" Value="Visible"/>
-																	</DataTrigger>
-																</Style.Triggers>
-															</Style>
-														</TextBlock.Style>
-													</TextBlock>
-                                         </Grid>
-											</Grid>
-										</Border>
-									</Grid>
-								</StackPanel>
-							</Border>
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding HasCalendarScheduledNotes}" Value="False">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
 
-                         <Border x:Name="GroupsSectionContainer"
+                            <Border x:Name="GroupsSectionContainer"
 									Margin="0,0,0,10"
 									RenderTransformOrigin="0.5,0.5">
-								<Border.Style>
-									<Style TargetType="Border">
-                                     <Setter Property="Visibility" Value="Collapsed"/>
-                                     <Setter Property="Grid.Row" Value="1"/>
-										<Style.Triggers>
-                                           <MultiDataTrigger>
-												<MultiDataTrigger.Conditions>
-													<Condition Binding="{Binding HasGroups}" Value="True"/>
-													<Condition Binding="{Binding IsGroupsSectionVisible}" Value="True"/>
-												</MultiDataTrigger.Conditions>
-												<Setter Property="Visibility" Value="Visible"/>
-											</MultiDataTrigger>
-											<DataTrigger Binding="{Binding IsGroupsFirst}" Value="False">
-                                             <Setter Property="Grid.Row" Value="2"/>
-											</DataTrigger>
-                                           <MultiDataTrigger>
-												<MultiDataTrigger.Conditions>
-													<Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
-													<Condition Binding="{Binding IsGroupsFirst}" Value="True"/>
-												</MultiDataTrigger.Conditions>
-												<Setter Property="Grid.Row" Value="0"/>
-											</MultiDataTrigger>
-											<MultiDataTrigger>
-												<MultiDataTrigger.Conditions>
-													<Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
-													<Condition Binding="{Binding IsGroupsFirst}" Value="False"/>
-												</MultiDataTrigger.Conditions>
-												<Setter Property="Grid.Row" Value="1"/>
-											</MultiDataTrigger>
-										</Style.Triggers>
-									</Style>
-								</Border.Style>
-								<Border.RenderTransform>
-									<TranslateTransform/>
-								</Border.RenderTransform>
-								<StackPanel>
-									<Grid Margin="10,6,10,8">
-										<Grid.ColumnDefinitions>
-                                           <ColumnDefinition Width="Auto"/>
-											<ColumnDefinition Width="Auto"/>
-											<ColumnDefinition Width="Auto"/>
-											<ColumnDefinition Width="Auto"/>
-                                           <ColumnDefinition Width="*"/>
-										</Grid.ColumnDefinitions>
-                                   <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="{Binding [MoveGroupsSectionUp], Source={StaticResource Loc}}" Click="MoveGroupsUpButton_Click"/>
-								 <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="{Binding [MoveGroupsSectionDown], Source={StaticResource Loc}}" Click="MoveGroupsDownButton_Click"/>
-								 <Button Grid.Column="2" ToolTip="{Binding [ToggleGroupsSection], Source={StaticResource Loc}}" Click="ToggleGroupsSectionButton_Click">
-											<Button.Style>
-                                             <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
-													<Style.Triggers>
-														<DataTrigger Binding="{Binding IsGroupsSectionExpanded}" Value="False">
-															<Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-90"/></Setter.Value></Setter>
-														</DataTrigger>
-													</Style.Triggers>
-												</Style>
-											</Button.Style>
-										</Button>
-                                       <TextBlock Grid.Column="3"
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Setter Property="Grid.Row" Value="1"/>
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding HasGroups}" Value="True"/>
+                                                    <Condition Binding="{Binding IsGroupsSectionVisible}" Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </MultiDataTrigger>
+                                            <DataTrigger Binding="{Binding IsGroupsFirst}" Value="False">
+                                                <Setter Property="Grid.Row" Value="2"/>
+                                            </DataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
+                                                    <Condition Binding="{Binding IsGroupsFirst}" Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Grid.Row" Value="0"/>
+                                            </MultiDataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
+                                                    <Condition Binding="{Binding IsGroupsFirst}" Value="False"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Grid.Row" Value="1"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <Border.RenderTransform>
+                                    <TranslateTransform/>
+                                </Border.RenderTransform>
+                                <StackPanel>
+                                    <Grid Margin="10,6,10,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="{Binding [MoveGroupsSectionUp], Source={StaticResource Loc}}" Click="MoveGroupsUpButton_Click"/>
+                                        <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="{Binding [MoveGroupsSectionDown], Source={StaticResource Loc}}" Click="MoveGroupsDownButton_Click"/>
+                                        <Button Grid.Column="2" ToolTip="{Binding [ToggleGroupsSection], Source={StaticResource Loc}}" Click="ToggleGroupsSectionButton_Click">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsGroupsSectionExpanded}" Value="False">
+                                                            <Setter Property="RenderTransform">
+                                                                <Setter.Value>
+                                                                    <RotateTransform Angle="-90"/>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <TextBlock Grid.Column="3"
 												   Text="{Binding [Groups], Source={StaticResource Loc}}"
 												   FontSize="14"
 												   FontWeight="SemiBold"
 												   Foreground="{DynamicResource TextColor}"
 												Margin="8,0,0,0"
 												   VerticalAlignment="Center"/>
-									</Grid>
-                                 <StackPanel x:Name="GroupsSectionBody">
-										<ItemsControl x:Name="GroupsItemsControl" ItemsSource="{Binding NoteGroups}">
-									<ItemsControl.ItemTemplate>
-										<DataTemplate DataType="{x:Type vm:NoteGroupViewModel}">
-											<Border Style="{StaticResource GroupCardStyle}"
+                                    </Grid>
+                                    <StackPanel x:Name="GroupsSectionBody">
+                                        <ItemsControl x:Name="GroupsItemsControl" ItemsSource="{Binding NoteGroups}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:NoteGroupViewModel}">
+                                                    <Border Style="{StaticResource GroupCardStyle}"
 													Background="{Binding BackgroundBrush}"
 													BorderBrush="{DynamicResource BorderColor}"
 													BorderThickness="1"
@@ -1378,34 +1386,34 @@
 													AllowDrop="True"
 													DragOver="GroupBorder_DragOver"
 													Drop="GroupBorder_Drop">
-												<Border.Tag>
-													<Binding/>
-												</Border.Tag>
-                                                <StackPanel>
-													<Grid Margin="2,0,2,8">
-														<Grid.ColumnDefinitions>
-                                                           <ColumnDefinition Width="Auto"/>
-															<ColumnDefinition Width="Auto"/>
-																<ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-															<ColumnDefinition Width="Auto"/>
-                                                           <ColumnDefinition Width="*"/>
-														</Grid.ColumnDefinitions>
-                                                                 <Button Grid.Column="0"
+                                                        <Border.Tag>
+                                                            <Binding/>
+                                                        </Border.Tag>
+                                                        <StackPanel>
+                                                            <Grid Margin="2,0,2,8">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Button Grid.Column="0"
 															Style="{StaticResource GroupHeaderMoveButtonStyle}"
 															Content="↑"
 															Margin="0,0,3,0"
 															Tag="{Binding}"
                                             ToolTip="{Binding [MoveThisGroupUp], Source={StaticResource Loc}}"
 															Click="MoveSingleGroupUpButton_Click"/>
-														 <Button Grid.Column="1"
+                                                                <Button Grid.Column="1"
 															Style="{StaticResource GroupHeaderMoveButtonStyle}"
 															Content="↓"
 															Margin="0,0,4,0"
 															Tag="{Binding}"
                                           ToolTip="{Binding [MoveThisGroupDown], Source={StaticResource Loc}}"
 															Click="MoveSingleGroupDownButton_Click"/>
-                                                         <Button Grid.Column="2"
+                                                                <Button Grid.Column="2"
                                                             Style="{StaticResource GroupHeaderIconButtonStyle}"
 																FontSize="13"
 																Content="🎨"
@@ -1413,148 +1421,152 @@
 																Tag="{Binding}"
 																ToolTip="{Binding [GroupBackgroundColor], Source={StaticResource Loc}}"
 																Click="GroupColorButton_Click">
-															<Button.ContextMenu>
-																<ContextMenu>
-																	<MenuItem Header="{Binding [GroupColorDefault], Source={StaticResource Loc}}"
+                                                                    <Button.ContextMenu>
+                                                                        <ContextMenu>
+                                                                            <MenuItem Header="{Binding [GroupColorDefault], Source={StaticResource Loc}}"
 																		  Tag="#F8FAFF"
 																		  Click="GroupColorMenuItem_Click"/>
-																	<MenuItem Header="{Binding [GroupColorMint], Source={StaticResource Loc}}"
+                                                                            <MenuItem Header="{Binding [GroupColorMint], Source={StaticResource Loc}}"
 																		  Tag="#ECFEF1"
 																		  Click="GroupColorMenuItem_Click"/>
-																	<MenuItem Header="{Binding [GroupColorRose], Source={StaticResource Loc}}"
+                                                                            <MenuItem Header="{Binding [GroupColorRose], Source={StaticResource Loc}}"
 																		  Tag="#FFF1F2"
 																		  Click="GroupColorMenuItem_Click"/>
-																	<MenuItem Header="{Binding [GroupColorAmber], Source={StaticResource Loc}}"
+                                                                            <MenuItem Header="{Binding [GroupColorAmber], Source={StaticResource Loc}}"
 																		  Tag="#FFFBEB"
 																		  Click="GroupColorMenuItem_Click"/>
-																	<MenuItem Header="{Binding [GroupColorLilac], Source={StaticResource Loc}}"
+                                                                            <MenuItem Header="{Binding [GroupColorLilac], Source={StaticResource Loc}}"
 																		  Tag="#F5F3FF"
 																		  Click="GroupColorMenuItem_Click"/>
-																</ContextMenu>
-															</Button.ContextMenu>
-														</Button>
-                                                                 <Button Grid.Column="3"
+                                                                        </ContextMenu>
+                                                                    </Button.ContextMenu>
+                                                                </Button>
+                                                                <Button Grid.Column="3"
                                                           Style="{StaticResource GroupHeaderIconButtonStyle}"
 																FontSize="16"
 																FontWeight="Bold"
 																Content="&#x22EE;"
 																Tag="{Binding}"
 																Click="GroupMenuButton_Click">
-															<Button.ContextMenu>
-																<ContextMenu>
-																	<MenuItem Header="{Binding [RenameGroup], Source={StaticResource Loc}}"
+                                                                    <Button.ContextMenu>
+                                                                        <ContextMenu>
+                                                                            <MenuItem Header="{Binding [RenameGroup], Source={StaticResource Loc}}"
 																			  Click="RenameGroupMenuItem_Click"/>
-																	<Separator/>
-																	<MenuItem Header="{Binding [DisbandGroup], Source={StaticResource Loc}}"
+                                                                            <Separator/>
+                                                                            <MenuItem Header="{Binding [DisbandGroup], Source={StaticResource Loc}}"
 																			  Click="DisbandGroupMenuItem_Click"/>
-																</ContextMenu>
-															</Button.ContextMenu>
-														</Button>
-                                                     <TextBlock Grid.Column="4"
+                                                                        </ContextMenu>
+                                                                    </Button.ContextMenu>
+                                                                </Button>
+                                                                <TextBlock Grid.Column="4"
 																   Text="{Binding Name}"
 																   FontWeight="SemiBold"
 																   Foreground="#2F3A59"
 																   VerticalAlignment="Center"
 																   TextTrimming="CharacterEllipsis"
 																   Margin="8,0,0,0"/>
-													</Grid>
-													<ItemsControl ItemsSource="{Binding Notes}">
-														<ItemsControl.ItemsPanel>
-															<ItemsPanelTemplate>
-																<WrapPanel Orientation="Horizontal"/>
-															</ItemsPanelTemplate>
-														</ItemsControl.ItemsPanel>
-														<ItemsControl.ItemTemplate>
-															<DataTemplate DataType="{x:Type vm:NoteCardViewModel}">
-																<controls:NoteCardControl/>
-															</DataTemplate>
-														</ItemsControl.ItemTemplate>
-													</ItemsControl>
-												</StackPanel>
-											</Border>
-										</DataTemplate>
-									</ItemsControl.ItemTemplate>
-                                     </ItemsControl>
-									</StackPanel>
-								</StackPanel>
-							</Border>
+                                                            </Grid>
+                                                            <ItemsControl ItemsSource="{Binding Notes}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <WrapPanel Orientation="Horizontal"/>
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate DataType="{x:Type vm:NoteCardViewModel}">
+                                                                        <controls:NoteCardControl/>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
 
-							<Border x:Name="UngroupedSectionContainer"
+                            <Border x:Name="UngroupedSectionContainer"
                                     Visibility="{Binding IsUngroupedSectionVisible, Converter={StaticResource BoolToVis}}"
 									Background="Transparent"
 									AllowDrop="True"
 									DragOver="UngroupedDropZone_DragOver"
 									Drop="UngroupedDropZone_Drop"
 									RenderTransformOrigin="0.5,0.5">
-								<Border.Style>
-									<Style TargetType="Border">
-                                     <Setter Property="Grid.Row" Value="2"/>
-										<Style.Triggers>
-											<DataTrigger Binding="{Binding IsGroupsFirst}" Value="False">
-                                             <Setter Property="Grid.Row" Value="1"/>
-											</DataTrigger>
-                                           <MultiDataTrigger>
-												<MultiDataTrigger.Conditions>
-													<Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
-													<Condition Binding="{Binding IsGroupsFirst}" Value="True"/>
-												</MultiDataTrigger.Conditions>
-												<Setter Property="Grid.Row" Value="1"/>
-											</MultiDataTrigger>
-											<MultiDataTrigger>
-												<MultiDataTrigger.Conditions>
-													<Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
-													<Condition Binding="{Binding IsGroupsFirst}" Value="False"/>
-												</MultiDataTrigger.Conditions>
-												<Setter Property="Grid.Row" Value="0"/>
-											</MultiDataTrigger>
-										</Style.Triggers>
-									</Style>
-								</Border.Style>
-								<Border.RenderTransform>
-									<TranslateTransform/>
-								</Border.RenderTransform>
-								<StackPanel>
-									<Grid Margin="10,2,10,8">
-										<Grid.ColumnDefinitions>
-                                           <ColumnDefinition Width="Auto"/>
-											<ColumnDefinition Width="Auto"/>
-											<ColumnDefinition Width="Auto"/>
-											<ColumnDefinition Width="Auto"/>
-                                           <ColumnDefinition Width="*"/>
-										</Grid.ColumnDefinitions>
-                                 <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="{Binding [MoveUngroupedSectionUp], Source={StaticResource Loc}}" Click="MoveUngroupedUpButton_Click"/>
-							 <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="{Binding [MoveUngroupedSectionDown], Source={StaticResource Loc}}" Click="MoveUngroupedDownButton_Click"/>
-								 <Button Grid.Column="2" ToolTip="{Binding [ToggleUngroupedSection], Source={StaticResource Loc}}" Click="ToggleUngroupedSectionButton_Click">
-											<Button.Style>
-                                             <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
-													<Style.Triggers>
-														<DataTrigger Binding="{Binding IsUngroupedSectionExpanded}" Value="False">
-															<Setter Property="RenderTransform"><Setter.Value><RotateTransform Angle="-90"/></Setter.Value></Setter>
-														</DataTrigger>
-													</Style.Triggers>
-												</Style>
-											</Button.Style>
-										</Button>
-                                       <TextBlock Grid.Column="3"
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Grid.Row" Value="2"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsGroupsFirst}" Value="False">
+                                                <Setter Property="Grid.Row" Value="1"/>
+                                            </DataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
+                                                    <Condition Binding="{Binding IsGroupsFirst}" Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Grid.Row" Value="1"/>
+                                            </MultiDataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
+                                                    <Condition Binding="{Binding IsGroupsFirst}" Value="False"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Grid.Row" Value="0"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <Border.RenderTransform>
+                                    <TranslateTransform/>
+                                </Border.RenderTransform>
+                                <StackPanel>
+                                    <Grid Margin="10,2,10,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="{Binding [MoveUngroupedSectionUp], Source={StaticResource Loc}}" Click="MoveUngroupedUpButton_Click"/>
+                                        <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="{Binding [MoveUngroupedSectionDown], Source={StaticResource Loc}}" Click="MoveUngroupedDownButton_Click"/>
+                                        <Button Grid.Column="2" ToolTip="{Binding [ToggleUngroupedSection], Source={StaticResource Loc}}" Click="ToggleUngroupedSectionButton_Click">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsUngroupedSectionExpanded}" Value="False">
+                                                            <Setter Property="RenderTransform">
+                                                                <Setter.Value>
+                                                                    <RotateTransform Angle="-90"/>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <TextBlock Grid.Column="3"
 												   Text="{Binding [UngroupedNotes], Source={StaticResource Loc}}"
 												   FontSize="14"
 												   FontWeight="SemiBold"
 												   Foreground="{DynamicResource TextColor}"
 												Margin="8,0,0,0"
 												   VerticalAlignment="Center"/>
-									</Grid>
+                                    </Grid>
                                     <StackPanel x:Name="UngroupedSectionBody">
                                         <ItemsControl ItemsSource="{Binding NotesView}">
-											<ItemsControl.Style>
-												<Style TargetType="ItemsControl">
-													<Setter Property="ItemsPanel" Value="{StaticResource UngroupedGridItemsPanel}"/>
-													<Style.Triggers>
-														<DataTrigger Binding="{Binding IsListView}" Value="True">
-															<Setter Property="ItemsPanel" Value="{StaticResource UngroupedListItemsPanel}"/>
-														</DataTrigger>
-													</Style.Triggers>
-												</Style>
-											</ItemsControl.Style>
+                                            <ItemsControl.Style>
+                                                <Style TargetType="ItemsControl">
+                                                    <Setter Property="ItemsPanel" Value="{StaticResource UngroupedGridItemsPanel}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsListView}" Value="True">
+                                                            <Setter Property="ItemsPanel" Value="{StaticResource UngroupedListItemsPanel}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ItemsControl.Style>
 
                                             <!-- ITEM TEMPLATE -->
                                             <ItemsControl.ItemTemplate>
@@ -1566,10 +1578,10 @@
                                         </ItemsControl>
                                     </StackPanel>
                                 </StackPanel>
-							</Border>
-						</Grid>
-					</ScrollViewer>
-                   <Button x:Name="ImportButton"
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
+                    <Button x:Name="ImportButton"
                           Style="{StaticResource FloatingSecondaryButtonStyle}"
                           IsEnabled="{Binding IsNotMassSelectMode}"
 						   VerticalAlignment="Bottom"
@@ -1578,7 +1590,7 @@
 						   Margin="0,0,37,84"
 						   ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}"
                         Click="ImportButton_Click"/>
-                   <Button Style="{StaticResource FabStyle}"
+                    <Button Style="{StaticResource FabStyle}"
                           IsEnabled="{Binding IsNotMassSelectMode}"
 							VerticalAlignment="Bottom"
 							HorizontalAlignment="Right"
@@ -1586,7 +1598,7 @@
 							Content="+"
                             ToolTip="{Binding [AddNote], Source={StaticResource Loc}}"
 							Command="{Binding AddNoteCommand}"/>
-                  <Border x:Name="MassSelectOverlayToolbar"
+                    <Border x:Name="MassSelectOverlayToolbar"
 							Panel.ZIndex="80"
 							Visibility="Collapsed"
 							Opacity="0"
@@ -1598,45 +1610,45 @@
 							BorderThickness="1"
 							Padding="10"
 							CornerRadius="12">
-                      <Border.RenderTransform>
-							<TranslateTransform Y="-12"/>
-						</Border.RenderTransform>
-                      <Border.Effect>
-							<DropShadowEffect Color="#000000" Opacity="0.16" BlurRadius="18" ShadowDepth="2" Direction="270"/>
-						</Border.Effect>
-						<Grid>
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="Auto"/>
-								<ColumnDefinition Width="Auto"/>
-							</Grid.ColumnDefinitions>
-							<StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
-								<TextBlock Text="{Binding [MassSelectModeTitle], Source={StaticResource Loc}}"
+                        <Border.RenderTransform>
+                            <TranslateTransform Y="-12"/>
+                        </Border.RenderTransform>
+                        <Border.Effect>
+                            <DropShadowEffect Color="#000000" Opacity="0.16" BlurRadius="18" ShadowDepth="2" Direction="270"/>
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding [MassSelectModeTitle], Source={StaticResource Loc}}"
 										   FontWeight="SemiBold"
 										   FontSize="13"
 										   Foreground="{DynamicResource TextColor}"/>
-								<TextBlock Text="{Binding MassSelectSelectionText}"
+                                <TextBlock Text="{Binding MassSelectSelectionText}"
 										   Foreground="#4D5A79"
 										   FontSize="12"
 										   Margin="0,2,0,0"/>
-							</StackPanel>
-                          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-								<WrapPanel VerticalAlignment="Center">
-								<Button Style="{StaticResource MassActionIconButtonStyle}"
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <WrapPanel VerticalAlignment="Center">
+                                    <Button Style="{StaticResource MassActionIconButtonStyle}"
 										Content="☑"
 										ToolTip="{Binding [MassSelectSelectAll], Source={StaticResource Loc}}"
 										Command="{Binding SelectAllVisibleNotesCommand}"/>
-								<Button Style="{StaticResource MassActionIconButtonStyle}"
+                                    <Button Style="{StaticResource MassActionIconButtonStyle}"
 										Content="🗑"
 										ToolTip="{Binding [MassSelectDeleteSelected], Source={StaticResource Loc}}"
                                             Click="DeleteSelectedMassButton_Click"/>
-                                  <Button x:Name="MassSelectMoreActionsToggleButton"
+                                    <Button x:Name="MassSelectMoreActionsToggleButton"
 											Style="{StaticResource MassActionIconButtonStyle}"
                                          Content=">"
 											ToolTip="{Binding [MassSelectMoreActions], Source={StaticResource Loc}}"
 											Click="ToggleMassSelectMoreActionsButton_Click"/>
                                 </WrapPanel>
 
-								<Border x:Name="MassSelectMoreActionsPanel"
+                                <Border x:Name="MassSelectMoreActionsPanel"
 										Margin="8,0,0,0"
 										Padding="6,0,0,0"
 										BorderBrush="#E1E6F2"
@@ -1644,53 +1656,52 @@
 										Visibility="Collapsed"
 										Opacity="0"
 										RenderTransformOrigin="0,0.5">
-									<Border.RenderTransform>
-										<ScaleTransform ScaleX="0.92" ScaleY="0.92"/>
-									</Border.RenderTransform>
-									<WrapPanel VerticalAlignment="Center">
-										<Button Style="{StaticResource MassActionIconButtonStyle}"
+                                    <Border.RenderTransform>
+                                        <ScaleTransform ScaleX="0.92" ScaleY="0.92"/>
+                                    </Border.RenderTransform>
+                                    <WrapPanel VerticalAlignment="Center">
+                                        <Button Style="{StaticResource MassActionIconButtonStyle}"
 												Content="🧩"
 												ToolTip="{Binding [MassSelectGroupSelected], Source={StaticResource Loc}}"
 												Command="{Binding GroupSelectedNotesCommand}"/>
-										<Button Style="{StaticResource MassActionIconButtonStyle}"
+                                        <Button Style="{StaticResource MassActionIconButtonStyle}"
 												Content="↩"
 												ToolTip="{Binding [MassSelectUngroupSelected], Source={StaticResource Loc}}"
 												Command="{Binding RemoveSelectedFromGroupsCommand}"/>
-										<Button Style="{StaticResource MassActionIconButtonStyle}"
+                                        <Button Style="{StaticResource MassActionIconButtonStyle}"
 												Content="📌"
 												ToolTip="{Binding [MassSelectPinSelected], Source={StaticResource Loc}}"
 												Command="{Binding PinSelectedNotesCommand}"/>
-										<Button Style="{StaticResource MassActionIconButtonStyle}"
+                                        <Button Style="{StaticResource MassActionIconButtonStyle}"
 												Content="📍"
 												ToolTip="{Binding [MassSelectUnpinSelected], Source={StaticResource Loc}}"
 												Command="{Binding UnpinSelectedNotesCommand}"/>
-										<Button Style="{StaticResource MassActionIconButtonStyle}"
+                                        <Button Style="{StaticResource MassActionIconButtonStyle}"
 												Content="⧉"
 												ToolTip="{Binding [MassSelectDuplicateSelected], Source={StaticResource Loc}}"
 												Command="{Binding DuplicateSelectedNotesCommand}"/>
-										<Button Style="{StaticResource MassActionIconButtonStyle}"
+                                        <Button Style="{StaticResource MassActionIconButtonStyle}"
 												Margin="0"
 												Content="🏷"
 												ToolTip="{Binding [MassSelectAddTags], Source={StaticResource Loc}}"
 												Click="AddTagsToSelectedButton_Click"/>
-									</WrapPanel>
-								</Border>
+                                    </WrapPanel>
+                                </Border>
 
-								<Border Margin="8,0,0,0"
+                                <Border Margin="8,0,0,0"
 										Padding="8,0,0,0"
 										BorderBrush="#D5DCEC"
 										BorderThickness="1,0,0,0"
 										VerticalAlignment="Stretch">
-									<Button Style="{StaticResource MassActionIconButtonStyle}"
+                                    <Button Style="{StaticResource MassActionIconButtonStyle}"
 											Margin="0"
 											Content="✕"
 											ToolTip="{Binding [Close], Source={StaticResource Loc}}"
 											Click="ExitMassSelectButton_Click"/>
-                                    </Border>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
                 <!-- FLASHCARDS VIEW -->
                 <Grid Visibility="{Binding IsFlashcardsView, Converter={StaticResource BoolToVis}}">
@@ -1779,5 +1790,5 @@
 							 HorizontalAlignment="Stretch"
 							 VerticalAlignment="Stretch"
 							 Panel.ZIndex="202"/>
-        </Grid>
+    </Grid>
 </Window>

@@ -35,6 +35,7 @@ public class MainViewModel : ViewModelBase
     private readonly HashSet<Guid> _massSelectedNoteIds = new();
     private bool _isMassSelectMode;
     private DateTime _calendarSelectedDate = DateTime.Today;
+    private AppSettings _settings;
 
     public bool EnableScrollbar
     {
@@ -163,6 +164,14 @@ public class MainViewModel : ViewModelBase
             }
         }
     }
+    public object CurrentView { get; set; }
+
+    public FlashcardItem SelectedFlashcard { get; set; }
+
+    public bool IsShowingAnswer { get; set; }
+
+    private string _newFlashcardAnswer = "";
+    private string _newFlashcardQuestion = "";
 
     public MainViewModel()
     {
@@ -174,7 +183,6 @@ public class MainViewModel : ViewModelBase
         TagFilters = new ObservableCollection<TagFilterItemViewModel>();
         SortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
         CalendarScheduledNotes = new ObservableCollection<CalendarScheduledItemViewModel>();
-        Flashcards = new ObservableCollection<FlashcardItem>();
         // Create a view for Notes so we can apply filtering for search
         _notesView = CollectionViewSource.GetDefaultView(Notes);
         _notesView.Filter = FilterUngroupedNotes;
@@ -205,8 +213,12 @@ public class MainViewModel : ViewModelBase
         PinSelectedNotesCommand = new RelayCommand(PinSelectedNotes, CanPinSelectedNotes);
         UnpinSelectedNotesCommand = new RelayCommand(UnpinSelectedNotes, CanUnpinSelectedNotes);
         DuplicateSelectedNotesCommand = new RelayCommand(DuplicateSelectedNotes, CanDuplicateSelectedNotes);
-       
 
+
+        ShowFlashcardsCommand = new RelayCommand(() => { });
+        OpenFlashcardCommand = new RelayCommand(() => { });
+        FlipFlashcardCommand = new RelayCommand(() => { });
+        CloseFlashcardCommand = new RelayCommand(() => { });
 
 
         CurrentView = "Notes";
@@ -278,13 +290,18 @@ public class MainViewModel : ViewModelBase
         NewFlashcardAnswer = "";
     }
 
+    private void LoadFlashcards()
+    {
+        Flashcards = new ObservableCollection<FlashcardItem>();
+    }
+
+
     public ObservableCollection<NoteCardViewModel> Notes { get; }
     public ObservableCollection<NoteGroupViewModel> NoteGroups { get; }
     public ObservableCollection<TagFilterItemViewModel> TagFilters { get; }
     public ObservableCollection<NoteSortOptionItemViewModel> SortOptions { get; }
     public ObservableCollection<CalendarScheduledItemViewModel> CalendarScheduledNotes { get; }
-    public ObservableCollection<FlashcardItem> Flashcards { get; }
-    public bool HasGroups => NoteGroups.Count > 0;
+     public bool HasGroups => NoteGroups.Count > 0;
     public bool HasTagFilters => TagFilters.Count > 0;
     public bool HasActiveTagFilters => _selectedTags.Count > 0;
     public bool IsMassSelectMode
@@ -451,6 +468,11 @@ public class MainViewModel : ViewModelBase
     public ICommand UnpinSelectedNotesCommand { get; }
     public ICommand DuplicateSelectedNotesCommand { get; }
     public ICommand AddFlashcardCommand { get; }
+    public ICommand ShowFlashcardsCommand { get; }
+    public ICommand OpenFlashcardCommand { get; }
+    public ICommand FlipFlashcardCommand { get; }
+    public ICommand CloseFlashcardCommand { get; }
+    public ICommand ShowNotesCommand { get; }
 
     public void SetTagFilterSelected(string tag, bool isSelected)
     {
@@ -796,7 +818,7 @@ public class MainViewModel : ViewModelBase
     }
     public ObservableCollection<FlashcardItem> Flashcards { get; set; } = new();
 
-    private string _newFlashcardQuestion;
+    
     public string NewFlashcardQuestion
     {
         get => _newFlashcardQuestion;
@@ -807,7 +829,7 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    private string _newFlashcardAnswer;
+   
     public string NewFlashcardAnswer
     {
         get => _newFlashcardAnswer;
