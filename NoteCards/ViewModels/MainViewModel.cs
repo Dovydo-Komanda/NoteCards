@@ -172,6 +172,52 @@ public class MainViewModel : ViewModelBase
 
     private string _newFlashcardAnswer = "";
     private string _newFlashcardQuestion = "";
+    private void NextFlashcard()
+    {
+        if (SelectedFlashcard == null || Flashcards.Count == 0)
+            return;
+
+        var index = Flashcards.IndexOf(SelectedFlashcard);
+        if (index < Flashcards.Count - 1)
+        {
+            SelectedFlashcard = Flashcards[index + 1];
+        }
+        else
+        {
+            SelectedFlashcard = Flashcards[0]; // wrap (optional)
+        }
+
+        IsShowingAnswer = false;
+
+        OnPropertyChanged(nameof(SelectedFlashcard));
+        OnPropertyChanged(nameof(IsShowingAnswer));
+    }
+
+    private void PreviousFlashcard()
+    {
+        if (SelectedFlashcard == null || Flashcards.Count == 0)
+            return;
+
+        var index = Flashcards.IndexOf(SelectedFlashcard);
+        if (index > 0)
+        {
+            SelectedFlashcard = Flashcards[index - 1];
+        }
+        else
+        {
+            SelectedFlashcard = Flashcards[^1]; // wrap
+        }
+
+        IsShowingAnswer = false;
+
+        OnPropertyChanged(nameof(SelectedFlashcard));
+        OnPropertyChanged(nameof(IsShowingAnswer));
+    }
+
+    private bool CanNavigateFlashcards()
+    {
+        return SelectedFlashcard != null && Flashcards.Count > 1;
+    }
 
     public MainViewModel()
     {
@@ -213,6 +259,8 @@ public class MainViewModel : ViewModelBase
         PinSelectedNotesCommand = new RelayCommand(PinSelectedNotes, CanPinSelectedNotes);
         UnpinSelectedNotesCommand = new RelayCommand(UnpinSelectedNotes, CanUnpinSelectedNotes);
         DuplicateSelectedNotesCommand = new RelayCommand(DuplicateSelectedNotes, CanDuplicateSelectedNotes);
+        PreviousFlashcardCommand = new RelayCommand(PreviousFlashcard, CanNavigateFlashcards);
+        NextFlashcardCommand = new RelayCommand(NextFlashcard, CanNavigateFlashcards);
 
 
         ShowFlashcardsCommand = new RelayCommand(() => { });
@@ -497,6 +545,8 @@ public class MainViewModel : ViewModelBase
     public ICommand FlipFlashcardCommand { get; }
     public ICommand CloseFlashcardCommand { get; }
     public ICommand ShowNotesCommand { get; }
+    public ICommand PreviousFlashcardCommand { get; }
+    public ICommand NextFlashcardCommand { get; }
 
     public void SetTagFilterSelected(string tag, bool isSelected)
     {
