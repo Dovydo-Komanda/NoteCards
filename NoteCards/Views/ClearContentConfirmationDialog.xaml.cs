@@ -14,11 +14,22 @@ namespace NoteCards.Views
         {
             InitializeComponent();
             Loaded += ClearContentConfirmationDialog_Loaded;
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            ApplyOwnerBounds();
+        }
+
+        private void ApplyOwnerBounds()
+        {
+            OverlayDialogBoundsHelper.Apply(this);
         }
 
         private void ClearContentConfirmationDialog_Loaded(object sender, RoutedEventArgs e)
         {
+            ApplyOwnerBounds();
             BeginOpenAnimation();
         }
 

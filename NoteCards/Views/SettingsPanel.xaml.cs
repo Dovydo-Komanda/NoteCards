@@ -3,7 +3,12 @@ using NoteCards.Models;
 using NoteCards.Services;
 using NoteCards.ViewModels;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -14,17 +19,29 @@ namespace NoteCards.Views
 {
     public partial class SettingsPanel : UserControl
     {
+        private sealed class ManagedAiToolItem
+        {
+            public string Key { get; init; } = string.Empty;
+            public string Name { get; init; } = string.Empty;
+            public bool IsEnabled { get; set; }
+            public bool IsDownloaded { get; set; }
+        }
+
         private const int OverlayAnimationMs = 180;
         private const int PanelAnimationMs = 220;
         private const double PanelOffsetY = 14;
 
         private bool _isClosing;
         private bool _isApplyingSettings;
+        private bool _isDownloadingAiModel;
+        private bool _isDownloadingRuntime;
         private string _lastSelectedFlashcardModelKey = "Qwen3.5-0.8B";
+        private readonly ObservableCollection<ManagedAiToolItem> _managedAiTools = new();
 
         public SettingsPanel()
         {
             InitializeComponent();
+            AiToolsListBox.ItemsSource = _managedAiTools;
             LocalizationProvider.Instance.PropertyChanged += LocalizationProvider_PropertyChanged;
             Unloaded += (_, _) => LocalizationProvider.Instance.PropertyChanged -= LocalizationProvider_PropertyChanged;
         }
@@ -35,10 +52,12 @@ namespace NoteCards.Views
                 return;
 
             var machineMemoryBytes = BundledModelHostService.GetTotalPhysicalMemoryBytesForCurrentMachine();
-            RefreshFlashcardModelOptions(machineMemoryBytes);
+            RefreshFlashcardModelOptions(machineMemoryBytes, AppSettingsService.Load());
 
             var selectedKey = GetSelectedFlashcardModelKey() ?? _lastSelectedFlashcardModelKey;
             UpdateFlashcardModelWarning(selectedKey, machineMemoryBytes);
+            UpdateAiToolsStatusText();
+            UpdateRuntimeStatusText();
         }
 
         public void ShowAnimated()
@@ -93,7 +112,10 @@ namespace NoteCards.Views
             EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
             if (FindName("FlashcardFlipSpeedSlider") is Slider flipSpeedSlider)
                 flipSpeedSlider.Value = settings.FlashcardFlipDelayMilliseconds;
-            RefreshFlashcardModelOptions(machineMemoryBytes);
+            LoadManagedAiTools(settings);
+            RefreshFlashcardModelOptions(machineMemoryBytes, settings);
+            RefreshManagedAiToolDownloadState();
+            UpdateRuntimeStatusText();
             if (flashcardModelBox is not null)
                 SelectComboBoxItemByTag(flashcardModelBox, settings.FlashcardModelKey, recommendedModelKey);
             _lastSelectedFlashcardModelKey = GetSelectedFlashcardModelKey() ?? recommendedModelKey;
@@ -113,34 +135,213 @@ namespace NoteCards.Views
             _isApplyingSettings = false;
         }
 
-        private void RefreshFlashcardModelOptions(long machineMemoryBytes)
+        private void LoadManagedAiTools(AppSettings settings)
+        {
+            var supportedTools = BundledModelHostService.GetSupportedFlashcardTools()
+                .ToDictionary(tool => tool.Key, StringComparer.OrdinalIgnoreCase);
+
+            var orderedItems = new List<ManagedAiToolItem>();
+            foreach (var item in settings.AiTools ?? new List<AiToolSettingsItem>())
+            {
+                if (string.IsNullOrWhiteSpace(item.Key) || !supportedTools.TryGetValue(item.Key, out var supported))
+                    continue;
+
+                orderedItems.Add(new ManagedAiToolItem
+                {
+                    Key = supported.Key,
+                    Name = supported.DisplayName,
+                    IsEnabled = item.IsEnabled,
+                    IsDownloaded = BundledModelHostService.IsModelDownloaded(supported.Key)
+                });
+            }
+
+            foreach (var supported in supportedTools.Values)
+            {
+                if (orderedItems.Any(item => string.Equals(item.Key, supported.Key, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                orderedItems.Add(new ManagedAiToolItem
+                {
+                    Key = supported.Key,
+                    Name = supported.DisplayName,
+                    IsEnabled = true,
+                    IsDownloaded = BundledModelHostService.IsModelDownloaded(supported.Key)
+                });
+            }
+
+            if (!orderedItems.Any(item => item.IsEnabled) && orderedItems.Count > 0)
+                orderedItems[0].IsEnabled = true;
+
+            _managedAiTools.Clear();
+            foreach (var item in orderedItems)
+                _managedAiTools.Add(item);
+
+            if (_managedAiTools.Count > 0 && AiToolsListBox.SelectedItem is null)
+                AiToolsListBox.SelectedIndex = 0;
+
+            UpdateAiToolsStatusText();
+            UpdateRuntimeStatusText();
+            UpdateAiActionButtons();
+        }
+
+        private void PersistManagedAiTools()
+        {
+            if (!_managedAiTools.Any(tool => tool.IsEnabled) && _managedAiTools.Count > 0)
+                _managedAiTools[0].IsEnabled = true;
+
+            var settings = AppSettingsService.Load();
+            settings.AiTools = _managedAiTools
+                .Select(item => new AiToolSettingsItem
+                {
+                    Key = item.Key,
+                    IsEnabled = item.IsEnabled,
+                    IsRemoved = false
+                })
+                .ToList();
+
+            if (!settings.AiTools.Any(tool => tool.IsEnabled) && settings.AiTools.Count > 0)
+                settings.AiTools[0].IsEnabled = true;
+
+            var enabledKeys = BundledModelHostService.GetEnabledFlashcardModelKeys(settings);
+            var selectedModelKey = GetSelectedFlashcardModelKey();
+
+            if (string.IsNullOrWhiteSpace(selectedModelKey)
+                || !enabledKeys.Any(key => string.Equals(key, selectedModelKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                selectedModelKey = enabledKeys.FirstOrDefault()
+                    ?? BundledModelHostService.GetRecommendedFlashcardModelKeyForCurrentMachine();
+            }
+
+            settings.FlashcardModelKey = selectedModelKey;
+            AppSettingsService.Save(settings);
+
+            _lastSelectedFlashcardModelKey = selectedModelKey;
+            var machineMemoryBytes = BundledModelHostService.GetTotalPhysicalMemoryBytesForCurrentMachine();
+            RefreshFlashcardModelOptions(machineMemoryBytes, settings);
+            UpdateFlashcardModelWarning(_lastSelectedFlashcardModelKey, machineMemoryBytes);
+            UpdateAiToolsStatusText();
+            UpdateRuntimeStatusText();
+            UpdateAiActionButtons();
+        }
+
+        private void UpdateAiToolsStatusText()
+        {
+            if (AiToolsStatusText is null)
+                return;
+
+            if (_isDownloadingAiModel)
+                return;
+
+            if (AiToolsListBox.SelectedItem is not ManagedAiToolItem selected)
+            {
+                AiToolsStatusText.Text = _managedAiTools.Count == 0
+                    ? LocalizationService.GetString("AiToolsNoModelsConfigured")
+                    : LocalizationService.GetString("AiToolsSelectModelToManage");
+                UpdateAiActionButtons();
+                return;
+            }
+
+            selected.IsDownloaded = BundledModelHostService.IsModelDownloaded(selected.Key);
+
+            AiToolsStatusText.Text = selected.IsDownloaded
+                ? string.Format(LocalizationService.GetString("AiToolsModelReadyFormat"), selected.Name)
+                : string.Format(LocalizationService.GetString("AiToolsModelNotDownloadedFormat"), selected.Name);
+
+            AiToolsListBox.Items.Refresh();
+            UpdateAiActionButtons();
+        }
+
+        private void UpdateRuntimeStatusText()
+        {
+            if (RuntimeStatusText is null)
+                return;
+
+            if (_isDownloadingRuntime)
+                return;
+
+            RuntimeStatusText.Text = BundledModelHostService.IsRuntimeDownloaded()
+                ? LocalizationService.GetString("AiToolsRuntimeReady")
+                : LocalizationService.GetString("AiToolsRuntimeNotDownloaded");
+
+            UpdateAiActionButtons();
+        }
+
+        private void UpdateAiActionButtons()
+        {
+            var selected = AiToolsListBox.SelectedItem as ManagedAiToolItem;
+            var hasSelection = selected is not null;
+
+            var isSelectedModelDownloaded = false;
+            if (selected is not null)
+            {
+                isSelectedModelDownloaded = BundledModelHostService.IsModelDownloaded(selected.Key);
+                selected.IsDownloaded = isSelectedModelDownloaded;
+            }
+
+            if (FindName("DownloadSelectedAiToolButton") is Button downloadModelButton)
+                downloadModelButton.IsEnabled = hasSelection && !_isDownloadingAiModel && !isSelectedModelDownloaded;
+
+            if (FindName("DeleteSelectedAiToolButton") is Button deleteModelButton)
+                deleteModelButton.IsEnabled = hasSelection && !_isDownloadingAiModel && isSelectedModelDownloaded;
+
+            var isRuntimeDownloaded = BundledModelHostService.IsRuntimeDownloaded();
+
+            if (FindName("RuntimeDownloadButton") is Button runtimeDownloadButton)
+                runtimeDownloadButton.IsEnabled = !_isDownloadingRuntime && !isRuntimeDownloaded;
+
+            if (FindName("RuntimeDeleteButton") is Button runtimeDeleteButton)
+                runtimeDeleteButton.IsEnabled = !_isDownloadingRuntime && isRuntimeDownloaded;
+        }
+
+        private void RefreshManagedAiToolDownloadState()
+        {
+            foreach (var item in _managedAiTools)
+                item.IsDownloaded = BundledModelHostService.IsModelDownloaded(item.Key);
+
+            AiToolsListBox.Items.Refresh();
+            UpdateAiToolsStatusText();
+        }
+
+        private void RefreshFlashcardModelOptions(long machineMemoryBytes, AppSettings settings)
         {
             var flashcardModelBox = FindName("FlashcardModelBox") as ComboBox;
             if (flashcardModelBox is null)
                 return;
 
-            foreach (var comboBoxItem in flashcardModelBox.Items.OfType<ComboBoxItem>())
-            {
-                var key = comboBoxItem.Tag?.ToString();
-                if (string.IsNullOrWhiteSpace(key))
-                    continue;
+            _isApplyingSettings = true;
+            flashcardModelBox.Items.Clear();
 
+            var enabledKeys = BundledModelHostService.GetEnabledFlashcardModelKeys(settings);
+            foreach (var key in enabledKeys)
+            {
                 var isCompatible = BundledModelHostService.IsFlashcardModelCompatibleWithMemory(key, machineMemoryBytes);
-                comboBoxItem.Content = BundledModelHostService.GetFlashcardModelDisplayLabel(key, includeWarningPrefix: true, isCompatible: isCompatible);
+                flashcardModelBox.Items.Add(new ComboBoxItem
+                {
+                    Tag = key,
+                    Content = BundledModelHostService.GetFlashcardModelDisplayLabel(key, includeWarningPrefix: true, isCompatible: isCompatible)
+                });
             }
 
             if (FindName("FlashcardModelContextMenu") is ContextMenu flashcardModelContextMenu)
             {
-                foreach (var menuItem in flashcardModelContextMenu.Items.OfType<MenuItem>())
+                flashcardModelContextMenu.Items.Clear();
+                foreach (var key in enabledKeys)
                 {
-                    var key = menuItem.Tag?.ToString();
-                    if (string.IsNullOrWhiteSpace(key))
-                        continue;
-
                     var isCompatible = BundledModelHostService.IsFlashcardModelCompatibleWithMemory(key, machineMemoryBytes);
-                    menuItem.Header = BundledModelHostService.GetFlashcardModelDisplayLabel(key, includeWarningPrefix: true, isCompatible: isCompatible);
+                    var menuItem = new MenuItem
+                    {
+                        Tag = key,
+                        Header = BundledModelHostService.GetFlashcardModelDisplayLabel(key, includeWarningPrefix: true, isCompatible: isCompatible)
+                    };
+                    menuItem.Click += FlashcardModelMenuItem_Click;
+                    flashcardModelContextMenu.Items.Add(menuItem);
                 }
             }
+
+            SelectComboBoxItemByTag(flashcardModelBox, settings.FlashcardModelKey, enabledKeys.FirstOrDefault() ?? _lastSelectedFlashcardModelKey);
+            _isApplyingSettings = false;
+
+            return;
         }
 
         private string? GetSelectedFlashcardModelKey()
@@ -297,6 +498,224 @@ namespace NoteCards.Views
 
             _lastSelectedFlashcardModelKey = selected;
             UpdateFlashcardModelWarning(selected, machineMemoryBytes);
+        }
+
+        private void AiToolEnabledCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isApplyingSettings)
+                return;
+
+            if (sender is not CheckBox checkBox || checkBox.Tag is not string key)
+                return;
+
+            var item = _managedAiTools.FirstOrDefault(tool => string.Equals(tool.Key, key, StringComparison.OrdinalIgnoreCase));
+            if (item is null)
+                return;
+
+            item.IsEnabled = checkBox.IsChecked == true;
+            PersistManagedAiTools();
+        }
+
+        private void MoveAiToolUp_Click(object sender, RoutedEventArgs e)
+        {
+            if (AiToolsListBox.SelectedItem is not ManagedAiToolItem selected)
+                return;
+
+            var currentIndex = _managedAiTools.IndexOf(selected);
+            if (currentIndex <= 0)
+                return;
+
+            _managedAiTools.Move(currentIndex, currentIndex - 1);
+            AiToolsListBox.SelectedItem = selected;
+            PersistManagedAiTools();
+        }
+
+        private void MoveAiToolDown_Click(object sender, RoutedEventArgs e)
+        {
+            if (AiToolsListBox.SelectedItem is not ManagedAiToolItem selected)
+                return;
+
+            var currentIndex = _managedAiTools.IndexOf(selected);
+            if (currentIndex < 0 || currentIndex >= _managedAiTools.Count - 1)
+                return;
+
+            _managedAiTools.Move(currentIndex, currentIndex + 1);
+            AiToolsListBox.SelectedItem = selected;
+            PersistManagedAiTools();
+        }
+
+        private void DeleteSelectedAiTool_Click(object sender, RoutedEventArgs e)
+        {
+            if (AiToolsListBox.SelectedItem is not ManagedAiToolItem selected)
+                return;
+
+            var deleteDialog = new DeleteConfirmationDialog(
+                LocalizationService.GetString("AiToolsDeleteTitle"),
+                string.Format(LocalizationService.GetString("AiToolsDeletePromptFormat"), selected.Name))
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            if (deleteDialog.ShowDialog() != true)
+                return;
+
+            BundledModelHostService.DeleteModelArtifacts(selected.Key);
+
+            selected.IsDownloaded = false;
+
+            PersistManagedAiTools();
+            RefreshManagedAiToolDownloadState();
+        }
+
+        private async void DownloadSelectedAiTool_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isDownloadingAiModel)
+                return;
+
+            if (AiToolsListBox.SelectedItem is not ManagedAiToolItem selected)
+                return;
+
+            _isDownloadingAiModel = true;
+            AiToolsStatusText.Text = string.Format(LocalizationService.GetString("AiToolsDownloadStartingFormat"), selected.Name);
+            UpdateAiActionButtons();
+
+            try
+            {
+                var progress = new Progress<BundledModelHostService.FlashcardProgress>(p =>
+                {
+                    if (p.Percent.HasValue)
+                        AiToolsStatusText.Text = string.Format(LocalizationService.GetString("AiToolsDownloadingPercentFormat"), selected.Name, p.Percent.Value);
+                    else
+                        AiToolsStatusText.Text = string.Format(LocalizationService.GetString("AiToolsDownloadPreparingFormat"), selected.Name);
+                });
+
+                await BundledModelHostService.Instance.EnsureModelAvailableAsync(selected.Key, progress);
+                RefreshManagedAiToolDownloadState();
+                AiToolsStatusText.Text = string.Format(LocalizationService.GetString("AiToolsDownloadSuccessFormat"), selected.Name);
+            }
+            catch (Exception ex)
+            {
+                AiToolsStatusText.Text = string.Format(LocalizationService.GetString("AiToolsDownloadFailedFormat"), selected.Name);
+
+                var dialog = new ModernInfoDialog(
+                    LocalizationService.GetString("Error"),
+                    string.Format(LocalizationService.GetString("AiToolsDownloadErrorDialogFormat"), selected.Name, ex.Message))
+                {
+                    Owner = Window.GetWindow(this)
+                };
+
+                dialog.ShowDialog();
+            }
+            finally
+            {
+                _isDownloadingAiModel = false;
+                UpdateAiToolsStatusText();
+                UpdateAiActionButtons();
+            }
+        }
+
+        private void AiToolsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdateAiToolsStatusText();
+            UpdateAiActionButtons();
+        }
+
+        private async void DownloadRuntime_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isDownloadingRuntime)
+                return;
+
+            _isDownloadingRuntime = true;
+            RuntimeStatusText.Text = LocalizationService.GetString("AiToolsRuntimeDownloadStarting");
+            UpdateAiActionButtons();
+
+            try
+            {
+                var progress = new Progress<BundledModelHostService.FlashcardProgress>(p =>
+                {
+                    if (p.Percent.HasValue)
+                        RuntimeStatusText.Text = string.Format(LocalizationService.GetString("AiToolsRuntimeDownloadingPercentFormat"), p.Percent.Value);
+                    else
+                        RuntimeStatusText.Text = LocalizationService.GetString("AiToolsRuntimeDownloadPreparing");
+                });
+
+                await BundledModelHostService.Instance.EnsureRuntimeAvailableAsync(progress);
+                RuntimeStatusText.Text = LocalizationService.GetString("AiToolsRuntimeDownloadSuccess");
+            }
+            catch (Exception ex)
+            {
+                RuntimeStatusText.Text = LocalizationService.GetString("AiToolsRuntimeDownloadFailed");
+
+                var dialog = new ModernInfoDialog(
+                    LocalizationService.GetString("Error"),
+                    ex.Message)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+
+                dialog.ShowDialog();
+            }
+            finally
+            {
+                _isDownloadingRuntime = false;
+                UpdateRuntimeStatusText();
+                UpdateAiActionButtons();
+            }
+        }
+
+        private void DeleteRuntime_Click(object sender, RoutedEventArgs e)
+        {
+            var deleteDialog = new DeleteConfirmationDialog(
+                LocalizationService.GetString("AiToolsRuntimeDeleteTitle"),
+                LocalizationService.GetString("AiToolsRuntimeDeletePrompt"))
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            if (deleteDialog.ShowDialog() != true)
+                return;
+
+            BundledModelHostService.DeleteRuntimeArtifacts();
+
+            UpdateRuntimeStatusText();
+        }
+
+        private void OpenRuntimeFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var runtimeDir = BundledModelHostService.GetRuntimeDirectoryPath();
+                Directory.CreateDirectory(runtimeDir);
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = runtimeDir,
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+            }
+        }
+
+        private void OpenAiToolsFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var modelsPath = BundledModelHostService.GetModelsDirectoryPath();
+                Directory.CreateDirectory(modelsPath);
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = modelsPath,
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+            }
         }
 
         public void HideAnimated()
@@ -466,6 +885,5 @@ namespace NoteCards.Views
                 }
             }
         }
-
-            }
-        }
+    }
+}

@@ -35,21 +35,12 @@ namespace NoteCards.Views
 
         private void ApplyOwnerBounds()
         {
-            if (Owner is null)
-                return;
-
-            var ownerWidth = Owner.ActualWidth > 0 ? Owner.ActualWidth : Owner.Width;
-            var ownerHeight = Owner.ActualHeight > 0 ? Owner.ActualHeight : Owner.Height;
-
-            WindowStartupLocation = WindowStartupLocation.Manual;
-            Left = Owner.Left;
-            Top = Owner.Top;
-            Width = ownerWidth;
-            Height = ownerHeight;
+            OverlayDialogBoundsHelper.Apply(this);
         }
 
         private void ModernInfoDialog_Loaded(object sender, RoutedEventArgs e)
         {
+            ApplyOwnerBounds();
             BeginOpenAnimation();
         }
 

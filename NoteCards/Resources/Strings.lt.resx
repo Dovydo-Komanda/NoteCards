@@ -269,4 +269,38 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ResetFactorySettingsDescription" xml:space="preserve"><value>Atstatyti visus nustatymus ir duomenis į numatytuosius. Šis veiksmas negali būti anuliuotas.</value></data>
   <data name="ResetFactorySettingsPrompt" xml:space="preserve"><value>Tai atstatys visus nustatymus ir duomenis į numatytuosius. Šio veiksmo negalima anuliuoti. Tęsti?</value></data>
   <data name="ResetFactorySettingsWarning" xml:space="preserve"><value>⚠ Dėmesio: Šio veiksmo negalima anuliuoti.</value></data>
+  <data name="AiToolsSectionTitle" xml:space="preserve"><value>DI įrankiai</value></data>
+  <data name="AiToolsDefaultModel" xml:space="preserve"><value>Numatytasis modelis</value></data>
+  <data name="AiToolsAvailableModels" xml:space="preserve"><value>Galimi modeliai</value></data>
+  <data name="AiToolsEnabled" xml:space="preserve"><value>Įjungtas</value></data>
+  <data name="AiToolsDownloadSelected" xml:space="preserve"><value>Atsiųsti pasirinktą</value></data>
+  <data name="AiToolsDeleteSelected" xml:space="preserve"><value>Ištrinti</value></data>
+  <data name="AiToolsOpenFolder" xml:space="preserve"><value>Atverti aplanką</value></data>
+  <data name="AiToolsDownloaded" xml:space="preserve"><value>Atsiųsta</value></data>
+  <data name="AiToolsNotDownloaded" xml:space="preserve"><value>Neatsiųsta</value></data>
+  <data name="AiToolsNoModelsConfigured" xml:space="preserve"><value>Nėra sukonfigūruotų DI modelių.</value></data>
+  <data name="AiToolsSelectModelToManage" xml:space="preserve"><value>Pasirinkite modelį, kad valdytumėte atsisiuntimo būseną.</value></data>
+  <data name="AiToolsModelReadyFormat" xml:space="preserve"><value>{0} yra atsiųstas ir paruoštas naudoti.</value></data>
+  <data name="AiToolsModelNotDownloadedFormat" xml:space="preserve"><value>{0} dar neatsiųstas.</value></data>
+  <data name="AiToolsDownloadStartingFormat" xml:space="preserve"><value>Pradedamas {0} atsisiuntimas...</value></data>
+  <data name="AiToolsDownloadPreparingFormat" xml:space="preserve"><value>Ruošiamas {0} atsisiuntimas...</value></data>
+  <data name="AiToolsDownloadingPercentFormat" xml:space="preserve"><value>Atsiunčiamas {0}: {1}%</value></data>
+  <data name="AiToolsDownloadSuccessFormat" xml:space="preserve"><value>{0} sėkmingai atsiųstas.</value></data>
+  <data name="AiToolsDownloadFailedFormat" xml:space="preserve"><value>Nepavyko atsiųsti {0}.</value></data>
+  <data name="AiToolsDownloadErrorDialogFormat" xml:space="preserve"><value>Nepavyko atsiųsti {0}: {1}</value></data>
+  <data name="AiToolsDeleteTitle" xml:space="preserve"><value>Ištrinti DI įrankį</value></data>
+  <data name="AiToolsDeletePromptFormat" xml:space="preserve"><value>Ar tikrai norite pašalinti „{0}“ iš DI įrankių?</value></data>
+  <data name="AiToolsRuntimeTitle" xml:space="preserve"><value>llama.cpp vykdymo modulis</value></data>
+  <data name="AiToolsRuntimeReady" xml:space="preserve"><value>Vykdymo modulis atsiųstas ir paruoštas.</value></data>
+  <data name="AiToolsRuntimeNotDownloaded" xml:space="preserve"><value>Vykdymo modulis dar neatsiųstas.</value></data>
+  <data name="AiToolsRuntimeDownload" xml:space="preserve"><value>Atsiųsti vykdymo modulį</value></data>
+  <data name="AiToolsRuntimeOpenFolder" xml:space="preserve"><value>Atverti vykdymo modulio aplanką</value></data>
+  <data name="AiToolsRuntimeDelete" xml:space="preserve"><value>Ištrinti vykdymo modulį</value></data>
+  <data name="AiToolsRuntimeDownloadStarting" xml:space="preserve"><value>Pradedamas vykdymo modulio atsisiuntimas...</value></data>
+  <data name="AiToolsRuntimeDownloadPreparing" xml:space="preserve"><value>Ruošiamas vykdymo modulio atsisiuntimas...</value></data>
+  <data name="AiToolsRuntimeDownloadingPercentFormat" xml:space="preserve"><value>Atsiunčiamas vykdymo modulis: {0}%</value></data>
+  <data name="AiToolsRuntimeDownloadSuccess" xml:space="preserve"><value>Vykdymo modulis sėkmingai atsiųstas.</value></data>
+  <data name="AiToolsRuntimeDownloadFailed" xml:space="preserve"><value>Nepavyko atsiųsti vykdymo modulio.</value></data>
+  <data name="AiToolsRuntimeDeleteTitle" xml:space="preserve"><value>Ištrinti vykdymo modulį</value></data>
+  <data name="AiToolsRuntimeDeletePrompt" xml:space="preserve"><value>Ar tikrai norite ištrinti llama.cpp vykdymo modulio failus?</value></data>
 </root>

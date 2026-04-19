@@ -15,6 +15,7 @@ namespace NoteCards.Services;
 public sealed class BundledModelHostService
 {
     public sealed record FlashcardProgress(string StatusKey, int? Percent = null, int? GeneratedChars = null);
+    public sealed record FlashcardToolInfo(string Key, string DisplayName);
 
     private sealed record ModelInfo(
         string Key,
@@ -381,9 +382,57 @@ public sealed class BundledModelHostService
 
     private static ModelInfo GetSelectedModelInfo()
     {
-        var key = AppSettingsService.Load().FlashcardModelKey;
-        return SupportedModels.FirstOrDefault(m => string.Equals(m.Key, key, StringComparison.OrdinalIgnoreCase))
+        var settings = AppSettingsService.Load();
+        var enabledKeys = GetEnabledFlashcardModelKeys(settings);
+        var selectedKey = settings.FlashcardModelKey;
+
+        if (string.IsNullOrWhiteSpace(selectedKey)
+            || !enabledKeys.Any(key => string.Equals(key, selectedKey, StringComparison.OrdinalIgnoreCase)))
+        {
+            selectedKey = enabledKeys[0];
+        }
+
+        return SupportedModels.FirstOrDefault(m => string.Equals(m.Key, selectedKey, StringComparison.OrdinalIgnoreCase))
             ?? SupportedModels[0];
+    }
+
+    public static IReadOnlyList<FlashcardToolInfo> GetSupportedFlashcardTools()
+    {
+        return SupportedModels
+            .Select(model => new FlashcardToolInfo(model.Key, model.DisplayName))
+            .ToArray();
+    }
+
+    public static List<AiToolSettingsItem> BuildDefaultAiToolSettings()
+    {
+        return SupportedModels
+            .Select(model => new AiToolSettingsItem
+            {
+                Key = model.Key,
+                IsEnabled = true
+            })
+            .ToList();
+    }
+
+    public static IReadOnlyList<string> GetEnabledFlashcardModelKeys(AppSettings? settings = null)
+    {
+        var source = settings ?? AppSettingsService.Load();
+        var supportedByKey = SupportedModels
+            .ToDictionary(model => model.Key, StringComparer.OrdinalIgnoreCase);
+
+        var configured = (source.AiTools ?? new List<AiToolSettingsItem>())
+            .Where(item => !string.IsNullOrWhiteSpace(item.Key))
+            .Where(item => !item.IsRemoved)
+            .Where(item => item.IsEnabled)
+            .Select(item => item.Key)
+            .Where(key => supportedByKey.ContainsKey(key))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (configured.Count == 0)
+            configured = BuildDefaultAiToolSettings().Select(item => item.Key).ToList();
+
+        return configured;
     }
 
     public static string GetRecommendedFlashcardModelKeyForCurrentMachine()
@@ -898,6 +947,125 @@ public sealed class BundledModelHostService
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "NoteCards",
             CacheFolderName);
+    }
+
+    public static string GetModelsDirectoryPath()
+    {
+        return Path.Combine(GetCacheRootDirectory(), "models");
+    }
+
+    public static string GetRuntimeDirectoryPath()
+    {
+        return Path.Combine(GetCacheRootDirectory(), "runtime");
+    }
+
+    public static string GetRuntimeExecutablePath()
+    {
+        return Path.Combine(GetRuntimeDirectoryPath(), RuntimeExeName);
+    }
+
+    public static string? GetModelFilePath(string key)
+    {
+        var model = SupportedModels.FirstOrDefault(m => string.Equals(m.Key, key, StringComparison.OrdinalIgnoreCase));
+        if (model is null)
+            return null;
+
+        return Path.Combine(GetModelsDirectoryPath(), model.FileName);
+    }
+
+    public static bool IsModelDownloaded(string key)
+    {
+        var path = GetModelFilePath(key);
+        return !string.IsNullOrWhiteSpace(path) && File.Exists(path);
+    }
+
+    public static bool IsRuntimeDownloaded()
+    {
+        return IsRuntimePayloadAvailable(GetRuntimeExecutablePath());
+    }
+
+    public static void DeleteModelArtifacts(string key)
+    {
+        var model = SupportedModels.FirstOrDefault(m => string.Equals(m.Key, key, StringComparison.OrdinalIgnoreCase));
+        if (model is null)
+            return;
+
+        var cachePath = Path.Combine(GetModelsDirectoryPath(), model.FileName);
+        var bundledPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Models", model.FileName);
+
+        TryDeleteFile(cachePath);
+        TryDeleteFile(bundledPath);
+
+        try
+        {
+            var modelsDir = GetModelsDirectoryPath();
+            if (Directory.Exists(modelsDir))
+            {
+                foreach (var tempFile in Directory.EnumerateFiles(modelsDir, $"{model.FileName}.*.download", SearchOption.TopDirectoryOnly))
+                    TryDeleteFile(tempFile);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    public static void DeleteRuntimeArtifacts()
+    {
+        TryDeleteDirectory(GetRuntimeDirectoryPath());
+        TryDeleteDirectory(Path.Combine(AppContext.BaseDirectory, "Assets", "ModelRuntime"));
+    }
+
+    public async Task EnsureRuntimeAvailableAsync(
+        IProgress<FlashcardProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        await _sync.WaitAsync(cancellationToken);
+        try
+        {
+            var baseDir = AppContext.BaseDirectory;
+            var runtimeAssetsDir = Path.Combine(baseDir, "Assets", "ModelRuntime");
+            var runtimeCacheDir = GetRuntimeDirectoryPath();
+
+            Directory.CreateDirectory(runtimeAssetsDir);
+            Directory.CreateDirectory(runtimeCacheDir);
+
+            await EnsureRuntimeAssetsAsync(runtimeAssetsDir, runtimeCacheDir, progress, cancellationToken);
+        }
+        finally
+        {
+            _sync.Release();
+        }
+    }
+
+    public async Task EnsureModelAvailableAsync(
+        string key,
+        IProgress<FlashcardProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            throw new ArgumentException("Model key is required.", nameof(key));
+
+        var selectedModel = SupportedModels.FirstOrDefault(model => string.Equals(model.Key, key, StringComparison.OrdinalIgnoreCase));
+        if (selectedModel is null)
+            throw new InvalidOperationException($"Unsupported model key '{key}'.");
+
+        await _sync.WaitAsync(cancellationToken);
+        try
+        {
+            var baseDir = AppContext.BaseDirectory;
+            var modelsAssetsDir = Path.Combine(baseDir, "Assets", "Models");
+            var modelsCacheDir = GetModelsDirectoryPath();
+
+            Directory.CreateDirectory(modelsAssetsDir);
+            Directory.CreateDirectory(modelsCacheDir);
+
+            await EnsureModelAssetAsync(modelsAssetsDir, modelsCacheDir, selectedModel, progress, cancellationToken);
+        }
+        finally
+        {
+            _sync.Release();
+        }
     }
 
     private static bool IsRuntimeExecutableValid(string path)

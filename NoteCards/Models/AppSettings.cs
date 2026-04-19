@@ -41,6 +41,7 @@ public class AppSettings
     public double PreferredFontSize { get; set; } = 14;
 
     public string FlashcardModelKey { get; set; } = "AutoSelect";
+    public List<AiToolSettingsItem> AiTools { get; set; } = new();
     public string? LastView { get; set; }
 
     public int FlashcardFlipDelayMilliseconds { get; set; } = 300;
@@ -50,4 +51,13 @@ public class AppSettings
     public long TotalWordsTyped { get; set; } = 0;
     public long TotalCharactersTyped { get; set; } = 0;
     public DateTime? LastActiveDate { get; set; }
+}
+
+public class AiToolSettingsItem
+{
+    public string Key { get; set; } = string.Empty;
+
+    public bool IsEnabled { get; set; } = true;
+
+    public bool IsRemoved { get; set; }
 }

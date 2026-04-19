@@ -15,7 +15,7 @@
         ShowInTaskbar="False"
         Topmost="True">
 
-    <Grid Background="Transparent">
+    <Grid Background="#66000000">
         <Border x:Name="DialogCard"
                 Background="{DynamicResource CardBackground}"
                 BorderBrush="{DynamicResource BorderColor}"

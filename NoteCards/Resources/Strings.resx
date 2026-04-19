@@ -153,6 +153,40 @@ Right-click to remove</value></data>
   <data name="ResetFactorySettingsDescription" xml:space="preserve"><value>Reset all settings and data to default. This action cannot be undone.</value></data>
   <data name="ResetFactorySettingsPrompt" xml:space="preserve"><value>This will reset all settings and data to default. This action cannot be undone. Continue?</value></data>
   <data name="ResetFactorySettingsWarning" xml:space="preserve"><value>⚠ Warning: This action cannot be undone.</value></data>
+  <data name="AiToolsSectionTitle" xml:space="preserve"><value>AI Tools</value></data>
+  <data name="AiToolsDefaultModel" xml:space="preserve"><value>Default model</value></data>
+  <data name="AiToolsAvailableModels" xml:space="preserve"><value>Available models</value></data>
+  <data name="AiToolsEnabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="AiToolsDownloadSelected" xml:space="preserve"><value>Download selected</value></data>
+  <data name="AiToolsDeleteSelected" xml:space="preserve"><value>Delete</value></data>
+  <data name="AiToolsOpenFolder" xml:space="preserve"><value>Open folder</value></data>
+  <data name="AiToolsDownloaded" xml:space="preserve"><value>Downloaded</value></data>
+  <data name="AiToolsNotDownloaded" xml:space="preserve"><value>Not downloaded</value></data>
+  <data name="AiToolsNoModelsConfigured" xml:space="preserve"><value>No AI models configured.</value></data>
+  <data name="AiToolsSelectModelToManage" xml:space="preserve"><value>Select a model to manage download state.</value></data>
+  <data name="AiToolsModelReadyFormat" xml:space="preserve"><value>{0} is downloaded and ready to use.</value></data>
+  <data name="AiToolsModelNotDownloadedFormat" xml:space="preserve"><value>{0} is not downloaded yet.</value></data>
+  <data name="AiToolsDownloadStartingFormat" xml:space="preserve"><value>Starting download for {0}...</value></data>
+  <data name="AiToolsDownloadPreparingFormat" xml:space="preserve"><value>Preparing {0} download...</value></data>
+  <data name="AiToolsDownloadingPercentFormat" xml:space="preserve"><value>Downloading {0}: {1}%</value></data>
+  <data name="AiToolsDownloadSuccessFormat" xml:space="preserve"><value>{0} downloaded successfully.</value></data>
+  <data name="AiToolsDownloadFailedFormat" xml:space="preserve"><value>Failed to download {0}.</value></data>
+  <data name="AiToolsDownloadErrorDialogFormat" xml:space="preserve"><value>Failed to download {0}: {1}</value></data>
+  <data name="AiToolsDeleteTitle" xml:space="preserve"><value>Delete AI tool</value></data>
+  <data name="AiToolsDeletePromptFormat" xml:space="preserve"><value>Are you sure you want to delete '{0}' from AI tools?</value></data>
+  <data name="AiToolsRuntimeTitle" xml:space="preserve"><value>llama.cpp runtime</value></data>
+  <data name="AiToolsRuntimeReady" xml:space="preserve"><value>Runtime is downloaded and ready.</value></data>
+  <data name="AiToolsRuntimeNotDownloaded" xml:space="preserve"><value>Runtime is not downloaded yet.</value></data>
+  <data name="AiToolsRuntimeDownload" xml:space="preserve"><value>Download runtime</value></data>
+  <data name="AiToolsRuntimeOpenFolder" xml:space="preserve"><value>Open runtime folder</value></data>
+  <data name="AiToolsRuntimeDelete" xml:space="preserve"><value>Delete runtime</value></data>
+  <data name="AiToolsRuntimeDownloadStarting" xml:space="preserve"><value>Starting runtime download...</value></data>
+  <data name="AiToolsRuntimeDownloadPreparing" xml:space="preserve"><value>Preparing runtime download...</value></data>
+  <data name="AiToolsRuntimeDownloadingPercentFormat" xml:space="preserve"><value>Downloading runtime: {0}%</value></data>
+  <data name="AiToolsRuntimeDownloadSuccess" xml:space="preserve"><value>Runtime downloaded successfully.</value></data>
+  <data name="AiToolsRuntimeDownloadFailed" xml:space="preserve"><value>Failed to download runtime.</value></data>
+  <data name="AiToolsRuntimeDeleteTitle" xml:space="preserve"><value>Delete runtime</value></data>
+  <data name="AiToolsRuntimeDeletePrompt" xml:space="preserve"><value>Are you sure you want to delete the llama.cpp runtime files?</value></data>
 
   <data name="SortByLastModifiedDesc" xml:space="preserve"><value>Recently edited</value></data>
   <data name="SortByLastModifiedAsc" xml:space="preserve"><value>Least recently edited</value></data>

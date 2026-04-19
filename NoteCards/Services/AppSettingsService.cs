@@ -1,5 +1,7 @@
 using NoteCards.Models;
+using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 
 namespace NoteCards.Services;
@@ -31,7 +33,21 @@ public static class AppSettingsService
 
             var json = File.ReadAllText(path);
             var settings = JsonSerializer.Deserialize<AppSettings>(json);
-            return settings ?? new AppSettings();
+            if (settings is null)
+                return new AppSettings();
+
+            var defaultTools = BundledModelHostService.BuildDefaultAiToolSettings();
+            if (settings.AiTools is null || settings.AiTools.Count == 0)
+                settings.AiTools = defaultTools;
+
+            if (string.IsNullOrWhiteSpace(settings.FlashcardModelKey)
+                || settings.AiTools.All(tool => tool.IsRemoved || !tool.IsEnabled || !string.Equals(tool.Key, settings.FlashcardModelKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                settings.FlashcardModelKey = BundledModelHostService.GetEnabledFlashcardModelKeys(settings).FirstOrDefault()
+                    ?? BundledModelHostService.GetRecommendedFlashcardModelKeyForCurrentMachine();
+            }
+
+            return settings;
         }
         catch
         {
