@@ -265,6 +265,8 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="Known" xml:space="preserve"><value>Moku</value></data>
   <data name="Unknown" xml:space="preserve"><value>Nemoku</value></data>
   <data name="FlashcardStatusAll" xml:space="preserve"><value>Visos</value></data>
+  <data name="StudyModeStudiedFormat" xml:space="preserve"><value>Išmoktos kortelės: {0}</value></data>
+  <data name="StudyModeComplete" xml:space="preserve"><value>Mokymosi sesija baigta</value></data>
   <data name="StudyModePrevious" xml:space="preserve"><value>Ankstesnė</value></data>
   <data name="StudyModeNext" xml:space="preserve"><value>Kita</value></data>
   <data name="StudyModeProgress" xml:space="preserve"><value>Kortelė {0} iš {1}</value></data>

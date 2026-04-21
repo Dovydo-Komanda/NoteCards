@@ -305,6 +305,8 @@ Right-click to remove</value></data>
   <data name="Known" xml:space="preserve"><value>Known</value></data>
   <data name="Unknown" xml:space="preserve"><value>Unknown</value></data>
   <data name="FlashcardStatusAll" xml:space="preserve"><value>All</value></data>
+  <data name="StudyModeStudiedFormat" xml:space="preserve"><value>Studied cards: {0}</value></data>
+  <data name="StudyModeComplete" xml:space="preserve"><value>Study session complete</value></data>
   <data name="StudyModePrevious" xml:space="preserve"><value>Previous</value></data>
   <data name="StudyModeNext" xml:space="preserve"><value>Next</value></data>
   <data name="StudyModeProgress" xml:space="preserve"><value>Card {0} of {1}</value></data>

@@ -371,12 +371,29 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock x:Name="StudyModeProgressText"
-                               FontSize="13"
+                            <StackPanel Margin="0,0,0,12"
+                                HorizontalAlignment="Center">
+                        <Border x:Name="StudyModeProgressTrack"
+                                Width="240"
+                            Height="4"
+                            Background="#D8DCE6"
+                            CornerRadius="2"
+                            ToolTipService.ShowDuration="5000"
+                            ToolTipService.InitialShowDelay="250">
+                            <Border x:Name="StudyModeProgressFill"
+                                HorizontalAlignment="Left"
+                                Width="0"
+                                Background="#10B981"
+                                CornerRadius="2"/>
+                        </Border>
+                        <TextBlock x:Name="StudyModeCompletionText"
+                               Visibility="Collapsed"
+                               FontSize="12"
                                FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextColorSecondary}"
+                               Foreground="#10B981"
                                HorizontalAlignment="Center"
-                               Margin="0,0,0,12"/>
+                               Margin="0,6,0,0"/>
+                        </StackPanel>
 
                     <Border x:Name="StudyModeCard"
         Grid.Row="1"

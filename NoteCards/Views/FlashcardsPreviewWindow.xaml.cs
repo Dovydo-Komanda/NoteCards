@@ -690,19 +690,28 @@ public partial class FlashcardsPreviewWindow : Window
         if (!_isStudyMode || _items.Count == 0)
             return;
 
-        // Count unknown and known cards for progress
+        // Count progress and status breakdown for the current study session
+        var studiedCount = _studyHistory.Distinct().Count();
         var knownCount = _items.Count(i => i.IsKnown);
+        var unknownCount = _items.Count(i => i.IsUnknown);
         var remainingCount = _items.Count - knownCount;
+
+        UpdateStudyProgressLine(studiedCount, knownCount, unknownCount, _items.Count);
 
         // Show completion if all cards are known
         if (remainingCount == 0)
         {
-            StudyModeProgressText.Text = LocalizationService.GetString("StudyModeComplete");
+            StudyModeCompletionText.Text = LocalizationService.GetString("StudyModeComplete");
+            StudyModeCompletionText.Visibility = Visibility.Visible;
             StudyModePreviousButton.IsEnabled = false;
             StudyModeNextButton.IsEnabled = false;
             StudyModeMarkKnownButton.IsEnabled = false;
             StudyModeMarkUnknownButton.IsEnabled = false;
             return;
+        }
+        else
+        {
+            StudyModeCompletionText.Visibility = Visibility.Collapsed;
         }
 
         var currentItem = (_studyModeIndex >= 0 && _studyModeIndex < _items.Count)
@@ -713,7 +722,8 @@ public partial class FlashcardsPreviewWindow : Window
         {
             if (!TryMoveToNextStudyItem(fromHistory: false))
             {
-                StudyModeProgressText.Text = LocalizationService.GetString("StudyModeComplete");
+                StudyModeCompletionText.Text = LocalizationService.GetString("StudyModeComplete");
+                StudyModeCompletionText.Visibility = Visibility.Visible;
                 StudyModePreviousButton.IsEnabled = _studyHistoryPosition > 0;
                 StudyModeNextButton.IsEnabled = false;
                 StudyModeMarkKnownButton.IsEnabled = false;
@@ -726,17 +736,38 @@ public partial class FlashcardsPreviewWindow : Window
 
         StudyModeCard.DataContext = currentItem;
 
-        var shownCount = Math.Max(1, _studyHistoryPosition + 1);
-
-        StudyModeProgressText.Text = string.Format(
-            LocalizationService.GetString("StudyModeProgress"),
-            Math.Min(shownCount, Math.Max(1, remainingCount)),
-            remainingCount);
-
         StudyModePreviousButton.IsEnabled = _studyHistoryPosition > 0;
         StudyModeNextButton.IsEnabled = remainingCount > 0;
         StudyModeMarkKnownButton.IsEnabled = true;
         StudyModeMarkUnknownButton.IsEnabled = true;
+    }
+
+    private void UpdateStudyProgressLine(int studiedCount, int knownCount, int unknownCount, int totalCount)
+    {
+        if (StudyModeProgressTrack is null || StudyModeProgressFill is null)
+            return;
+
+        var tooltipText = string.Format(
+            "Studied: {0} | Known: {1} | Unknown: {2}",
+            studiedCount,
+            knownCount,
+            unknownCount);
+
+        StudyModeProgressTrack.ToolTip = tooltipText;
+
+        if (totalCount <= 0)
+        {
+            StudyModeProgressFill.Width = 0;
+            return;
+        }
+
+        if (StudyModeProgressTrack.ActualWidth <= 0)
+        {
+            Dispatcher.BeginInvoke(() => UpdateStudyProgressLine(studiedCount, knownCount, unknownCount, totalCount), System.Windows.Threading.DispatcherPriority.Loaded);
+            return;
+        }
+
+        StudyModeProgressFill.Width = StudyModeProgressTrack.ActualWidth * Math.Clamp((double)knownCount / totalCount, 0, 1);
     }
 
     private sealed class FlashcardPreviewItem : INotifyPropertyChanged
