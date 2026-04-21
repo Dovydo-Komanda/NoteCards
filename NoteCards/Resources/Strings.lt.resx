@@ -241,6 +241,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Sugeneruotos kortelės</value></data>
   <data name="FlashcardQuestion" xml:space="preserve"><value>Klausimas</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Atsakymas</value></data>
+  <data name="FlashcardCategory" xml:space="preserve"><value>Kategorija</value></data>
   <data name="ConvertToFlashcardsParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamų Q/A kortelių.</value></data>
   <data name="FlashcardsTapHint" xml:space="preserve"><value>Spustelėkite kortelę, kad apverstumėte</value></data>
   <data name="FlashcardSideQuestion" xml:space="preserve"><value>KLAUSIMAS</value></data>
@@ -257,6 +258,8 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="CreateFlashcardSetPrompt" xml:space="preserve"><value>Įveskite rinkinio pavadinimą:</value></data>
   <data name="CreateFlashcardSetAndMove" xml:space="preserve"><value>Kurti rinkinį ir perkelti kortelę</value></data>
   <data name="MoveToSet" xml:space="preserve"><value>Perkelti į rinkinį</value></data>
+  <data name="AddFlashcardToSet" xml:space="preserve"><value>Prideti kortele i rinkini</value></data>
+  <data name="CreateFlashcardSetAndAdd" xml:space="preserve"><value>Kurti rinkini ir prideti kortele</value></data>
   <data name="StudyModeStart" xml:space="preserve"><value>Pradėti mokymosi režimą</value></data>
   <data name="StudyModeExit" xml:space="preserve"><value>Baigti mokymosi režimą</value></data>
   <data name="StudyModePrevious" xml:space="preserve"><value>Ankstesnė</value></data>

@@ -267,9 +267,11 @@
                                         MouseLeftButtonUp="FlashcardCard_MouseLeftButtonUp"
                                         Cursor="Hand">
                                     <Border.ContextMenu>
-                                        <ContextMenu>
+                                        <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                             <MenuItem Header="{Binding [MoveToSet], Source={StaticResource Loc}}"
-                                                      SubmenuOpened="MoveToSetMenuItem_SubmenuOpened"/>
+                                                      Click="MoveToSetMenuItem_Click"/>
+                                            <MenuItem Header="{Binding [AddFlashcardToSet], Source={StaticResource Loc}}"
+                                                      Click="AddFlashcardToSetMenuItem_Click"/>
                                             <Separator/>
                                             <MenuItem Header="{Binding [Edit], Source={StaticResource Loc}}"
                                             Click="EditFlashcardMenuItem_Click"/>
@@ -289,20 +291,33 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
                                         
-                                        <TextBlock FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TextColorSecondary}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="{Binding [FlashcardSideQuestion], Source={StaticResource Loc}}"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsFlipped}" Value="True">
-                                                            <Setter Property="Text" Value="{Binding [FlashcardSideAnswer], Source={StaticResource Loc}}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+                                        <DockPanel LastChildFill="False">
+                                            <TextBlock FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextColorSecondary}"
+                                                       DockPanel.Dock="Left">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="{Binding [FlashcardSideQuestion], Source={StaticResource Loc}}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsFlipped}" Value="True">
+                                                                <Setter Property="Text" Value="{Binding [FlashcardSideAnswer], Source={StaticResource Loc}}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <Border DockPanel.Dock="Right"
+                                                    Padding="8,3"
+                                                    Background="{DynamicResource SelectionBackground}"
+                                                    CornerRadius="6"
+                                                    Visibility="{Binding HasCategory, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding Category}"
+                                                           FontSize="10"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextColorSecondary}"/>
+                                            </Border>
+                                        </DockPanel>
 
                                         <TextBlock Grid.Row="1"
                                                    TextWrapping="Wrap"
@@ -371,9 +386,11 @@
         Cursor="Hand">
 
                         <Border.ContextMenu>
-                            <ContextMenu>
+                            <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                 <MenuItem Header="{Binding [MoveToSet], Source={StaticResource Loc}}"
-                                          SubmenuOpened="MoveToSetMenuItem_SubmenuOpened"/>
+                                          Click="MoveToSetMenuItem_Click"/>
+                                <MenuItem Header="{Binding [AddFlashcardToSet], Source={StaticResource Loc}}"
+                                          Click="AddFlashcardToSetMenuItem_Click"/>
                                 <Separator/>
                                 <MenuItem Header="{Binding [Edit], Source={StaticResource Loc}}"
                       Click="EditFlashcardMenuItem_Click"/>
@@ -420,20 +437,33 @@
                        Foreground="White"/>
                             </Border>
 
-                            <TextBlock FontSize="12"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextColorSecondary}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="{Binding [FlashcardSideQuestion], Source={StaticResource Loc}}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsFlipped}" Value="True">
-                                                <Setter Property="Text" Value="{Binding [FlashcardSideAnswer], Source={StaticResource Loc}}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock FontSize="12"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextColorSecondary}"
+                           DockPanel.Dock="Left">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding [FlashcardSideQuestion], Source={StaticResource Loc}}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsFlipped}" Value="True">
+                                                    <Setter Property="Text" Value="{Binding [FlashcardSideAnswer], Source={StaticResource Loc}}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Border DockPanel.Dock="Right"
+                        Padding="8,3"
+                        Background="{DynamicResource SelectionBackground}"
+                        CornerRadius="6"
+                        Visibility="{Binding HasCategory, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{Binding Category}"
+                               FontSize="10"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextColorSecondary}"/>
+                                </Border>
+                            </DockPanel>
 
                             <TextBlock Grid.Row="1"
                    TextWrapping="Wrap"

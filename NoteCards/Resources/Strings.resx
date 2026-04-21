@@ -281,6 +281,7 @@ Right-click to remove</value></data>
   <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Generated Flashcards</value></data>
   <data name="FlashcardQuestion" xml:space="preserve"><value>Question</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Answer</value></data>
+  <data name="FlashcardCategory" xml:space="preserve"><value>Category</value></data>
   <data name="ConvertToFlashcardsParseFailed" xml:space="preserve"><value>AI response did not contain valid Q/A flashcards.</value></data>
   <data name="FlashcardsTapHint" xml:space="preserve"><value>Click a card to flip</value></data>
   <data name="FlashcardSideQuestion" xml:space="preserve"><value>QUESTION</value></data>
@@ -297,6 +298,8 @@ Right-click to remove</value></data>
   <data name="CreateFlashcardSetPrompt" xml:space="preserve"><value>Enter a set name:</value></data>
   <data name="CreateFlashcardSetAndMove" xml:space="preserve"><value>Create set and move card</value></data>
   <data name="MoveToSet" xml:space="preserve"><value>Move to set</value></data>
+  <data name="AddFlashcardToSet" xml:space="preserve"><value>Add flashcard to set</value></data>
+  <data name="CreateFlashcardSetAndAdd" xml:space="preserve"><value>Create set and add flashcard</value></data>
   <data name="StudyModeStart" xml:space="preserve"><value>Start study mode</value></data>
   <data name="StudyModeExit" xml:space="preserve"><value>Exit study mode</value></data>
   <data name="StudyModePrevious" xml:space="preserve"><value>Previous</value></data>

@@ -17,6 +17,12 @@ namespace NoteCards.Views
             set => AnswerTextBox.Text = value;
         }
 
+        public string Category
+        {
+            get => CategoryTextBox.Text;
+            set => CategoryTextBox.Text = value;
+        }
+
         public EditFlashcardDialog()
         {
             InitializeComponent();

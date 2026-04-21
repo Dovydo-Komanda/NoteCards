@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 
@@ -29,7 +30,7 @@ public partial class FlashcardsPreviewWindow : Window
     {
         InitializeComponent();
         _allItems = items
-            .Select(i => new FlashcardPreviewItem(i.Question, i.Answer, Math.Max(DefaultSetIndex, i.SetIndex)))
+            .Select(i => new FlashcardPreviewItem(i.Question, i.Answer, Math.Max(DefaultSetIndex, i.SetIndex), i.Category))
             .ToList();
         _items = new ObservableCollection<FlashcardPreviewItem>();
         _setOptions = new ObservableCollection<FlashcardSetOption>();
@@ -89,7 +90,8 @@ public partial class FlashcardsPreviewWindow : Window
         {
             filteredItems = filteredItems.Where(item =>
                 item.Question.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase)
-                || item.Answer.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase));
+                || item.Answer.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase)
+                || item.Category.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase));
         }
 
         var orderedItems = _isShuffleMode
@@ -314,6 +316,9 @@ public partial class FlashcardsPreviewWindow : Window
         if (menuItem.DataContext is FlashcardPreviewItem flashcard)
             return flashcard;
 
+        if (menuItem.Parent is MenuItem parentMenuItem)
+            return ResolveFlashcardFromMenuItem(parentMenuItem);
+
         if (menuItem.Parent is ContextMenu { PlacementTarget: FrameworkElement placementTarget }
             && placementTarget.DataContext is FlashcardPreviewItem placementFlashcard)
         {
@@ -336,7 +341,7 @@ public partial class FlashcardsPreviewWindow : Window
             ApplySetFilter(selectedSetIndex.Value);
     }
 
-    private void MoveToSetMenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+    private void MoveToSetMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not MenuItem moveToSetMenu)
             return;
@@ -345,7 +350,10 @@ public partial class FlashcardsPreviewWindow : Window
         if (flashcard is null)
             return;
 
-        moveToSetMenu.Items.Clear();
+        var pickerMenu = new ContextMenu
+        {
+            Placement = PlacementMode.MousePoint
+        };
 
         foreach (var setOption in _setOptions.OrderBy(option => option.SetIndex))
         {
@@ -357,10 +365,10 @@ public partial class FlashcardsPreviewWindow : Window
             };
 
             setItem.Click += (_, _) => MoveFlashcardToSet(flashcard, targetSetIndex);
-            moveToSetMenu.Items.Add(setItem);
+            pickerMenu.Items.Add(setItem);
         }
 
-        moveToSetMenu.Items.Add(new Separator());
+        pickerMenu.Items.Add(new Separator());
 
         var createAndMoveItem = new MenuItem
         {
@@ -374,7 +382,73 @@ public partial class FlashcardsPreviewWindow : Window
             MoveFlashcardToSet(flashcard, createdSet.SetIndex);
         };
 
-        moveToSetMenu.Items.Add(createAndMoveItem);
+        pickerMenu.Items.Add(createAndMoveItem);
+        pickerMenu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    private void AddFlashcardToSetMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem addToSetMenu)
+            return;
+
+        var pickerMenu = new ContextMenu
+        {
+            Placement = PlacementMode.MousePoint
+        };
+
+        foreach (var setOption in _setOptions.OrderBy(option => option.SetIndex))
+        {
+            var targetSetIndex = setOption.SetIndex;
+            var setItem = new MenuItem
+            {
+                Header = setOption.DisplayName
+            };
+
+            setItem.Click += (_, _) => CreateFlashcardInSet(targetSetIndex);
+            pickerMenu.Items.Add(setItem);
+        }
+
+        pickerMenu.Items.Add(new Separator());
+
+        var createSetAndAddItem = new MenuItem
+        {
+            Header = LocalizationService.GetString("CreateFlashcardSetAndAdd")
+        };
+        createSetAndAddItem.Click += (_, _) =>
+        {
+            if (!TryCreateSet(out var createdSet, selectSet: false))
+                return;
+
+            CreateFlashcardInSet(createdSet.SetIndex);
+        };
+
+        pickerMenu.Items.Add(createSetAndAddItem);
+        pickerMenu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    private void CreateFlashcardInSet(int targetSetIndex)
+    {
+        var normalizedSetIndex = Math.Max(DefaultSetIndex, targetSetIndex);
+        AddSetOption(normalizedSetIndex, selectSet: false);
+
+        var dialog = new EditFlashcardDialog
+        {
+            Owner = this,
+            Question = string.Empty,
+            Answer = string.Empty,
+            Category = string.Empty
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        var flashcard = new FlashcardPreviewItem(dialog.Question, dialog.Answer, normalizedSetIndex, dialog.Category);
+        _allItems.Add(flashcard);
+
+        var selectedSetIndex = GetSelectedSetIndex() ?? _currentSetIndex;
+        ApplySetFilter(selectedSetIndex);
     }
 
     private void StartStudyModeButton_Click(object sender, RoutedEventArgs e)
@@ -490,13 +564,15 @@ public partial class FlashcardsPreviewWindow : Window
         private bool _isUnknown;
         private string _question = string.Empty;
         private string _answer = string.Empty;
+        private string _category = string.Empty;
         private int _setIndex;
 
-        public FlashcardPreviewItem(string question, string answer, int setIndex)
+        public FlashcardPreviewItem(string question, string answer, int setIndex, string? category = null)
         {
             Question = question;
             Answer = answer;
             SetIndex = setIndex;
+            Category = category ?? string.Empty;
         }
 
         public string Question
@@ -537,6 +613,23 @@ public partial class FlashcardsPreviewWindow : Window
                 OnPropertyChanged();
             }
         }
+
+        public string Category
+        {
+            get => _category;
+            set
+            {
+                var normalized = value?.Trim() ?? string.Empty;
+                if (_category == normalized)
+                    return;
+
+                _category = normalized;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasCategory));
+            }
+        }
+
+        public bool HasCategory => !string.IsNullOrWhiteSpace(_category);
 
         public bool IsFlipped
         {
@@ -647,16 +740,21 @@ public partial class FlashcardsPreviewWindow : Window
         ApplyStudyModeState();
     }
 
-    private async void EditFlashcardMenuItem_Click(object sender, RoutedEventArgs e)
+    private void EditFlashcardMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem menuItem || menuItem.DataContext is not FlashcardPreviewItem flashcard)
+        if (sender is not MenuItem menuItem)
+            return;
+
+        var flashcard = ResolveFlashcardFromMenuItem(menuItem);
+        if (flashcard is null)
             return;
 
         var dialog = new EditFlashcardDialog
         {
             Owner = this,
             Question = flashcard.Question,
-            Answer = flashcard.Answer
+            Answer = flashcard.Answer,
+            Category = flashcard.Category
         };
 
         var result = dialog.ShowDialog();
@@ -666,13 +764,18 @@ public partial class FlashcardsPreviewWindow : Window
             // Directly update the flashcard
             flashcard.Question = dialog.Question;
             flashcard.Answer = dialog.Answer;
+            flashcard.Category = dialog.Category;
         }
     }
 
     // ? Delete flashcard menu item handler
-    private async void DeleteFlashcardMenuItem_Click(object sender, RoutedEventArgs e)
+    private void DeleteFlashcardMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem menuItem || menuItem.DataContext is not FlashcardPreviewItem flashcard)
+        if (sender is not MenuItem menuItem)
+            return;
+
+        var flashcard = ResolveFlashcardFromMenuItem(menuItem);
+        if (flashcard is null)
             return;
 
         // Show confirmation dialog

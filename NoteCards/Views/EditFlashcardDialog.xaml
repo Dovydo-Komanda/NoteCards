@@ -92,11 +92,34 @@
                              Foreground="{DynamicResource TextColor}"/>
                 </Grid>
 
+                <!-- Category -->
+                <Grid Grid.Row="3" Margin="0,0,0,20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0"
+                               Text="{Binding [FlashcardCategory], Source={StaticResource Loc}}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextColor}"/>
+                    <TextBox Grid.Row="2"
+                             x:Name="CategoryTextBox"
+                             Height="36"
+                             Padding="12,8"
+                             FontSize="14"
+                             Background="{DynamicResource WindowBackground}"
+                             BorderBrush="{DynamicResource BorderColor}"
+                             BorderThickness="1"
+                             Foreground="{DynamicResource TextColor}"/>
+                </Grid>
+
                 <!-- Buttons -->
-                <StackPanel Grid.Row="3"
+                <StackPanel Grid.Row="4"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
-                            Margin="0,0,0,20">
+                            Margin="0,0,0,0">
                     <Button Content="{Binding [Cancel], Source={StaticResource Loc}}"
                             Padding="20,10"
                             MinWidth="110"
