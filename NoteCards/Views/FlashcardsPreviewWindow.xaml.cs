@@ -19,6 +19,7 @@ public partial class FlashcardsPreviewWindow : Window
     private readonly List<FlashcardPreviewItem> _allItems;
     private readonly ObservableCollection<FlashcardPreviewItem> _items;
     private readonly ObservableCollection<FlashcardSetOption> _setOptions;
+    private readonly ObservableCollection<FlashcardStatusFilterOption> _statusFilterOptions;
     private readonly List<FlashcardPreviewItem> _studyHistory = new();
     private readonly Random _random = new();
     private bool _isStudyMode;
@@ -26,6 +27,7 @@ public partial class FlashcardsPreviewWindow : Window
     private int _studyModeIndex;
     private int _studyHistoryPosition = -1;
     private int _currentSetIndex = DefaultSetIndex;
+    private bool? _statusFilterIsKnown;
     private string _searchText = string.Empty;
 
     public FlashcardsPreviewWindow(IEnumerable<FlashcardItem> items, string? modelDisplayName = null)
@@ -36,17 +38,51 @@ public partial class FlashcardsPreviewWindow : Window
             .ToList();
         _items = new ObservableCollection<FlashcardPreviewItem>();
         _setOptions = new ObservableCollection<FlashcardSetOption>();
+        _statusFilterOptions = new ObservableCollection<FlashcardStatusFilterOption>();
 
         SetSelectorComboBox.ItemsSource = _setOptions;
+        StatusFilterComboBox.ItemsSource = _statusFilterOptions;
         FlashcardsItemsControl.ItemsSource = _items;
         var modelName = string.IsNullOrWhiteSpace(modelDisplayName) ? LocalizationService.GetString("NotAvailable") : modelDisplayName;
         if (FindName("ModelInfoText") is TextBlock modelInfoText)
             modelInfoText.Text = string.Format(LocalizationService.GetString("FlashcardsGeneratedWithModel"), modelName);
 
         UpdateShuffleButtonState();
+        InitializeStatusFilterOptions();
         InitializeSetOptionsFromItems();
         ApplyStudyModeState();
         PreviewKeyDown += FlashcardsPreviewWindow_PreviewKeyDown;
+    }
+
+    private void InitializeStatusFilterOptions()
+    {
+        _statusFilterOptions.Clear();
+        _statusFilterOptions.Add(new FlashcardStatusFilterOption
+        {
+            IsKnown = null,
+            DisplayName = LocalizationService.GetString("FlashcardStatusAll")
+        });
+        _statusFilterOptions.Add(new FlashcardStatusFilterOption
+        {
+            IsKnown = true,
+            DisplayName = LocalizationService.GetString("Known")
+        });
+        _statusFilterOptions.Add(new FlashcardStatusFilterOption
+        {
+            IsKnown = false,
+            DisplayName = LocalizationService.GetString("Unknown")
+        });
+
+        StatusFilterComboBox.SelectedIndex = 0;
+    }
+
+    private void StatusFilterComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (StatusFilterComboBox.SelectedItem is not FlashcardStatusFilterOption option)
+            return;
+
+        _statusFilterIsKnown = option.IsKnown;
+        ApplyFilters();
     }
 
     private void FlashcardsPreviewWindow_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -127,6 +163,13 @@ public partial class FlashcardsPreviewWindow : Window
         var normalizedQuery = (_searchText ?? string.Empty).Trim();
 
         var filteredItems = _allItems.Where(item => item.SetIndex == _currentSetIndex);
+        if (_statusFilterIsKnown.HasValue)
+        {
+            filteredItems = _statusFilterIsKnown.Value
+                ? filteredItems.Where(item => item.IsKnown)
+                : filteredItems.Where(item => item.IsUnknown);
+        }
+
         if (!string.IsNullOrWhiteSpace(normalizedQuery))
         {
             filteredItems = filteredItems.Where(item =>
@@ -938,6 +981,12 @@ public partial class FlashcardsPreviewWindow : Window
     private sealed class FlashcardSetOption
     {
         public int SetIndex { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+    }
+
+    private sealed class FlashcardStatusFilterOption
+    {
+        public bool? IsKnown { get; set; }
         public string DisplayName { get; set; } = string.Empty;
     }
 }

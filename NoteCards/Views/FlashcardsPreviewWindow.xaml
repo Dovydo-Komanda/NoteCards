@@ -225,6 +225,13 @@
                         <StackPanel Grid.Column="1"
                                                 Orientation="Horizontal"
                                                 VerticalAlignment="Center">
+                                        <ComboBox x:Name="StatusFilterComboBox"
+                                                                                                        Width="112"
+                                                    Style="{StaticResource SetSelectorComboBoxStyle}"
+                                                                                                        ItemContainerStyle="{StaticResource SetSelectorComboBoxItemStyle}"
+                                                    DisplayMemberPath="DisplayName"
+                                                    Margin="0,0,8,0"
+                                                    SelectionChanged="StatusFilterComboBox_SelectionChanged"/>
                     <ComboBox x:Name="SetSelectorComboBox"
                                                     Width="148"
                           Style="{StaticResource SetSelectorComboBoxStyle}"
