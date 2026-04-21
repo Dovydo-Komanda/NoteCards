@@ -44,6 +44,45 @@ public partial class FlashcardsPreviewWindow : Window
         UpdateShuffleButtonState();
         InitializeSetOptionsFromItems();
         ApplyStudyModeState();
+        PreviewKeyDown += FlashcardsPreviewWindow_PreviewKeyDown;
+    }
+
+    private void FlashcardsPreviewWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (!_isStudyMode || _items.Count == 0)
+            return;
+
+        if (e.OriginalSource is TextBox)
+            return;
+
+        if (e.Key == Key.Right || e.Key == Key.N)
+        {
+            StudyModeNextButton_Click(StudyModeNextButton, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Left)
+        {
+            StudyModePreviousButton_Click(StudyModePreviousButton, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Space || e.Key == Key.F)
+        {
+            FlipCurrentStudyCard();
+            e.Handled = true;
+        }
+    }
+
+    private void FlipCurrentStudyCard()
+    {
+        if (!_isStudyMode || _items.Count == 0 || _studyModeIndex < 0 || _studyModeIndex >= _items.Count)
+            return;
+
+        if (StudyModeCard.DataContext is FlashcardPreviewItem item)
+            ToggleCardFlipWithAnimation(StudyModeCard, item);
     }
 
     private void InitializeSetOptionsFromItems()
@@ -465,8 +504,7 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void StudyModeCard_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (StudyModeCard.DataContext is FlashcardPreviewItem item)
-            ToggleCardFlipWithAnimation(StudyModeCard, item);
+        FlipCurrentStudyCard();
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
