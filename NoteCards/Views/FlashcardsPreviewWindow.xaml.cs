@@ -19,10 +19,12 @@ public partial class FlashcardsPreviewWindow : Window
     private readonly List<FlashcardPreviewItem> _allItems;
     private readonly ObservableCollection<FlashcardPreviewItem> _items;
     private readonly ObservableCollection<FlashcardSetOption> _setOptions;
+    private readonly List<FlashcardPreviewItem> _studyHistory = new();
     private readonly Random _random = new();
     private bool _isStudyMode;
     private bool _isShuffleMode;
     private int _studyModeIndex;
+    private int _studyHistoryPosition = -1;
     private int _currentSetIndex = DefaultSetIndex;
     private string _searchText = string.Empty;
 
@@ -142,7 +144,83 @@ public partial class FlashcardsPreviewWindow : Window
             _items.Add(item);
 
         _studyModeIndex = 0;
+        ResetStudyHistory();
         ApplyStudyModeState();
+    }
+
+    private void ResetStudyHistory()
+    {
+        _studyHistory.Clear();
+        _studyHistoryPosition = -1;
+    }
+
+    private FlashcardPreviewItem? PickNextStudyItem(FlashcardPreviewItem? currentItem)
+    {
+        var candidates = _items.Where(item => !item.IsKnown).ToList();
+        if (candidates.Count == 0)
+            return null;
+
+        if (currentItem is not null && candidates.Count > 1)
+            candidates.Remove(currentItem);
+
+        if (candidates.Count == 0)
+            return currentItem;
+
+        var totalWeight = 0;
+        foreach (var candidate in candidates)
+            totalWeight += candidate.IsUnknown ? 4 : 1;
+
+        var roll = _random.Next(totalWeight);
+        foreach (var candidate in candidates)
+        {
+            roll -= candidate.IsUnknown ? 4 : 1;
+            if (roll < 0)
+                return candidate;
+        }
+
+        return candidates[^1];
+    }
+
+    private void MoveToStudyItem(FlashcardPreviewItem item, bool appendToHistory)
+    {
+        var index = _items.IndexOf(item);
+        if (index < 0)
+            return;
+
+        _studyModeIndex = index;
+
+        if (!appendToHistory)
+            return;
+
+        if (_studyHistoryPosition < _studyHistory.Count - 1)
+            _studyHistory.RemoveRange(_studyHistoryPosition + 1, _studyHistory.Count - _studyHistoryPosition - 1);
+
+        _studyHistory.Add(item);
+        _studyHistoryPosition = _studyHistory.Count - 1;
+    }
+
+    private bool TryMoveToNextStudyItem(bool fromHistory)
+    {
+        if (_items.Count == 0)
+            return false;
+
+        if (fromHistory && _studyHistoryPosition < _studyHistory.Count - 1)
+        {
+            _studyHistoryPosition++;
+            MoveToStudyItem(_studyHistory[_studyHistoryPosition], appendToHistory: false);
+            return true;
+        }
+
+        var current = (_studyModeIndex >= 0 && _studyModeIndex < _items.Count)
+            ? _items[_studyModeIndex]
+            : null;
+
+        var next = PickNextStudyItem(current);
+        if (next is null)
+            return false;
+
+        MoveToStudyItem(next, appendToHistory: true);
+        return true;
     }
 
     private void UpdateShuffleButtonState()
@@ -496,7 +574,10 @@ public partial class FlashcardsPreviewWindow : Window
             return;
 
         if (!_isStudyMode)
+        {
             _studyModeIndex = 0;
+            ResetStudyHistory();
+        }
 
         _isStudyMode = !_isStudyMode;
         ApplyStudyModeState();
@@ -549,6 +630,7 @@ public partial class FlashcardsPreviewWindow : Window
         {
             _isStudyMode = false;
             _studyModeIndex = 0;
+            ResetStudyHistory();
         }
 
         // Ensure index is within bounds
@@ -565,10 +647,6 @@ public partial class FlashcardsPreviewWindow : Window
         if (!_isStudyMode || _items.Count == 0)
             return;
 
-        // Get current card
-        var currentItem = _items[_studyModeIndex];
-        StudyModeCard.DataContext = currentItem;
-
         // Count unknown and known cards for progress
         var knownCount = _items.Count(i => i.IsKnown);
         var remainingCount = _items.Count - knownCount;
@@ -584,13 +662,36 @@ public partial class FlashcardsPreviewWindow : Window
             return;
         }
 
+        var currentItem = (_studyModeIndex >= 0 && _studyModeIndex < _items.Count)
+            ? _items[_studyModeIndex]
+            : null;
+
+        if (currentItem is null || currentItem.IsKnown)
+        {
+            if (!TryMoveToNextStudyItem(fromHistory: false))
+            {
+                StudyModeProgressText.Text = LocalizationService.GetString("StudyModeComplete");
+                StudyModePreviousButton.IsEnabled = _studyHistoryPosition > 0;
+                StudyModeNextButton.IsEnabled = false;
+                StudyModeMarkKnownButton.IsEnabled = false;
+                StudyModeMarkUnknownButton.IsEnabled = false;
+                return;
+            }
+
+            currentItem = _items[_studyModeIndex];
+        }
+
+        StudyModeCard.DataContext = currentItem;
+
+        var shownCount = Math.Max(1, _studyHistoryPosition + 1);
+
         StudyModeProgressText.Text = string.Format(
             LocalizationService.GetString("StudyModeProgress"),
-            _items.Count(i => !i.IsKnown && _items.IndexOf(i) <= _studyModeIndex),
+            Math.Min(shownCount, Math.Max(1, remainingCount)),
             remainingCount);
 
-        StudyModePreviousButton.IsEnabled = _studyModeIndex > 0;
-        StudyModeNextButton.IsEnabled = _studyModeIndex < _items.Count - 1;
+        StudyModePreviousButton.IsEnabled = _studyHistoryPosition > 0;
+        StudyModeNextButton.IsEnabled = remainingCount > 0;
         StudyModeMarkKnownButton.IsEnabled = true;
         StudyModeMarkUnknownButton.IsEnabled = true;
     }
@@ -722,16 +823,7 @@ public partial class FlashcardsPreviewWindow : Window
         currentItem.IsKnown = true;
         currentItem.IsUnknown = false; // Clear unknown status
 
-        // Move to next card
-        if (_studyModeIndex < _items.Count - 1)
-        {
-            _studyModeIndex++;
-            // Skip known cards when advancing
-            while (_studyModeIndex < _items.Count && _items[_studyModeIndex].IsKnown)
-            {
-                _studyModeIndex++;
-            }
-        }
+        TryMoveToNextStudyItem(fromHistory: false);
 
         ApplyStudyModeState();
     }
@@ -750,30 +842,21 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void StudyModePreviousButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_items.Count == 0 || _studyModeIndex <= 0)
+        if (_items.Count == 0 || _studyHistoryPosition <= 0)
             return;
 
-        _studyModeIndex--;
-
-        while (_studyModeIndex >= 0 && _items[_studyModeIndex].IsKnown)
-        {
-            _studyModeIndex--;
-        }
+        _studyHistoryPosition--;
+        MoveToStudyItem(_studyHistory[_studyHistoryPosition], appendToHistory: false);
 
         ApplyStudyModeState();
     }
 
     private void StudyModeNextButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_items.Count == 0 || _studyModeIndex >= _items.Count - 1)
+        if (_items.Count == 0)
             return;
 
-        _studyModeIndex++;
-
-        while (_studyModeIndex < _items.Count && _items[_studyModeIndex].IsKnown)
-        {
-            _studyModeIndex++;
-        }
+        TryMoveToNextStudyItem(fromHistory: true);
 
         ApplyStudyModeState();
     }
@@ -831,6 +914,19 @@ public partial class FlashcardsPreviewWindow : Window
         _items.Remove(flashcard);
 
         _allItems.Remove(flashcard);
+
+        for (var i = _studyHistory.Count - 1; i >= 0; i--)
+        {
+            if (!ReferenceEquals(_studyHistory[i], flashcard))
+                continue;
+
+            _studyHistory.RemoveAt(i);
+            if (_studyHistoryPosition >= i)
+                _studyHistoryPosition--;
+        }
+
+        if (_studyHistoryPosition < -1)
+            _studyHistoryPosition = -1;
 
         // Adjust study mode index if needed
         if (_studyModeIndex >= _items.Count)
