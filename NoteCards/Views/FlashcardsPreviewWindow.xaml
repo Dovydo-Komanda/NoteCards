@@ -418,7 +418,7 @@
                 Background="#10B981"
                 CornerRadius="6"
                 Visibility="{Binding IsKnown, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding [FlashcardKnownStatus], Source={StaticResource Loc}}"
+                                <TextBlock Text="{Binding [Known], Source={StaticResource Loc}}"
                        FontSize="11"
                        FontWeight="SemiBold"
                        Foreground="White"/>
@@ -431,7 +431,7 @@
                 Background="#F59E0B"
                 CornerRadius="6"
                 Visibility="{Binding IsUnknown, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding [FlashcardUnknownStatus], Source={StaticResource Loc}}"
+                                <TextBlock Text="{Binding [Unknown], Source={StaticResource Loc}}"
                        FontSize="11"
                        FontWeight="SemiBold"
                        Foreground="White"/>
@@ -508,7 +508,7 @@
             Click="StudyModeNextButton_Click"/>
 
                         <Button x:Name="StudyModeMarkKnownButton"
-            Content="{Binding [MarkAsKnown], Source={StaticResource Loc}}"
+            Content="{Binding [Known], Source={StaticResource Loc}}"
             Style="{StaticResource DialogSecondaryButtonStyle}"
             MinWidth="140"
             Margin="10,0,0,0"
@@ -518,7 +518,7 @@
             Click="StudyModeMarkKnownButton_Click"/>
 
                         <Button x:Name="StudyModeMarkUnknownButton"
-            Content="{Binding [MarkAsUnknown], Source={StaticResource Loc}}"
+            Content="{Binding [Unknown], Source={StaticResource Loc}}"
             Style="{StaticResource DialogSecondaryButtonStyle}"
             MinWidth="160"
             Margin="10,0,0,0"

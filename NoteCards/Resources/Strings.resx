@@ -302,6 +302,8 @@ Right-click to remove</value></data>
   <data name="CreateFlashcardSetAndAdd" xml:space="preserve"><value>Create set and add flashcard</value></data>
   <data name="StudyModeStart" xml:space="preserve"><value>Start study mode</value></data>
   <data name="StudyModeExit" xml:space="preserve"><value>Exit study mode</value></data>
+  <data name="Known" xml:space="preserve"><value>Known</value></data>
+  <data name="Unknown" xml:space="preserve"><value>Unknown</value></data>
   <data name="StudyModePrevious" xml:space="preserve"><value>Previous</value></data>
   <data name="StudyModeNext" xml:space="preserve"><value>Next</value></data>
   <data name="StudyModeProgress" xml:space="preserve"><value>Card {0} of {1}</value></data>
