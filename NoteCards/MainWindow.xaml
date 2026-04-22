@@ -701,13 +701,15 @@
 						</Button>
 
 						<Separator Margin="6,10,6,10"/>
-                        <Button Content="Notes"
-        Command="{Binding ShowNotesCommand}"
-        Margin="0,5"/>
+						<Button Content="Notes"
+								Style="{StaticResource SidebarActionButtonStyle}"
+								Command="{Binding ShowNotesCommand}"
+								Margin="0,5"/>
 
                         <Button Content="Flashcards"
-        Command="{Binding ShowFlashcardsCommand}"
-        Margin="0,5"/>
+								Style="{StaticResource SidebarActionButtonStyle}"
+								Command="{Binding ShowFlashcardsCommand}"
+								Margin="0,5"/>
                         <Separator Margin="6,10,6,10"/>
 
                         <Button Style="{StaticResource SidebarActionButtonStyle}"
@@ -1720,29 +1722,55 @@
                 </Grid>
                 <!-- FLASHCARDS VIEW -->
                 <Grid Visibility="{Binding IsFlashcardsView, Converter={StaticResource BoolToVis}}">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="350">
+					<Border HorizontalAlignment="Center"
+							VerticalAlignment="Center"
+							Width="360"
+							Padding="18"
+							Background="{DynamicResource CardBackground}"
+							BorderBrush="{DynamicResource BorderColor}"
+							BorderThickness="1"
+							CornerRadius="12">
+						<StackPanel>
 
                         <TextBlock Text="Flashcards"
-   FontSize="30"
-   FontWeight="Bold"
-   Margin="0,0,0,20"
-   HorizontalAlignment="Center"/>
+									  FontSize="30"
+								   FontWeight="Bold"
+								   Margin="0,0,0,20"
+								   Foreground="{DynamicResource TextColor}"
+								   HorizontalAlignment="Center"/>
 
                         <!-- INPUT -->
-                        <TextBlock Text="Question" Foreground="White"/>
-                        <TextBox Text="{Binding NewFlashcardQuestion}" Margin="0,5"/>
+						<TextBlock Text="Question"
+								   Foreground="{DynamicResource TextColor}"/>
+						<TextBox Text="{Binding NewFlashcardQuestion}"
+								 Margin="0,5"
+								 Padding="10,6"
+								 Background="{DynamicResource WindowBackground}"
+								 Foreground="{DynamicResource TextColor}"
+								 CaretBrush="{DynamicResource TextColor}"
+								 BorderBrush="{DynamicResource BorderColor}"
+								 BorderThickness="1"/>
 
-                        <TextBlock Text="Answer" Foreground="White"/>
-                        <TextBox Text="{Binding NewFlashcardAnswer}" Margin="0,5"/>
+						<TextBlock Text="Answer"
+								   Foreground="{DynamicResource TextColor}"/>
+						<TextBox Text="{Binding NewFlashcardAnswer}"
+								 Margin="0,5"
+								 Padding="10,6"
+								 Background="{DynamicResource WindowBackground}"
+								 Foreground="{DynamicResource TextColor}"
+								 CaretBrush="{DynamicResource TextColor}"
+								 BorderBrush="{DynamicResource BorderColor}"
+								 BorderThickness="1"/>
 
                         <Button Content="Add Flashcard"
-Command="{Binding AddFlashcardCommand}"
-Margin="0,10"/>
+								Command="{Binding AddFlashcardCommand}"
+								Style="{StaticResource DialogPrimaryButtonStyle}"
+								Margin="0,10,0,0"/>
 
                         <!-- LIST -->
-                        <ItemsControl ItemsSource="{Binding Flashcards}"
-  Margin="0,20,0,0"
-  Width="300">
+						<ItemsControl ItemsSource="{Binding Flashcards}"
+									  Margin="0,20,0,0"
+									  Width="300">
 
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -1752,14 +1780,22 @@ Margin="0,10"/>
 
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Button Command="{Binding DataContext.OpenFlashcardCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-        CommandParameter="{Binding}"
-        Margin="5"
-        Padding="10">
+									<Button Command="{Binding DataContext.OpenFlashcardCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+											CommandParameter="{Binding}"
+											Margin="5"
+											Padding="10"
+											Background="{DynamicResource WindowBackground}"
+											BorderBrush="{DynamicResource BorderColor}"
+											BorderThickness="1"
+											Foreground="{DynamicResource TextColor}">
 
                                         <StackPanel>
-                                            <TextBlock Text="{Binding Question}" FontWeight="Bold"/>
-                                            <TextBlock Text="{Binding Answer}" Opacity="0.6"/>
+											<TextBlock Text="{Binding Question}"
+													   FontWeight="Bold"
+													   Foreground="{DynamicResource TextColor}"/>
+											<TextBlock Text="{Binding Answer}"
+													   Opacity="0.7"
+													   Foreground="{DynamicResource TextColorSecondary}"/>
                                         </StackPanel>
 
                                     </Button>
@@ -1768,7 +1804,8 @@ Margin="0,10"/>
 
                         </ItemsControl>
 
-                    </StackPanel>
+						</StackPanel>
+					</Border>
 
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
 
@@ -1833,7 +1870,9 @@ Margin="0,10"/>
                 <Border Grid.Column="1"
                 Width="400"
                 Padding="20"
-                Background="White"
+				Background="{DynamicResource CardBackground}"
+				BorderBrush="{DynamicResource BorderColor}"
+				BorderThickness="1"
                 CornerRadius="10">
 
                     <StackPanel>
@@ -1841,11 +1880,13 @@ Margin="0,10"/>
                         <TextBlock Text="{Binding SelectedFlashcard.Question}"
                            FontSize="18"
                            FontWeight="Bold"
+							  Foreground="{DynamicResource TextColor}"
                            TextAlignment="Center"
                            Visibility="{Binding IsShowingAnswer, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
 
                         <TextBlock Text="{Binding SelectedFlashcard.Answer}"
                            FontSize="18"
+							  Foreground="{DynamicResource TextColor}"
                            TextAlignment="Center"
                            Visibility="{Binding IsShowingAnswer, Converter={StaticResource BoolToVis}}"/>
 
