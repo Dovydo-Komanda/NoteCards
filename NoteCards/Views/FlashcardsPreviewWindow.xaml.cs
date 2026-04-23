@@ -30,7 +30,11 @@ public partial class FlashcardsPreviewWindow : Window
     private bool? _statusFilterIsKnown;
     private string _searchText = string.Empty;
 
-    public FlashcardsPreviewWindow(IEnumerable<FlashcardItem> items, string? modelDisplayName = null)
+    public FlashcardsPreviewWindow(
+        IEnumerable<FlashcardItem> items,
+        string? modelDisplayName = null,
+        string? title = null,
+        IEnumerable<string>? tags = null)
     {
         InitializeComponent();
         _allItems = items
@@ -43,15 +47,51 @@ public partial class FlashcardsPreviewWindow : Window
         SetSelectorComboBox.ItemsSource = _setOptions;
         StatusFilterComboBox.ItemsSource = _statusFilterOptions;
         FlashcardsItemsControl.ItemsSource = _items;
-        var modelName = string.IsNullOrWhiteSpace(modelDisplayName) ? LocalizationService.GetString("NotAvailable") : modelDisplayName;
-        if (FindName("ModelInfoText") is TextBlock modelInfoText)
-            modelInfoText.Text = string.Format(LocalizationService.GetString("FlashcardsGeneratedWithModel"), modelName);
+        TitleTextBox.Text = string.IsNullOrWhiteSpace(title)
+            ? LocalizationService.GetString("FlashcardsEditorTitle")
+            : title.Trim();
+        TagsTextBox.Text = tags is null
+            ? string.Empty
+            : string.Join(", ", tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
+        ConfigureAiGeneratedIndicator(modelDisplayName);
 
         UpdateShuffleButtonState();
         InitializeStatusFilterOptions();
         InitializeSetOptionsFromItems();
         ApplyStudyModeState();
         PreviewKeyDown += FlashcardsPreviewWindow_PreviewKeyDown;
+    }
+
+    public string EditorTitle => TitleTextBox.Text.Trim();
+
+    public IReadOnlyList<string> Tags => ParseTags(TagsTextBox.Text);
+
+    private void ConfigureAiGeneratedIndicator(string? modelDisplayName)
+    {
+        if (string.IsNullOrWhiteSpace(modelDisplayName))
+        {
+            AiGeneratedInfoBadge.Visibility = Visibility.Collapsed;
+            AiGeneratedInfoBadge.ToolTip = null;
+            return;
+        }
+
+        AiGeneratedInfoBadge.Visibility = Visibility.Visible;
+        AiGeneratedInfoBadge.ToolTip = string.Format(
+            LocalizationService.GetString("FlashcardsGeneratedWithModel"),
+            modelDisplayName.Trim());
+    }
+
+    private static IReadOnlyList<string> ParseTags(string? rawTags)
+    {
+        if (string.IsNullOrWhiteSpace(rawTags))
+            return Array.Empty<string>();
+
+        return rawTags
+            .Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(tag => tag.Trim())
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private void InitializeStatusFilterOptions()

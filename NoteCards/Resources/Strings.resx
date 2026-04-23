@@ -278,7 +278,8 @@ Right-click to remove</value></data>
   <data name="ConvertToFlashcardsStatusFinalizing" xml:space="preserve"><value>Finalizing flashcards...</value></data>
   <data name="ConvertToFlashcardsStatusPercentFormat" xml:space="preserve"><value>{0} ({1}%)</value></data>
   <data name="ConvertToFlashcardsStatusGeneratedCharsFormat" xml:space="preserve"><value>{0} ({1} chars)</value></data>
-  <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Generated Flashcards</value></data>
+  <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Flashcard Editor</value></data>
+  <data name="FlashcardsEditorTitle" xml:space="preserve"><value>Flashcard Editor</value></data>
   <data name="FlashcardQuestion" xml:space="preserve"><value>Question</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Answer</value></data>
   <data name="FlashcardCategory" xml:space="preserve"><value>Category</value></data>

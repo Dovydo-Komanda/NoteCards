@@ -238,7 +238,8 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ConvertToFlashcardsStatusFinalizing" xml:space="preserve"><value>Baigiama formuoti korteles...</value></data>
   <data name="ConvertToFlashcardsStatusPercentFormat" xml:space="preserve"><value>{0} ({1}%)</value></data>
   <data name="ConvertToFlashcardsStatusGeneratedCharsFormat" xml:space="preserve"><value>{0} ({1} simb.)</value></data>
-  <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Sugeneruotos kortelės</value></data>
+  <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Kortelių redaktorius</value></data>
+  <data name="FlashcardsEditorTitle" xml:space="preserve"><value>Kortelių redaktorius</value></data>
   <data name="FlashcardQuestion" xml:space="preserve"><value>Klausimas</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Atsakymas</value></data>
   <data name="FlashcardCategory" xml:space="preserve"><value>Kategorija</value></data>

@@ -353,7 +353,11 @@ namespace NoteCards
                 }
 
                 var modelDisplayName = BundledModelHostService.Instance.GetSelectedModelDisplayName();
-                var preview = new FlashcardsPreviewWindow(flashcards, modelDisplayName)
+                var preview = new FlashcardsPreviewWindow(
+                    flashcards,
+                    modelDisplayName,
+                    TitleTextBox.Text,
+                    ParseTags(TagsTextBox.Text))
                 {
                     Owner = GetDialogOwnerWindow()
                 };
