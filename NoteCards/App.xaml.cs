@@ -14,7 +14,9 @@ public partial class App : Application
 
         base.OnStartup(e);
 
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
         var window = new MainWindow();
+        MainWindow = window;
         window.Show();
     }
 
