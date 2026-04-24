@@ -330,7 +330,27 @@ public partial class FlashcardsPreviewWindow : Window
         if (_studyHistoryPosition < _studyHistory.Count - 1)
             _studyHistory.RemoveRange(_studyHistoryPosition + 1, _studyHistory.Count - _studyHistoryPosition - 1);
 
-        _studyHistory.Add(item);
+        if (_studyHistory.Count == 0 || !ReferenceEquals(_studyHistory[^1], item))
+            _studyHistory.Add(item);
+
+        _studyHistoryPosition = _studyHistory.Count - 1;
+    }
+
+    private void EnsureCurrentStudyItemInHistory(FlashcardPreviewItem item)
+    {
+        if (_studyHistoryPosition >= 0
+            && _studyHistoryPosition < _studyHistory.Count
+            && ReferenceEquals(_studyHistory[_studyHistoryPosition], item))
+        {
+            return;
+        }
+
+        if (_studyHistoryPosition < _studyHistory.Count - 1)
+            _studyHistory.RemoveRange(_studyHistoryPosition + 1, _studyHistory.Count - _studyHistoryPosition - 1);
+
+        if (_studyHistory.Count == 0 || !ReferenceEquals(_studyHistory[^1], item))
+            _studyHistory.Add(item);
+
         _studyHistoryPosition = _studyHistory.Count - 1;
     }
 
@@ -661,15 +681,8 @@ public partial class FlashcardsPreviewWindow : Window
             ApplySetFilter(selectedSetIndex.Value);
     }
 
-    private void MoveToSetMenuItem_Click(object sender, RoutedEventArgs e)
+    private void ShowMoveToSetPicker(FlashcardPreviewItem flashcard)
     {
-        if (sender is not MenuItem moveToSetMenu)
-            return;
-
-        var flashcard = ResolveFlashcardFromMenuItem(moveToSetMenu);
-        if (flashcard is null)
-            return;
-
         var pickerMenu = new ContextMenu
         {
             Placement = PlacementMode.MousePoint
@@ -704,6 +717,18 @@ public partial class FlashcardsPreviewWindow : Window
 
         pickerMenu.Items.Add(createAndMoveItem);
         pickerMenu.IsOpen = true;
+    }
+
+    private void MoveToSetMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem moveToSetMenu)
+            return;
+
+        var flashcard = ResolveFlashcardFromMenuItem(moveToSetMenu);
+        if (flashcard is null)
+            return;
+
+        ShowMoveToSetPicker(flashcard);
         e.Handled = true;
     }
 
@@ -778,7 +803,7 @@ public partial class FlashcardsPreviewWindow : Window
 
         if (!_isStudyMode)
         {
-            _studyModeIndex = 0;
+            _studyModeIndex = Math.Max(0, _items.ToList().FindIndex(item => !item.IsKnown));
             ResetStudyHistory();
         }
 
@@ -808,6 +833,22 @@ public partial class FlashcardsPreviewWindow : Window
             ToggleCardFlipWithAnimation(card, item);
     }
 
+    private void MoveFlashcardButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is FlashcardPreviewItem flashcard)
+            ShowMoveToSetPicker(flashcard);
+
+        e.Handled = true;
+    }
+
+    private void MoveStudyModeFlashcardButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (StudyModeCard.DataContext is FlashcardPreviewItem flashcard)
+            ShowMoveToSetPicker(flashcard);
+
+        e.Handled = true;
+    }
+
     private void EditFlashcardButton_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is FlashcardPreviewItem flashcard)
@@ -828,13 +869,22 @@ public partial class FlashcardsPreviewWindow : Window
             item.IsFlipped = true;
     }
 
-    private static void ToggleCardFlipWithAnimation(Border card, FlashcardPreviewItem item)
+    private int GetFlipAnimationHalfDurationMs()
     {
-        var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150));
+        if (FlipSpeedSlider is null)
+            return 150;
+
+        return Math.Max(50, (int)Math.Round(FlipSpeedSlider.Value / 2));
+    }
+
+    private void ToggleCardFlipWithAnimation(Border card, FlashcardPreviewItem item)
+    {
+        var halfDuration = TimeSpan.FromMilliseconds(GetFlipAnimationHalfDurationMs());
+        var fadeOut = new DoubleAnimation(1, 0, halfDuration);
         fadeOut.Completed += (_, _) =>
         {
             item.IsFlipped = !item.IsFlipped;
-            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150));
+            var fadeIn = new DoubleAnimation(0, 1, halfDuration);
             card.BeginAnimation(UIElement.OpacityProperty, fadeIn);
         };
 
@@ -865,17 +915,16 @@ public partial class FlashcardsPreviewWindow : Window
             return;
 
         // Count progress and status breakdown for the current study session
-        var studiedCount = _studyHistory.Distinct().Count();
         var knownCount = _items.Count(i => i.IsKnown);
         var unknownCount = _items.Count(i => i.IsUnknown);
         var remainingCount = _items.Count - knownCount;
 
-        UpdateStudyProgressLine(studiedCount, knownCount, unknownCount, _items.Count);
         SetStudyModeCardInteractive(true);
 
         // Show completion if all cards are known
         if (remainingCount == 0)
         {
+            UpdateStudyProgressLine(_studyHistory.Distinct().Count(), knownCount, unknownCount, _items.Count);
             SetStudyModeCardInteractive(false);
             StudyModeProgressText.Text = string.Format(
                 LocalizationService.GetString("StudyModeProgress"),
@@ -898,10 +947,11 @@ public partial class FlashcardsPreviewWindow : Window
             ? _items[_studyModeIndex]
             : null;
 
-        if (currentItem is null || currentItem.IsKnown)
+        if (currentItem is null)
         {
             if (!TryMoveToNextStudyItem(fromHistory: false))
             {
+                UpdateStudyProgressLine(_studyHistory.Distinct().Count(), knownCount, unknownCount, _items.Count);
                 SetStudyModeCardInteractive(false);
                 StudyModeProgressText.Text = string.Format(
                     LocalizationService.GetString("StudyModeProgress"),
@@ -918,6 +968,9 @@ public partial class FlashcardsPreviewWindow : Window
 
             currentItem = _items[_studyModeIndex];
         }
+
+        EnsureCurrentStudyItemInHistory(currentItem);
+        UpdateStudyProgressLine(_studyHistory.Distinct().Count(), knownCount, unknownCount, _items.Count);
 
         StudyModeCard.DataContext = currentItem;
         StudyModeProgressText.Text = string.Format(

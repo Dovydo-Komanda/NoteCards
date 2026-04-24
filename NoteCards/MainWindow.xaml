@@ -313,6 +313,26 @@
 				</DataTrigger>
 			</Style.Triggers>
 		</Style>
+
+		<Style x:Key="SidebarNotesDashboardButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarActionButtonStyle}">
+			<Style.Triggers>
+				<DataTrigger Binding="{Binding IsFlashcardsView}" Value="False">
+					<Setter Property="Background" Value="{DynamicResource SelectionBackground}"/>
+					<Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+					<Setter Property="FontWeight" Value="SemiBold"/>
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+
+		<Style x:Key="SidebarFlashcardsDashboardButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarActionButtonStyle}">
+			<Style.Triggers>
+				<DataTrigger Binding="{Binding IsFlashcardsView}" Value="True">
+					<Setter Property="Background" Value="{DynamicResource SelectionBackground}"/>
+					<Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+					<Setter Property="FontWeight" Value="SemiBold"/>
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
 		
 		
         <converters:BoolToScrollBarVisibilityConverter x:Key="BoolToScrollBarVisibilityConverter" />
@@ -726,7 +746,7 @@
 						</Button>
 
 						<Separator Margin="6,10,6,10"/>
-						<Button Style="{StaticResource SidebarActionButtonStyle}"
+						<Button Style="{StaticResource SidebarNotesDashboardButtonStyle}"
 								Command="{Binding ShowNotesCommand}"
 								Margin="0,5"
 								ToolTip="Notes">
@@ -736,7 +756,7 @@
 							</StackPanel>
 						</Button>
 
-                        <Button Style="{StaticResource SidebarActionButtonStyle}"
+                        <Button Style="{StaticResource SidebarFlashcardsDashboardButtonStyle}"
 								Command="{Binding ShowFlashcardsCommand}"
 								Margin="0,5"
 								ToolTip="Flashcards">
