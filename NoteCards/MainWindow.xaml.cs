@@ -962,7 +962,8 @@ namespace NoteCards
                 document?.Cards ?? Enumerable.Empty<FlashcardItem>(),
                 document?.AiModelDisplayName,
                 document?.Title,
-                document?.Tags)
+                document?.Tags,
+                document?.SetNames)
             {
                 Owner = this
             };

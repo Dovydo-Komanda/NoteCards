@@ -457,6 +457,7 @@ public class MainViewModel : ViewModelBase
         {
             existing.Document.Title = document.Title;
             existing.Document.Tags = document.Tags;
+            existing.Document.SetNames = document.SetNames;
             existing.Document.Cards = document.Cards;
             existing.Document.CreatedAt = document.CreatedAt;
             existing.Document.LastModified = document.LastModified;
@@ -515,6 +516,9 @@ public class MainViewModel : ViewModelBase
             .Select(tag => tag.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList() ?? new List<string>();
+        document.SetNames = document.SetNames?
+            .Where(pair => pair.Key >= 1 && !string.IsNullOrWhiteSpace(pair.Value))
+            .ToDictionary(pair => pair.Key, pair => pair.Value.Trim()) ?? new Dictionary<int, string>();
         document.Cards = document.Cards?
             .Where(card => card != null)
             .Select(card => new FlashcardItem

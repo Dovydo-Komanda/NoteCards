@@ -156,6 +156,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="SortByTitleDesc" xml:space="preserve"><value>Pavadinimas Ž–A</value></data>
   <data name="SortByFlashcardCardsDesc" xml:space="preserve"><value>Daugiausia kortelių</value></data>
   <data name="SortByFlashcardCardsAsc" xml:space="preserve"><value>Mažiausiai kortelių</value></data>
+  <data name="SortButtonFormat" xml:space="preserve"><value>Rikiavimas: {0}</value></data>
   <data name="Pin" xml:space="preserve"><value>Prisegti</value></data>
   <data name="Unpin" xml:space="preserve"><value>Atsegti</value></data>
   <data name="Duplicate" xml:space="preserve"><value>Kopijuoti</value></data>
@@ -249,17 +250,21 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardCardsCountFormat" xml:space="preserve"><value>{0} kortelės(-ių)</value></data>
   <data name="FlashcardSetUntitled" xml:space="preserve"><value>Be pavadinimo</value></data>
   <data name="AddFlashcard" xml:space="preserve"><value>Pridėti kortelę</value></data>
+  <data name="EditFlashcard" xml:space="preserve"><value>Kortelė</value></data>
+  <data name="FlashcardDialogHint" xml:space="preserve"><value>Redaguokite klausimą, atsakymą ir pasirenkamą kategoriją.</value></data>
+  <data name="AddFlashcardDialogHint" xml:space="preserve"><value>Pridėkite klausimą, atsakymą ir pasirenkamą kategoriją.</value></data>
+  <data name="EditFlashcardDialogHint" xml:space="preserve"><value>Redaguokite klausimą, atsakymą ir pasirenkamą kategoriją.</value></data>
+  <data name="FlashcardEditEmptyError" xml:space="preserve"><value>Klausimas ir atsakymas yra privalomi.</value></data>
   <data name="FlashcardQuestion" xml:space="preserve"><value>Klausimas</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Atsakymas</value></data>
   <data name="FlashcardCategory" xml:space="preserve"><value>Kategorija</value></data>
   <data name="ConvertToFlashcardsParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamų Q/A kortelių.</value></data>
   <data name="FlashcardsTapHint" xml:space="preserve"><value>Spustelėkite kortelę, kad apverstumėte</value></data>
-  <data name="FlashcardSideQuestion" xml:space="preserve"><value>KLAUSIMAS</value></data>
-  <data name="FlashcardSideAnswer" xml:space="preserve"><value>ATSAKYMAS</value></data>
+  <data name="FlashcardSideQuestion" xml:space="preserve"><value>Klausimas</value></data>
+  <data name="FlashcardSideAnswer" xml:space="preserve"><value>Atsakymas</value></data>
   <data name="FlashcardsShowQuestions" xml:space="preserve"><value>Rodyti klausimus</value></data>
   <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Rodyti atsakymus</value></data>
-  <data name="ShuffleModeOn" xml:space="preserve"><value>Maišymas: Įjungtas</value></data>
-  <data name="ShuffleModeOff" xml:space="preserve"><value>Maišymas: Išjungtas</value></data>
+  <data name="ShuffleCards" xml:space="preserve"><value>Sumaišyti</value></data>
   <data name="FlashcardSearchHint" xml:space="preserve"><value>Rašykite, kad ieškotumėte klausimuose ir atsakymuose...</value></data>
   <data name="FlashcardSetLabel" xml:space="preserve"><value>Rinkinys:</value></data>
   <data name="FlashcardSetFormat" xml:space="preserve"><value>Rinkinys {0}</value></data>
@@ -270,6 +275,10 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="MoveToSet" xml:space="preserve"><value>Perkelti į rinkinį</value></data>
   <data name="AddFlashcardToSet" xml:space="preserve"><value>Prideti kortele i rinkini</value></data>
   <data name="CreateFlashcardSetAndAdd" xml:space="preserve"><value>Kurti rinkini ir prideti kortele</value></data>
+  <data name="RenameFlashcardSet" xml:space="preserve"><value>Pervadinti rinkinį</value></data>
+  <data name="RenameFlashcardSetPrompt" xml:space="preserve"><value>Įveskite naują rinkinio pavadinimą:</value></data>
+  <data name="DeleteFlashcardSet" xml:space="preserve"><value>Ištrinti rinkinį</value></data>
+  <data name="DeleteFlashcardSetConfirmationFormat" xml:space="preserve"><value>Ar tikrai norite ištrinti „{0}“ ir visas jo korteles? Šio veiksmo negalima atšaukti.</value></data>
   <data name="StudyModeStart" xml:space="preserve"><value>Pradėti mokymosi režimą</value></data>
   <data name="StudyModeExit" xml:space="preserve"><value>Baigti mokymosi režimą</value></data>
   <data name="Known" xml:space="preserve"><value>Moku</value></data>

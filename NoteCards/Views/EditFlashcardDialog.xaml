@@ -8,10 +8,54 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
         ShowInTaskbar="False"
         Topmost="True">
-    <Grid Background="Transparent">
-        <Border Background="{DynamicResource CardBackground}"
+    <Grid Background="#66000000">
+        <Grid.Resources>
+            <Style x:Key="FlashcardEditorInputStyle" TargetType="TextBox">
+                <Setter Property="Padding" Value="12"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Background" Value="{DynamicResource WindowBackground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+                <Setter Property="CaretBrush" Value="{DynamicResource TextColor}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border x:Name="InputBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="10"
+                                    SnapsToDevicePixels="True">
+                                <ScrollViewer x:Name="PART_ContentHost"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Setter TargetName="InputBorder" Property="BorderBrush" Value="#4A6EE0"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="FlashcardDialogSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogSecondaryButtonStyle}">
+                <Setter Property="Padding" Value="20,10"/>
+                <Setter Property="MinWidth" Value="110"/>
+            </Style>
+
+            <Style x:Key="FlashcardDialogPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogPrimaryButtonStyle}">
+                <Setter Property="Padding" Value="20,10"/>
+                <Setter Property="MinWidth" Value="110"/>
+            </Style>
+        </Grid.Resources>
+
+        <Border x:Name="DialogCard"
+                Background="{DynamicResource CardBackground}"
                 BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
                 CornerRadius="16"
@@ -22,6 +66,9 @@
             <Border.Effect>
                 <DropShadowEffect Color="#000000" Opacity="0.25" BlurRadius="32" ShadowDepth="4"/>
             </Border.Effect>
+            <Border.RenderTransform>
+                <TranslateTransform/>
+            </Border.RenderTransform>
 
             <Grid>
                 <Grid.RowDefinitions>
@@ -33,12 +80,20 @@
                 </Grid.RowDefinitions>
 
                 <!-- Title -->
-                <TextBlock Grid.Row="0"
-                           Text="{Binding [EditFlashcard], Source={StaticResource Loc}}"
-                           FontSize="20"
+                <TextBlock x:Name="DialogTitleTextBlock"
+                           Grid.Row="0"
+                           Text="{Binding DialogTitle}"
+                           FontSize="22"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource TextColor}"
-                           Margin="0,0,0,20"/>
+                           Margin="0,0,0,6"/>
+
+                <TextBlock x:Name="DialogHintTextBlock"
+                           Grid.Row="0"
+                           Text="{Binding DialogHint}"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextColorSecondary}"
+                           Margin="0,34,0,20"/>
 
                 <!-- Question -->
                 <Grid Grid.Row="1" Margin="0,0,0,16">
@@ -55,16 +110,11 @@
                     <TextBox Grid.Row="2"
                              x:Name="QuestionTextBox"
                              Height="80"
-                             Padding="12"
-                             FontSize="14"
+                             Style="{StaticResource FlashcardEditorInputStyle}"
                              VerticalContentAlignment="Top"
                              TextWrapping="Wrap"
                              AcceptsReturn="True"
-                             VerticalScrollBarVisibility="Auto"
-                             Background="{DynamicResource WindowBackground}"
-                             BorderBrush="{DynamicResource BorderColor}"
-                             BorderThickness="1"
-                             Foreground="{DynamicResource TextColor}"/>
+                             VerticalScrollBarVisibility="Auto"/>
                 </Grid>
 
                 <!-- Answer -->
@@ -82,16 +132,11 @@
                     <TextBox Grid.Row="2"
                              x:Name="AnswerTextBox"
                              MinHeight="120"
-                             Padding="12"
-                             FontSize="14"
+                             Style="{StaticResource FlashcardEditorInputStyle}"
                              VerticalContentAlignment="Top"
                              TextWrapping="Wrap"
                              AcceptsReturn="True"
-                             VerticalScrollBarVisibility="Auto"
-                             Background="{DynamicResource WindowBackground}"
-                             BorderBrush="{DynamicResource BorderColor}"
-                             BorderThickness="1"
-                             Foreground="{DynamicResource TextColor}"/>
+                             VerticalScrollBarVisibility="Auto"/>
                 </Grid>
 
                 <!-- Category -->
@@ -110,11 +155,7 @@
                              x:Name="CategoryTextBox"
                              Height="36"
                              Padding="12,8"
-                             FontSize="14"
-                             Background="{DynamicResource WindowBackground}"
-                             BorderBrush="{DynamicResource BorderColor}"
-                             BorderThickness="1"
-                             Foreground="{DynamicResource TextColor}"/>
+                             Style="{StaticResource FlashcardEditorInputStyle}"/>
                 </Grid>
 
                 <!-- Buttons -->
@@ -123,27 +164,11 @@
                             HorizontalAlignment="Right"
                             Margin="0,0,0,0">
                     <Button Content="{Binding [Cancel], Source={StaticResource Loc}}"
-                            Padding="20,10"
-                            MinWidth="110"
-                            Background="Transparent"
-                            BorderBrush="{DynamicResource BorderColor}"
-                            BorderThickness="1"
-                            Foreground="{DynamicResource TextColor}"
-                            FontSize="13"
-                            FontWeight="SemiBold"
-                            Cursor="Hand"
+                            Style="{StaticResource FlashcardDialogSecondaryButtonStyle}"
                             Click="CancelButton_Click"/>
                     <Button Content="{Binding [Save], Source={StaticResource Loc}}"
-                            Padding="20,10"
-                            MinWidth="110"
                             Margin="12,0,0,0"
-                            Background="#4A6EE0"
-                            BorderBrush="#4A6EE0"
-                            BorderThickness="1"
-                            Foreground="White"
-                            FontSize="13"
-                            FontWeight="SemiBold"
-                            Cursor="Hand"
+                            Style="{StaticResource FlashcardDialogPrimaryButtonStyle}"
                             Click="SaveButton_Click"/>
                 </StackPanel>
             </Grid>

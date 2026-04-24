@@ -1984,10 +1984,8 @@
                                                                             BorderThickness="1"
                                                                             ToolTip="{Binding AiGeneratedTooltip}"
                                                                             Visibility="{Binding IsAiGenerated, Converter={StaticResource BoolToVis}}">
-                                                                        <TextBlock Text="i"
+                                                                        <TextBlock Text="🤖"
                                                                                    FontSize="13"
-                                                                                   FontWeight="SemiBold"
-                                                                                   FontStyle="Italic"
                                                                                    Foreground="{DynamicResource TextColorSecondary}"
                                                                                    HorizontalAlignment="Center"
                                                                                    VerticalAlignment="Center"/>

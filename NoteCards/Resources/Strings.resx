@@ -196,6 +196,7 @@ Right-click to remove</value></data>
   <data name="SortByTitleDesc" xml:space="preserve"><value>Title Z–A</value></data>
   <data name="SortByFlashcardCardsDesc" xml:space="preserve"><value>Most cards</value></data>
   <data name="SortByFlashcardCardsAsc" xml:space="preserve"><value>Fewest cards</value></data>
+  <data name="SortButtonFormat" xml:space="preserve"><value>Sort: {0}</value></data>
   <data name="Pin" xml:space="preserve"><value>Pin</value></data>
   <data name="Unpin" xml:space="preserve"><value>Unpin</value></data>
   <data name="Duplicate" xml:space="preserve"><value>Duplicate</value></data>
@@ -289,17 +290,21 @@ Right-click to remove</value></data>
   <data name="FlashcardCardsCountFormat" xml:space="preserve"><value>{0} cards</value></data>
   <data name="FlashcardSetUntitled" xml:space="preserve"><value>Untitled flashcards</value></data>
   <data name="AddFlashcard" xml:space="preserve"><value>Add flashcard</value></data>
+  <data name="EditFlashcard" xml:space="preserve"><value>Flashcard</value></data>
+  <data name="FlashcardDialogHint" xml:space="preserve"><value>Edit the question, answer, and optional category.</value></data>
+  <data name="AddFlashcardDialogHint" xml:space="preserve"><value>Add the question, answer, and optional category.</value></data>
+  <data name="EditFlashcardDialogHint" xml:space="preserve"><value>Edit the question, answer, and optional category.</value></data>
+  <data name="FlashcardEditEmptyError" xml:space="preserve"><value>Question and answer are required.</value></data>
   <data name="FlashcardQuestion" xml:space="preserve"><value>Question</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Answer</value></data>
   <data name="FlashcardCategory" xml:space="preserve"><value>Category</value></data>
   <data name="ConvertToFlashcardsParseFailed" xml:space="preserve"><value>AI response did not contain valid Q/A flashcards.</value></data>
   <data name="FlashcardsTapHint" xml:space="preserve"><value>Click a card to flip</value></data>
-  <data name="FlashcardSideQuestion" xml:space="preserve"><value>QUESTION</value></data>
-  <data name="FlashcardSideAnswer" xml:space="preserve"><value>ANSWER</value></data>
+  <data name="FlashcardSideQuestion" xml:space="preserve"><value>Question</value></data>
+  <data name="FlashcardSideAnswer" xml:space="preserve"><value>Answer</value></data>
   <data name="FlashcardsShowQuestions" xml:space="preserve"><value>Show questions</value></data>
   <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Show answers</value></data>
-  <data name="ShuffleModeOn" xml:space="preserve"><value>Shuffle: On</value></data>
-  <data name="ShuffleModeOff" xml:space="preserve"><value>Shuffle: Off</value></data>
+  <data name="ShuffleCards" xml:space="preserve"><value>Shuffle</value></data>
   <data name="FlashcardSearchHint" xml:space="preserve"><value>Type to search questions and answers...</value></data>
   <data name="FlashcardSetLabel" xml:space="preserve"><value>Set:</value></data>
   <data name="FlashcardSetFormat" xml:space="preserve"><value>Set {0}</value></data>
@@ -310,6 +315,10 @@ Right-click to remove</value></data>
   <data name="MoveToSet" xml:space="preserve"><value>Move to set</value></data>
   <data name="AddFlashcardToSet" xml:space="preserve"><value>Add flashcard to set</value></data>
   <data name="CreateFlashcardSetAndAdd" xml:space="preserve"><value>Create set and add flashcard</value></data>
+  <data name="RenameFlashcardSet" xml:space="preserve"><value>Rename set</value></data>
+  <data name="RenameFlashcardSetPrompt" xml:space="preserve"><value>Enter a new set name:</value></data>
+  <data name="DeleteFlashcardSet" xml:space="preserve"><value>Delete set</value></data>
+  <data name="DeleteFlashcardSetConfirmationFormat" xml:space="preserve"><value>Are you sure you want to delete "{0}" and all cards in it? This action cannot be undone.</value></data>
   <data name="StudyModeStart" xml:space="preserve"><value>Start study mode</value></data>
   <data name="StudyModeExit" xml:space="preserve"><value>Exit study mode</value></data>
   <data name="Known" xml:space="preserve"><value>Known</value></data>

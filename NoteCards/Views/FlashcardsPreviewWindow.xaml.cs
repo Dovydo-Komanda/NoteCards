@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace NoteCards.Views;
@@ -23,7 +24,7 @@ public partial class FlashcardsPreviewWindow : Window
     private readonly List<FlashcardPreviewItem> _studyHistory = new();
     private readonly Random _random = new();
     private bool _isStudyMode;
-    private bool _isShuffleMode;
+    private bool _isStudyModeCardAnimating;
     private int _studyModeIndex;
     private int _studyHistoryPosition = -1;
     private int _currentSetIndex = DefaultSetIndex;
@@ -35,7 +36,8 @@ public partial class FlashcardsPreviewWindow : Window
         IEnumerable<FlashcardItem> items,
         string? modelDisplayName = null,
         string? title = null,
-        IEnumerable<string>? tags = null)
+        IEnumerable<string>? tags = null,
+        IReadOnlyDictionary<int, string>? setNames = null)
     {
         InitializeComponent();
         _allItems = items
@@ -58,7 +60,7 @@ public partial class FlashcardsPreviewWindow : Window
 
         UpdateShuffleButtonState();
         InitializeStatusFilterOptions();
-        InitializeSetOptionsFromItems();
+        InitializeSetOptionsFromItems(setNames);
         ApplyStudyModeState();
         PreviewKeyDown += FlashcardsPreviewWindow_PreviewKeyDown;
     }
@@ -78,6 +80,9 @@ public partial class FlashcardsPreviewWindow : Window
                 ? LocalizationService.GetString("FlashcardSetUntitled")
                 : EditorTitle,
             Tags = Tags.ToList(),
+            SetNames = _setOptions
+                .Where(option => !string.IsNullOrWhiteSpace(option.DisplayName))
+                .ToDictionary(option => option.SetIndex, option => option.DisplayName.Trim()),
             Cards = GetFlashcardItems().ToList(),
             CreatedAt = existingDocument?.CreatedAt ?? DateTime.UtcNow,
             LastModified = DateTime.Now,
@@ -171,14 +176,14 @@ public partial class FlashcardsPreviewWindow : Window
 
         if (e.Key == Key.Right || e.Key == Key.N)
         {
-            StudyModeNextButton_Click(StudyModeNextButton, new RoutedEventArgs());
+            MoveToNextStudyCardWithAnimation();
             e.Handled = true;
             return;
         }
 
         if (e.Key == Key.Left)
         {
-            StudyModePreviousButton_Click(StudyModePreviousButton, new RoutedEventArgs());
+            MoveToPreviousStudyCardWithAnimation();
             e.Handled = true;
             return;
         }
@@ -192,19 +197,30 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void FlipCurrentStudyCard()
     {
-        if (!_isStudyMode || _items.Count == 0 || _studyModeIndex < 0 || _studyModeIndex >= _items.Count)
+        if (!_isStudyMode
+            || _isStudyModeCardAnimating
+            || _items.Count == 0
+            || _items.All(item => item.IsKnown)
+            || _studyModeIndex < 0
+            || _studyModeIndex >= _items.Count
+            || StudyModeCard.Visibility != Visibility.Visible
+            || !StudyModeCard.IsHitTestVisible)
+        {
             return;
+        }
 
         if (StudyModeCard.DataContext is FlashcardPreviewItem item)
             ToggleCardFlipWithAnimation(StudyModeCard, item);
     }
 
-    private void InitializeSetOptionsFromItems()
+    private void InitializeSetOptionsFromItems(IReadOnlyDictionary<int, string>? setNames)
     {
         _setOptions.Clear();
 
         var setIndexes = _allItems
             .Select(item => item.SetIndex)
+            .Concat(setNames?.Keys ?? Enumerable.Empty<int>())
+            .Where(index => index >= DefaultSetIndex)
             .Distinct()
             .OrderBy(index => index)
             .DefaultIfEmpty(DefaultSetIndex)
@@ -212,7 +228,9 @@ public partial class FlashcardsPreviewWindow : Window
 
         foreach (var setIndex in setIndexes)
         {
-            AddSetOption(setIndex, selectSet: false);
+            string? displayName = null;
+            setNames?.TryGetValue(setIndex, out displayName);
+            AddSetOption(setIndex, displayName, selectSet: false);
         }
 
         SetSelectorComboBox.SelectedItem = _setOptions
@@ -254,9 +272,7 @@ public partial class FlashcardsPreviewWindow : Window
                 || item.Category.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase));
         }
 
-        var orderedItems = _isShuffleMode
-            ? filteredItems.OrderBy(_ => _random.Next()).ToList()
-            : filteredItems.ToList();
+        var orderedItems = filteredItems.ToList();
 
         _items.Clear();
         foreach (var item in orderedItems)
@@ -347,14 +363,22 @@ public partial class FlashcardsPreviewWindow : Window
         if (ShuffleModeButton is null)
             return;
 
-        ShuffleModeButton.Content = LocalizationService.GetString(_isShuffleMode ? "ShuffleModeOn" : "ShuffleModeOff");
+        ShuffleModeButton.Content = LocalizationService.GetString("ShuffleCards");
     }
 
     private void ShuffleModeButton_Click(object sender, RoutedEventArgs e)
     {
-        _isShuffleMode = !_isShuffleMode;
-        UpdateShuffleButtonState();
-        ApplyFilters();
+        if (_items.Count <= 1)
+            return;
+
+        var shuffled = _items.OrderBy(_ => _random.Next()).ToList();
+        _items.Clear();
+        foreach (var item in shuffled)
+            _items.Add(item);
+
+        _studyModeIndex = 0;
+        ResetStudyHistory();
+        ApplyStudyModeState();
     }
 
     private void FlashcardSearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -464,6 +488,61 @@ public partial class FlashcardsPreviewWindow : Window
     private void UpdateSetSelectorState()
     {
         SetSelectorComboBox.IsEnabled = _setOptions.Count > 0;
+    }
+
+    private void RenameSetButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (SetSelectorComboBox.SelectedItem is not FlashcardSetOption selectedSet)
+            return;
+
+        var dialog = new SimpleInputDialog(
+            LocalizationService.GetString("RenameFlashcardSet"),
+            LocalizationService.GetString("RenameFlashcardSetPrompt"),
+            selectedSet.DisplayName)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        var newName = dialog.InputText.Trim();
+        if (string.IsNullOrWhiteSpace(newName))
+            return;
+
+        selectedSet.DisplayName = newName;
+        ReorderSetOptions();
+    }
+
+    private void DeleteSetButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (SetSelectorComboBox.SelectedItem is not FlashcardSetOption selectedSet)
+            return;
+
+        var dialog = new DeleteConfirmationDialog(
+            LocalizationService.GetString("DeleteFlashcardSet"),
+            string.Format(LocalizationService.GetString("DeleteFlashcardSetConfirmationFormat"), selectedSet.DisplayName))
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        for (var i = _allItems.Count - 1; i >= 0; i--)
+        {
+            if (_allItems[i].SetIndex == selectedSet.SetIndex)
+                _allItems.RemoveAt(i);
+        }
+
+        _setOptions.Remove(selectedSet);
+        if (_setOptions.Count > 0)
+            SetSelectorComboBox.SelectedItem = _setOptions.OrderBy(option => option.SetIndex).First();
+        else
+            _currentSetIndex = DefaultSetIndex;
+
+        UpdateSetSelectorState();
+        ApplyFilters();
     }
 
     private FlashcardSetOption AddSetOption(int setIndex, string? displayName = null, bool selectSet = false)
@@ -674,7 +753,7 @@ public partial class FlashcardsPreviewWindow : Window
         var normalizedSetIndex = Math.Max(DefaultSetIndex, targetSetIndex);
         AddSetOption(normalizedSetIndex, selectSet: false);
 
-        var dialog = new EditFlashcardDialog
+        var dialog = new EditFlashcardDialog(isNew: true)
         {
             Owner = this,
             Question = string.Empty,
@@ -727,6 +806,14 @@ public partial class FlashcardsPreviewWindow : Window
     {
         if ((sender as FrameworkElement)?.DataContext is FlashcardPreviewItem item && sender is Border card)
             ToggleCardFlipWithAnimation(card, item);
+    }
+
+    private void EditFlashcardButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is FlashcardPreviewItem flashcard)
+            EditFlashcard(flashcard);
+
+        e.Handled = true;
     }
 
     private void ShowQuestionsButton_Click(object sender, RoutedEventArgs e)
@@ -784,10 +871,16 @@ public partial class FlashcardsPreviewWindow : Window
         var remainingCount = _items.Count - knownCount;
 
         UpdateStudyProgressLine(studiedCount, knownCount, unknownCount, _items.Count);
+        SetStudyModeCardInteractive(true);
 
         // Show completion if all cards are known
         if (remainingCount == 0)
         {
+            SetStudyModeCardInteractive(false);
+            StudyModeProgressText.Text = string.Format(
+                LocalizationService.GetString("StudyModeProgress"),
+                _items.Count,
+                _items.Count);
             StudyModeCompletionText.Text = LocalizationService.GetString("StudyModeComplete");
             StudyModeCompletionText.Visibility = Visibility.Visible;
             StudyModePreviousButton.IsEnabled = false;
@@ -809,6 +902,11 @@ public partial class FlashcardsPreviewWindow : Window
         {
             if (!TryMoveToNextStudyItem(fromHistory: false))
             {
+                SetStudyModeCardInteractive(false);
+                StudyModeProgressText.Text = string.Format(
+                    LocalizationService.GetString("StudyModeProgress"),
+                    _items.Count,
+                    _items.Count);
                 StudyModeCompletionText.Text = LocalizationService.GetString("StudyModeComplete");
                 StudyModeCompletionText.Visibility = Visibility.Visible;
                 StudyModePreviousButton.IsEnabled = _studyHistoryPosition > 0;
@@ -822,11 +920,23 @@ public partial class FlashcardsPreviewWindow : Window
         }
 
         StudyModeCard.DataContext = currentItem;
+        StudyModeProgressText.Text = string.Format(
+            LocalizationService.GetString("StudyModeProgress"),
+            _studyModeIndex + 1,
+            _items.Count);
 
-        StudyModePreviousButton.IsEnabled = _studyHistoryPosition > 0;
-        StudyModeNextButton.IsEnabled = remainingCount > 0;
-        StudyModeMarkKnownButton.IsEnabled = true;
-        StudyModeMarkUnknownButton.IsEnabled = true;
+        StudyModePreviousButton.IsEnabled = !_isStudyModeCardAnimating && _studyHistoryPosition > 0;
+        StudyModeNextButton.IsEnabled = !_isStudyModeCardAnimating && remainingCount > 0;
+        StudyModeMarkKnownButton.IsEnabled = !_isStudyModeCardAnimating;
+        StudyModeMarkUnknownButton.IsEnabled = !_isStudyModeCardAnimating;
+    }
+
+    private void SetStudyModeCardInteractive(bool isInteractive)
+    {
+        StudyModeCard.Visibility = isInteractive ? Visibility.Visible : Visibility.Hidden;
+        StudyModeCard.IsHitTestVisible = isInteractive;
+        StudyModeCard.Opacity = isInteractive ? 1 : 0;
+        StudyModeCard.Cursor = isInteractive ? Cursors.Hand : Cursors.Arrow;
     }
 
     private void UpdateStudyProgressLine(int studiedCount, int knownCount, int unknownCount, int totalCount)
@@ -977,21 +1087,19 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void StudyModeMarkKnownButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_items.Count == 0 || _studyModeIndex < 0 || _studyModeIndex >= _items.Count)
+        if (_isStudyModeCardAnimating || _items.Count == 0 || _studyModeIndex < 0 || _studyModeIndex >= _items.Count)
             return;
 
         var currentItem = _items[_studyModeIndex];
         currentItem.IsKnown = true;
         currentItem.IsUnknown = false; // Clear unknown status
 
-        TryMoveToNextStudyItem(fromHistory: false);
-
-        ApplyStudyModeState();
+        AnimateStudyModeCardChange(1, () => TryMoveToNextStudyItem(fromHistory: false));
     }
 
     private void StudyModeMarkUnknownButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_items.Count == 0 || _studyModeIndex < 0 || _studyModeIndex >= _items.Count)
+        if (_isStudyModeCardAnimating || _items.Count == 0 || _studyModeIndex < 0 || _studyModeIndex >= _items.Count)
             return;
 
         var currentItem = _items[_studyModeIndex];
@@ -1003,23 +1111,95 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void StudyModePreviousButton_Click(object sender, RoutedEventArgs e)
     {
+        MoveToPreviousStudyCardWithAnimation();
+    }
+
+    private void MoveToPreviousStudyCardWithAnimation()
+    {
         if (_items.Count == 0 || _studyHistoryPosition <= 0)
             return;
 
-        _studyHistoryPosition--;
-        MoveToStudyItem(_studyHistory[_studyHistoryPosition], appendToHistory: false);
-
-        ApplyStudyModeState();
+        AnimateStudyModeCardChange(-1, () =>
+        {
+            _studyHistoryPosition--;
+            MoveToStudyItem(_studyHistory[_studyHistoryPosition], appendToHistory: false);
+            return true;
+        });
     }
 
     private void StudyModeNextButton_Click(object sender, RoutedEventArgs e)
     {
+        MoveToNextStudyCardWithAnimation();
+    }
+
+    private void MoveToNextStudyCardWithAnimation()
+    {
         if (_items.Count == 0)
             return;
 
-        TryMoveToNextStudyItem(fromHistory: true);
+        AnimateStudyModeCardChange(1, () => TryMoveToNextStudyItem(fromHistory: true));
+    }
 
-        ApplyStudyModeState();
+    private void AnimateStudyModeCardChange(int direction, Func<bool> moveCard)
+    {
+        if (_isStudyModeCardAnimating)
+            return;
+
+        _isStudyModeCardAnimating = true;
+        StudyModePreviousButton.IsEnabled = false;
+        StudyModeNextButton.IsEnabled = false;
+        StudyModeMarkKnownButton.IsEnabled = false;
+        StudyModeMarkUnknownButton.IsEnabled = false;
+
+        if (StudyModeCard.RenderTransform is not TranslateTransform translate)
+        {
+            translate = new TranslateTransform();
+            StudyModeCard.RenderTransform = translate;
+        }
+
+        var exitOffset = direction >= 0 ? -26 : 26;
+        var enterOffset = direction >= 0 ? 26 : -26;
+        var fadeOutDuration = TimeSpan.FromMilliseconds(120);
+        var fadeInDuration = TimeSpan.FromMilliseconds(170);
+        var easeIn = new CubicEase { EasingMode = EasingMode.EaseIn };
+        var easeOut = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+        var fadeOut = new DoubleAnimation(StudyModeCard.Opacity, 0, fadeOutDuration) { EasingFunction = easeIn };
+        fadeOut.Completed += (_, _) =>
+        {
+            var moved = moveCard();
+            ApplyStudyModeState();
+
+            if (!moved
+                || !_isStudyMode
+                || StudyModeViewBorder.Visibility != Visibility.Visible
+                || StudyModeCard.Visibility != Visibility.Visible)
+            {
+                StudyModeCard.Opacity = 1;
+                translate.X = 0;
+                _isStudyModeCardAnimating = false;
+                ApplyStudyModeState();
+                return;
+            }
+
+            translate.X = enterOffset;
+            StudyModeCard.Opacity = 0;
+
+            var fadeIn = new DoubleAnimation(0, 1, fadeInDuration) { EasingFunction = easeOut };
+            fadeIn.Completed += (_, _) =>
+            {
+                _isStudyModeCardAnimating = false;
+                StudyModeCard.Opacity = 1;
+                translate.X = 0;
+                ApplyStudyModeState();
+            };
+
+            StudyModeCard.BeginAnimation(OpacityProperty, fadeIn);
+            translate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(enterOffset, 0, fadeInDuration) { EasingFunction = easeOut });
+        };
+
+        StudyModeCard.BeginAnimation(OpacityProperty, fadeOut);
+        translate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, exitOffset, fadeOutDuration) { EasingFunction = easeIn });
     }
 
     private void EditFlashcardMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1031,7 +1211,12 @@ public partial class FlashcardsPreviewWindow : Window
         if (flashcard is null)
             return;
 
-        var dialog = new EditFlashcardDialog
+        EditFlashcard(flashcard);
+    }
+
+    private void EditFlashcard(FlashcardPreviewItem flashcard)
+    {
+        var dialog = new EditFlashcardDialog()
         {
             Owner = this,
             Question = flashcard.Question,
