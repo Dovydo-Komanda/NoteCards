@@ -188,7 +188,9 @@ namespace NoteCards
                 {
                     AnimateMassSelectOverlay(vm.IsMassSelectMode);
                 }
-                else if (e.PropertyName == nameof(MainViewModel.IsFlashcardsView))
+                else if (e.PropertyName == nameof(MainViewModel.IsFlashcardsView)
+                      || e.PropertyName == nameof(MainViewModel.IsMindMapsView)
+                      || e.PropertyName == nameof(MainViewModel.IsNotesView))
                 {
                     CloseNotesDashboardChrome();
                 }
@@ -752,6 +754,9 @@ namespace NoteCards
                 return;
             }
 
+            if (vm.IsMindMapsView)
+                return;
+
             vm.AddNoteCommand.Execute(null);
         }
 
@@ -970,6 +975,31 @@ namespace NoteCards
 
             if (editor.ShowDialog() == true)
                 vm.AddOrUpdateFlashcardSet(editor.ToDocument(document));
+        }
+
+        private void OpenMindMapButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            if ((sender as FrameworkElement)?.Tag is MindMapViewModel map)
+                OpenMindMapEditor(vm, map);
+        }
+
+        private void OpenMindMapEditor(MainViewModel vm, MindMapViewModel map)
+        {
+            var document = map.Document;
+            var editor = new MindMapPreviewWindow(
+                document.Root,
+                document.AiModelDisplayName,
+                document.Title,
+                document.Tags)
+            {
+                Owner = this
+            };
+
+            if (editor.ShowDialog() == true)
+                vm.AddOrUpdateMindMap(editor.ToDocument(document));
         }
 
         private static bool IsWithinCalendarScheduleGearButton(DependencyObject? source)

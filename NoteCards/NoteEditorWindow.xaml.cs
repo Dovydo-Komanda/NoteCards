@@ -41,8 +41,11 @@ namespace NoteCards
         private NoteDocument? _currentDocument;
         private const int MaxEditHistoryEntries = 100;
         private readonly FlashcardConversionService _flashcardConversionService = new();
+        private readonly MindMapConversionService _mindMapConversionService = new();
         private bool _isConvertingToFlashcards;
         private CancellationTokenSource? _flashcardConversionCancellationSource;
+        private bool _isConvertingToMindMap;
+        private CancellationTokenSource? _mindMapConversionCancellationSource;
         private bool _isSyncingFontSelectors;
         private const double StatusIndicatorExpandedHeight = 20;
 
@@ -92,6 +95,9 @@ namespace NoteCards
             _flashcardConversionCancellationSource?.Cancel();
             _flashcardConversionCancellationSource?.Dispose();
             _flashcardConversionCancellationSource = null;
+            _mindMapConversionCancellationSource?.Cancel();
+            _mindMapConversionCancellationSource?.Dispose();
+            _mindMapConversionCancellationSource = null;
             ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
         }
 
@@ -104,6 +110,7 @@ namespace NoteCards
         {
             StopAutoSaveTimer();
             _flashcardConversionCancellationSource?.Cancel();
+            _mindMapConversionCancellationSource?.Cancel();
             ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
 
             if (_isPlayingCloseAnimation)
@@ -284,7 +291,7 @@ namespace NoteCards
 
         private async void ConvertToFlashcardsButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_isConvertingToFlashcards)
+            if (_isConvertingToFlashcards || _isConvertingToMindMap)
                 return;
 
             var plainText = GetEditorPlainText();
@@ -300,6 +307,7 @@ namespace NoteCards
 
             _isConvertingToFlashcards = true;
             ConvertToFlashcardsButton.IsEnabled = false;
+            ConvertToMindMapButton.IsEnabled = false;
             ShowPersistentStatusIndicator(LocalizationService.GetString("ConvertToFlashcardsInProgress"));
 
             _flashcardConversionCancellationSource?.Dispose();
@@ -307,26 +315,7 @@ namespace NoteCards
 
             var progress = new Progress<BundledModelHostService.FlashcardProgress>(status =>
             {
-                var baseText = LocalizationService.GetString(status.StatusKey);
-                string text;
-                var useAnimation = true;
-
-                if (status.GeneratedChars.HasValue)
-                {
-                    text = string.Format(
-                        LocalizationService.GetString("ConvertToFlashcardsStatusGeneratedCharsFormat"),
-                        baseText,
-                        status.GeneratedChars.Value);
-                }
-                else if (status.Percent.HasValue)
-                {
-                    text = string.Format(LocalizationService.GetString("ConvertToFlashcardsStatusPercentFormat"), baseText, status.Percent.Value);
-                    useAnimation = false;
-                }
-                else
-                {
-                    text = baseText;
-                }
+                var text = BuildAiProgressText(status, null, null, out var useAnimation);
 
                 if (useAnimation)
                     ShowPersistentStatusIndicator(text);
@@ -395,9 +384,156 @@ namespace NoteCards
             {
                 _isConvertingToFlashcards = false;
                 ConvertToFlashcardsButton.IsEnabled = true;
+                ConvertToMindMapButton.IsEnabled = true;
                 _flashcardConversionCancellationSource?.Dispose();
                 _flashcardConversionCancellationSource = null;
             }
+        }
+
+        private async void ConvertToMindMapButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isConvertingToFlashcards || _isConvertingToMindMap)
+                return;
+
+            var plainText = GetEditorPlainText();
+            if (string.IsNullOrWhiteSpace(plainText))
+            {
+                MessageBox.Show(
+                    LocalizationService.GetString("ConvertToMindMapEmpty"),
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            _isConvertingToMindMap = true;
+            ConvertToFlashcardsButton.IsEnabled = false;
+            ConvertToMindMapButton.IsEnabled = false;
+            ShowPersistentStatusIndicator(LocalizationService.GetString("ConvertToMindMapInProgress"));
+
+            _mindMapConversionCancellationSource?.Dispose();
+            _mindMapConversionCancellationSource = new CancellationTokenSource();
+
+            var progress = new Progress<BundledModelHostService.FlashcardProgress>(status =>
+            {
+                var text = BuildAiProgressText(
+                    status,
+                    processingStatusKey: "ConvertToMindMapStatusProcessing",
+                    finalizingStatusKey: "ConvertToMindMapStatusFinalizing",
+                    out var useAnimation);
+
+                if (useAnimation)
+                    ShowPersistentStatusIndicator(text);
+                else
+                    ShowPersistentStatusIndicatorWithoutAnimation(text);
+            });
+
+            try
+            {
+                var mindMap = await _mindMapConversionService.ConvertToMindMapAsync(
+                    TitleTextBox.Text,
+                    plainText,
+                    progress,
+                    _mindMapConversionCancellationSource.Token);
+
+                if (mindMap is null || mindMap.Children.Count == 0)
+                {
+                    HideStatusIndicator();
+                    MessageBox.Show(
+                        LocalizationService.GetString("ConvertToMindMapParseFailed"),
+                        LocalizationService.GetString("Error"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                var modelDisplayName = BundledModelHostService.Instance.GetSelectedModelDisplayName();
+                var preview = new MindMapPreviewWindow(
+                    mindMap,
+                    modelDisplayName,
+                    TitleTextBox.Text,
+                    ParseTags(TagsTextBox.Text))
+                {
+                    Owner = GetDialogOwnerWindow()
+                };
+
+                if (preview.ShowDialog() == true
+                    && Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                {
+                    var document = preview.ToDocument();
+                    document.SourceNoteId = _currentDocument?.Id;
+                    mainViewModel.AddOrUpdateMindMap(document);
+                }
+
+                ShowStatusIndicator(LocalizationService.GetString("ConvertToMindMapSuccess"));
+            }
+            catch (OperationCanceledException ex)
+            {
+                HideStatusIndicator();
+                if (_mindMapConversionCancellationSource?.IsCancellationRequested == true)
+                    return;
+
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("ConvertToMindMapFailed")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            catch (Exception ex)
+            {
+                HideStatusIndicator();
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("ConvertToMindMapFailed")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isConvertingToMindMap = false;
+                ConvertToFlashcardsButton.IsEnabled = true;
+                ConvertToMindMapButton.IsEnabled = true;
+                _mindMapConversionCancellationSource?.Dispose();
+                _mindMapConversionCancellationSource = null;
+            }
+        }
+
+        private static string BuildAiProgressText(
+            BundledModelHostService.FlashcardProgress status,
+            string? processingStatusKey,
+            string? finalizingStatusKey,
+            out bool useAnimation)
+        {
+            var statusKey = status.StatusKey;
+            if (processingStatusKey is not null
+                && string.Equals(statusKey, "ConvertToFlashcardsStatusProcessing", StringComparison.Ordinal))
+            {
+                statusKey = processingStatusKey;
+            }
+            else if (finalizingStatusKey is not null
+                && string.Equals(statusKey, "ConvertToFlashcardsStatusFinalizing", StringComparison.Ordinal))
+            {
+                statusKey = finalizingStatusKey;
+            }
+
+            var baseText = LocalizationService.GetString(statusKey);
+            useAnimation = true;
+
+            if (status.GeneratedChars.HasValue)
+            {
+                return string.Format(
+                    LocalizationService.GetString("ConvertToFlashcardsStatusGeneratedCharsFormat"),
+                    baseText,
+                    status.GeneratedChars.Value);
+            }
+
+            if (status.Percent.HasValue)
+            {
+                useAnimation = false;
+                return string.Format(LocalizationService.GetString("ConvertToFlashcardsStatusPercentFormat"), baseText, status.Percent.Value);
+            }
+
+            return baseText;
         }
 
         private void ShowPersistentStatusIndicator(string message)

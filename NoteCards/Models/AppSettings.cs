@@ -30,7 +30,13 @@ public class AppSettings
 
     public bool IsCalendarSectionVisible { get; set; } = true;
 
+    public bool IsMindMapGroupsSectionExpanded { get; set; } = true;
+
+    public bool IsMindMapGroupsSectionVisible { get; set; } = true;
+
     public bool IsCalendarFirst { get; set; } = true;
+
+    public string MindMapSortOptionKey { get; set; } = "last-modified-desc";
 
     public string DefaultViewMode { get; set; } = "Grid";
 

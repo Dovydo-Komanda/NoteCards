@@ -376,6 +376,11 @@
                              Style="{StaticResource EditorToolIconButtonStyle}"
                              ToolTip="{Binding [ConvertToFlashcards], Source={StaticResource Loc}}"
                              Click="ConvertToFlashcardsButton_Click"/>
+                    <Button x:Name="ConvertToMindMapButton"
+                            Content="🗺"
+                            Style="{StaticResource EditorToolIconButtonStyle}"
+                            ToolTip="{Binding [ConvertToMindMap], Source={StaticResource Loc}}"
+                            Click="ConvertToMindMapButton_Click"/>
                     <Button x:Name="SearchButton"
                             Content="🔎"
                             Style="{StaticResource EditorToolIconButtonStyle}"

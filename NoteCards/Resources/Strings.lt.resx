@@ -231,6 +231,14 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ConvertToFlashcardsUnavailable" xml:space="preserve"><value>Su programėle pateiktas Qwen modelis kortelių nesugeneravo.</value></data>
   <data name="ConvertToFlashcardsFailed" xml:space="preserve"><value>Nepavyko paversti užrašo į mokymosi korteles naudojant su programėle pateiktą Qwen modelį.</value></data>
   <data name="ConvertToFlashcardsSuccess" xml:space="preserve"><value>Mokymosi kortelės sugeneruotos</value></data>
+  <data name="ConvertToMindMap" xml:space="preserve"><value>Paversti į minčių žemėlapį</value></data>
+  <data name="ConvertToMindMapEmpty" xml:space="preserve"><value>Prieš konvertuodami į minčių žemėlapį, įrašykite užrašo tekstą.</value></data>
+  <data name="ConvertToMindMapInProgress" xml:space="preserve"><value>Generuojamas minčių žemėlapis...</value></data>
+  <data name="ConvertToMindMapFailed" xml:space="preserve"><value>Nepavyko paversti užrašo į minčių žemėlapį naudojant su programėle pateiktą Qwen modelį.</value></data>
+  <data name="ConvertToMindMapSuccess" xml:space="preserve"><value>Minčių žemėlapis sugeneruotas</value></data>
+  <data name="ConvertToMindMapParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamos minčių žemėlapio struktūros.</value></data>
+  <data name="ConvertToMindMapStatusProcessing" xml:space="preserve"><value>DI generuoja minčių žemėlapį...</value></data>
+  <data name="ConvertToMindMapStatusFinalizing" xml:space="preserve"><value>Baigiamas formuoti minčių žemėlapis...</value></data>
   <data name="ConvertToFlashcardsStatusPreparingAssets" xml:space="preserve"><value>Paruošiami DI resursai...</value></data>
   <data name="ConvertToFlashcardsStatusDownloadingRuntime" xml:space="preserve"><value>Atsiunčiamas DI vykdymo modulis...</value></data>
   <data name="ConvertToFlashcardsStatusDownloadingModel" xml:space="preserve"><value>Atsiunčiamas pasirinktas Qwen modelis...</value></data>
@@ -243,6 +251,8 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ConvertToFlashcardsStatusGeneratedCharsFormat" xml:space="preserve"><value>{0} ({1} simb.)</value></data>
   <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Kortelių redaktorius</value></data>
   <data name="FlashcardsEditorTitle" xml:space="preserve"><value>Kortelių redaktorius</value></data>
+  <data name="NotesDashboard" xml:space="preserve"><value>Užrašai</value></data>
+  <data name="FlashcardsDashboard" xml:space="preserve"><value>Kortelės</value></data>
   <data name="FlashcardGroupsDashboardTitle" xml:space="preserve"><value>Mokymosi kortelių grupės</value></data>
   <data name="FlashcardsEmptyDashboardPrompt" xml:space="preserve"><value>Pradėkite sukurdami mokymosi korteles</value></data>
   <data name="CreateFlashcards" xml:space="preserve"><value>Sukurti flashcards</value></data>
@@ -291,6 +301,23 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="StudyModeProgress" xml:space="preserve"><value>Kortelė {0} iš {1}</value></data>
   <data name="FlashcardFlipSpeed" xml:space="preserve"><value>Apvertimo greitis:</value></data>
   <data name="FlashcardFlipSpeedDescription" xml:space="preserve"><value>Valdykite, kaip greitai mokymosi kortelÄ—s suktÄ—s tarp klausimo ir atsakymo</value></data>
+  <data name="MindMapPreviewTitle" xml:space="preserve"><value>Minčių žemėlapis</value></data>
+  <data name="MindMapsDashboard" xml:space="preserve"><value>Minčių žemėlapiai</value></data>
+  <data name="MindMapsDashboardTitle" xml:space="preserve"><value>Minčių žemėlapiai</value></data>
+  <data name="MindMapsEmptyDashboardPrompt" xml:space="preserve"><value>Paverskite užrašą į minčių žemėlapį ir jis atsiras čia.</value></data>
+  <data name="MindMapUntitled" xml:space="preserve"><value>Minčių žemėlapis be pavadinimo</value></data>
+  <data name="MindMapTitleHint" xml:space="preserve"><value>Minčių žemėlapio pavadinimas</value></data>
+  <data name="MindMapCountFormat" xml:space="preserve"><value>{0} minčių žemėlapiai(-ių)</value></data>
+  <data name="MindMapNodeCountFormat" xml:space="preserve"><value>{0} mazgai(-ų)</value></data>
+  <data name="MindMapBranchCountFormat" xml:space="preserve"><value>{0} šakos(-ų)</value></data>
+  <data name="SortByMindMapNodesDesc" xml:space="preserve"><value>Daugiausia mazgų</value></data>
+  <data name="SortByMindMapNodesAsc" xml:space="preserve"><value>Mažiausia mazgų</value></data>
+  <data name="MindMapGeneratedWithModel" xml:space="preserve"><value>Sugeneruota su modeliu: {0}</value></data>
+  <data name="MindMapExpandAll" xml:space="preserve"><value>Išskleisti viską</value></data>
+  <data name="MindMapCollapseAll" xml:space="preserve"><value>Sutraukti viską</value></data>
+  <data name="MindMapExpandNode" xml:space="preserve"><value>Išskleisti šaką</value></data>
+  <data name="MindMapCollapseNode" xml:space="preserve"><value>Sutraukti šaką</value></data>
+  <data name="MindMapZoom" xml:space="preserve"><value>Mastelis:</value></data>
   <data name="ResetFactorySettings" xml:space="preserve"><value>Atstatyti gamyklos nustatymus</value></data>
   <data name="ResetFactorySettingsTitle" xml:space="preserve"><value>Atstatyti gamyklos nustatymus</value></data>
   <data name="ResetFactorySettingsDescription" xml:space="preserve"><value>Atstatyti visus nustatymus ir duomenis į numatytuosius. Šis veiksmas negali būti anuliuotas.</value></data>

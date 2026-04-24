@@ -25,17 +25,25 @@ public class MainViewModel : ViewModelBase
     private const string SortTitleDesc = "title-desc";
     private const string SortFlashcardCardsDesc = "flashcard-cards-desc";
     private const string SortFlashcardCardsAsc = "flashcard-cards-asc";
+    private const string SortMindMapNodesDesc = "mindmap-nodes-desc";
+    private const string SortMindMapNodesAsc = "mindmap-nodes-asc";
+    private const string DashboardNotes = "Notes";
+    private const string DashboardFlashcards = "Flashcards";
+    private const string DashboardMindMaps = "MindMaps";
 
     private bool _isLoadingSettings;
     private bool _saveNotesQueued;
     private bool _enableScrollbar = true;
     private string _selectedLanguage = LocalizationService.English;
     private string _selectedTheme = "Light";
+    private string _activeDashboard = DashboardNotes;
     private string _selectedSortOptionKey = SortLastModifiedDesc;
     private string _selectedFlashcardSortOptionKey = SortLastModifiedDesc;
+    private string _selectedMindMapSortOptionKey = SortLastModifiedDesc;
     private readonly Dictionary<Guid, NoteGroupData> _groupMetadata = new();
     private readonly HashSet<string> _selectedTags = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _selectedFlashcardTags = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _selectedMindMapTags = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<Guid> _massSelectedNoteIds = new();
     private bool _isMassSelectMode;
     private DateTime _calendarSelectedDate = DateTime.Today;
@@ -66,6 +74,13 @@ public class MainViewModel : ViewModelBase
         var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NoteCards");
         Directory.CreateDirectory(dir);
         return Path.Combine(dir, "flashcard-sets.json");
+    }
+
+    private string GetMindMapsFilePath()
+    {
+        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NoteCards");
+        Directory.CreateDirectory(dir);
+        return Path.Combine(dir, "mind-maps.json");
     }
     
    
@@ -131,6 +146,8 @@ public class MainViewModel : ViewModelBase
     private bool _isUngroupedSectionVisible = true;
     private bool _isFlashcardGroupsSectionVisible = true;
     private bool _isFlashcardGroupsSectionExpanded = true;
+    private bool _isMindMapGroupsSectionVisible = true;
+    private bool _isMindMapGroupsSectionExpanded = true;
     public bool IsUngroupedSectionVisible
     {
         get => _isUngroupedSectionVisible;
@@ -154,6 +171,19 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    public bool IsMindMapGroupsSectionVisible
+    {
+        get => _isMindMapGroupsSectionVisible;
+        set
+        {
+            if (SetProperty(ref _isMindMapGroupsSectionVisible, value))
+            {
+                ApplyMindMapFilters();
+                SaveAppSettings();
+            }
+        }
+    }
+
     public string SelectedLanguage
     {
         get => _selectedLanguage;
@@ -167,6 +197,7 @@ public class MainViewModel : ViewModelBase
                 LocalizationService.SetCulture(_selectedLanguage);
                 RefreshSortOptions();
                 RefreshFlashcardSortOptions();
+                RefreshMindMapSortOptions();
                 OnPropertyChanged(nameof(SortButtonText));
                 OnPropertyChanged(nameof(ActiveSortButtonText));
                 OnPropertyChanged(nameof(UserActivitySummaryTitle));
@@ -193,7 +224,14 @@ public class MainViewModel : ViewModelBase
         }
     }
     public object CurrentView { get; set; }
-    public bool IsFlashcardsView { get; set; }
+    public string ActiveDashboard => _activeDashboard;
+    public bool IsNotesView => string.Equals(_activeDashboard, DashboardNotes, StringComparison.Ordinal);
+    public bool IsFlashcardsView
+    {
+        get => string.Equals(_activeDashboard, DashboardFlashcards, StringComparison.Ordinal);
+        set => SetActiveDashboard(value ? DashboardFlashcards : DashboardNotes);
+    }
+    public bool IsMindMapsView => string.Equals(_activeDashboard, DashboardMindMaps, StringComparison.Ordinal);
     public FlashcardItem SelectedFlashcard { get; set; }
 
     public bool IsShowingAnswer { get; set; }
@@ -247,6 +285,24 @@ public class MainViewModel : ViewModelBase
         return SelectedFlashcard != null && Flashcards.Count > 1;
     }
 
+    private void SetActiveDashboard(string? dashboard)
+    {
+        var normalized = NormalizeDashboard(dashboard);
+        if (string.Equals(_activeDashboard, normalized, StringComparison.Ordinal))
+            return;
+
+        _activeDashboard = normalized;
+        CurrentView = normalized;
+        OnPropertyChanged(nameof(ActiveDashboard));
+        OnPropertyChanged(nameof(CurrentView));
+        OnPropertyChanged(nameof(IsNotesView));
+        OnPropertyChanged(nameof(IsFlashcardsView));
+        OnPropertyChanged(nameof(IsMindMapsView));
+        NotifyActiveDashboardChromeChanged();
+        SaveAppSettings();
+    }
+
+
     public MainViewModel()
     {
         LoadAppSettings();
@@ -256,8 +312,10 @@ public class MainViewModel : ViewModelBase
         NoteGroups = new ObservableCollection<NoteGroupViewModel>();
         TagFilters = new ObservableCollection<TagFilterItemViewModel>();
         FlashcardTagFilters = new ObservableCollection<TagFilterItemViewModel>();
+        MindMapTagFilters = new ObservableCollection<TagFilterItemViewModel>();
         SortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
         FlashcardSortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
+        MindMapSortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
         CalendarScheduledNotes = new ObservableCollection<CalendarScheduledItemViewModel>();
         // Create a view for Notes so we can apply filtering for search
         _notesView = CollectionViewSource.GetDefaultView(Notes);
@@ -266,6 +324,9 @@ public class MainViewModel : ViewModelBase
         _flashcardSetsView = CollectionViewSource.GetDefaultView(FlashcardSets);
         _flashcardSetsView.Filter = FilterFlashcardSet;
         ApplySortToFlashcardSetsView();
+        _mindMapsView = CollectionViewSource.GetDefaultView(MindMaps);
+        _mindMapsView.Filter = FilterMindMap;
+        ApplySortToMindMapsView();
         Notes.CollectionChanged += (_, _) =>
         {
             RefreshAvailableTags();
@@ -279,19 +340,28 @@ public class MainViewModel : ViewModelBase
             ApplyFlashcardFilters();
             NotifyFlashcardSetsChanged();
         };
+        MindMaps.CollectionChanged += (_, _) =>
+        {
+            RefreshAvailableMindMapTags();
+            ApplyMindMapFilters();
+            NotifyMindMapsChanged();
+        };
         
         NoteCards.Services.ActivityTracker.ActivityUpdated += RefreshActivityStats;
         
         RefreshSortOptions();
         RefreshFlashcardSortOptions();
+        RefreshMindMapSortOptions();
         RefreshAvailableTags();
         RefreshAvailableFlashcardTags();
+        RefreshAvailableMindMapTags();
         RefreshRecentNotes();
         RefreshCalendarScheduledNotes();
         LoadFlashcards();
+        LoadMindMaps();
         AddNoteCommand = new RelayCommand(AddNote);
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
-        ClearTagFiltersCommand = new RelayCommand(ClearActiveTagFilters, () => IsFlashcardsView ? HasActiveFlashcardTagFilters : HasActiveTagFilters);
+        ClearTagFiltersCommand = new RelayCommand(ClearActiveTagFilters, () => ActiveHasActiveTagFilters);
         ExitMassSelectCommand = new RelayCommand(ExitMassSelect, () => IsMassSelectMode);
         SelectAllVisibleNotesCommand = new RelayCommand(SelectAllVisibleNotes, () => IsMassSelectMode);
         DeleteSelectedNotesCommand = new RelayCommand(DeleteSelectedNotes, () => IsMassSelectMode && SelectedNotesCount > 0);
@@ -326,20 +396,20 @@ public class MainViewModel : ViewModelBase
         });
 
 
-        CurrentView = "Notes";
+        CurrentView = _activeDashboard;
 
         ShowNotesCommand = new RelayCommand(() =>
         {
-            IsFlashcardsView = false;
-            OnPropertyChanged(nameof(IsFlashcardsView));
-            NotifyActiveDashboardChromeChanged();
+            SetActiveDashboard(DashboardNotes);
         });
 
         ShowFlashcardsCommand = new RelayCommand(() =>
         {
-            IsFlashcardsView = true;
-            OnPropertyChanged(nameof(IsFlashcardsView));
-            NotifyActiveDashboardChromeChanged();
+            SetActiveDashboard(DashboardFlashcards);
+        });
+        ShowMindMapsCommand = new RelayCommand(() =>
+        {
+            SetActiveDashboard(DashboardMindMaps);
         });
         // 🔧 FIX – inicializuojam visus command, kad ViewModel nelūžtų
         MoveGroupsUpCommand = new RelayCommand(() => { });
@@ -356,7 +426,7 @@ public class MainViewModel : ViewModelBase
 
         _settings = AppSettingsService.Load();
 
-        CurrentView = _settings.LastView ?? "Notes";
+        SetActiveDashboard(_settings.LastView);
         
 
         // Try to load saved notes from disk. If none exist, create a starter note.
@@ -534,22 +604,154 @@ public class MainViewModel : ViewModelBase
         document.AiModelDisplayName = document.AiModelDisplayName?.Trim() ?? string.Empty;
     }
 
+    private void LoadMindMaps()
+    {
+        MindMaps.Clear();
+
+        var path = GetMindMapsFilePath();
+        if (!File.Exists(path))
+        {
+            NotifyMindMapsChanged();
+            return;
+        }
+
+        var json = File.ReadAllText(path);
+        var maps = JsonSerializer.Deserialize<List<MindMapDocument>>(json) ?? new();
+
+        foreach (var map in maps
+                     .Where(map => map != null)
+                     .OrderByDescending(map => map.LastModified)
+                     .ThenBy(map => map.Title, StringComparer.CurrentCultureIgnoreCase))
+        {
+            NormalizeMindMapDocument(map);
+            MindMaps.Add(new MindMapViewModel(map));
+        }
+
+        NotifyMindMapsChanged();
+    }
+
+    public MindMapViewModel AddOrUpdateMindMap(MindMapDocument document)
+    {
+        NormalizeMindMapDocument(document);
+
+        var existing = MindMaps.FirstOrDefault(map => map.Document.Id == document.Id);
+        if (existing is null)
+        {
+            existing = new MindMapViewModel(document);
+            MindMaps.Add(existing);
+        }
+        else
+        {
+            existing.Document.Title = document.Title;
+            existing.Document.Tags = document.Tags;
+            existing.Document.Root = document.Root;
+            existing.Document.CreatedAt = document.CreatedAt;
+            existing.Document.LastModified = document.LastModified;
+            existing.Document.AiModelDisplayName = document.AiModelDisplayName;
+            existing.Document.SourceNoteId = document.SourceNoteId;
+            existing.NotifyChanged();
+        }
+
+        ReorderMindMaps();
+        RefreshAvailableMindMapTags();
+        ApplyMindMapFilters();
+        SaveMindMaps();
+        NotifyMindMapsChanged();
+        return existing;
+    }
+
+    public void SaveMindMaps()
+    {
+        var path = GetMindMapsFilePath();
+        var documents = MindMaps
+            .Select(map => map.Document)
+            .OrderByDescending(map => map.LastModified)
+            .ThenBy(map => map.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        var json = JsonSerializer.Serialize(documents, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(path, json);
+    }
+
+    private void ReorderMindMaps()
+    {
+        var ordered = MindMaps
+            .OrderByDescending(map => map.Document.LastModified)
+            .ThenBy(map => map.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        MindMaps.Clear();
+        foreach (var map in ordered)
+            MindMaps.Add(map);
+    }
+
+    private void NotifyMindMapsChanged()
+    {
+        OnPropertyChanged(nameof(HasMindMaps));
+        OnPropertyChanged(nameof(MindMapCount));
+        OnPropertyChanged(nameof(MindMapCountText));
+    }
+
+    private static void NormalizeMindMapDocument(MindMapDocument document)
+    {
+        document.Id = document.Id == Guid.Empty ? Guid.NewGuid() : document.Id;
+        document.Title = string.IsNullOrWhiteSpace(document.Title)
+            ? LocalizationService.GetString("MindMapUntitled")
+            : document.Title.Trim();
+        document.Tags = document.Tags?
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Select(tag => tag.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? new List<string>();
+        document.Root ??= new MindMapNode();
+        NormalizeMindMapNode(document.Root);
+        if (string.IsNullOrWhiteSpace(document.Root.Text))
+            document.Root.Text = document.Title;
+        document.CreatedAt = document.CreatedAt == default ? DateTime.UtcNow : document.CreatedAt;
+        document.LastModified = document.LastModified == default ? DateTime.Now : document.LastModified;
+        document.AiModelDisplayName = document.AiModelDisplayName?.Trim() ?? string.Empty;
+    }
+
+    private static void NormalizeMindMapNode(MindMapNode node)
+    {
+        node.Text = node.Text?.Trim() ?? string.Empty;
+        node.Children = node.Children?
+            .Where(child => child != null)
+            .ToList() ?? new List<MindMapNode>();
+
+        foreach (var child in node.Children)
+            NormalizeMindMapNode(child);
+    }
+
 
     public ObservableCollection<NoteCardViewModel> Notes { get; }
     public ObservableCollection<NoteGroupViewModel> NoteGroups { get; }
     public ObservableCollection<TagFilterItemViewModel> TagFilters { get; }
     public ObservableCollection<TagFilterItemViewModel> FlashcardTagFilters { get; }
+    public ObservableCollection<TagFilterItemViewModel> MindMapTagFilters { get; }
     public ObservableCollection<NoteSortOptionItemViewModel> SortOptions { get; }
     public ObservableCollection<NoteSortOptionItemViewModel> FlashcardSortOptions { get; }
-    public IEnumerable<NoteSortOptionItemViewModel> ActiveSortOptions => IsFlashcardsView ? FlashcardSortOptions : SortOptions;
-    public IEnumerable<TagFilterItemViewModel> ActiveTagFilters => IsFlashcardsView ? FlashcardTagFilters : TagFilters;
+    public ObservableCollection<NoteSortOptionItemViewModel> MindMapSortOptions { get; }
+    public IEnumerable<NoteSortOptionItemViewModel> ActiveSortOptions => IsMindMapsView
+        ? MindMapSortOptions
+        : IsFlashcardsView ? FlashcardSortOptions : SortOptions;
+    public IEnumerable<TagFilterItemViewModel> ActiveTagFilters => IsMindMapsView
+        ? MindMapTagFilters
+        : IsFlashcardsView ? FlashcardTagFilters : TagFilters;
     public ObservableCollection<CalendarScheduledItemViewModel> CalendarScheduledNotes { get; }
      public bool HasGroups => NoteGroups.Count > 0;
     public bool HasTagFilters => TagFilters.Count > 0;
     public bool HasFlashcardTagFilters => FlashcardTagFilters.Count > 0;
-    public bool ActiveHasTagFilters => IsFlashcardsView ? HasFlashcardTagFilters : HasTagFilters;
+    public bool HasMindMapTagFilters => MindMapTagFilters.Count > 0;
+    public bool ActiveHasTagFilters => IsMindMapsView
+        ? HasMindMapTagFilters
+        : IsFlashcardsView ? HasFlashcardTagFilters : HasTagFilters;
     public bool HasActiveTagFilters => _selectedTags.Count > 0;
     public bool HasActiveFlashcardTagFilters => _selectedFlashcardTags.Count > 0;
+    public bool HasActiveMindMapTagFilters => _selectedMindMapTags.Count > 0;
+    public bool ActiveHasActiveTagFilters => IsMindMapsView
+        ? HasActiveMindMapTagFilters
+        : IsFlashcardsView ? HasActiveFlashcardTagFilters : HasActiveTagFilters;
     public bool IsMassSelectMode
     {
         get => _isMassSelectMode;
@@ -572,20 +774,31 @@ public class MainViewModel : ViewModelBase
     {
         get
         {
-            if (!IsFlashcardsView)
-                return TagFilterButtonText;
+            if (IsMindMapsView)
+            {
+                return HasActiveMindMapTagFilters
+                    ? $"{LocalizationService.GetString("FilterTags")} ({_selectedMindMapTags.Count})"
+                    : LocalizationService.GetString("FilterTags");
+            }
 
-            return HasActiveFlashcardTagFilters
+            if (IsFlashcardsView)
+            {
+                return HasActiveFlashcardTagFilters
                 ? $"{LocalizationService.GetString("FilterTags")} ({_selectedFlashcardTags.Count})"
                 : LocalizationService.GetString("FilterTags");
+            }
+
+            return TagFilterButtonText;
         }
     }
     public string SortButtonText => string.Format(
         LocalizationService.GetString("SortButtonFormat"),
         GetSortOptionDisplayName(_selectedSortOptionKey));
-    public string ActiveSortButtonText => IsFlashcardsView
-        ? string.Format(LocalizationService.GetString("SortButtonFormat"), GetFlashcardSortOptionDisplayName(_selectedFlashcardSortOptionKey))
-        : SortButtonText;
+    public string ActiveSortButtonText => IsMindMapsView
+        ? string.Format(LocalizationService.GetString("SortButtonFormat"), GetMindMapSortOptionDisplayName(_selectedMindMapSortOptionKey))
+        : IsFlashcardsView
+            ? string.Format(LocalizationService.GetString("SortButtonFormat"), GetFlashcardSortOptionDisplayName(_selectedFlashcardSortOptionKey))
+            : SortButtonText;
     public bool HasCalendarScheduledNotes => CalendarScheduledNotes.Count > 0;
 
     public DateTime CalendarSelectedDate
@@ -626,6 +839,8 @@ public class MainViewModel : ViewModelBase
     public ICollectionView NotesView => _notesView;
     private readonly ICollectionView _flashcardSetsView;
     public ICollectionView FlashcardSetsView => _flashcardSetsView;
+    private readonly ICollectionView _mindMapsView;
+    public ICollectionView MindMapsView => _mindMapsView;
 
     private bool _isRecentSectionExpanded = true;
     public bool IsRecentSectionExpanded
@@ -666,6 +881,16 @@ public class MainViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _isFlashcardGroupsSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsMindMapGroupsSectionExpanded
+    {
+        get => _isMindMapGroupsSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isMindMapGroupsSectionExpanded, value))
                 SaveAppSettings();
         }
     }
@@ -711,6 +936,7 @@ public class MainViewModel : ViewModelBase
 
     private string _searchQuery = string.Empty;
     private string _flashcardSearchQuery = string.Empty;
+    private string _mindMapSearchQuery = string.Empty;
     public string SearchQuery
     {
         get => _searchQuery;
@@ -741,12 +967,31 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public string ActiveSearchQuery
+    public string MindMapSearchQuery
     {
-        get => IsFlashcardsView ? FlashcardSearchQuery : SearchQuery;
+        get => _mindMapSearchQuery;
         set
         {
-            if (IsFlashcardsView)
+            if (_mindMapSearchQuery == (value ?? string.Empty))
+                return;
+
+            _mindMapSearchQuery = value ?? string.Empty;
+            OnPropertyChanged(nameof(MindMapSearchQuery));
+            OnPropertyChanged(nameof(ActiveSearchQuery));
+            ApplyMindMapFilters();
+        }
+    }
+
+    public string ActiveSearchQuery
+    {
+        get => IsMindMapsView
+            ? MindMapSearchQuery
+            : IsFlashcardsView ? FlashcardSearchQuery : SearchQuery;
+        set
+        {
+            if (IsMindMapsView)
+                MindMapSearchQuery = value;
+            else if (IsFlashcardsView)
                 FlashcardSearchQuery = value;
             else
                 SearchQuery = value;
@@ -778,6 +1023,7 @@ public class MainViewModel : ViewModelBase
     public ICommand FlipFlashcardCommand { get; }
     public ICommand CloseFlashcardCommand { get; }
     public ICommand ShowNotesCommand { get; }
+    public ICommand ShowMindMapsCommand { get; }
     public ICommand PreviousFlashcardCommand { get; }
     public ICommand NextFlashcardCommand { get; }
 
@@ -793,6 +1039,7 @@ public class MainViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(HasActiveTagFilters));
         OnPropertyChanged(nameof(TagFilterButtonText));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
         CommandManager.InvalidateRequerySuggested();
         ApplyFilters();
     }
@@ -1170,10 +1417,31 @@ public class MainViewModel : ViewModelBase
             SaveAppSettings();
         }
     }
+
+    public string SelectedMindMapSortOptionKey
+    {
+        get => _selectedMindMapSortOptionKey;
+        set
+        {
+            var normalized = NormalizeMindMapSortOptionKey(value);
+            if (!SetProperty(ref _selectedMindMapSortOptionKey, normalized))
+                return;
+
+            UpdateMindMapSortOptionSelection();
+            ApplySortToMindMapsView();
+            OnPropertyChanged(nameof(ActiveSortButtonText));
+            SaveAppSettings();
+        }
+    }
+
     public ObservableCollection<FlashcardSetViewModel> FlashcardSets { get; } = new();
     public bool HasFlashcardSets => FlashcardSets.Count > 0;
     public int FlashcardSetCount => FlashcardSets.Count;
     public string FlashcardSetCountText => string.Format(LocalizationService.GetString("FlashcardSetCountFormat"), FlashcardSetCount);
+    public ObservableCollection<MindMapViewModel> MindMaps { get; } = new();
+    public bool HasMindMaps => MindMaps.Count > 0;
+    public int MindMapCount => MindMaps.Count;
+    public string MindMapCountText => string.Format(LocalizationService.GetString("MindMapCountFormat"), MindMapCount);
     public ObservableCollection<FlashcardItem> Flashcards { get; set; } = new();
 
     
@@ -1306,13 +1574,16 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ActiveHasTagFilters));
         OnPropertyChanged(nameof(HasActiveTagFilters));
         OnPropertyChanged(nameof(TagFilterButtonText));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
         OnPropertyChanged(nameof(ActiveTagFilterButtonText));
         CommandManager.InvalidateRequerySuggested();
     }
 
     private void ClearActiveTagFilters()
     {
-        if (IsFlashcardsView)
+        if (IsMindMapsView)
+            ClearMindMapTagFilters();
+        else if (IsFlashcardsView)
             ClearFlashcardTagFilters();
         else
             ClearTagFilters();
@@ -1345,9 +1616,27 @@ public class MainViewModel : ViewModelBase
             _selectedFlashcardTags.Remove(tag);
 
         OnPropertyChanged(nameof(HasActiveFlashcardTagFilters));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
         OnPropertyChanged(nameof(ActiveTagFilterButtonText));
         CommandManager.InvalidateRequerySuggested();
         ApplyFlashcardFilters();
+    }
+
+    public void SetMindMapTagFilterSelected(string tag, bool isSelected)
+    {
+        if (string.IsNullOrWhiteSpace(tag))
+            return;
+
+        if (isSelected)
+            _selectedMindMapTags.Add(tag);
+        else
+            _selectedMindMapTags.Remove(tag);
+
+        OnPropertyChanged(nameof(HasActiveMindMapTagFilters));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+        ApplyMindMapFilters();
     }
 
     private void NotifyActiveDashboardChromeChanged()
@@ -1358,6 +1647,7 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ActiveSortOptions));
         OnPropertyChanged(nameof(ActiveTagFilters));
         OnPropertyChanged(nameof(ActiveHasTagFilters));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -1371,9 +1661,26 @@ public class MainViewModel : ViewModelBase
             tag.IsSelected = false;
 
         OnPropertyChanged(nameof(HasActiveFlashcardTagFilters));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
         OnPropertyChanged(nameof(ActiveTagFilterButtonText));
         CommandManager.InvalidateRequerySuggested();
         ApplyFlashcardFilters();
+    }
+
+    private void ClearMindMapTagFilters()
+    {
+        if (_selectedMindMapTags.Count == 0)
+            return;
+
+        _selectedMindMapTags.Clear();
+        foreach (var tag in MindMapTagFilters)
+            tag.IsSelected = false;
+
+        OnPropertyChanged(nameof(HasActiveMindMapTagFilters));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+        ApplyMindMapFilters();
     }
 
     private void ApplyFilters()
@@ -1406,6 +1713,34 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasFlashcardTagFilters));
         OnPropertyChanged(nameof(ActiveHasTagFilters));
         OnPropertyChanged(nameof(HasActiveFlashcardTagFilters));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void RefreshAvailableMindMapTags()
+    {
+        var tags = MindMaps
+            .SelectMany(map => map.Document.Tags ?? new List<string>())
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Select(tag => tag.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(tag => tag, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        _selectedMindMapTags.RemoveWhere(selected => !tags.Any(tag => string.Equals(tag, selected, StringComparison.OrdinalIgnoreCase)));
+
+        MindMapTagFilters.Clear();
+        foreach (var tag in tags)
+        {
+            var isSelected = _selectedMindMapTags.Contains(tag);
+            MindMapTagFilters.Add(new TagFilterItemViewModel(tag, isSelected, SetMindMapTagFilterSelected));
+        }
+
+        OnPropertyChanged(nameof(HasMindMapTagFilters));
+        OnPropertyChanged(nameof(ActiveHasTagFilters));
+        OnPropertyChanged(nameof(HasActiveMindMapTagFilters));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
         OnPropertyChanged(nameof(ActiveTagFilterButtonText));
         CommandManager.InvalidateRequerySuggested();
     }
@@ -1414,6 +1749,12 @@ public class MainViewModel : ViewModelBase
     {
         _flashcardSetsView.Refresh();
         NotifyFlashcardSetsChanged();
+    }
+
+    private void ApplyMindMapFilters()
+    {
+        _mindMapsView.Refresh();
+        NotifyMindMapsChanged();
     }
 
     private bool FilterFlashcardSet(object obj)
@@ -1441,6 +1782,39 @@ public class MainViewModel : ViewModelBase
                    (card.Question ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)
                    || (card.Answer ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)
                    || (card.Category ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool FilterMindMap(object obj)
+    {
+        if (obj is not MindMapViewModel map)
+            return false;
+
+        if (!IsMindMapGroupsSectionVisible)
+            return false;
+
+        if (_selectedMindMapTags.Count > 0)
+        {
+            var tags = map.Document.Tags ?? new List<string>();
+            if (!tags.Any(tag => _selectedMindMapTags.Contains(tag)))
+                return false;
+        }
+
+        var query = MindMapSearchQuery.Trim();
+        if (string.IsNullOrWhiteSpace(query))
+            return true;
+
+        return map.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+               || map.TagsDisplay.Contains(query, StringComparison.OrdinalIgnoreCase)
+               || MindMapContainsText(map.Document.Root, query);
+    }
+
+    private static bool MindMapContainsText(MindMapNode? node, string query)
+    {
+        if (node is null)
+            return false;
+
+        return (node.Text ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)
+               || node.Children.Any(child => MindMapContainsText(child, query));
     }
 
     private void SelectAllVisibleNotes()
@@ -1701,7 +2075,9 @@ public class MainViewModel : ViewModelBase
         if (!isSelected)
             return;
 
-        if (IsFlashcardsView)
+        if (IsMindMapsView)
+            SelectedMindMapSortOptionKey = key;
+        else if (IsFlashcardsView)
             SelectedFlashcardSortOptionKey = key;
         else
             SelectedSortOptionKey = key;
@@ -1737,6 +2113,22 @@ public class MainViewModel : ViewModelBase
         FlashcardSortOptions.Add(new NoteSortOptionItemViewModel(SortFlashcardCardsAsc, LocalizationService.GetString("SortByFlashcardCardsAsc"), selectedKey == SortFlashcardCardsAsc, SetSortOptionSelected));
     }
 
+    private void RefreshMindMapSortOptions()
+    {
+        var selectedKey = NormalizeMindMapSortOptionKey(_selectedMindMapSortOptionKey);
+        _selectedMindMapSortOptionKey = selectedKey;
+
+        MindMapSortOptions.Clear();
+        MindMapSortOptions.Add(new NoteSortOptionItemViewModel(SortLastModifiedDesc, LocalizationService.GetString("SortByLastModifiedDesc"), selectedKey == SortLastModifiedDesc, SetSortOptionSelected));
+        MindMapSortOptions.Add(new NoteSortOptionItemViewModel(SortLastModifiedAsc, LocalizationService.GetString("SortByLastModifiedAsc"), selectedKey == SortLastModifiedAsc, SetSortOptionSelected));
+        MindMapSortOptions.Add(new NoteSortOptionItemViewModel(SortCreatedAtDesc, LocalizationService.GetString("SortByCreatedAtDesc"), selectedKey == SortCreatedAtDesc, SetSortOptionSelected));
+        MindMapSortOptions.Add(new NoteSortOptionItemViewModel(SortCreatedAtAsc, LocalizationService.GetString("SortByCreatedAtAsc"), selectedKey == SortCreatedAtAsc, SetSortOptionSelected));
+        MindMapSortOptions.Add(new NoteSortOptionItemViewModel(SortTitleAsc, LocalizationService.GetString("SortByTitleAsc"), selectedKey == SortTitleAsc, SetSortOptionSelected));
+        MindMapSortOptions.Add(new NoteSortOptionItemViewModel(SortTitleDesc, LocalizationService.GetString("SortByTitleDesc"), selectedKey == SortTitleDesc, SetSortOptionSelected));
+        MindMapSortOptions.Add(new NoteSortOptionItemViewModel(SortMindMapNodesDesc, LocalizationService.GetString("SortByMindMapNodesDesc"), selectedKey == SortMindMapNodesDesc, SetSortOptionSelected));
+        MindMapSortOptions.Add(new NoteSortOptionItemViewModel(SortMindMapNodesAsc, LocalizationService.GetString("SortByMindMapNodesAsc"), selectedKey == SortMindMapNodesAsc, SetSortOptionSelected));
+    }
+
     private void UpdateSortOptionSelection()
     {
         foreach (var option in SortOptions)
@@ -1747,6 +2139,12 @@ public class MainViewModel : ViewModelBase
     {
         foreach (var option in FlashcardSortOptions)
             option.IsSelected = string.Equals(option.Key, _selectedFlashcardSortOptionKey, StringComparison.Ordinal);
+    }
+
+    private void UpdateMindMapSortOptionSelection()
+    {
+        foreach (var option in MindMapSortOptions)
+            option.IsSelected = string.Equals(option.Key, _selectedMindMapSortOptionKey, StringComparison.Ordinal);
     }
 
     private void ApplySortToFlashcardSetsView()
@@ -1784,6 +2182,45 @@ public class MainViewModel : ViewModelBase
             default:
                 _flashcardSetsView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
                 _flashcardSetsView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Descending));
+                break;
+        }
+    }
+
+    private void ApplySortToMindMapsView()
+    {
+        _mindMapsView.SortDescriptions.Clear();
+
+        switch (_selectedMindMapSortOptionKey)
+        {
+            case SortLastModifiedAsc:
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Ascending));
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            case SortCreatedAtDesc:
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Descending));
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                break;
+            case SortCreatedAtAsc:
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Ascending));
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                break;
+            case SortTitleAsc:
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            case SortTitleDesc:
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Descending));
+                break;
+            case SortMindMapNodesAsc:
+                _mindMapsView.SortDescriptions.Add(new SortDescription("NodeCount", ListSortDirection.Ascending));
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            case SortMindMapNodesDesc:
+                _mindMapsView.SortDescriptions.Add(new SortDescription("NodeCount", ListSortDirection.Descending));
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            default:
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                _mindMapsView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Descending));
                 break;
         }
     }
@@ -1887,6 +2324,26 @@ public class MainViewModel : ViewModelBase
         return NormalizeSortOptionKey(value);
     }
 
+    private static string NormalizeMindMapSortOptionKey(string? value)
+    {
+        if (string.Equals(value, SortMindMapNodesDesc, StringComparison.OrdinalIgnoreCase))
+            return SortMindMapNodesDesc;
+        if (string.Equals(value, SortMindMapNodesAsc, StringComparison.OrdinalIgnoreCase))
+            return SortMindMapNodesAsc;
+
+        return NormalizeSortOptionKey(value);
+    }
+
+    private static string NormalizeDashboard(string? dashboard)
+    {
+        if (string.Equals(dashboard, DashboardFlashcards, StringComparison.OrdinalIgnoreCase))
+            return DashboardFlashcards;
+        if (string.Equals(dashboard, DashboardMindMaps, StringComparison.OrdinalIgnoreCase))
+            return DashboardMindMaps;
+
+        return DashboardNotes;
+    }
+
     private static string GetSortOptionDisplayName(string sortKey)
     {
         return NormalizeSortOptionKey(sortKey) switch
@@ -1906,6 +2363,16 @@ public class MainViewModel : ViewModelBase
         {
             SortFlashcardCardsDesc => LocalizationService.GetString("SortByFlashcardCardsDesc"),
             SortFlashcardCardsAsc => LocalizationService.GetString("SortByFlashcardCardsAsc"),
+            var normalized => GetSortOptionDisplayName(normalized)
+        };
+    }
+
+    private static string GetMindMapSortOptionDisplayName(string sortKey)
+    {
+        return NormalizeMindMapSortOptionKey(sortKey) switch
+        {
+            SortMindMapNodesDesc => LocalizationService.GetString("SortByMindMapNodesDesc"),
+            SortMindMapNodesAsc => LocalizationService.GetString("SortByMindMapNodesAsc"),
             var normalized => GetSortOptionDisplayName(normalized)
         };
     }
@@ -2136,15 +2603,19 @@ public class MainViewModel : ViewModelBase
         _enableScrollbar = settings.EnableScrollbar;
         _selectedLanguage = LocalizationService.NormalizeLanguage(settings.Language);
         _selectedTheme = string.Equals(settings.Theme, "Dark", StringComparison.OrdinalIgnoreCase) ? "Dark" : "Light";
+        _activeDashboard = NormalizeDashboard(settings.LastView);
         _selectedSortOptionKey = NormalizeSortOptionKey(settings.NoteSortOptionKey);
+        _selectedMindMapSortOptionKey = NormalizeMindMapSortOptionKey(settings.MindMapSortOptionKey);
         _isRecentSectionExpanded = settings.IsRecentSectionExpanded;
         _isGroupsSectionExpanded = settings.IsGroupsSectionExpanded;
         _isUngroupedSectionExpanded = settings.IsUngroupedSectionExpanded;
         _isCalendarSectionExpanded = settings.IsCalendarSectionExpanded;
+        _isMindMapGroupsSectionExpanded = settings.IsMindMapGroupsSectionExpanded;
         _isRecentSectionVisible = settings.IsRecentSectionVisible;
         _isGroupsSectionVisible = settings.IsGroupsSectionVisible;
         _isUngroupedSectionVisible = settings.IsUngroupedSectionVisible;
         _isCalendarSectionVisible = settings.IsCalendarSectionVisible;
+        _isMindMapGroupsSectionVisible = settings.IsMindMapGroupsSectionVisible;
         _isGroupsFirst = settings.IsGroupsFirst;
         _isCalendarFirst = settings.IsCalendarFirst;
         _viewMode = NormalizeViewMode(settings.DefaultViewMode);
@@ -2164,18 +2635,22 @@ public class MainViewModel : ViewModelBase
         settings.Language = _selectedLanguage;
         settings.Theme = _selectedTheme;
         settings.NoteSortOptionKey = _selectedSortOptionKey;
+        settings.MindMapSortOptionKey = _selectedMindMapSortOptionKey;
         settings.EnableScrollbar = _enableScrollbar;
         settings.IsRecentSectionExpanded = _isRecentSectionExpanded;
         settings.IsGroupsSectionExpanded = _isGroupsSectionExpanded;
         settings.IsUngroupedSectionExpanded = _isUngroupedSectionExpanded;
         settings.IsCalendarSectionExpanded = _isCalendarSectionExpanded;
+        settings.IsMindMapGroupsSectionExpanded = _isMindMapGroupsSectionExpanded;
         settings.IsRecentSectionVisible = _isRecentSectionVisible;
         settings.IsGroupsSectionVisible = _isGroupsSectionVisible;
         settings.IsUngroupedSectionVisible = _isUngroupedSectionVisible;
         settings.IsCalendarSectionVisible = _isCalendarSectionVisible;
+        settings.IsMindMapGroupsSectionVisible = _isMindMapGroupsSectionVisible;
         settings.IsGroupsFirst = _isGroupsFirst;
         settings.IsCalendarFirst = _isCalendarFirst;
         settings.DefaultViewMode = _viewMode;
+        settings.LastView = _activeDashboard;
 
         AppSettingsService.Save(settings);
     }
