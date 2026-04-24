@@ -188,6 +188,10 @@ namespace NoteCards
                 {
                     AnimateMassSelectOverlay(vm.IsMassSelectMode);
                 }
+                else if (e.PropertyName == nameof(MainViewModel.IsFlashcardsView))
+                {
+                    CloseNotesDashboardChrome();
+                }
             });
         }
 
@@ -737,6 +741,33 @@ namespace NoteCards
             SettingsMenuButton_Click(sender, e);
         }
 
+        private void SidebarAddButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            if (vm.IsFlashcardsView)
+            {
+                OpenFlashcardSetEditor(vm, null);
+                return;
+            }
+
+            vm.AddNoteCommand.Execute(null);
+        }
+
+        private void CloseNotesDashboardChrome()
+        {
+            CollapseTopSearchPanel();
+
+            if (SortNotesPopupElement != null)
+                SortNotesPopupElement.IsOpen = false;
+
+            if (DashboardSectionsPopupElement != null)
+                DashboardSectionsPopupElement.IsOpen = false;
+
+            TagsFilterPopup.IsOpen = false;
+        }
+
         private void SortNotesButton_Click(object sender, RoutedEventArgs e)
         {
             CollapseTopSearchPanel();
@@ -907,6 +938,37 @@ namespace NoteCards
 
             var schedulePanel = FindName("NoteSchedulePanelControl") as NoteSchedulePanel;
             schedulePanel?.ShowAnimated(vm, noteViewModel);
+        }
+
+        private void CreateFlashcardsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+                OpenFlashcardSetEditor(vm, null);
+        }
+
+        private void OpenFlashcardSetButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            if ((sender as FrameworkElement)?.Tag is FlashcardSetViewModel set)
+                OpenFlashcardSetEditor(vm, set);
+        }
+
+        private void OpenFlashcardSetEditor(MainViewModel vm, FlashcardSetViewModel? set)
+        {
+            var document = set?.Document;
+            var editor = new FlashcardsPreviewWindow(
+                document?.Cards ?? Enumerable.Empty<FlashcardItem>(),
+                document?.AiModelDisplayName,
+                document?.Title,
+                document?.Tags)
+            {
+                Owner = this
+            };
+
+            if (editor.ShowDialog() == true)
+                vm.AddOrUpdateFlashcardSet(editor.ToDocument(document));
         }
 
         private static bool IsWithinCalendarScheduleGearButton(DependencyObject? source)
@@ -1374,5 +1436,6 @@ namespace NoteCards
                     MessageBoxImage.Error);
             }
         }
+
     }
 }

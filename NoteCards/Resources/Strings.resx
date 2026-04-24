@@ -194,6 +194,8 @@ Right-click to remove</value></data>
   <data name="SortByCreatedAtAsc" xml:space="preserve"><value>Oldest created</value></data>
   <data name="SortByTitleAsc" xml:space="preserve"><value>Title A–Z</value></data>
   <data name="SortByTitleDesc" xml:space="preserve"><value>Title Z–A</value></data>
+  <data name="SortByFlashcardCardsDesc" xml:space="preserve"><value>Most cards</value></data>
+  <data name="SortByFlashcardCardsAsc" xml:space="preserve"><value>Fewest cards</value></data>
   <data name="Pin" xml:space="preserve"><value>Pin</value></data>
   <data name="Unpin" xml:space="preserve"><value>Unpin</value></data>
   <data name="Duplicate" xml:space="preserve"><value>Duplicate</value></data>
@@ -280,6 +282,13 @@ Right-click to remove</value></data>
   <data name="ConvertToFlashcardsStatusGeneratedCharsFormat" xml:space="preserve"><value>{0} ({1} chars)</value></data>
   <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Flashcard Editor</value></data>
   <data name="FlashcardsEditorTitle" xml:space="preserve"><value>Flashcard Editor</value></data>
+  <data name="FlashcardGroupsDashboardTitle" xml:space="preserve"><value>Flashcard groups</value></data>
+  <data name="FlashcardsEmptyDashboardPrompt" xml:space="preserve"><value>Start by creating flashcards</value></data>
+  <data name="CreateFlashcards" xml:space="preserve"><value>Create flashcards</value></data>
+  <data name="FlashcardSetCountFormat" xml:space="preserve"><value>{0} sets</value></data>
+  <data name="FlashcardCardsCountFormat" xml:space="preserve"><value>{0} cards</value></data>
+  <data name="FlashcardSetUntitled" xml:space="preserve"><value>Untitled flashcards</value></data>
+  <data name="AddFlashcard" xml:space="preserve"><value>Add flashcard</value></data>
   <data name="FlashcardQuestion" xml:space="preserve"><value>Question</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Answer</value></data>
   <data name="FlashcardCategory" xml:space="preserve"><value>Category</value></data>

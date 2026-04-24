@@ -23,6 +23,8 @@ public class MainViewModel : ViewModelBase
     private const string SortCreatedAtAsc = "created-at-asc";
     private const string SortTitleAsc = "title-asc";
     private const string SortTitleDesc = "title-desc";
+    private const string SortFlashcardCardsDesc = "flashcard-cards-desc";
+    private const string SortFlashcardCardsAsc = "flashcard-cards-asc";
 
     private bool _isLoadingSettings;
     private bool _saveNotesQueued;
@@ -30,8 +32,10 @@ public class MainViewModel : ViewModelBase
     private string _selectedLanguage = LocalizationService.English;
     private string _selectedTheme = "Light";
     private string _selectedSortOptionKey = SortLastModifiedDesc;
+    private string _selectedFlashcardSortOptionKey = SortLastModifiedDesc;
     private readonly Dictionary<Guid, NoteGroupData> _groupMetadata = new();
     private readonly HashSet<string> _selectedTags = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _selectedFlashcardTags = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<Guid> _massSelectedNoteIds = new();
     private bool _isMassSelectMode;
     private DateTime _calendarSelectedDate = DateTime.Today;
@@ -55,6 +59,13 @@ public class MainViewModel : ViewModelBase
         var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NoteCards");
         Directory.CreateDirectory(dir);
         return Path.Combine(dir, "flashcards.json");
+    }
+
+    private string GetFlashcardSetsFilePath()
+    {
+        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NoteCards");
+        Directory.CreateDirectory(dir);
+        return Path.Combine(dir, "flashcard-sets.json");
     }
     
    
@@ -118,6 +129,8 @@ public class MainViewModel : ViewModelBase
     }
 
     private bool _isUngroupedSectionVisible = true;
+    private bool _isFlashcardGroupsSectionVisible = true;
+    private bool _isFlashcardGroupsSectionExpanded = true;
     public bool IsUngroupedSectionVisible
     {
         get => _isUngroupedSectionVisible;
@@ -125,6 +138,19 @@ public class MainViewModel : ViewModelBase
         {
             if (SetProperty(ref _isUngroupedSectionVisible, value))
                 SaveAppSettings();
+        }
+    }
+
+    public bool IsFlashcardGroupsSectionVisible
+    {
+        get => _isFlashcardGroupsSectionVisible;
+        set
+        {
+            if (SetProperty(ref _isFlashcardGroupsSectionVisible, value))
+            {
+                ApplyFlashcardFilters();
+                SaveAppSettings();
+            }
         }
     }
 
@@ -140,7 +166,9 @@ public class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(SelectedLanguage));
                 LocalizationService.SetCulture(_selectedLanguage);
                 RefreshSortOptions();
+                RefreshFlashcardSortOptions();
                 OnPropertyChanged(nameof(SortButtonText));
+                OnPropertyChanged(nameof(ActiveSortButtonText));
                 OnPropertyChanged(nameof(UserActivitySummaryTitle));
                 OnPropertyChanged(nameof(CalendarSelectedDateDisplay));
                 RefreshActivityStats();
@@ -227,12 +255,17 @@ public class MainViewModel : ViewModelBase
         Notes = new ObservableCollection<NoteCardViewModel>();
         NoteGroups = new ObservableCollection<NoteGroupViewModel>();
         TagFilters = new ObservableCollection<TagFilterItemViewModel>();
+        FlashcardTagFilters = new ObservableCollection<TagFilterItemViewModel>();
         SortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
+        FlashcardSortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
         CalendarScheduledNotes = new ObservableCollection<CalendarScheduledItemViewModel>();
         // Create a view for Notes so we can apply filtering for search
         _notesView = CollectionViewSource.GetDefaultView(Notes);
         _notesView.Filter = FilterUngroupedNotes;
         ApplySortToUngroupedView();
+        _flashcardSetsView = CollectionViewSource.GetDefaultView(FlashcardSets);
+        _flashcardSetsView.Filter = FilterFlashcardSet;
+        ApplySortToFlashcardSetsView();
         Notes.CollectionChanged += (_, _) =>
         {
             RefreshAvailableTags();
@@ -240,17 +273,25 @@ public class MainViewModel : ViewModelBase
             RefreshActivityStats();
             EnsureMassSelectionConsistency();
         };
+        FlashcardSets.CollectionChanged += (_, _) =>
+        {
+            RefreshAvailableFlashcardTags();
+            ApplyFlashcardFilters();
+            NotifyFlashcardSetsChanged();
+        };
         
         NoteCards.Services.ActivityTracker.ActivityUpdated += RefreshActivityStats;
         
         RefreshSortOptions();
+        RefreshFlashcardSortOptions();
         RefreshAvailableTags();
+        RefreshAvailableFlashcardTags();
         RefreshRecentNotes();
         RefreshCalendarScheduledNotes();
         LoadFlashcards();
         AddNoteCommand = new RelayCommand(AddNote);
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
-        ClearTagFiltersCommand = new RelayCommand(ClearTagFilters, () => HasActiveTagFilters);
+        ClearTagFiltersCommand = new RelayCommand(ClearActiveTagFilters, () => IsFlashcardsView ? HasActiveFlashcardTagFilters : HasActiveTagFilters);
         ExitMassSelectCommand = new RelayCommand(ExitMassSelect, () => IsMassSelectMode);
         SelectAllVisibleNotesCommand = new RelayCommand(SelectAllVisibleNotes, () => IsMassSelectMode);
         DeleteSelectedNotesCommand = new RelayCommand(DeleteSelectedNotes, () => IsMassSelectMode && SelectedNotesCount > 0);
@@ -291,12 +332,14 @@ public class MainViewModel : ViewModelBase
         {
             IsFlashcardsView = false;
             OnPropertyChanged(nameof(IsFlashcardsView));
+            NotifyActiveDashboardChromeChanged();
         });
 
         ShowFlashcardsCommand = new RelayCommand(() =>
         {
             IsFlashcardsView = true;
             OnPropertyChanged(nameof(IsFlashcardsView));
+            NotifyActiveDashboardChromeChanged();
         });
         // 🔧 FIX – inicializuojam visus command, kad ViewModel nelūžtų
         MoveGroupsUpCommand = new RelayCommand(() => { });
@@ -346,19 +389,52 @@ public class MainViewModel : ViewModelBase
 
     private void LoadFlashcards()
     {
-        var path = GetFlashcardsFilePath();
+        FlashcardSets.Clear();
 
-        if (File.Exists(path))
+        var setsPath = GetFlashcardSetsFilePath();
+        if (File.Exists(setsPath))
         {
-            var json = File.ReadAllText(path);
-            var data = JsonSerializer.Deserialize<List<FlashcardItem>>(json);
+            var json = File.ReadAllText(setsPath);
+            var sets = JsonSerializer.Deserialize<List<FlashcardSetDocument>>(json) ?? new();
 
-            Flashcards = new ObservableCollection<FlashcardItem>(data ?? new());
+            foreach (var set in sets
+                         .Where(set => set != null)
+                         .OrderByDescending(set => set.LastModified)
+                         .ThenBy(set => set.Title, StringComparer.CurrentCultureIgnoreCase))
+            {
+                NormalizeFlashcardSetDocument(set);
+                FlashcardSets.Add(new FlashcardSetViewModel(set));
+            }
+
+            NotifyFlashcardSetsChanged();
+            return;
+        }
+
+        var legacyPath = GetFlashcardsFilePath();
+        if (File.Exists(legacyPath))
+        {
+            var json = File.ReadAllText(legacyPath);
+            var data = JsonSerializer.Deserialize<List<FlashcardItem>>(json) ?? new();
+            Flashcards = new ObservableCollection<FlashcardItem>(data);
+
+            if (data.Count > 0)
+            {
+                AddOrUpdateFlashcardSet(new FlashcardSetDocument
+                {
+                    Title = LocalizationService.GetString("FlashcardsPreviewTitle"),
+                    Cards = data.ToList(),
+                    Tags = new List<string>(),
+                    CreatedAt = DateTime.UtcNow,
+                    LastModified = DateTime.Now
+                });
+            }
         }
         else
         {
             Flashcards = new ObservableCollection<FlashcardItem>();
         }
+
+        NotifyFlashcardSetsChanged();
     }
     private void SaveFlashcards()
     {
@@ -367,15 +443,109 @@ public class MainViewModel : ViewModelBase
         File.WriteAllText(path, json);
     }
 
+    public FlashcardSetViewModel AddOrUpdateFlashcardSet(FlashcardSetDocument document)
+    {
+        NormalizeFlashcardSetDocument(document);
+
+        var existing = FlashcardSets.FirstOrDefault(set => set.Document.Id == document.Id);
+        if (existing is null)
+        {
+            existing = new FlashcardSetViewModel(document);
+            FlashcardSets.Add(existing);
+        }
+        else
+        {
+            existing.Document.Title = document.Title;
+            existing.Document.Tags = document.Tags;
+            existing.Document.Cards = document.Cards;
+            existing.Document.CreatedAt = document.CreatedAt;
+            existing.Document.LastModified = document.LastModified;
+            existing.Document.AiModelDisplayName = document.AiModelDisplayName;
+            existing.NotifyChanged();
+        }
+
+        ReorderFlashcardSets();
+        RefreshAvailableFlashcardTags();
+        ApplyFlashcardFilters();
+        SaveFlashcardSets();
+        NotifyFlashcardSetsChanged();
+        return existing;
+    }
+
+    public void SaveFlashcardSets()
+    {
+        var path = GetFlashcardSetsFilePath();
+        var documents = FlashcardSets
+            .Select(set => set.Document)
+            .OrderByDescending(set => set.LastModified)
+            .ThenBy(set => set.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        var json = JsonSerializer.Serialize(documents, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(path, json);
+    }
+
+    private void ReorderFlashcardSets()
+    {
+        var ordered = FlashcardSets
+            .OrderByDescending(set => set.Document.LastModified)
+            .ThenBy(set => set.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        FlashcardSets.Clear();
+        foreach (var set in ordered)
+            FlashcardSets.Add(set);
+    }
+
+    private void NotifyFlashcardSetsChanged()
+    {
+        OnPropertyChanged(nameof(HasFlashcardSets));
+        OnPropertyChanged(nameof(FlashcardSetCount));
+        OnPropertyChanged(nameof(FlashcardSetCountText));
+    }
+
+    private static void NormalizeFlashcardSetDocument(FlashcardSetDocument document)
+    {
+        document.Id = document.Id == Guid.Empty ? Guid.NewGuid() : document.Id;
+        document.Title = string.IsNullOrWhiteSpace(document.Title)
+            ? LocalizationService.GetString("FlashcardSetUntitled")
+            : document.Title.Trim();
+        document.Tags = document.Tags?
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Select(tag => tag.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? new List<string>();
+        document.Cards = document.Cards?
+            .Where(card => card != null)
+            .Select(card => new FlashcardItem
+            {
+                Question = card.Question?.Trim() ?? string.Empty,
+                Answer = card.Answer?.Trim() ?? string.Empty,
+                Category = card.Category?.Trim() ?? string.Empty,
+                SetIndex = Math.Max(1, card.SetIndex)
+            })
+            .ToList() ?? new List<FlashcardItem>();
+        document.CreatedAt = document.CreatedAt == default ? DateTime.UtcNow : document.CreatedAt;
+        document.LastModified = document.LastModified == default ? DateTime.Now : document.LastModified;
+        document.AiModelDisplayName = document.AiModelDisplayName?.Trim() ?? string.Empty;
+    }
+
 
     public ObservableCollection<NoteCardViewModel> Notes { get; }
     public ObservableCollection<NoteGroupViewModel> NoteGroups { get; }
     public ObservableCollection<TagFilterItemViewModel> TagFilters { get; }
+    public ObservableCollection<TagFilterItemViewModel> FlashcardTagFilters { get; }
     public ObservableCollection<NoteSortOptionItemViewModel> SortOptions { get; }
+    public ObservableCollection<NoteSortOptionItemViewModel> FlashcardSortOptions { get; }
+    public IEnumerable<NoteSortOptionItemViewModel> ActiveSortOptions => IsFlashcardsView ? FlashcardSortOptions : SortOptions;
+    public IEnumerable<TagFilterItemViewModel> ActiveTagFilters => IsFlashcardsView ? FlashcardTagFilters : TagFilters;
     public ObservableCollection<CalendarScheduledItemViewModel> CalendarScheduledNotes { get; }
      public bool HasGroups => NoteGroups.Count > 0;
     public bool HasTagFilters => TagFilters.Count > 0;
+    public bool HasFlashcardTagFilters => FlashcardTagFilters.Count > 0;
+    public bool ActiveHasTagFilters => IsFlashcardsView ? HasFlashcardTagFilters : HasTagFilters;
     public bool HasActiveTagFilters => _selectedTags.Count > 0;
+    public bool HasActiveFlashcardTagFilters => _selectedFlashcardTags.Count > 0;
     public bool IsMassSelectMode
     {
         get => _isMassSelectMode;
@@ -394,9 +564,24 @@ public class MainViewModel : ViewModelBase
     public string TagFilterButtonText => HasActiveTagFilters
         ? $"{LocalizationService.GetString("FilterTags")} ({_selectedTags.Count})"
         : LocalizationService.GetString("FilterTags");
+    public string ActiveTagFilterButtonText
+    {
+        get
+        {
+            if (!IsFlashcardsView)
+                return TagFilterButtonText;
+
+            return HasActiveFlashcardTagFilters
+                ? $"{LocalizationService.GetString("FilterTags")} ({_selectedFlashcardTags.Count})"
+                : LocalizationService.GetString("FilterTags");
+        }
+    }
     public string SortButtonText => string.Format(
         LocalizationService.GetString("SortButtonFormat"),
         GetSortOptionDisplayName(_selectedSortOptionKey));
+    public string ActiveSortButtonText => IsFlashcardsView
+        ? string.Format(LocalizationService.GetString("SortButtonFormat"), GetFlashcardSortOptionDisplayName(_selectedFlashcardSortOptionKey))
+        : SortButtonText;
     public bool HasCalendarScheduledNotes => CalendarScheduledNotes.Count > 0;
 
     public DateTime CalendarSelectedDate
@@ -427,6 +612,7 @@ public class MainViewModel : ViewModelBase
             UpdateSortOptionSelection();
             ApplySortToUngroupedView();
             OnPropertyChanged(nameof(SortButtonText));
+            OnPropertyChanged(nameof(ActiveSortButtonText));
             ApplyFilters();
             SaveAppSettings();
         }
@@ -434,6 +620,8 @@ public class MainViewModel : ViewModelBase
 
     private readonly ICollectionView _notesView;
     public ICollectionView NotesView => _notesView;
+    private readonly ICollectionView _flashcardSetsView;
+    public ICollectionView FlashcardSetsView => _flashcardSetsView;
 
     private bool _isRecentSectionExpanded = true;
     public bool IsRecentSectionExpanded
@@ -464,6 +652,16 @@ public class MainViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _isUngroupedSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsFlashcardGroupsSectionExpanded
+    {
+        get => _isFlashcardGroupsSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isFlashcardGroupsSectionExpanded, value))
                 SaveAppSettings();
         }
     }
@@ -508,6 +706,7 @@ public class MainViewModel : ViewModelBase
     }
 
     private string _searchQuery = string.Empty;
+    private string _flashcardSearchQuery = string.Empty;
     public string SearchQuery
     {
         get => _searchQuery;
@@ -517,8 +716,38 @@ public class MainViewModel : ViewModelBase
             {
                 _searchQuery = value ?? string.Empty;
                 OnPropertyChanged(nameof(SearchQuery));
+                OnPropertyChanged(nameof(ActiveSearchQuery));
                 ApplyFilters();
             }
+        }
+    }
+
+    public string FlashcardSearchQuery
+    {
+        get => _flashcardSearchQuery;
+        set
+        {
+            if (_flashcardSearchQuery == (value ?? string.Empty))
+                return;
+
+            _flashcardSearchQuery = value ?? string.Empty;
+            OnPropertyChanged(nameof(FlashcardSearchQuery));
+            OnPropertyChanged(nameof(ActiveSearchQuery));
+            ApplyFlashcardFilters();
+        }
+    }
+
+    public string ActiveSearchQuery
+    {
+        get => IsFlashcardsView ? FlashcardSearchQuery : SearchQuery;
+        set
+        {
+            if (IsFlashcardsView)
+                FlashcardSearchQuery = value;
+            else
+                SearchQuery = value;
+
+            OnPropertyChanged(nameof(ActiveSearchQuery));
         }
     }
 
@@ -921,6 +1150,26 @@ public class MainViewModel : ViewModelBase
         foreach (var note in recent)
             RecentNotes.Add(note);
     }
+
+    public string SelectedFlashcardSortOptionKey
+    {
+        get => _selectedFlashcardSortOptionKey;
+        set
+        {
+            var normalized = NormalizeFlashcardSortOptionKey(value);
+            if (!SetProperty(ref _selectedFlashcardSortOptionKey, normalized))
+                return;
+
+            UpdateFlashcardSortOptionSelection();
+            ApplySortToFlashcardSetsView();
+            OnPropertyChanged(nameof(ActiveSortButtonText));
+            SaveAppSettings();
+        }
+    }
+    public ObservableCollection<FlashcardSetViewModel> FlashcardSets { get; } = new();
+    public bool HasFlashcardSets => FlashcardSets.Count > 0;
+    public int FlashcardSetCount => FlashcardSets.Count;
+    public string FlashcardSetCountText => string.Format(LocalizationService.GetString("FlashcardSetCountFormat"), FlashcardSetCount);
     public ObservableCollection<FlashcardItem> Flashcards { get; set; } = new();
 
     
@@ -1050,9 +1299,19 @@ public class MainViewModel : ViewModelBase
         }
 
         OnPropertyChanged(nameof(HasTagFilters));
+        OnPropertyChanged(nameof(ActiveHasTagFilters));
         OnPropertyChanged(nameof(HasActiveTagFilters));
         OnPropertyChanged(nameof(TagFilterButtonText));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
         CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void ClearActiveTagFilters()
+    {
+        if (IsFlashcardsView)
+            ClearFlashcardTagFilters();
+        else
+            ClearTagFilters();
     }
 
     private void ClearTagFilters()
@@ -1066,8 +1325,51 @@ public class MainViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(HasActiveTagFilters));
         OnPropertyChanged(nameof(TagFilterButtonText));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
         CommandManager.InvalidateRequerySuggested();
         ApplyFilters();
+    }
+
+    public void SetFlashcardTagFilterSelected(string tag, bool isSelected)
+    {
+        if (string.IsNullOrWhiteSpace(tag))
+            return;
+
+        if (isSelected)
+            _selectedFlashcardTags.Add(tag);
+        else
+            _selectedFlashcardTags.Remove(tag);
+
+        OnPropertyChanged(nameof(HasActiveFlashcardTagFilters));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+        ApplyFlashcardFilters();
+    }
+
+    private void NotifyActiveDashboardChromeChanged()
+    {
+        OnPropertyChanged(nameof(ActiveSearchQuery));
+        OnPropertyChanged(nameof(ActiveSortButtonText));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
+        OnPropertyChanged(nameof(ActiveSortOptions));
+        OnPropertyChanged(nameof(ActiveTagFilters));
+        OnPropertyChanged(nameof(ActiveHasTagFilters));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void ClearFlashcardTagFilters()
+    {
+        if (_selectedFlashcardTags.Count == 0)
+            return;
+
+        _selectedFlashcardTags.Clear();
+        foreach (var tag in FlashcardTagFilters)
+            tag.IsSelected = false;
+
+        OnPropertyChanged(nameof(HasActiveFlashcardTagFilters));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+        ApplyFlashcardFilters();
     }
 
     private void ApplyFilters()
@@ -1076,6 +1378,65 @@ public class MainViewModel : ViewModelBase
         RebuildGroups();
         RefreshRecentNotes();
         RefreshCalendarScheduledNotes();
+    }
+
+    private void RefreshAvailableFlashcardTags()
+    {
+        var tags = FlashcardSets
+            .SelectMany(set => set.Document.Tags ?? new List<string>())
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Select(tag => tag.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(tag => tag, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        _selectedFlashcardTags.RemoveWhere(selected => !tags.Any(tag => string.Equals(tag, selected, StringComparison.OrdinalIgnoreCase)));
+
+        FlashcardTagFilters.Clear();
+        foreach (var tag in tags)
+        {
+            var isSelected = _selectedFlashcardTags.Contains(tag);
+            FlashcardTagFilters.Add(new TagFilterItemViewModel(tag, isSelected, SetFlashcardTagFilterSelected));
+        }
+
+        OnPropertyChanged(nameof(HasFlashcardTagFilters));
+        OnPropertyChanged(nameof(ActiveHasTagFilters));
+        OnPropertyChanged(nameof(HasActiveFlashcardTagFilters));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void ApplyFlashcardFilters()
+    {
+        _flashcardSetsView.Refresh();
+        NotifyFlashcardSetsChanged();
+    }
+
+    private bool FilterFlashcardSet(object obj)
+    {
+        if (obj is not FlashcardSetViewModel set)
+            return false;
+
+        if (!IsFlashcardGroupsSectionVisible)
+            return false;
+
+        if (_selectedFlashcardTags.Count > 0)
+        {
+            var tags = set.Document.Tags ?? new List<string>();
+            if (!tags.Any(tag => _selectedFlashcardTags.Contains(tag)))
+                return false;
+        }
+
+        var query = FlashcardSearchQuery.Trim();
+        if (string.IsNullOrWhiteSpace(query))
+            return true;
+
+        return set.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+               || set.TagsDisplay.Contains(query, StringComparison.OrdinalIgnoreCase)
+               || set.Document.Cards.Any(card =>
+                   (card.Question ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)
+                   || (card.Answer ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)
+                   || (card.Category ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase));
     }
 
     private void SelectAllVisibleNotes()
@@ -1336,7 +1697,10 @@ public class MainViewModel : ViewModelBase
         if (!isSelected)
             return;
 
-        SelectedSortOptionKey = key;
+        if (IsFlashcardsView)
+            SelectedFlashcardSortOptionKey = key;
+        else
+            SelectedSortOptionKey = key;
     }
 
     private void RefreshSortOptions()
@@ -1353,10 +1717,71 @@ public class MainViewModel : ViewModelBase
         SortOptions.Add(new NoteSortOptionItemViewModel(SortTitleDesc, LocalizationService.GetString("SortByTitleDesc"), selectedKey == SortTitleDesc, SetSortOptionSelected));
     }
 
+    private void RefreshFlashcardSortOptions()
+    {
+        var selectedKey = NormalizeFlashcardSortOptionKey(_selectedFlashcardSortOptionKey);
+        _selectedFlashcardSortOptionKey = selectedKey;
+
+        FlashcardSortOptions.Clear();
+        FlashcardSortOptions.Add(new NoteSortOptionItemViewModel(SortLastModifiedDesc, LocalizationService.GetString("SortByLastModifiedDesc"), selectedKey == SortLastModifiedDesc, SetSortOptionSelected));
+        FlashcardSortOptions.Add(new NoteSortOptionItemViewModel(SortLastModifiedAsc, LocalizationService.GetString("SortByLastModifiedAsc"), selectedKey == SortLastModifiedAsc, SetSortOptionSelected));
+        FlashcardSortOptions.Add(new NoteSortOptionItemViewModel(SortCreatedAtDesc, LocalizationService.GetString("SortByCreatedAtDesc"), selectedKey == SortCreatedAtDesc, SetSortOptionSelected));
+        FlashcardSortOptions.Add(new NoteSortOptionItemViewModel(SortCreatedAtAsc, LocalizationService.GetString("SortByCreatedAtAsc"), selectedKey == SortCreatedAtAsc, SetSortOptionSelected));
+        FlashcardSortOptions.Add(new NoteSortOptionItemViewModel(SortTitleAsc, LocalizationService.GetString("SortByTitleAsc"), selectedKey == SortTitleAsc, SetSortOptionSelected));
+        FlashcardSortOptions.Add(new NoteSortOptionItemViewModel(SortTitleDesc, LocalizationService.GetString("SortByTitleDesc"), selectedKey == SortTitleDesc, SetSortOptionSelected));
+        FlashcardSortOptions.Add(new NoteSortOptionItemViewModel(SortFlashcardCardsDesc, LocalizationService.GetString("SortByFlashcardCardsDesc"), selectedKey == SortFlashcardCardsDesc, SetSortOptionSelected));
+        FlashcardSortOptions.Add(new NoteSortOptionItemViewModel(SortFlashcardCardsAsc, LocalizationService.GetString("SortByFlashcardCardsAsc"), selectedKey == SortFlashcardCardsAsc, SetSortOptionSelected));
+    }
+
     private void UpdateSortOptionSelection()
     {
         foreach (var option in SortOptions)
             option.IsSelected = string.Equals(option.Key, _selectedSortOptionKey, StringComparison.Ordinal);
+    }
+
+    private void UpdateFlashcardSortOptionSelection()
+    {
+        foreach (var option in FlashcardSortOptions)
+            option.IsSelected = string.Equals(option.Key, _selectedFlashcardSortOptionKey, StringComparison.Ordinal);
+    }
+
+    private void ApplySortToFlashcardSetsView()
+    {
+        _flashcardSetsView.SortDescriptions.Clear();
+
+        switch (_selectedFlashcardSortOptionKey)
+        {
+            case SortLastModifiedAsc:
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Ascending));
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            case SortCreatedAtDesc:
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Descending));
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                break;
+            case SortCreatedAtAsc:
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Ascending));
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                break;
+            case SortTitleAsc:
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            case SortTitleDesc:
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Descending));
+                break;
+            case SortFlashcardCardsAsc:
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("CardCount", ListSortDirection.Ascending));
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            case SortFlashcardCardsDesc:
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("CardCount", ListSortDirection.Descending));
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            default:
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                _flashcardSetsView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Descending));
+                break;
+        }
     }
 
     private void ApplySortToUngroupedView()
@@ -1448,6 +1873,16 @@ public class MainViewModel : ViewModelBase
         return SortLastModifiedDesc;
     }
 
+    private static string NormalizeFlashcardSortOptionKey(string? value)
+    {
+        if (string.Equals(value, SortFlashcardCardsDesc, StringComparison.OrdinalIgnoreCase))
+            return SortFlashcardCardsDesc;
+        if (string.Equals(value, SortFlashcardCardsAsc, StringComparison.OrdinalIgnoreCase))
+            return SortFlashcardCardsAsc;
+
+        return NormalizeSortOptionKey(value);
+    }
+
     private static string GetSortOptionDisplayName(string sortKey)
     {
         return NormalizeSortOptionKey(sortKey) switch
@@ -1458,6 +1893,16 @@ public class MainViewModel : ViewModelBase
             SortTitleAsc => LocalizationService.GetString("SortByTitleAsc"),
             SortTitleDesc => LocalizationService.GetString("SortByTitleDesc"),
             _ => LocalizationService.GetString("SortByLastModifiedDesc")
+        };
+    }
+
+    private static string GetFlashcardSortOptionDisplayName(string sortKey)
+    {
+        return NormalizeFlashcardSortOptionKey(sortKey) switch
+        {
+            SortFlashcardCardsDesc => LocalizationService.GetString("SortByFlashcardCardsDesc"),
+            SortFlashcardCardsAsc => LocalizationService.GetString("SortByFlashcardCardsAsc"),
+            var normalized => GetSortOptionDisplayName(normalized)
         };
     }
 

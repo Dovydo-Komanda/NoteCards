@@ -29,6 +29,7 @@ public partial class FlashcardsPreviewWindow : Window
     private int _currentSetIndex = DefaultSetIndex;
     private bool? _statusFilterIsKnown;
     private string _searchText = string.Empty;
+    private string _modelDisplayName = string.Empty;
 
     public FlashcardsPreviewWindow(
         IEnumerable<FlashcardItem> items,
@@ -66,8 +67,43 @@ public partial class FlashcardsPreviewWindow : Window
 
     public IReadOnlyList<string> Tags => ParseTags(TagsTextBox.Text);
 
+    public string AiModelDisplayName => _modelDisplayName;
+
+    public FlashcardSetDocument ToDocument(FlashcardSetDocument? existingDocument = null)
+    {
+        return new FlashcardSetDocument
+        {
+            Id = existingDocument?.Id ?? Guid.NewGuid(),
+            Title = string.IsNullOrWhiteSpace(EditorTitle)
+                ? LocalizationService.GetString("FlashcardSetUntitled")
+                : EditorTitle,
+            Tags = Tags.ToList(),
+            Cards = GetFlashcardItems().ToList(),
+            CreatedAt = existingDocument?.CreatedAt ?? DateTime.UtcNow,
+            LastModified = DateTime.Now,
+            AiModelDisplayName = string.IsNullOrWhiteSpace(_modelDisplayName)
+                ? existingDocument?.AiModelDisplayName ?? string.Empty
+                : _modelDisplayName
+        };
+    }
+
+    public IReadOnlyList<FlashcardItem> GetFlashcardItems()
+    {
+        return _allItems
+            .Select(item => new FlashcardItem
+            {
+                Question = item.Question,
+                Answer = item.Answer,
+                Category = item.Category,
+                SetIndex = Math.Max(DefaultSetIndex, item.SetIndex)
+            })
+            .ToList();
+    }
+
     private void ConfigureAiGeneratedIndicator(string? modelDisplayName)
     {
+        _modelDisplayName = modelDisplayName?.Trim() ?? string.Empty;
+
         if (string.IsNullOrWhiteSpace(modelDisplayName))
         {
             AiGeneratedInfoBadge.Visibility = Visibility.Collapsed;
@@ -511,6 +547,11 @@ public partial class FlashcardsPreviewWindow : Window
         TryCreateSet(out _, selectSet: true);
     }
 
+    private void AddFlashcardButton_Click(object sender, RoutedEventArgs e)
+    {
+        CreateFlashcardInSet(GetSelectedSetIndex() ?? _currentSetIndex);
+    }
+
     private static FlashcardPreviewItem? ResolveFlashcardFromMenuItem(MenuItem menuItem)
     {
         if (menuItem.DataContext is FlashcardPreviewItem flashcard)
@@ -673,6 +714,12 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
+        Close();
+    }
+
+    private void SaveButton_Click(object sender, RoutedEventArgs e)
+    {
+        DialogResult = true;
         Close();
     }
 

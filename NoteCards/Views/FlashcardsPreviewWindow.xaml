@@ -314,6 +314,11 @@
                                                 MinWidth="98"
                                                 Margin="8,0,0,0"
                         Click="CreateSetButton_Click"/>
+                    <Button Content="{Binding [AddFlashcard], Source={StaticResource Loc}}"
+                        Style="{StaticResource CreateSetButtonStyle}"
+                                                MinWidth="112"
+                                                Margin="8,0,0,0"
+                        Click="AddFlashcardButton_Click"/>
                         </StackPanel>
         </Grid>
 
@@ -677,8 +682,13 @@
                     MinWidth="145"
                     Margin="10,0,0,0"
                     Click="StartStudyModeButton_Click"/>
-            <Button Content="{Binding [Close], Source={StaticResource Loc}}"
+            <Button Content="{Binding [Save], Source={StaticResource Loc}}"
                     Style="{StaticResource DialogPrimaryButtonStyle}"
+                    MinWidth="120"
+                    Margin="10,0,0,0"
+                    Click="SaveButton_Click"/>
+            <Button Content="{Binding [Close], Source={StaticResource Loc}}"
+                    Style="{StaticResource DialogSecondaryButtonStyle}"
                     MinWidth="120"
                     Margin="10,0,0,0"
                     Click="CloseButton_Click"/>

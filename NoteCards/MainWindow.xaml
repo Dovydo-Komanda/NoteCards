@@ -683,17 +683,42 @@
 							  HorizontalScrollBarVisibility="Disabled">
 					<StackPanel>
 						<Button Style="{StaticResource SidebarActionButtonStyle}"
-								Command="{Binding AddNoteCommand}"
-								ToolTip="{Binding [AddNote], Source={StaticResource Loc}}">
+								Click="SidebarAddButton_Click">
+							<Button.ToolTip>
+								<TextBlock>
+									<TextBlock.Style>
+										<Style TargetType="TextBlock">
+											<Setter Property="Text" Value="{Binding [AddNote], Source={StaticResource Loc}}"/>
+											<Style.Triggers>
+												<DataTrigger Binding="{Binding IsFlashcardsView}" Value="True">
+													<Setter Property="Text" Value="{Binding [CreateFlashcards], Source={StaticResource Loc}}"/>
+												</DataTrigger>
+											</Style.Triggers>
+										</Style>
+									</TextBlock.Style>
+								</TextBlock>
+							</Button.ToolTip>
 							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 								<TextBlock Text="➕" FontSize="14" Width="20" TextAlignment="Center" VerticalAlignment="Center"/>
-								<TextBlock Style="{StaticResource SidebarLabelTextStyle}" Text="{Binding [AddNote], Source={StaticResource Loc}}"/>
+								<TextBlock>
+									<TextBlock.Style>
+										<Style TargetType="TextBlock" BasedOn="{StaticResource SidebarLabelTextStyle}">
+											<Setter Property="Text" Value="{Binding [AddNote], Source={StaticResource Loc}}"/>
+											<Style.Triggers>
+												<DataTrigger Binding="{Binding IsFlashcardsView}" Value="True">
+													<Setter Property="Text" Value="{Binding [CreateFlashcards], Source={StaticResource Loc}}"/>
+												</DataTrigger>
+											</Style.Triggers>
+										</Style>
+									</TextBlock.Style>
+								</TextBlock>
 							</StackPanel>
 						</Button>
 
 						<Button Style="{StaticResource SidebarActionButtonStyle}"
 								Click="ImportButton_Click"
-								ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}">
+								ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}"
+								Visibility="{Binding IsFlashcardsView, Converter={StaticResource InverseBoolToVisibilityConverter}}">
 							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 								<TextBlock Text="📥" FontSize="14" Width="20" TextAlignment="Center" VerticalAlignment="Center"/>
 								<TextBlock Style="{StaticResource SidebarLabelTextStyle}" Text="{Binding [ImportNotes], Source={StaticResource Loc}}"/>
@@ -701,15 +726,25 @@
 						</Button>
 
 						<Separator Margin="6,10,6,10"/>
-						<Button Content="Notes"
-								Style="{StaticResource SidebarActionButtonStyle}"
+						<Button Style="{StaticResource SidebarActionButtonStyle}"
 								Command="{Binding ShowNotesCommand}"
-								Margin="0,5"/>
+								Margin="0,5"
+								ToolTip="Notes">
+							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+								<TextBlock Text="📝" FontSize="14" Width="20" TextAlignment="Center" VerticalAlignment="Center"/>
+								<TextBlock Style="{StaticResource SidebarLabelTextStyle}" Text="Notes"/>
+							</StackPanel>
+						</Button>
 
-                        <Button Content="Flashcards"
-								Style="{StaticResource SidebarActionButtonStyle}"
+                        <Button Style="{StaticResource SidebarActionButtonStyle}"
 								Command="{Binding ShowFlashcardsCommand}"
-								Margin="0,5"/>
+								Margin="0,5"
+								ToolTip="Flashcards">
+							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+								<TextBlock Text="🧠" FontSize="14" Width="20" TextAlignment="Center" VerticalAlignment="Center"/>
+								<TextBlock Style="{StaticResource SidebarLabelTextStyle}" Text="Flashcards"/>
+							</StackPanel>
+						</Button>
                         <Separator Margin="6,10,6,10"/>
 
                         <Button Style="{StaticResource SidebarActionButtonStyle}"
@@ -796,10 +831,10 @@
 										 BorderThickness="0"
 										 Background="Transparent"
 										 Foreground="{DynamicResource TextColor}"
-                                       CaretBrush="{DynamicResource TextColor}"
-										 VerticalContentAlignment="Center"
-										 Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
-										 ToolTip="{Binding [SearchNotesHint], Source={StaticResource Loc}}"
+										 CaretBrush="{DynamicResource TextColor}"
+ 										 VerticalContentAlignment="Center"
+ 										 Text="{Binding ActiveSearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+ 										 ToolTip="{Binding [SearchNotesHint], Source={StaticResource Loc}}"
 										 KeyDown="TopSearchTextBox_KeyDown"/>
 							</DockPanel>
 						</Border>
@@ -819,7 +854,7 @@
 								Content="⇅"
 								FontSize="14"
 								Margin="0,0,8,0"
-								ToolTip="{Binding SortButtonText}"
+								ToolTip="{Binding ActiveSortButtonText}"
 								Click="SortNotesButton_Click"/>
 
 						<Button x:Name="TagsFilterButton"
@@ -828,7 +863,7 @@
 							  Content="🏷"
 							   FontSize="14"
 								Margin="0,0,8,0"
-								ToolTip="{Binding TagFilterButtonText}"
+								ToolTip="{Binding ActiveTagFilterButtonText}"
 								Click="TagsFilterButton_Click"/>
 
 						<Button x:Name="DashboardSectionsButton"
@@ -863,14 +898,14 @@
 						<DropShadowEffect Color="#000000" Opacity="0.14" BlurRadius="14" ShadowDepth="1" Direction="270"/>
 					</Border.Effect>
 					<StackPanel>
-						<TextBlock Text="{Binding SortButtonText}"
+						<TextBlock Text="{Binding ActiveSortButtonText}"
 								   FontWeight="SemiBold"
 								   Foreground="{DynamicResource TextColor}"
 								   Margin="6,3,6,8"/>
 						<Border Background="{DynamicResource CardBackground}"
 								CornerRadius="8"
 								Padding="8,8">
-							<ItemsControl ItemsSource="{Binding SortOptions}">
+							<ItemsControl ItemsSource="{Binding ActiveSortOptions}">
 								<ItemsControl.ItemTemplate>
                                    <DataTemplate>
 										<RadioButton GroupName="NoteSortOptionGroup"
@@ -912,7 +947,8 @@
 						<Border Background="{DynamicResource CardBackground}"
 								CornerRadius="8"
 								Padding="10,10">
-							<StackPanel>
+                            <Grid>
+							<StackPanel Visibility="{Binding IsFlashcardsView, Converter={StaticResource InverseBoolToVisibilityConverter}}">
 								<CheckBox Content="{Binding [RecentNotes], Source={StaticResource Loc}}"
 										  IsChecked="{Binding IsRecentSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
 										  Margin="0,0,0,6"
@@ -929,6 +965,12 @@
 										  IsChecked="{Binding IsUngroupedSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
 										  Foreground="{DynamicResource TextColor}"/>
 							</StackPanel>
+                            <StackPanel Visibility="{Binding IsFlashcardsView, Converter={StaticResource BoolToVis}}">
+                                <CheckBox Content="{Binding [FlashcardGroupsDashboardTitle], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsFlashcardGroupsSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Foreground="{DynamicResource TextColor}"/>
+                            </StackPanel>
+                            </Grid>
 						</Border>
 					</StackPanel>
 				</Border>
@@ -971,9 +1013,9 @@
 						<Border Background="{DynamicResource CardBackground}"
 								CornerRadius="8"
 								Padding="10,14"
-								Visibility="{Binding HasTagFilters, Converter={StaticResource BoolToVis}}">
+								Visibility="{Binding ActiveHasTagFilters, Converter={StaticResource BoolToVis}}">
 							<ScrollViewer MaxHeight="230" VerticalScrollBarVisibility="Auto">
-								<ItemsControl ItemsSource="{Binding TagFilters}">
+								<ItemsControl ItemsSource="{Binding ActiveTagFilters}">
 									<ItemsControl.ItemTemplate>
 										<DataTemplate DataType="{x:Type vm:TagFilterItemViewModel}">
 											<CheckBox Content="{Binding Tag}"
@@ -993,7 +1035,7 @@
 								<Style TargetType="TextBlock">
 									<Setter Property="Visibility" Value="Collapsed"/>
 									<Style.Triggers>
-										<DataTrigger Binding="{Binding HasTagFilters}" Value="False">
+										<DataTrigger Binding="{Binding ActiveHasTagFilters}" Value="False">
 											<Setter Property="Visibility" Value="Visible"/>
 										</DataTrigger>
 									</Style.Triggers>
@@ -1722,99 +1764,292 @@
                 </Grid>
                 <!-- FLASHCARDS VIEW -->
                 <Grid Visibility="{Binding IsFlashcardsView, Converter={StaticResource BoolToVis}}">
-					<Border HorizontalAlignment="Center"
-							VerticalAlignment="Center"
-							Width="360"
-							Padding="18"
-							Background="{DynamicResource CardBackground}"
-							BorderBrush="{DynamicResource BorderColor}"
-							BorderThickness="1"
-							CornerRadius="12">
-						<StackPanel>
+                    <Grid>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="8">
+                            <Grid Margin="0,0,0,18">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
 
-                        <TextBlock Text="Flashcards"
-									  FontSize="30"
-								   FontWeight="Bold"
-								   Margin="0,0,0,20"
-								   Foreground="{DynamicResource TextColor}"
-								   HorizontalAlignment="Center"/>
+                                <Border Grid.Row="0"
+                                        Background="{DynamicResource SidebarBackground}"
+                                        BorderBrush="{DynamicResource BorderColor}"
+                                        BorderThickness="1"
+                                        CornerRadius="14"
+                                        Padding="14"
+                                        Margin="8,0,8,10">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding HasFlashcardSets}" Value="True"/>
+                                                        <Condition Binding="{Binding IsFlashcardGroupsSectionVisible}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000" Opacity="0.08" BlurRadius="14" ShadowDepth="1" Direction="270"/>
+                                    </Border.Effect>
+                                    <StackPanel>
+                                        <Grid Margin="2,0,2,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="🧠"
+                                                       FontSize="18"
+                                                       Margin="0,0,10,0"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding [FlashcardGroupsDashboardTitle], Source={StaticResource Loc}}"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextColor}"
+                                                       VerticalAlignment="Center"/>
+                                        </Grid>
 
-                        <!-- INPUT -->
-						<TextBlock Text="Question"
-								   Foreground="{DynamicResource TextColor}"/>
-						<TextBox Text="{Binding NewFlashcardQuestion}"
-								 Margin="0,5"
-								 Padding="10,6"
-								 Background="{DynamicResource WindowBackground}"
-								 Foreground="{DynamicResource TextColor}"
-								 CaretBrush="{DynamicResource TextColor}"
-								 BorderBrush="{DynamicResource BorderColor}"
-								 BorderThickness="1"/>
+                                        <ItemsControl ItemsSource="{Binding FlashcardSetsView}"
+                                                      Visibility="{Binding HasFlashcardSets, Converter={StaticResource BoolToVis}}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:FlashcardSetViewModel}">
+                                                    <Button Tag="{Binding}"
+                                                            Click="OpenFlashcardSetButton_Click"
+                                                            Width="300"
+                                                            MinHeight="164"
+                                                            Margin="0,0,14,14"
+                                                            Padding="0"
+                                                            HorizontalContentAlignment="Stretch"
+                                                            VerticalContentAlignment="Stretch"
+                                                            Background="Transparent"
+                                                            BorderThickness="0"
+                                                            Cursor="Hand">
+                                                        <Border x:Name="FlashcardSetCardBorder"
+                                                                Background="{DynamicResource CardBackground}"
+                                                                BorderBrush="{DynamicResource BorderColor}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="14"
+                                                                Padding="16"
+                                                                Opacity="0"
+                                                                RenderTransformOrigin="0.5,0.5">
+                                                            <Border.RenderTransform>
+                                                                <TransformGroup>
+                                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                                    <TranslateTransform Y="10"/>
+                                                                </TransformGroup>
+                                                            </Border.RenderTransform>
+                                                            <Border.Triggers>
+                                                                <EventTrigger RoutedEvent="Loaded">
+                                                                    <BeginStoryboard>
+                                                                        <Storyboard>
+                                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                             From="0"
+                                                                                             To="1"
+                                                                                             Duration="0:0:0.22">
+                                                                                <DoubleAnimation.EasingFunction>
+                                                                                    <QuadraticEase EasingMode="EaseOut"/>
+                                                                                </DoubleAnimation.EasingFunction>
+                                                                            </DoubleAnimation>
+                                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(TranslateTransform.Y)"
+                                                                                             From="10"
+                                                                                             To="0"
+                                                                                             Duration="0:0:0.22">
+                                                                                <DoubleAnimation.EasingFunction>
+                                                                                    <QuadraticEase EasingMode="EaseOut"/>
+                                                                                </DoubleAnimation.EasingFunction>
+                                                                            </DoubleAnimation>
+                                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)"
+                                                                                             From="0.98"
+                                                                                             To="1"
+                                                                                             Duration="0:0:0.22"/>
+                                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)"
+                                                                                             From="0.98"
+                                                                                             To="1"
+                                                                                             Duration="0:0:0.22"/>
+                                                                        </Storyboard>
+                                                                    </BeginStoryboard>
+                                                                </EventTrigger>
+                                                                <EventTrigger RoutedEvent="MouseEnter">
+                                                                    <BeginStoryboard>
+                                                                        <Storyboard>
+                                                                            <DoubleAnimation Storyboard.TargetName="FlashcardSetCardBorder"
+                                                                                             Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
+                                                                                             To="14"
+                                                                                             Duration="0:0:0.18">
+                                                                                <DoubleAnimation.EasingFunction>
+                                                                                    <CubicEase EasingMode="EaseOut"/>
+                                                                                </DoubleAnimation.EasingFunction>
+                                                                            </DoubleAnimation>
+                                                                            <DoubleAnimation Storyboard.TargetName="FlashcardSetCardBorder"
+                                                                                             Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
+                                                                                             To="0.18"
+                                                                                             Duration="0:0:0.18">
+                                                                                <DoubleAnimation.EasingFunction>
+                                                                                    <CubicEase EasingMode="EaseOut"/>
+                                                                                </DoubleAnimation.EasingFunction>
+                                                                            </DoubleAnimation>
+                                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)"
+                                                                                             To="1.02"
+                                                                                             Duration="0:0:0.18">
+                                                                                <DoubleAnimation.EasingFunction>
+                                                                                    <CubicEase EasingMode="EaseOut"/>
+                                                                                </DoubleAnimation.EasingFunction>
+                                                                            </DoubleAnimation>
+                                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)"
+                                                                                             To="1.02"
+                                                                                             Duration="0:0:0.18">
+                                                                                <DoubleAnimation.EasingFunction>
+                                                                                    <CubicEase EasingMode="EaseOut"/>
+                                                                                </DoubleAnimation.EasingFunction>
+                                                                            </DoubleAnimation>
+                                                                        </Storyboard>
+                                                                    </BeginStoryboard>
+                                                                </EventTrigger>
+                                                                <EventTrigger RoutedEvent="MouseLeave">
+                                                                    <BeginStoryboard>
+                                                                        <Storyboard>
+                                                                            <DoubleAnimation Storyboard.TargetName="FlashcardSetCardBorder"
+                                                                                             Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
+                                                                                             To="8"
+                                                                                             Duration="0:0:0.2">
+                                                                                <DoubleAnimation.EasingFunction>
+                                                                                    <CubicEase EasingMode="EaseOut"/>
+                                                                                </DoubleAnimation.EasingFunction>
+                                                                            </DoubleAnimation>
+                                                                            <DoubleAnimation Storyboard.TargetName="FlashcardSetCardBorder"
+                                                                                             Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
+                                                                                             To="0.08"
+                                                                                             Duration="0:0:0.2">
+                                                                                <DoubleAnimation.EasingFunction>
+                                                                                    <CubicEase EasingMode="EaseOut"/>
+                                                                                </DoubleAnimation.EasingFunction>
+                                                                            </DoubleAnimation>
+                                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)"
+                                                                                             To="1.0"
+                                                                                             Duration="0:0:0.2">
+                                                                                <DoubleAnimation.EasingFunction>
+                                                                                    <CubicEase EasingMode="EaseOut"/>
+                                                                                </DoubleAnimation.EasingFunction>
+                                                                            </DoubleAnimation>
+                                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)"
+                                                                                             To="1.0"
+                                                                                             Duration="0:0:0.2">
+                                                                                <DoubleAnimation.EasingFunction>
+                                                                                    <CubicEase EasingMode="EaseOut"/>
+                                                                                </DoubleAnimation.EasingFunction>
+                                                                            </DoubleAnimation>
+                                                                        </Storyboard>
+                                                                    </BeginStoryboard>
+                                                                </EventTrigger>
+                                                            </Border.Triggers>
+                                                            <Border.Effect>
+                                                                <DropShadowEffect Color="#000000" Opacity="0.08" BlurRadius="14" ShadowDepth="1" Direction="270"/>
+                                                            </Border.Effect>
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto"/>
+                                                                    <RowDefinition Height="*"/>
+                                                                    <RowDefinition Height="Auto"/>
+                                                                </Grid.RowDefinitions>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Grid.Column="0"
+                                                                               Text="{Binding Title}"
+                                                                               FontSize="17"
+                                                                               FontWeight="SemiBold"
+                                                                               Foreground="{DynamicResource TextColor}"
+                                                                               TextTrimming="CharacterEllipsis"/>
+                                                                    <Border Grid.Column="1"
+                                                                            Width="24"
+                                                                            Height="24"
+                                                                            CornerRadius="12"
+                                                                            Background="{DynamicResource IconButtonBackground}"
+                                                                            BorderBrush="{DynamicResource IconButtonBorder}"
+                                                                            BorderThickness="1"
+                                                                            ToolTip="{Binding AiGeneratedTooltip}"
+                                                                            Visibility="{Binding IsAiGenerated, Converter={StaticResource BoolToVis}}">
+                                                                        <TextBlock Text="i"
+                                                                                   FontSize="13"
+                                                                                   FontWeight="SemiBold"
+                                                                                   FontStyle="Italic"
+                                                                                   Foreground="{DynamicResource TextColorSecondary}"
+                                                                                   HorizontalAlignment="Center"
+                                                                                   VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                </Grid>
 
-						<TextBlock Text="Answer"
-								   Foreground="{DynamicResource TextColor}"/>
-						<TextBox Text="{Binding NewFlashcardAnswer}"
-								 Margin="0,5"
-								 Padding="10,6"
-								 Background="{DynamicResource WindowBackground}"
-								 Foreground="{DynamicResource TextColor}"
-								 CaretBrush="{DynamicResource TextColor}"
-								 BorderBrush="{DynamicResource BorderColor}"
-								 BorderThickness="1"/>
+                                                                <StackPanel Grid.Row="1"
+                                                                            Orientation="Horizontal"
+                                                                            Margin="0,14,0,0">
+                                                                    <TextBlock Text="{Binding CardCountText}"
+                                                                               FontSize="13"
+                                                                               Foreground="{DynamicResource TextColorSecondary}"/>
+                                                                    <TextBlock Text="  •  "
+                                                                               FontSize="13"
+                                                                               Foreground="{DynamicResource TextColorSecondary}"/>
+                                                                    <TextBlock Text="{Binding SetCountText}"
+                                                                               FontSize="13"
+                                                                               Foreground="{DynamicResource TextColorSecondary}"/>
+                                                                </StackPanel>
 
-                        <Button Content="Add Flashcard"
-								Command="{Binding AddFlashcardCommand}"
-								Style="{StaticResource DialogPrimaryButtonStyle}"
-								Margin="0,10,0,0"/>
+                                                                <TextBlock Grid.Row="2"
+                                                                           Text="{Binding TagsDisplay}"
+                                                                           FontSize="12"
+                                                                           Foreground="{DynamicResource TextColorSecondary}"
+                                                                           TextWrapping="Wrap"
+                                                                           MaxHeight="38"
+                                                                           Visibility="{Binding HasTags, Converter={StaticResource BoolToVis}}"/>
+                                                            </Grid>
+                                                        </Border>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </ScrollViewer>
 
-                        <!-- LIST -->
-						<ItemsControl ItemsSource="{Binding Flashcards}"
-									  Margin="0,20,0,0"
-									  Width="300">
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Visibility="{Binding HasFlashcardSets, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            <TextBlock Text="{Binding [FlashcardsEmptyDashboardPrompt], Source={StaticResource Loc}}"
+                                       FontSize="18"
+                                       FontStyle="Italic"
+                                       Foreground="{DynamicResource TextColorSecondary}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                            <Button Content="{Binding [CreateFlashcards], Source={StaticResource Loc}}"
+                                    Style="{StaticResource DialogPrimaryButtonStyle}"
+                                    MinWidth="180"
+                                    Padding="18,10"
+                                    Click="CreateFlashcardsButton_Click"/>
+                        </StackPanel>
 
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel/>
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-									<Button Command="{Binding DataContext.OpenFlashcardCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-											CommandParameter="{Binding}"
-											Margin="5"
-											Padding="10"
-											Background="{DynamicResource WindowBackground}"
-											BorderBrush="{DynamicResource BorderColor}"
-											BorderThickness="1"
-											Foreground="{DynamicResource TextColor}">
-
-                                        <StackPanel>
-											<TextBlock Text="{Binding Question}"
-													   FontWeight="Bold"
-													   Foreground="{DynamicResource TextColor}"/>
-											<TextBlock Text="{Binding Answer}"
-													   Opacity="0.7"
-													   Foreground="{DynamicResource TextColorSecondary}"/>
-                                        </StackPanel>
-
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-
-                        </ItemsControl>
-
-						</StackPanel>
-					</Border>
-
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-
-
-
-
-
-                    </StackPanel>
-
+                        <Button Style="{StaticResource FabStyle}"
+                                VerticalAlignment="Bottom"
+                                HorizontalAlignment="Right"
+                                Margin="0,0,28,24"
+                                Content="+"
+                                ToolTip="{Binding [CreateFlashcards], Source={StaticResource Loc}}"
+                                Click="CreateFlashcardsButton_Click"/>
+                    </Grid>
                 </Grid>
             </Grid>
         </Grid>

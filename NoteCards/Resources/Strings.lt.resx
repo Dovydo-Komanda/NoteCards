@@ -154,6 +154,8 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="SortByCreatedAtAsc" xml:space="preserve"><value>Seniausiai sukurti</value></data>
   <data name="SortByTitleAsc" xml:space="preserve"><value>Pavadinimas A–Ž</value></data>
   <data name="SortByTitleDesc" xml:space="preserve"><value>Pavadinimas Ž–A</value></data>
+  <data name="SortByFlashcardCardsDesc" xml:space="preserve"><value>Daugiausia kortelių</value></data>
+  <data name="SortByFlashcardCardsAsc" xml:space="preserve"><value>Mažiausiai kortelių</value></data>
   <data name="Pin" xml:space="preserve"><value>Prisegti</value></data>
   <data name="Unpin" xml:space="preserve"><value>Atsegti</value></data>
   <data name="Duplicate" xml:space="preserve"><value>Kopijuoti</value></data>
@@ -240,6 +242,13 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ConvertToFlashcardsStatusGeneratedCharsFormat" xml:space="preserve"><value>{0} ({1} simb.)</value></data>
   <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Kortelių redaktorius</value></data>
   <data name="FlashcardsEditorTitle" xml:space="preserve"><value>Kortelių redaktorius</value></data>
+  <data name="FlashcardGroupsDashboardTitle" xml:space="preserve"><value>Mokymosi kortelių grupės</value></data>
+  <data name="FlashcardsEmptyDashboardPrompt" xml:space="preserve"><value>Pradėkite sukurdami mokymosi korteles</value></data>
+  <data name="CreateFlashcards" xml:space="preserve"><value>Sukurti flashcards</value></data>
+  <data name="FlashcardSetCountFormat" xml:space="preserve"><value>{0} rinkiniai(-ių)</value></data>
+  <data name="FlashcardCardsCountFormat" xml:space="preserve"><value>{0} kortelės(-ių)</value></data>
+  <data name="FlashcardSetUntitled" xml:space="preserve"><value>Be pavadinimo</value></data>
+  <data name="AddFlashcard" xml:space="preserve"><value>Pridėti kortelę</value></data>
   <data name="FlashcardQuestion" xml:space="preserve"><value>Klausimas</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Atsakymas</value></data>
   <data name="FlashcardCategory" xml:space="preserve"><value>Kategorija</value></data>

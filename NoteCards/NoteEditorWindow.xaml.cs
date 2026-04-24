@@ -362,7 +362,12 @@ namespace NoteCards
                     Owner = GetDialogOwnerWindow()
                 };
 
-                preview.ShowDialog();
+                if (preview.ShowDialog() == true
+                    && Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                {
+                    mainViewModel.AddOrUpdateFlashcardSet(preview.ToDocument());
+                }
+
                 ShowStatusIndicator(LocalizationService.GetString("ConvertToFlashcardsSuccess"));
             }
             catch (OperationCanceledException ex)
