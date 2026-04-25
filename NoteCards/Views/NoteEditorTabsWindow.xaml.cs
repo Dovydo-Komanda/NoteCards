@@ -131,16 +131,19 @@ public partial class NoteEditorTabsWindow : Window
         {
             if (ReferenceEquals(state.Editor, editor))
             {
-                CloseTab(state.DocumentId);
+                CloseTab(state.DocumentId, askConfirmation: false);
                 break;
             }
         }
     }
 
-    private void CloseTab(Guid documentId)
+    private bool CloseTab(Guid documentId, bool askConfirmation = true)
     {
         if (!_tabsByDocumentId.TryGetValue(documentId, out var state))
-            return;
+            return true;
+
+        if (askConfirmation && !state.Editor.ConfirmCloseIfNeeded())
+            return false;
 
         state.Editor.DocumentAutoSaved -= state.AutoSaveHandler;
         state.Editor.CloseRequested -= OnEditorCloseRequested;
@@ -153,15 +156,25 @@ public partial class NoteEditorTabsWindow : Window
 
         if (!_isWindowClosing && EditorTabs.Items.Count == 0)
             Close();
+
+        return true;
     }
 
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
     {
         _isWindowClosing = true;
 
-        foreach (var documentId in _tabsByDocumentId.Keys.ToList())
+        foreach (var state in _tabsByDocumentId.Values.ToList())
         {
-            CloseTab(documentId);
+            if (state.Editor.ConfirmCloseIfNeeded())
+                continue;
+
+            e.Cancel = true;
+            _isWindowClosing = false;
+            return;
         }
+
+        foreach (var documentId in _tabsByDocumentId.Keys.ToList())
+            CloseTab(documentId, askConfirmation: false);
     }
 }

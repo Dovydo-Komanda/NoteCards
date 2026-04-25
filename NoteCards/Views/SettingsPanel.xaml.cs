@@ -44,6 +44,13 @@ namespace NoteCards.Views
             AiToolsListBox.ItemsSource = _managedAiTools;
             LocalizationProvider.Instance.PropertyChanged += LocalizationProvider_PropertyChanged;
             Unloaded += (_, _) => LocalizationProvider.Instance.PropertyChanged -= LocalizationProvider_PropertyChanged;
+            NoteEditorWindow.AiGenerationStateChanged += NoteEditorWindow_AiGenerationStateChanged;
+            Unloaded += (_, _) => NoteEditorWindow.AiGenerationStateChanged -= NoteEditorWindow_AiGenerationStateChanged;
+        }
+
+        private void NoteEditorWindow_AiGenerationStateChanged(object? sender, EventArgs e)
+        {
+            Dispatcher.Invoke(UpdateAutoSaveCheckboxAvailability);
         }
 
         private void LocalizationProvider_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -110,6 +117,7 @@ namespace NoteCards.Views
             _isApplyingSettings = true;
             EnableScrollbarCheckBox.IsChecked = settings.EnableScrollbar;
             EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
+            UpdateAutoSaveCheckboxAvailability();
             if (FindName("FlashcardFlipSpeedSlider") is Slider flipSpeedSlider)
                 flipSpeedSlider.Value = settings.FlashcardFlipDelayMilliseconds;
             LoadManagedAiTools(settings);
@@ -395,6 +403,14 @@ namespace NoteCards.Views
         }
 
         // auto-save checkbox handlers
+        private void UpdateAutoSaveCheckboxAvailability()
+        {
+            if (EnableAutoSaveCheckBox is null)
+                return;
+
+            EnableAutoSaveCheckBox.IsEnabled = !NoteEditorWindow.IsAiGenerationInProgress;
+        }
+
         private void EnableAutoSaveCheckBox_Checked(object sender, RoutedEventArgs e)
         {
             if (_isApplyingSettings)

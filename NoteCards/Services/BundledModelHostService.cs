@@ -7,6 +7,7 @@ using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using NoteCards.Localization;
 using NoteCards.Models;
 
@@ -40,8 +41,12 @@ public sealed class BundledModelHostService
     private const int MaxCapturedStdoutChars = 250_000;
     private const int MaxCapturedStderrChars = 120_000;
     private static readonly TimeSpan PromptFileRetention = TimeSpan.FromHours(24);
-    private static readonly TimeSpan InferenceTimeout = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan InferenceTimeout = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan InferenceInactivityTimeout = TimeSpan.FromSeconds(90);
+    private static readonly TimeSpan InferenceNoOutputTimeout = TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan InferenceOutputStallTimeout = TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan InferenceLoopCheckInterval = TimeSpan.FromSeconds(2);
+    private const int MinOutputCharsForLoopDetection = 1600;
 
     private const string RuntimeExeName = "llama-completion.exe";
     private const string RuntimeArchivePrefix = "notecards-model-runtime";
@@ -204,13 +209,17 @@ public sealed class BundledModelHostService
                     var errorBuilder = new StringBuilder();
                     var streamLock = new object();
                     long lastActivityTicks = DateTime.UtcNow.Ticks;
+                    long lastOutputTicks = DateTime.UtcNow.Ticks;
                     var lastCpuTime = TimeSpan.Zero;
                     int generatedChars = 0;
                     var lastCharReportAt = DateTime.UtcNow;
+                    var lastLoopCheckAt = DateTime.UtcNow;
+                    var stoppedAfterOutputLimit = false;
 
                     var outputTask = PumpStreamAsync(process.StandardOutput.BaseStream, outputBuilder, streamLock, chunkLen =>
                     {
                         Interlocked.Exchange(ref lastActivityTicks, DateTime.UtcNow.Ticks);
+                        Interlocked.Exchange(ref lastOutputTicks, DateTime.UtcNow.Ticks);
                         var chars = Interlocked.Add(ref generatedChars, chunkLen);
                         if ((DateTime.UtcNow - lastCharReportAt) >= TimeSpan.FromMilliseconds(800))
                         {
@@ -241,6 +250,43 @@ public sealed class BundledModelHostService
                             throw new TimeoutException($"AI generation timed out. Diagnostic log: {logPath}");
                         }
 
+                        if (generatedChars == 0 && DateTime.UtcNow - startedAt > InferenceNoOutputTimeout)
+                        {
+                            TryKillProcess(process);
+                            var logPath = WriteInferenceDiagnosticLog(args, outputBuilder.ToString(), errorBuilder.ToString(), generatedChars, null);
+                            throw new TimeoutException($"AI generation produced no output. Diagnostic log: {logPath}");
+                        }
+
+                        var lastOutput = new DateTime(Interlocked.Read(ref lastOutputTicks), DateTimeKind.Utc);
+                        if (generatedChars > 0 && DateTime.UtcNow - lastOutput > InferenceOutputStallTimeout)
+                        {
+                            TryKillProcess(process);
+                            var logPath = WriteInferenceDiagnosticLog(args, outputBuilder.ToString(), errorBuilder.ToString(), generatedChars, null);
+                            throw new TimeoutException($"AI generation stopped producing output. Diagnostic log: {logPath}");
+                        }
+
+                        if (generatedChars >= MaxOutputChars)
+                        {
+                            stoppedAfterOutputLimit = true;
+                            TryKillProcess(process);
+                        }
+
+                        if (generatedChars >= MinOutputCharsForLoopDetection
+                            && DateTime.UtcNow - lastLoopCheckAt >= InferenceLoopCheckInterval)
+                        {
+                            lastLoopCheckAt = DateTime.UtcNow;
+                            string outputSnapshot;
+                            lock (streamLock)
+                                outputSnapshot = outputBuilder.ToString();
+
+                            if (LooksLikeRepetitiveGeneration(outputSnapshot))
+                            {
+                                TryKillProcess(process);
+                                var logPath = WriteInferenceDiagnosticLog(args, outputSnapshot, errorBuilder.ToString(), generatedChars, null);
+                                throw new TimeoutException($"AI generation was stopped because output became repetitive. Diagnostic log: {logPath}");
+                            }
+                        }
+
                         var lastActivity = new DateTime(Interlocked.Read(ref lastActivityTicks), DateTimeKind.Utc);
                         if (DateTime.UtcNow - lastActivity > InferenceInactivityTimeout)
                         {
@@ -262,7 +308,8 @@ public sealed class BundledModelHostService
 
                     if (process.ExitCode != 0)
                     {
-                        if (!(process.ExitCode == 130 && normalizedOutput.Contains("q:", StringComparison.OrdinalIgnoreCase)))
+                        if (!stoppedAfterOutputLimit
+                            && !(process.ExitCode == 130 && normalizedOutput.Contains("q:", StringComparison.OrdinalIgnoreCase)))
                         {
                             var logPath = WriteInferenceDiagnosticLog(args, output, error, generatedChars, process.ExitCode);
                             throw new InvalidOperationException(string.IsNullOrWhiteSpace(error)
@@ -330,6 +377,74 @@ public sealed class BundledModelHostService
                 }
             }
         }
+    }
+
+    private static bool LooksLikeRepetitiveGeneration(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output) || output.Length < MinOutputCharsForLoopDetection)
+            return false;
+
+        var tail = output.Length > 5000 ? output[^5000..] : output;
+        var normalizedTail = Regex.Replace(tail, @"\s+", " ").Trim();
+
+        if (Regex.IsMatch(normalizedTail, @"(.{30,300})\1{2,}", RegexOptions.Singleline))
+            return true;
+
+        var lines = tail
+            .Replace("\r", "", StringComparison.Ordinal)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => Regex.Replace(line, @"\s+", " ").Trim())
+            .Where(line => line.Length >= 6)
+            .TakeLast(24)
+            .ToList();
+
+        if (lines.Count >= 10)
+        {
+            var groupedLines = lines.GroupBy(line => line, StringComparer.OrdinalIgnoreCase).ToList();
+            var maxLineRepeat = groupedLines.Max(group => group.Count());
+            var uniqueLineShare = groupedLines.Count / (double)lines.Count;
+
+            if (maxLineRepeat >= 5 || uniqueLineShare <= 0.25)
+                return true;
+        }
+
+        var tokens = Regex.Matches(normalizedTail.ToLowerInvariant(), @"[\p{L}\p{N}]{3,}")
+            .Select(match => match.Value)
+            .ToList();
+
+        return HasRepeatedTokenNgrams(tokens);
+    }
+
+    private static bool HasRepeatedTokenNgrams(IReadOnlyList<string> tokens)
+    {
+        if (tokens.Count < 80)
+            return false;
+
+        var tailTokens = tokens.Count > 120
+            ? tokens.Skip(tokens.Count - 120).ToList()
+            : tokens;
+
+        for (var size = 4; size <= 10; size++)
+        {
+            if (tailTokens.Count < size * 4)
+                continue;
+
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var total = tailTokens.Count - size + 1;
+
+            for (var i = 0; i <= tailTokens.Count - size; i++)
+            {
+                var key = string.Join('\u001F', tailTokens.Skip(i).Take(size));
+                counts[key] = counts.TryGetValue(key, out var count) ? count + 1 : 1;
+            }
+
+            var maxRepeat = counts.Values.Max();
+            var repeatedShare = maxRepeat * size / (double)tailTokens.Count;
+            if (maxRepeat >= 4 && repeatedShare >= 0.35)
+                return true;
+        }
+
+        return false;
     }
 
     private static string WriteInferenceDiagnosticLog(string args, string output, string error, int generatedChars, int? exitCode)

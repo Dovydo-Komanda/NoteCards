@@ -1,3 +1,4 @@
+using NoteCards.Localization;
 using NoteCards.Models;
 using System.IO;
 using System.Text;
@@ -19,6 +20,8 @@ public sealed class MindMapConversionService
         if (string.IsNullOrWhiteSpace(noteText))
             return null;
 
+        AiInputGuard.EnsureSuitableStudyText(noteText);
+
         var normalizedTitle = NormalizeNodeText(noteTitle);
         var source = noteText.Trim();
         if (source.Length > MaxSourceCharacters)
@@ -28,6 +31,9 @@ public sealed class MindMapConversionService
         var output = await BundledModelHostService.Instance.CompleteAsync(
             prompt, nPredict: 1800, temperature: 0.15, progress: progress, cancellationToken);
 
+        if (AiInputGuard.IsRefusalOutput(output))
+            throw new AiInputRejectedException(LocalizationService.GetString("AiInputRejectedInsufficientContent"));
+
         var aiMap = ParseMindMap(output, normalizedTitle);
         if (IsUsefulMindMap(aiMap))
             return aiMap;
@@ -35,6 +41,9 @@ public sealed class MindMapConversionService
         var repairPrompt = BuildRepairPrompt(normalizedTitle, source, output);
         var repaired = await BundledModelHostService.Instance.CompleteAsync(
             repairPrompt, nPredict: 1800, temperature: 0.1, progress: progress, cancellationToken);
+
+        if (AiInputGuard.IsRefusalOutput(repaired))
+            throw new AiInputRejectedException(LocalizationService.GetString("AiInputRejectedInsufficientContent"));
 
         var repairedMap = ParseMindMap(repaired, normalizedTitle);
         if (IsUsefulMindMap(repairedMap))
@@ -59,6 +68,13 @@ Convert SOURCE NOTE into a hierarchical mind map.
 The main topic or note title must be the central idea.
 Subsections and key points must become child branches and sub-branches.
 Use ONLY information from SOURCE NOTE.
+Detect the primary language and writing system of SOURCE NOTE.
+Write every root label, branch, and child node in that same detected language and script.
+Do not translate to English unless SOURCE NOTE is primarily English.
+Keep the structural marker "ROOT:" exactly as shown, but the text after it must follow SOURCE NOTE language.
+If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
+{AiInputGuard.RefusalOutput}
+Do not invent context to make unsuitable text look useful.
 If the note is not suitable for a hierarchy, still create the best concise hierarchy from the visible concepts.
 
 Output ONLY in this exact indentation format:
@@ -87,6 +103,13 @@ SOURCE NOTE:
 Repair the mind map output.
 Ignore any noisy text, reasoning, comments, or markdown fences.
 Use ONLY SOURCE NOTE and output ONLY this format:
+Detect the primary language and writing system of SOURCE NOTE.
+Write every root label, branch, and child node in that same detected language and script.
+Do not translate to English unless SOURCE NOTE is primarily English.
+Keep the structural marker "ROOT:" exactly as shown, but the text after it must follow SOURCE NOTE language.
+If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
+{AiInputGuard.RefusalOutput}
+Do not invent context to make unsuitable text look useful.
 
 ROOT: {title}
 - Main branch

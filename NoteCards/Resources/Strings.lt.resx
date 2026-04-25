@@ -190,7 +190,12 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="CloseTab" xml:space="preserve"><value>Uždaryti skirtuką</value></data>
   <data name="OpenInTab" xml:space="preserve"><value>Atidaryti skirtuke</value></data>
   <data name="NewTab" xml:space="preserve"><value>Naujas skirtukas</value></data>
-  <data name="UnsavedChanges" xml:space="preserve"><value>Neiššaugoti pakeitimai</value></data>
+  <data name="UnsavedChanges" xml:space="preserve"><value>Neišsaugoti pakeitimai</value></data>
+  <data name="UnsavedChangesConfirmation" xml:space="preserve"><value>Yra neišsaugotų pakeitimų. Išeiti jų neišsaugojus?</value></data>
+  <data name="UnsavedChangesConfirmationFormat" xml:space="preserve"><value>„{0}“ turi neišsaugotų pakeitimų. Ką daryti?</value></data>
+  <data name="LeaveWithoutSaving" xml:space="preserve"><value>Išeiti neišsaugojus</value></data>
+  <data name="SaveAndExit" xml:space="preserve"><value>Išsaugoti ir išeiti</value></data>
+  <data name="EditedIndicator" xml:space="preserve"><value>Redaguota</value></data>
   <data name="TabCloseWarning" xml:space="preserve"><value>Šis skirtukas turi neiššaugotus pakeitimus. Uždaryti vis tiek?</value></data>
   <data name="SelectMultiple" xml:space="preserve"><value>Pažymėti užrašą</value></data>
   <data name="CalendarAssignMenu" xml:space="preserve"><value>Priskirti kalendoriui...</value></data>
@@ -239,6 +244,9 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ConvertToMindMapParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamos minčių žemėlapio struktūros.</value></data>
   <data name="ConvertToMindMapStatusProcessing" xml:space="preserve"><value>DI generuoja minčių žemėlapį...</value></data>
   <data name="ConvertToMindMapStatusFinalizing" xml:space="preserve"><value>Baigiamas formuoti minčių žemėlapis...</value></data>
+  <data name="AiInputRejectedTitle" xml:space="preserve"><value>DI generavimas atmestas</value></data>
+  <data name="AiInputRejectedInsufficientContent" xml:space="preserve"><value>Užraše nėra pakankamai prasmingo teksto mokymosi medžiagai sugeneruoti. Įrašykite rišlų tekstinį turinį ir bandykite dar kartą.</value></data>
+  <data name="AiGenerationTimedOut" xml:space="preserve"><value>DI generavimas sustabdytas, nes modelis laiku nepateikė tinkamo atsakymo.</value></data>
   <data name="ConvertToFlashcardsStatusPreparingAssets" xml:space="preserve"><value>Paruošiami DI resursai...</value></data>
   <data name="ConvertToFlashcardsStatusDownloadingRuntime" xml:space="preserve"><value>Atsiunčiamas DI vykdymo modulis...</value></data>
   <data name="ConvertToFlashcardsStatusDownloadingModel" xml:space="preserve"><value>Atsiunčiamas pasirinktas Qwen modelis...</value></data>

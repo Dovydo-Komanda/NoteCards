@@ -1,6 +1,7 @@
 using NoteCards.Localization;
 using NoteCards.Models;
 using System.IO;
+using System.Text;
 using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Documents;
@@ -99,18 +100,7 @@ public class NoteCardViewModel : ViewModelBase
                     var flowDoc = new FlowDocument();
                     var tr = new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd);
                     tr.Load(ms, DataFormats.Rtf);
-                    // Re-create the range after loading so it spans the full inserted content
-                    var previewText = new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd).Text?.Trim() ?? string.Empty;
-                    var imageCount = CountImages(flowDoc);
-                    if (imageCount <= 0)
-                        return previewText;
-
-                    var imagePlaceholder = LocalizationService.GetString("PicturePlaceholder");
-                    var imagePlaceholders = BuildImagePlaceholders(imageCount, imagePlaceholder);
-                    if (string.IsNullOrWhiteSpace(previewText))
-                        return imagePlaceholders;
-
-                    return $"{imagePlaceholders} {previewText}";
+                    return BuildOrderedContentPreview(flowDoc);
                 }
             }
             catch (FormatException)
@@ -203,33 +193,102 @@ public class NoteCardViewModel : ViewModelBase
         _togglePinAction?.Invoke(this);
     }
 
-    private static int CountImages(FlowDocument document)
+    private static string BuildOrderedContentPreview(FlowDocument document)
     {
-        var images = new HashSet<Image>();
+        var preview = new StringBuilder();
+        var imagePlaceholder = LocalizationService.GetString("PicturePlaceholder");
+        var emittedImages = new HashSet<Image>();
         var navigator = document.ContentStart;
+
         while (navigator != null && navigator.CompareTo(document.ContentEnd) < 0)
         {
-            if (navigator.Parent is InlineUIContainer { Child: Image inlineImage })
-                images.Add(inlineImage);
-
-            if (navigator.Parent is BlockUIContainer { Child: Image blockImage })
-                images.Add(blockImage);
+            var context = navigator.GetPointerContext(LogicalDirection.Forward);
+            if (context == TextPointerContext.Text)
+            {
+                preview.Append(navigator.GetTextInRun(LogicalDirection.Forward));
+            }
+            else if (context == TextPointerContext.EmbeddedElement)
+            {
+                AppendImagePlaceholderIfNeeded(
+                    preview,
+                    TryGetImage(navigator.GetAdjacentElement(LogicalDirection.Forward)),
+                    emittedImages,
+                    imagePlaceholder);
+            }
+            else if (context == TextPointerContext.ElementStart)
+            {
+                AppendImagePlaceholderIfNeeded(
+                    preview,
+                    TryGetImage(navigator.GetAdjacentElement(LogicalDirection.Forward)),
+                    emittedImages,
+                    imagePlaceholder);
+            }
+            else if (context == TextPointerContext.ElementEnd
+                && navigator.Parent is Paragraph or ListItem or BlockUIContainer)
+            {
+                AppendSeparator(preview);
+            }
 
             navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
         }
 
-        return images.Count;
+        return NormalizePreviewWhitespace(preview.ToString());
     }
 
-    private static string BuildImagePlaceholders(int count, string placeholder)
+    private static Image? TryGetImage(object? element)
     {
-        if (count <= 1)
-            return placeholder;
+        return element switch
+        {
+            Image image => image,
+            InlineUIContainer { Child: Image image } => image,
+            BlockUIContainer { Child: Image image } => image,
+            _ => null
+        };
+    }
 
-        var placeholders = new string[count];
-        for (var i = 0; i < count; i++)
-            placeholders[i] = placeholder;
+    private static void AppendImagePlaceholderIfNeeded(
+        StringBuilder preview,
+        Image? image,
+        HashSet<Image> emittedImages,
+        string imagePlaceholder)
+    {
+        if (image is null || !emittedImages.Add(image))
+            return;
 
-        return string.Join(" ", placeholders);
+        AppendSeparator(preview);
+        preview.Append(imagePlaceholder);
+        preview.Append(' ');
+    }
+
+    private static void AppendSeparator(StringBuilder preview)
+    {
+        if (preview.Length > 0 && !char.IsWhiteSpace(preview[^1]))
+            preview.Append(' ');
+    }
+
+    private static string NormalizePreviewWhitespace(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var normalized = new StringBuilder(text.Length);
+        var previousWasWhitespace = true;
+
+        foreach (var character in text)
+        {
+            if (char.IsWhiteSpace(character))
+            {
+                if (!previousWasWhitespace)
+                    normalized.Append(' ');
+
+                previousWasWhitespace = true;
+                continue;
+            }
+
+            normalized.Append(character);
+            previousWasWhitespace = false;
+        }
+
+        return normalized.ToString().Trim();
     }
 }

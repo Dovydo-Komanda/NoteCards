@@ -1,3 +1,4 @@
+using NoteCards.Localization;
 using NoteCards.Models;
 using System.IO;
 using System.Text;
@@ -17,7 +18,15 @@ public sealed class FlashcardConversionService
         if (string.IsNullOrWhiteSpace(noteText))
             return Array.Empty<FlashcardItem>();
 
-        var chunks = SplitIntoChunks(noteText);
+        AiInputGuard.EnsureSuitableStudyText(noteText);
+
+        var chunks = SplitIntoChunks(noteText)
+            .Where(AiInputGuard.IsSuitableStudyText)
+            .ToList();
+
+        if (chunks.Count == 0)
+            throw new AiInputRejectedException(LocalizationService.GetString("AiInputRejectedInsufficientContent"));
+
         var cards = new List<FlashcardItem>();
         var outputs = new List<string>();
 
@@ -30,16 +39,25 @@ public sealed class FlashcardConversionService
                 chunkPrompt, nPredict: 1200, temperature: 0.25, progress: progress, cancellationToken);
 
             outputs.Add(result);
+            if (AiInputGuard.IsRefusalOutput(result))
+                continue;
+
             AddParsedFlashcards(cards, result, i + 1);
         }
 
         if (cards.Count > 0)
             return DeduplicateFlashcards(cards);
 
+        if (outputs.Any(AiInputGuard.IsRefusalOutput))
+            throw new AiInputRejectedException(LocalizationService.GetString("AiInputRejectedInsufficientContent"));
+
         // Repair pass over the full note, but still ask for a bounded set of cards.
         var repairPrompt = BuildRepairPrompt(noteText);
         var repaired = await BundledModelHostService.Instance.CompleteAsync(
             repairPrompt, nPredict: 1500, temperature: 0.1, progress: progress, cancellationToken);
+
+        if (AiInputGuard.IsRefusalOutput(repaired))
+            throw new AiInputRejectedException(LocalizationService.GetString("AiInputRejectedInsufficientContent"));
 
         var repairedParsed = ParseFlashcards(repaired);
         if (repairedParsed.Count > 0)
@@ -67,6 +85,12 @@ Cover every important fact in this section from beginning to end.
 Do not focus only on the opening lines.
 Create as many high-quality flashcards as needed from this section.
 Use ONLY facts from the note. Make every card atomic and useful for spaced repetition.
+Detect the primary language and writing system of SOURCE NOTE.
+Write every question and answer in that same detected language and script.
+Do not translate to English unless SOURCE NOTE is primarily English.
+If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
+{AiInputGuard.RefusalOutput}
+Do not invent context to make unsuitable text look useful.
 
 Output **ONLY** in this exact format, nothing else:
 
@@ -86,6 +110,12 @@ Ignore any previous noisy text or thinking.
 Never think out loud. Never explain. Never output reasoning or extra text.
 
 Use ONLY information from SOURCE NOTE.
+Detect the primary language and writing system of SOURCE NOTE.
+Write every repaired question and answer in that same detected language and script.
+Do not translate to English unless SOURCE NOTE is primarily English.
+If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
+{AiInputGuard.RefusalOutput}
+Do not invent context to make unsuitable text look useful.
 Create **exactly 3 to 8** flashcards in the exact format:
 
 q: [question]

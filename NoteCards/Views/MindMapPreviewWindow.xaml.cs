@@ -133,14 +133,24 @@ public partial class MindMapPreviewWindow : Window
 
         NormalizeLayoutOffset();
 
-        var maxRight = _layouts.Values.Max(layout => layout.X + layout.Width);
-        var maxBottom = _layouts.Values.Max(layout => layout.Y + layout.Height);
-        MapCanvas.Width = Math.Max(MapScrollViewer.ViewportWidth / Math.Max(ZoomSlider.Value, 0.1), maxRight + CanvasPadding);
-        MapCanvas.Height = Math.Max(MapScrollViewer.ViewportHeight / Math.Max(ZoomSlider.Value, 0.1), maxBottom + CanvasPadding);
+        UpdateMapCanvasSize();
 
         DrawConnections(_root);
         DrawNodes(_root);
         QueueInitialCenterOnRoot();
+    }
+
+    private void UpdateMapCanvasSize()
+    {
+        if (_layouts.Count == 0)
+            return;
+
+        var zoom = Math.Max(ZoomSlider.Value, 0.1);
+        var maxRight = _layouts.Values.Max(layout => layout.X + layout.Width);
+        var maxBottom = _layouts.Values.Max(layout => layout.Y + layout.Height);
+
+        MapCanvas.Width = Math.Max(MapScrollViewer.ViewportWidth / zoom, maxRight + CanvasPadding);
+        MapCanvas.Height = Math.Max(MapScrollViewer.ViewportHeight / zoom, maxBottom + CanvasPadding);
     }
 
     private void QueueInitialCenterOnRoot()
@@ -170,10 +180,8 @@ public partial class MindMapPreviewWindow : Window
     private void CenterViewOnLayout(NodeLayout layout)
     {
         var zoom = Math.Max(ZoomSlider.Value, 0.1);
-        var visibleWidth = MapScrollViewer.ViewportWidth / zoom;
-        var visibleHeight = MapScrollViewer.ViewportHeight / zoom;
-        var targetX = layout.X + layout.Width / 2 - visibleWidth / 2;
-        var targetY = layout.Y + layout.Height / 2 - visibleHeight / 2;
+        var targetX = (layout.X + layout.Width / 2) * zoom - MapScrollViewer.ViewportWidth / 2;
+        var targetY = (layout.Y + layout.Height / 2) * zoom - MapScrollViewer.ViewportHeight / 2;
 
         MapScrollViewer.ScrollToHorizontalOffset(Math.Clamp(targetX, 0, Math.Max(0, MapScrollViewer.ScrollableWidth)));
         MapScrollViewer.ScrollToVerticalOffset(Math.Clamp(targetY, 0, Math.Max(0, MapScrollViewer.ScrollableHeight)));
@@ -410,11 +418,30 @@ public partial class MindMapPreviewWindow : Window
 
     private void ZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (MapScaleTransform is null)
+        if (MapScaleTransform is null || MapScrollViewer is null || MapCanvas is null)
             return;
 
-        MapScaleTransform.ScaleX = e.NewValue;
-        MapScaleTransform.ScaleY = e.NewValue;
+        var oldZoom = e.OldValue > 0 ? e.OldValue : 1;
+        var newZoom = Math.Max(e.NewValue, 0.1);
+        var centerX = (MapScrollViewer.HorizontalOffset + MapScrollViewer.ViewportWidth / 2) / oldZoom;
+        var centerY = (MapScrollViewer.VerticalOffset + MapScrollViewer.ViewportHeight / 2) / oldZoom;
+
+        MapScaleTransform.ScaleX = newZoom;
+        MapScaleTransform.ScaleY = newZoom;
+        UpdateMapCanvasSize();
+        MapCanvas.InvalidateMeasure();
+        MapScrollViewer.InvalidateScrollInfo();
+
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            MapCanvas.UpdateLayout();
+            MapScrollViewer.UpdateLayout();
+
+            var targetX = centerX * newZoom - MapScrollViewer.ViewportWidth / 2;
+            var targetY = centerY * newZoom - MapScrollViewer.ViewportHeight / 2;
+            MapScrollViewer.ScrollToHorizontalOffset(Math.Clamp(targetX, 0, Math.Max(0, MapScrollViewer.ScrollableWidth)));
+            MapScrollViewer.ScrollToVerticalOffset(Math.Clamp(targetY, 0, Math.Max(0, MapScrollViewer.ScrollableHeight)));
+        }), DispatcherPriority.Loaded);
     }
 
     private void MapScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)

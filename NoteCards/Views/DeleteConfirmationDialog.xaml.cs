@@ -7,15 +7,31 @@ namespace NoteCards.Views
 {
     public partial class DeleteConfirmationDialog : Window
     {
+        public enum ConfirmationAction
+        {
+            Cancel,
+            Confirm,
+            Secondary
+        }
+
         private bool _isClosingAnimationRunning;
         private bool _pendingDialogResult;
+        private ConfirmationAction _pendingAction = ConfirmationAction.Cancel;
 
         public string TitleText { get; }
         public string MessageText { get; }
         public string ConfirmText { get; }
         public string CancelText { get; }
+        public string SecondaryText { get; }
+        public Visibility SecondaryActionVisibility { get; }
+        public ConfirmationAction SelectedAction { get; private set; } = ConfirmationAction.Cancel;
 
-        public DeleteConfirmationDialog(string? title = null, string? message = null)
+        public DeleteConfirmationDialog(
+            string? title = null,
+            string? message = null,
+            string? confirmText = null,
+            string? cancelText = null,
+            string? secondaryText = null)
         {
             TitleText = string.IsNullOrWhiteSpace(title)
                 ? LocalizationService.GetString("ConfirmDelete")
@@ -25,8 +41,16 @@ namespace NoteCards.Views
                 ? LocalizationService.GetString("DeleteNoteConfirmation")
                 : message;
 
-            ConfirmText = LocalizationService.GetString("Confirm");
-            CancelText = LocalizationService.GetString("Cancel");
+            ConfirmText = string.IsNullOrWhiteSpace(confirmText)
+                ? LocalizationService.GetString("Confirm")
+                : confirmText;
+            CancelText = string.IsNullOrWhiteSpace(cancelText)
+                ? LocalizationService.GetString("Cancel")
+                : cancelText;
+            SecondaryText = secondaryText ?? string.Empty;
+            SecondaryActionVisibility = string.IsNullOrWhiteSpace(secondaryText)
+                ? Visibility.Collapsed
+                : Visibility.Visible;
 
             InitializeComponent();
             DataContext = this;
@@ -52,12 +76,17 @@ namespace NoteCards.Views
 
         private void ConfirmButton_Click(object sender, RoutedEventArgs e)
         {
-            BeginCloseAnimation(true);
+            BeginCloseAnimation(true, ConfirmationAction.Confirm);
+        }
+
+        private void SecondaryButton_Click(object sender, RoutedEventArgs e)
+        {
+            BeginCloseAnimation(true, ConfirmationAction.Secondary);
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            BeginCloseAnimation(false);
+            BeginCloseAnimation(false, ConfirmationAction.Cancel);
         }
 
         protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
@@ -65,7 +94,7 @@ namespace NoteCards.Views
             base.OnKeyDown(e);
             if (e.Key == System.Windows.Input.Key.Escape)
             {
-                BeginCloseAnimation(false);
+                BeginCloseAnimation(false, ConfirmationAction.Cancel);
                 e.Handled = true;
             }
         }
@@ -89,13 +118,14 @@ namespace NoteCards.Views
             translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(12, 0, duration) { EasingFunction = ease });
         }
 
-        private void BeginCloseAnimation(bool dialogResult)
+        private void BeginCloseAnimation(bool dialogResult, ConfirmationAction action)
         {
             if (_isClosingAnimationRunning)
                 return;
 
             _isClosingAnimationRunning = true;
             _pendingDialogResult = dialogResult;
+            _pendingAction = action;
 
             if (DialogCard.RenderTransform is not TranslateTransform translate)
             {
@@ -109,6 +139,7 @@ namespace NoteCards.Views
             var fadeOut = new DoubleAnimation(Opacity, 0, duration) { EasingFunction = ease };
             fadeOut.Completed += (_, _) =>
             {
+                SelectedAction = _pendingAction;
                 DialogResult = _pendingDialogResult;
                 Close();
             };

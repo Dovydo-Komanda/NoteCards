@@ -230,7 +230,12 @@ Right-click to remove</value></data>
   <data name="CloseTab" xml:space="preserve"><value>Close Tab</value></data>
   <data name="OpenInTab" xml:space="preserve"><value>Open in Tab</value></data>
   <data name="NewTab" xml:space="preserve"><value>New Tab</value></data>
-  <data name="UnsavedChanges" xml:space="preserve"><value>Unsaved Changes</value></data>
+  <data name="UnsavedChanges" xml:space="preserve"><value>Unsaved changes</value></data>
+  <data name="UnsavedChangesConfirmation" xml:space="preserve"><value>You have unsaved changes. Leave without saving them?</value></data>
+  <data name="UnsavedChangesConfirmationFormat" xml:space="preserve"><value>"{0}" has unsaved changes. What would you like to do?</value></data>
+  <data name="LeaveWithoutSaving" xml:space="preserve"><value>Leave without saving</value></data>
+  <data name="SaveAndExit" xml:space="preserve"><value>Save and exit</value></data>
+  <data name="EditedIndicator" xml:space="preserve"><value>Edited</value></data>
   <data name="TabCloseWarning" xml:space="preserve"><value>This tab has unsaved changes. Close anyway?</value></data>
   <data name="SelectMultiple" xml:space="preserve"><value>Select note</value></data>
   <data name="CalendarAssignMenu" xml:space="preserve"><value>Schedule in calendar...</value></data>
@@ -279,6 +284,9 @@ Right-click to remove</value></data>
   <data name="ConvertToMindMapParseFailed" xml:space="preserve"><value>AI response did not contain a usable mind map structure.</value></data>
   <data name="ConvertToMindMapStatusProcessing" xml:space="preserve"><value>AI is generating a mind map...</value></data>
   <data name="ConvertToMindMapStatusFinalizing" xml:space="preserve"><value>Finalizing mind map...</value></data>
+  <data name="AiInputRejectedTitle" xml:space="preserve"><value>AI generation refused</value></data>
+  <data name="AiInputRejectedInsufficientContent" xml:space="preserve"><value>The note does not contain enough meaningful text to generate study material. Add coherent text content and try again.</value></data>
+  <data name="AiGenerationTimedOut" xml:space="preserve"><value>AI generation was stopped because the model did not produce a usable response in time.</value></data>
   <data name="ConvertToFlashcardsStatusPreparingAssets" xml:space="preserve"><value>Preparing AI resources...</value></data>
   <data name="ConvertToFlashcardsStatusDownloadingRuntime" xml:space="preserve"><value>Downloading AI runtime...</value></data>
   <data name="ConvertToFlashcardsStatusDownloadingModel" xml:space="preserve"><value>Downloading selected Qwen model...</value></data>

@@ -166,9 +166,9 @@
                         MinWidth="960"
                         MinHeight="420"
                         Background="{DynamicResource WindowBackground}">
-                    <Canvas.RenderTransform>
+                    <Canvas.LayoutTransform>
                         <ScaleTransform x:Name="MapScaleTransform" ScaleX="1" ScaleY="1"/>
-                    </Canvas.RenderTransform>
+                    </Canvas.LayoutTransform>
                 </Canvas>
             </ScrollViewer>
         </Border>

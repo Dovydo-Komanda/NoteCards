@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -33,11 +34,14 @@ namespace NoteCards
         // Auto-save fields
         public event Action<NoteDocument>? DocumentAutoSaved;
         public event Action<NoteEditorWindow>? CloseRequested;
+        public static event EventHandler? AiGenerationStateChanged;
+        private static int _activeAiGenerationCount;
         private System.Threading.Timer? _autoSaveTimer;
         private bool _isAutoSaveEnabled = true;
         private const int AutoSaveIntervalMs = 30000; // 30 seconds
         private DateTime _lastAutoSaveTime = DateTime.MinValue;
         private string _lastSavedContent = string.Empty;
+        private string _lastSavedSnapshot = string.Empty;
         private NoteDocument? _currentDocument;
         private const int MaxEditHistoryEntries = 100;
         private readonly FlashcardConversionService _flashcardConversionService = new();
@@ -47,7 +51,11 @@ namespace NoteCards
         private bool _isConvertingToMindMap;
         private CancellationTokenSource? _mindMapConversionCancellationSource;
         private bool _isSyncingFontSelectors;
+        private bool _isLoadingDocument;
+        private bool _allowCloseWithoutPrompt;
         private const double StatusIndicatorExpandedHeight = 20;
+
+        public static bool IsAiGenerationInProgress => _activeAiGenerationCount > 0;
 
         public NoteEditorWindow()
         {
@@ -108,17 +116,62 @@ namespace NoteCards
 
         private void NoteEditorWindow_Closing(object sender, CancelEventArgs e)
         {
+            if (_isPlayingCloseAnimation)
+                return;
+
+            if (!_allowCloseWithoutPrompt && !ConfirmCloseIfNeeded())
+            {
+                e.Cancel = true;
+                return;
+            }
+
             StopAutoSaveTimer();
             _flashcardConversionCancellationSource?.Cancel();
             _mindMapConversionCancellationSource?.Cancel();
             ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
 
-            if (_isPlayingCloseAnimation)
-                return;
-
             // For non-modal windows, just close directly
             // No need for animation since the window will close immediately
             e.Cancel = false;
+        }
+
+        public bool ConfirmCloseIfNeeded()
+        {
+            if (!HasUnsavedChanges())
+                return true;
+
+            var documentTitle = ResolveEditorTitleForPrompt();
+            var dialog = new DeleteConfirmationDialog(
+                LocalizationService.GetString("UnsavedChanges"),
+                string.Format(LocalizationService.GetString("UnsavedChangesConfirmationFormat"), documentTitle),
+                LocalizationService.GetString("LeaveWithoutSaving"),
+                LocalizationService.GetString("Cancel"),
+                LocalizationService.GetString("SaveAndExit"))
+            {
+                Owner = GetDialogOwnerWindow()
+            };
+
+            if (dialog.ShowDialog() != true)
+                return false;
+
+            return dialog.SelectedAction switch
+            {
+                DeleteConfirmationDialog.ConfirmationAction.Confirm => true,
+                DeleteConfirmationDialog.ConfirmationAction.Secondary => SaveCurrentDocument(),
+                _ => false
+            };
+        }
+
+        private string ResolveEditorTitleForPrompt()
+        {
+            var title = TitleTextBox.Text.Trim();
+            if (!string.IsNullOrWhiteSpace(title))
+                return title;
+
+            title = _currentDocument?.Title?.Trim() ?? string.Empty;
+            return string.IsNullOrWhiteSpace(title)
+                ? LocalizationService.GetString("NewNoteTitle")
+                : title;
         }
 
         private void AnimateAndClose()
@@ -228,6 +281,12 @@ namespace NoteCards
         {
             // Only update counter, not theme (theme is applied during load and on theme change)
             UpdateCounter();
+            UpdateEditedIndicator();
+        }
+
+        private void EditorField_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdateEditedIndicator();
         }
 
         private void OnlineSearchButton_Click(object sender, RoutedEventArgs e)
@@ -294,7 +353,7 @@ namespace NoteCards
             if (_isConvertingToFlashcards || _isConvertingToMindMap)
                 return;
 
-            var plainText = GetEditorPlainText();
+            var plainText = GetEditorAiText();
             if (string.IsNullOrWhiteSpace(plainText))
             {
                 MessageBox.Show(
@@ -306,6 +365,7 @@ namespace NoteCards
             }
 
             _isConvertingToFlashcards = true;
+            BeginAiGeneration();
             ConvertToFlashcardsButton.IsEnabled = false;
             ConvertToMindMapButton.IsEnabled = false;
             ShowPersistentStatusIndicator(LocalizationService.GetString("ConvertToFlashcardsInProgress"));
@@ -323,12 +383,15 @@ namespace NoteCards
                     ShowPersistentStatusIndicatorWithoutAnimation(text);
             });
 
+            var restoreAutoSave = false;
             try
             {
+                restoreAutoSave = TemporarilyDisableAutoSaveForAi();
                 var flashcards = await _flashcardConversionService.ConvertToFlashcardsAsync(
                     plainText,
                     progress,
                     _flashcardConversionCancellationSource.Token);
+                RestoreAutoSaveAfterAi(ref restoreAutoSave);
 
                 if (flashcards.Count == 0)
                 {
@@ -371,6 +434,24 @@ namespace NoteCards
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+            catch (AiInputRejectedException ex)
+            {
+                HideStatusIndicator();
+                MessageBox.Show(
+                    ex.Message,
+                    LocalizationService.GetString("AiInputRejectedTitle"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (TimeoutException ex)
+            {
+                HideStatusIndicator();
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("AiGenerationTimedOut")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
             catch (Exception ex)
             {
                 HideStatusIndicator();
@@ -382,7 +463,9 @@ namespace NoteCards
             }
             finally
             {
+                RestoreAutoSaveAfterAi(ref restoreAutoSave);
                 _isConvertingToFlashcards = false;
+                EndAiGeneration();
                 ConvertToFlashcardsButton.IsEnabled = true;
                 ConvertToMindMapButton.IsEnabled = true;
                 _flashcardConversionCancellationSource?.Dispose();
@@ -395,7 +478,7 @@ namespace NoteCards
             if (_isConvertingToFlashcards || _isConvertingToMindMap)
                 return;
 
-            var plainText = GetEditorPlainText();
+            var plainText = GetEditorAiText();
             if (string.IsNullOrWhiteSpace(plainText))
             {
                 MessageBox.Show(
@@ -407,6 +490,7 @@ namespace NoteCards
             }
 
             _isConvertingToMindMap = true;
+            BeginAiGeneration();
             ConvertToFlashcardsButton.IsEnabled = false;
             ConvertToMindMapButton.IsEnabled = false;
             ShowPersistentStatusIndicator(LocalizationService.GetString("ConvertToMindMapInProgress"));
@@ -428,13 +512,16 @@ namespace NoteCards
                     ShowPersistentStatusIndicatorWithoutAnimation(text);
             });
 
+            var restoreAutoSave = false;
             try
             {
+                restoreAutoSave = TemporarilyDisableAutoSaveForAi();
                 var mindMap = await _mindMapConversionService.ConvertToMindMapAsync(
                     TitleTextBox.Text,
                     plainText,
                     progress,
                     _mindMapConversionCancellationSource.Token);
+                RestoreAutoSaveAfterAi(ref restoreAutoSave);
 
                 if (mindMap is null || mindMap.Children.Count == 0)
                 {
@@ -479,6 +566,24 @@ namespace NoteCards
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+            catch (AiInputRejectedException ex)
+            {
+                HideStatusIndicator();
+                MessageBox.Show(
+                    ex.Message,
+                    LocalizationService.GetString("AiInputRejectedTitle"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (TimeoutException ex)
+            {
+                HideStatusIndicator();
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("AiGenerationTimedOut")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
             catch (Exception ex)
             {
                 HideStatusIndicator();
@@ -490,7 +595,9 @@ namespace NoteCards
             }
             finally
             {
+                RestoreAutoSaveAfterAi(ref restoreAutoSave);
                 _isConvertingToMindMap = false;
+                EndAiGeneration();
                 ConvertToFlashcardsButton.IsEnabled = true;
                 ConvertToMindMapButton.IsEnabled = true;
                 _mindMapConversionCancellationSource?.Dispose();
@@ -742,6 +849,7 @@ namespace NoteCards
             {
                 if (document != null)
                 {
+                    _isLoadingDocument = true;
                     _currentDocument = document; // Set current document
                     TitleTextBox.Text = document.Title;
                     TagsTextBox.Text = string.Join(", ", document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
@@ -800,13 +908,14 @@ namespace NoteCards
                     UpdateFontButtonText();
 
                     // Initialize last saved content
-                    _lastSavedContent = GetContentAsText();
+                    MarkCurrentStateSaved();
 
                     // Apply theme colors to the loaded content
                     ApplyRichTextBoxTheme();
 
                     // Clear any selection and move caret to start
                     ContentTextBox.CaretPosition = ContentTextBox.Document.ContentStart;
+                    MarkCurrentStateSaved();
                 }
             }
             catch (Exception ex)
@@ -817,6 +926,11 @@ namespace NoteCards
                     "Load Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isLoadingDocument = false;
+                UpdateEditedIndicator();
             }
         }
 
@@ -987,6 +1101,47 @@ namespace NoteCards
             _autoSaveTimer = null;
         }
 
+        private static void BeginAiGeneration()
+        {
+            _activeAiGenerationCount++;
+            if (_activeAiGenerationCount == 1)
+                AiGenerationStateChanged?.Invoke(null, EventArgs.Empty);
+        }
+
+        private static void EndAiGeneration()
+        {
+            if (_activeAiGenerationCount <= 0)
+                return;
+
+            _activeAiGenerationCount--;
+            if (_activeAiGenerationCount == 0)
+                AiGenerationStateChanged?.Invoke(null, EventArgs.Empty);
+        }
+
+        private bool TemporarilyDisableAutoSaveForAi()
+        {
+            if (!_isAutoSaveEnabled)
+                return false;
+
+            _isAutoSaveEnabled = false;
+            StopAutoSaveTimer();
+            return true;
+        }
+
+        private void RestoreAutoSaveAfterAi(ref bool shouldRestore)
+        {
+            if (!shouldRestore)
+                return;
+
+            shouldRestore = false;
+            if (!AppSettingsService.Load().EnableAutoSave)
+                return;
+
+            _isAutoSaveEnabled = true;
+            StopAutoSaveTimer();
+            StartAutoSaveTimer();
+        }
+
         // Content changed event handler - apply theme and update counter
         private void ContentTextBox_TextChanged_Old(object sender, TextChangedEventArgs e)
         {
@@ -1025,9 +1180,55 @@ namespace NoteCards
         // Check if content has changed since last save
         private bool HasContentChanged()
         {
-            var currentContent = GetContentAsText();
-            return currentContent != _lastSavedContent ||
-                   TitleTextBox.Text != (_currentDocument?.Title ?? string.Empty);
+            return HasUnsavedChanges();
+        }
+
+        private bool HasUnsavedChanges()
+        {
+            if (_isLoadingDocument)
+                return false;
+
+            var currentSnapshot = GetEditorSnapshot();
+            return !string.Equals(currentSnapshot, _lastSavedSnapshot, StringComparison.Ordinal);
+        }
+
+        private void MarkCurrentStateSaved()
+        {
+            _lastSavedContent = GetContentAsText();
+            _lastSavedSnapshot = GetEditorSnapshot();
+            UpdateEditedIndicator();
+        }
+
+        private void UpdateEditedIndicator()
+        {
+            if (_isLoadingDocument || EditedIndicatorText is null)
+                return;
+
+            EditedIndicatorText.Visibility = HasUnsavedChanges()
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        private string GetEditorSnapshot()
+        {
+            return string.Join(
+                '\u001F',
+                TitleTextBox.Text,
+                string.Join('\u001E', ParseTags(TagsTextBox.Text)),
+                ContentTextBox.FontFamily.Source,
+                ContentTextBox.FontSize.ToString(CultureInfo.InvariantCulture),
+                GetContentAsRtfBase64());
+        }
+
+        private string GetContentAsRtfBase64()
+        {
+            var textRange = new TextRange(
+                ContentTextBox.Document.ContentStart,
+                ContentTextBox.Document.ContentEnd);
+
+            using var stream = new MemoryStream();
+            textRange.Save(stream, DataFormats.Rtf);
+            return Convert.ToBase64String(stream.ToArray());
         }
 
         // Get current content as plain text for comparison
@@ -1051,6 +1252,87 @@ namespace NoteCards
             return text.Trim();
         }
 
+        private string GetEditorAiText()
+        {
+            var sb = new StringBuilder();
+            foreach (Block block in ContentTextBox.Document.Blocks)
+                AppendBlockTextForAi(block, sb);
+
+            var text = sb.ToString().Replace('\uFFFC', ' ');
+
+            if (text.EndsWith("\r\n", StringComparison.Ordinal))
+                text = text[..^2];
+            else if (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal))
+                text = text[..^1];
+
+            return text.Trim();
+        }
+
+        private static void AppendBlockTextForAi(Block block, StringBuilder target)
+        {
+            switch (block)
+            {
+                case Paragraph paragraph:
+                    AppendInlineTextForAi(paragraph.Inlines, target);
+                    target.AppendLine();
+                    break;
+                case Section section:
+                    foreach (Block child in section.Blocks)
+                        AppendBlockTextForAi(child, target);
+                    target.AppendLine();
+                    break;
+                case System.Windows.Documents.List list:
+                    foreach (ListItem item in list.ListItems)
+                    {
+                        foreach (Block child in item.Blocks)
+                            AppendBlockTextForAi(child, target);
+                    }
+                    target.AppendLine();
+                    break;
+                case Table table:
+                    foreach (var rowGroup in table.RowGroups)
+                    {
+                        foreach (var row in rowGroup.Rows)
+                        {
+                            foreach (var cell in row.Cells)
+                            {
+                                foreach (Block child in cell.Blocks)
+                                    AppendBlockTextForAi(child, target);
+                            }
+                        }
+                    }
+                    target.AppendLine();
+                    break;
+                case BlockUIContainer:
+                    break;
+            }
+        }
+
+        private static void AppendInlineTextForAi(InlineCollection inlines, StringBuilder target)
+        {
+            foreach (Inline inline in inlines)
+            {
+                switch (inline)
+                {
+                    case Run run:
+                        target.Append(run.Text);
+                        break;
+                    case LineBreak:
+                        target.AppendLine();
+                        break;
+                    case Span span:
+                        AppendInlineTextForAi(span.Inlines, target);
+                        break;
+                    case AnchoredBlock anchoredBlock:
+                        foreach (Block block in anchoredBlock.Blocks)
+                            AppendBlockTextForAi(block, target);
+                        break;
+                    case InlineUIContainer:
+                        break;
+                }
+            }
+        }
+
         // Perform auto-save
         private void PerformAutoSave()
         {
@@ -1062,7 +1344,7 @@ namespace NoteCards
                     SaveToDocument(_currentDocument);
 
                     // Update last saved content
-                    _lastSavedContent = GetContentAsText();
+                    MarkCurrentStateSaved();
                     _lastAutoSaveTime = DateTime.Now;
 
                     // Show visual indicator
@@ -1119,7 +1401,7 @@ namespace NoteCards
         public void SetCurrentDocument(NoteDocument document)
         {
             _currentDocument = document;
-            _lastSavedContent = GetContentAsText();
+            MarkCurrentStateSaved();
         }
 
         private void ExportPdfButton_Click(object sender, RoutedEventArgs e)
@@ -1284,7 +1566,7 @@ namespace NoteCards
 
             ApplyContentToEditor(dialog.SelectedVersion.Content);
             SaveToDocument(_currentDocument);
-            _lastSavedContent = GetContentAsText();
+            MarkCurrentStateSaved();
 
             if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm)
             {
@@ -1297,29 +1579,34 @@ namespace NoteCards
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            // Perform manual save
-            if (_currentDocument != null)
-            {
-                SaveToDocument(_currentDocument);
-                _lastSavedContent = GetContentAsText();
-
-                DocumentAutoSaved?.Invoke(_currentDocument);
-
-                // Save to disk
-                if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm)
-                {
-                    mainVm.RefreshTagFiltersAfterNoteEdit();
-                    mainVm.SaveNotes();
-                }
-
-                ShowStatusIndicator(LocalizationService.GetString("Saved"));
-            }
+            SaveCurrentDocument();
 
             // Close the window after saving
+            _allowCloseWithoutPrompt = true;
             if (_isHostedInTab)
                 CloseRequested?.Invoke(this);
             else
                 Close();
+        }
+
+        private bool SaveCurrentDocument()
+        {
+            if (_currentDocument == null)
+                return true;
+
+            SaveToDocument(_currentDocument);
+            MarkCurrentStateSaved();
+
+            DocumentAutoSaved?.Invoke(_currentDocument);
+
+            if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm)
+            {
+                mainVm.RefreshTagFiltersAfterNoteEdit();
+                mainVm.SaveNotes();
+            }
+
+            ShowStatusIndicator(LocalizationService.GetString("Saved"));
+            return true;
         }
 
         private void ApplyContentToEditor(string? content)
@@ -1393,6 +1680,7 @@ namespace NoteCards
                     SavePreferredTypography(ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
                     SyncFontSelectorsFromEditor();
                     UpdateFontButtonText();
+                    UpdateEditedIndicator();
                 }
             }
         }
@@ -1420,6 +1708,7 @@ namespace NoteCards
                     SavePreferredTypography(ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
                     SyncFontSelectorsFromEditor();
                     UpdateFontButtonText();
+                    UpdateEditedIndicator();
                 }
             }
         }
@@ -1456,6 +1745,7 @@ namespace NoteCards
                 Inline.TextDecorationsProperty,
                 isUnderlined ? DependencyProperty.UnsetValue : TextDecorations.Underline);
 
+            UpdateEditedIndicator();
             ContentTextBox.Focus();
         }
 
@@ -1466,6 +1756,7 @@ namespace NoteCards
             var shouldEnable = currentValue == DependencyProperty.UnsetValue || !Equals(currentValue, enabledValue);
 
             selection.ApplyPropertyValue(property, shouldEnable ? enabledValue : disabledValue);
+            UpdateEditedIndicator();
             ContentTextBox.Focus();
         }
 

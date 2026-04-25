@@ -14,6 +14,13 @@ namespace NoteCards.Views;
 
 public partial class FlashcardsPreviewWindow : Window
 {
+    private enum UnsavedCloseDecision
+    {
+        Cancel,
+        LeaveWithoutSaving,
+        SaveAndClose
+    }
+
     private const int DefaultSetIndex = 1;
     private const double FlashcardSearchExpandedWidth = 260;
     private const int FlashcardSearchAnimationMs = 240;
@@ -31,6 +38,9 @@ public partial class FlashcardsPreviewWindow : Window
     private bool? _statusFilterIsKnown;
     private string _searchText = string.Empty;
     private string _modelDisplayName = string.Empty;
+    private string _lastSavedSnapshot = string.Empty;
+    private bool _isInitializing = true;
+    private bool _allowCloseWithoutPrompt;
 
     public FlashcardsPreviewWindow(
         IEnumerable<FlashcardItem> items,
@@ -62,6 +72,8 @@ public partial class FlashcardsPreviewWindow : Window
         InitializeStatusFilterOptions();
         InitializeSetOptionsFromItems(setNames);
         ApplyStudyModeState();
+        _isInitializing = false;
+        MarkCurrentStateSaved();
         PreviewKeyDown += FlashcardsPreviewWindow_PreviewKeyDown;
     }
 
@@ -103,6 +115,99 @@ public partial class FlashcardsPreviewWindow : Window
                 SetIndex = Math.Max(DefaultSetIndex, item.SetIndex)
             })
             .ToList();
+    }
+
+    private void EditorField_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateEditedIndicator();
+    }
+
+    private void MarkCurrentStateSaved()
+    {
+        _lastSavedSnapshot = GetEditorSnapshot();
+        UpdateEditedIndicator();
+    }
+
+    private bool HasUnsavedChanges()
+    {
+        if (_isInitializing)
+            return false;
+
+        return !string.Equals(GetEditorSnapshot(), _lastSavedSnapshot, StringComparison.Ordinal);
+    }
+
+    private void UpdateEditedIndicator()
+    {
+        if (_isInitializing || EditedIndicatorText is null)
+            return;
+
+        EditedIndicatorText.Visibility = HasUnsavedChanges()
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private string GetEditorSnapshot()
+    {
+        var setSnapshot = string.Join(
+            '\u001E',
+            _setOptions
+                .OrderBy(option => option.SetIndex)
+                .Select(option => $"{option.SetIndex}\u001D{option.DisplayName.Trim()}"));
+
+        var cardSnapshot = string.Join(
+            '\u001E',
+            _allItems.Select(item =>
+                $"{item.SetIndex}\u001D{item.Question}\u001D{item.Answer}\u001D{item.Category}"));
+
+        return string.Join(
+            '\u001F',
+            TitleTextBox.Text,
+            string.Join('\u001E', Tags),
+            setSnapshot,
+            cardSnapshot);
+    }
+
+    private UnsavedCloseDecision GetCloseDecision()
+    {
+        if (!HasUnsavedChanges())
+            return UnsavedCloseDecision.LeaveWithoutSaving;
+
+        var documentTitle = ResolveEditorTitleForPrompt();
+        var dialog = new DeleteConfirmationDialog(
+            LocalizationService.GetString("UnsavedChanges"),
+            string.Format(LocalizationService.GetString("UnsavedChangesConfirmationFormat"), documentTitle),
+            LocalizationService.GetString("LeaveWithoutSaving"),
+            LocalizationService.GetString("Cancel"),
+            LocalizationService.GetString("SaveAndExit"))
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() != true)
+            return UnsavedCloseDecision.Cancel;
+
+        return dialog.SelectedAction switch
+        {
+            DeleteConfirmationDialog.ConfirmationAction.Confirm => UnsavedCloseDecision.LeaveWithoutSaving,
+            DeleteConfirmationDialog.ConfirmationAction.Secondary => UnsavedCloseDecision.SaveAndClose,
+            _ => UnsavedCloseDecision.Cancel
+        };
+    }
+
+    private string ResolveEditorTitleForPrompt()
+    {
+        var title = EditorTitle;
+        return string.IsNullOrWhiteSpace(title)
+            ? LocalizationService.GetString("FlashcardSetUntitled")
+            : title;
+    }
+
+    private void SaveAndClose()
+    {
+        MarkCurrentStateSaved();
+        _allowCloseWithoutPrompt = true;
+        DialogResult = true;
+        Close();
     }
 
     private void ConfigureAiGeneratedIndicator(string? modelDisplayName)
@@ -289,33 +394,6 @@ public partial class FlashcardsPreviewWindow : Window
         _studyHistoryPosition = -1;
     }
 
-    private FlashcardPreviewItem? PickNextStudyItem(FlashcardPreviewItem? currentItem)
-    {
-        var candidates = _items.Where(item => !item.IsKnown).ToList();
-        if (candidates.Count == 0)
-            return null;
-
-        if (currentItem is not null && candidates.Count > 1)
-            candidates.Remove(currentItem);
-
-        if (candidates.Count == 0)
-            return currentItem;
-
-        var totalWeight = 0;
-        foreach (var candidate in candidates)
-            totalWeight += candidate.IsUnknown ? 4 : 1;
-
-        var roll = _random.Next(totalWeight);
-        foreach (var candidate in candidates)
-        {
-            roll -= candidate.IsUnknown ? 4 : 1;
-            if (roll < 0)
-                return candidate;
-        }
-
-        return candidates[^1];
-    }
-
     private void MoveToStudyItem(FlashcardPreviewItem item, bool appendToHistory)
     {
         var index = _items.IndexOf(item);
@@ -354,6 +432,44 @@ public partial class FlashcardsPreviewWindow : Window
         _studyHistoryPosition = _studyHistory.Count - 1;
     }
 
+    private bool TryFindNextStudyIndex(int currentIndex, out int nextIndex)
+    {
+        nextIndex = -1;
+
+        if (_items.Count == 0)
+            return false;
+
+        var normalizedCurrentIndex = currentIndex >= 0 && currentIndex < _items.Count
+            ? currentIndex
+            : -1;
+
+        for (var offset = 1; offset <= _items.Count; offset++)
+        {
+            var candidateIndex = (normalizedCurrentIndex + offset) % _items.Count;
+            if (candidateIndex == normalizedCurrentIndex)
+                break;
+
+            if (_items[candidateIndex].IsKnown)
+                continue;
+
+            nextIndex = candidateIndex;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool CanMoveToNextStudyItem(bool fromHistory)
+    {
+        if (_items.Count == 0)
+            return false;
+
+        if (fromHistory && _studyHistoryPosition < _studyHistory.Count - 1)
+            return true;
+
+        return TryFindNextStudyIndex(_studyModeIndex, out _);
+    }
+
     private bool TryMoveToNextStudyItem(bool fromHistory)
     {
         if (_items.Count == 0)
@@ -366,15 +482,10 @@ public partial class FlashcardsPreviewWindow : Window
             return true;
         }
 
-        var current = (_studyModeIndex >= 0 && _studyModeIndex < _items.Count)
-            ? _items[_studyModeIndex]
-            : null;
-
-        var next = PickNextStudyItem(current);
-        if (next is null)
+        if (!TryFindNextStudyIndex(_studyModeIndex, out var nextIndex))
             return false;
 
-        MoveToStudyItem(next, appendToHistory: true);
+        MoveToStudyItem(_items[nextIndex], appendToHistory: true);
         return true;
     }
 
@@ -532,6 +643,7 @@ public partial class FlashcardsPreviewWindow : Window
 
         selectedSet.DisplayName = newName;
         ReorderSetOptions();
+        UpdateEditedIndicator();
     }
 
     private void DeleteSetButton_Click(object sender, RoutedEventArgs e)
@@ -563,6 +675,7 @@ public partial class FlashcardsPreviewWindow : Window
 
         UpdateSetSelectorState();
         ApplyFilters();
+        UpdateEditedIndicator();
     }
 
     private FlashcardSetOption AddSetOption(int setIndex, string? displayName = null, bool selectSet = false)
@@ -638,6 +751,7 @@ public partial class FlashcardsPreviewWindow : Window
             : dialog.InputText.Trim();
 
         createdSet = AddSetOption(nextSetIndex, setName, selectSet);
+        UpdateEditedIndicator();
         return true;
     }
 
@@ -679,6 +793,8 @@ public partial class FlashcardsPreviewWindow : Window
 
         if (selectedSetIndex.HasValue)
             ApplySetFilter(selectedSetIndex.Value);
+
+        UpdateEditedIndicator();
     }
 
     private void ShowMoveToSetPicker(FlashcardPreviewItem flashcard)
@@ -794,6 +910,7 @@ public partial class FlashcardsPreviewWindow : Window
 
         var selectedSetIndex = GetSelectedSetIndex() ?? _currentSetIndex;
         ApplySetFilter(selectedSetIndex);
+        UpdateEditedIndicator();
     }
 
     private void StartStudyModeButton_Click(object sender, RoutedEventArgs e)
@@ -818,13 +935,43 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
-        Close();
+        switch (GetCloseDecision())
+        {
+            case UnsavedCloseDecision.Cancel:
+                return;
+            case UnsavedCloseDecision.SaveAndClose:
+                SaveAndClose();
+                return;
+            case UnsavedCloseDecision.LeaveWithoutSaving:
+                _allowCloseWithoutPrompt = true;
+                Close();
+                return;
+        }
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = true;
-        Close();
+        SaveAndClose();
+    }
+
+    private void FlashcardsPreviewWindow_Closing(object? sender, CancelEventArgs e)
+    {
+        if (_allowCloseWithoutPrompt)
+            return;
+
+        switch (GetCloseDecision())
+        {
+            case UnsavedCloseDecision.Cancel:
+                e.Cancel = true;
+                return;
+            case UnsavedCloseDecision.SaveAndClose:
+                e.Cancel = true;
+                SaveAndClose();
+                return;
+            case UnsavedCloseDecision.LeaveWithoutSaving:
+                _allowCloseWithoutPrompt = true;
+                return;
+        }
     }
 
     private void FlashcardCard_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -979,7 +1126,7 @@ public partial class FlashcardsPreviewWindow : Window
             _items.Count);
 
         StudyModePreviousButton.IsEnabled = !_isStudyModeCardAnimating && _studyHistoryPosition > 0;
-        StudyModeNextButton.IsEnabled = !_isStudyModeCardAnimating && remainingCount > 0;
+        StudyModeNextButton.IsEnabled = !_isStudyModeCardAnimating && CanMoveToNextStudyItem(fromHistory: true);
         StudyModeMarkKnownButton.IsEnabled = !_isStudyModeCardAnimating;
         StudyModeMarkUnknownButton.IsEnabled = !_isStudyModeCardAnimating;
     }
@@ -1285,6 +1432,7 @@ public partial class FlashcardsPreviewWindow : Window
             flashcard.Question = dialog.Question;
             flashcard.Answer = dialog.Answer;
             flashcard.Category = dialog.Category;
+            UpdateEditedIndicator();
         }
     }
 
@@ -1332,6 +1480,7 @@ public partial class FlashcardsPreviewWindow : Window
             _studyModeIndex = Math.Max(0, _items.Count - 1);
 
         ApplyStudyModeState();
+        UpdateEditedIndicator();
     }
 
     private sealed class FlashcardSetOption
