@@ -126,6 +126,12 @@
                           Padding="0,0,0,8">
                 <WrapPanel Orientation="Horizontal"
                            HorizontalAlignment="Left">
+                    <Button Content="{Binding [MindMapAddChild], Source={StaticResource Loc}}"
+                            Style="{StaticResource MindMapToolbarButtonStyle}"
+                            Click="AddChildButton_Click"/>
+                    <Button Content="{Binding [MindMapAddSibling], Source={StaticResource Loc}}"
+                            Style="{StaticResource MindMapToolbarButtonStyle}"
+                            Click="AddSiblingButton_Click"/>
                     <Button Content="{Binding [MindMapExpandAll], Source={StaticResource Loc}}"
                             Style="{StaticResource MindMapToolbarButtonStyle}"
                             Click="ExpandAllButton_Click"/>

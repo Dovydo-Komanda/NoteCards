@@ -30,13 +30,22 @@ public partial class MindMapPreviewWindow : Window
     private int _currentSearchMatchIndex = -1;
     private HashSet<MindMapNode>? _renderOnlyNodes;
 
-    private readonly Brush[] _nodeBackgrounds =
+    private static readonly Brush[] LightNodeBackgrounds =
     [
         new SolidColorBrush(Color.FromRgb(63, 111, 232)),
         new SolidColorBrush(Color.FromRgb(236, 253, 245)),
         new SolidColorBrush(Color.FromRgb(239, 246, 255)),
         new SolidColorBrush(Color.FromRgb(245, 243, 255)),
         new SolidColorBrush(Color.FromRgb(255, 251, 235))
+    ];
+
+    private static readonly Brush[] DarkNodeBackgrounds =
+    [
+        new SolidColorBrush(Color.FromRgb(63, 111, 232)),
+        new SolidColorBrush(Color.FromRgb(34, 56, 49)),
+        new SolidColorBrush(Color.FromRgb(30, 48, 69)),
+        new SolidColorBrush(Color.FromRgb(49, 39, 72)),
+        new SolidColorBrush(Color.FromRgb(73, 56, 37))
     ];
 
     public MindMapPreviewWindow(
@@ -481,7 +490,7 @@ public partial class MindMapPreviewWindow : Window
                 var path = new ShapePath
                 {
                     Data = geometry,
-                    Stroke = new SolidColorBrush(Color.FromRgb(145, 158, 183)),
+                    Stroke = GetThemeBrush("MindMapConnectionBrush", Color.FromRgb(145, 158, 183)),
                     StrokeThickness = 2,
                     Opacity = 0.78
                 };
@@ -503,6 +512,7 @@ public partial class MindMapPreviewWindow : Window
         if (includeNode)
         {
         var isRoot = ReferenceEquals(node, _root);
+        var nodeBackground = GetNodeBackground(node, layout.Depth);
         var border = new Border
         {
             Width = layout.Width,
@@ -513,7 +523,7 @@ public partial class MindMapPreviewWindow : Window
             !string.IsNullOrWhiteSpace(node.BorderColor)
                 ? (Color)ColorConverter.ConvertFromString(node.BorderColor)
                 : isRoot ? Color.FromRgb(47, 92, 208) : Color.FromRgb(194, 203, 220)),
-            Background = GetNodeBackground(node, layout.Depth),
+            Background = nodeBackground,
             Padding = new Thickness(12, 8, 12, 8),
             Cursor = node.HasChildren ? Cursors.Hand : Cursors.Arrow,
             ToolTip = node.HasChildren
@@ -542,7 +552,7 @@ public partial class MindMapPreviewWindow : Window
 
         if (ReferenceEquals(node, _selectedNode))
         {
-            border.BorderBrush = new SolidColorBrush(Color.FromRgb(63, 111, 232));
+            border.BorderBrush = GetThemeBrush("MindMapSelectedBorderBrush", Color.FromRgb(63, 111, 232));
             border.BorderThickness = new Thickness(3);
         }
 
@@ -557,9 +567,7 @@ public partial class MindMapPreviewWindow : Window
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
             FontWeight = isRoot ? FontWeights.SemiBold : FontWeights.Normal,
-            Foreground = isRoot && string.IsNullOrWhiteSpace(node.BackgroundColor)
-                ? Brushes.White
-                : new SolidColorBrush(Color.FromRgb(31, 41, 55)),
+            Foreground = GetNodeForeground(nodeBackground, isRoot, node),
             Margin = !string.IsNullOrWhiteSpace(node.Icon) ? new Thickness(0, 0, 28, 0) : new Thickness(0)
         };
         mainPanel.Children.Add(text);
@@ -625,13 +633,22 @@ public partial class MindMapPreviewWindow : Window
 
         border.ContextMenu = new ContextMenu();
 
-        var addMenuItem = new MenuItem
+        var addChildMenuItem = new MenuItem
         {
-            Header = LocalizationService.GetString("Add"),
+            Header = LocalizationService.GetString("MindMapAddChild"),
             Tag = node
         };
-        addMenuItem.Click += (s, e) => AddNodeToParent(node);
-        border.ContextMenu.Items.Add(addMenuItem);
+        addChildMenuItem.Click += (s, e) => AddChildNode(node);
+        border.ContextMenu.Items.Add(addChildMenuItem);
+
+        var addSiblingMenuItem = new MenuItem
+        {
+            Header = LocalizationService.GetString("MindMapAddSibling"),
+            Tag = node,
+            IsEnabled = !ReferenceEquals(node, _root)
+        };
+        addSiblingMenuItem.Click += (s, e) => AddSiblingNode(node);
+        border.ContextMenu.Items.Add(addSiblingMenuItem);
 
         var editMenuItem = new MenuItem
         {
@@ -694,10 +711,12 @@ public partial class MindMapPreviewWindow : Window
 
     private Brush GetDefaultNodeBackground(int depth)
     {
-        if (depth <= 0)
-            return _nodeBackgrounds[0];
+        var palette = IsDarkTheme() ? DarkNodeBackgrounds : LightNodeBackgrounds;
 
-        return _nodeBackgrounds[((depth - 1) % (_nodeBackgrounds.Length - 1)) + 1];
+        if (depth <= 0)
+            return palette[0];
+
+        return palette[((depth - 1) % (palette.Length - 1)) + 1];
     }
 
     private void StyleNode(MindMapNode node)
@@ -712,11 +731,11 @@ public partial class MindMapPreviewWindow : Window
         }
     }
 
-    private void AddNodeToParent(MindMapNode parentNode)
+    private void AddChildNode(MindMapNode parentNode)
     {
         var dialog = new SimpleInputDialog(
-            LocalizationService.GetString("Add"),
-            LocalizationService.GetString("MindMapAddNodePrompt"),
+            LocalizationService.GetString("MindMapAddChild"),
+            LocalizationService.GetString("MindMapAddChildPrompt"),
             string.Empty)
         {
             Owner = this
@@ -731,6 +750,45 @@ public partial class MindMapPreviewWindow : Window
 
             parentNode.Children.Add(newNode);
             parentNode.IsExpanded = true;
+            _selectedNode = newNode;
+            RebuildMap();
+        }
+    }
+
+    private void AddSiblingNode(MindMapNode node)
+    {
+        if (ReferenceEquals(node, _root))
+        {
+            MessageBox.Show(
+                LocalizationService.GetString("MindMapCannotAddSiblingToRoot"),
+                LocalizationService.GetString("MindMapAddSibling"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        var parent = FindParentNode(_root, node);
+        if (parent is null)
+            return;
+
+        var dialog = new SimpleInputDialog(
+            LocalizationService.GetString("MindMapAddSibling"),
+            LocalizationService.GetString("MindMapAddSiblingPrompt"),
+            string.Empty)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+        {
+            var newNode = new MindMapNode
+            {
+                Text = NormalizeNodeText(dialog.InputText)
+            };
+
+            parent.Children.Add(newNode);
+            parent.IsExpanded = true;
+            _selectedNode = newNode;
             RebuildMap();
         }
     }
@@ -800,14 +858,44 @@ public partial class MindMapPreviewWindow : Window
         if (_selectedNode is null)
         {
             MessageBox.Show(
-                LocalizationService.GetString("MindMapSelectNodeToAdd"),
-                LocalizationService.GetString("Add"),
+                LocalizationService.GetString("MindMapSelectNodeToAddChild"),
+                LocalizationService.GetString("MindMapAddChild"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             return;
         }
 
-        AddNodeToParent(_selectedNode);
+        AddChildNode(_selectedNode);
+    }
+
+    private void AddChildButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedNode is null)
+        {
+            MessageBox.Show(
+                LocalizationService.GetString("MindMapSelectNodeToAddChild"),
+                LocalizationService.GetString("MindMapAddChild"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        AddChildNode(_selectedNode);
+    }
+
+    private void AddSiblingButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedNode is null)
+        {
+            MessageBox.Show(
+                LocalizationService.GetString("MindMapSelectNodeToAddSibling"),
+                LocalizationService.GetString("MindMapAddSibling"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        AddSiblingNode(_selectedNode);
     }
 
     private void DeleteNodeButton_Click(object sender, RoutedEventArgs e)
@@ -896,10 +984,12 @@ public partial class MindMapPreviewWindow : Window
 
     private Brush GetNodeBackground(int depth)
     {
-        if (depth <= 0)
-            return _nodeBackgrounds[0];
+        var palette = IsDarkTheme() ? DarkNodeBackgrounds : LightNodeBackgrounds;
 
-        return _nodeBackgrounds[((depth - 1) % (_nodeBackgrounds.Length - 1)) + 1];
+        if (depth <= 0)
+            return palette[0];
+
+        return palette[((depth - 1) % (palette.Length - 1)) + 1];
     }
 
     private void ExpandAllButton_Click(object sender, RoutedEventArgs e)
@@ -1336,6 +1426,31 @@ public partial class MindMapPreviewWindow : Window
             return brush;
 
         return new SolidColorBrush(fallbackColor);
+    }
+
+    private Brush GetNodeForeground(Brush nodeBackground, bool isRoot, MindMapNode node)
+    {
+        if (isRoot && string.IsNullOrWhiteSpace(node.BackgroundColor))
+            return Brushes.White;
+
+        if (nodeBackground is SolidColorBrush solid)
+            return IsLightColor(solid.Color) ? Brushes.Black : Brushes.White;
+
+        return GetThemeBrush("TextColor", Color.FromRgb(31, 41, 55));
+    }
+
+    private static bool IsLightColor(Color color)
+    {
+        var luminance = (0.299 * color.R) + (0.587 * color.G) + (0.114 * color.B);
+        return luminance >= 145;
+    }
+
+    private bool IsDarkTheme()
+    {
+        if (TryFindResource("WindowBackground") is SolidColorBrush background)
+            return !IsLightColor(background.Color);
+
+        return false;
     }
 
     private static IReadOnlyList<string> ParseTags(string? rawTags)
