@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using ShapePath = System.Windows.Shapes.Path;
 
@@ -332,27 +333,29 @@ public partial class MindMapPreviewWindow : Window
         {
             Width = layout.Width,
             Height = layout.Height,
-            CornerRadius = new CornerRadius(isRoot ? 14 : 10),
-            BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(194, 203, 220)),
-            Background = GetNodeBackground(layout.Depth),
+            CornerRadius = GetCornerRadius(node.NodeShape, isRoot),
+            BorderThickness = new Thickness(node.BorderThickness > 0 ? node.BorderThickness : 1),
+            BorderBrush = new SolidColorBrush(
+            !string.IsNullOrWhiteSpace(node.BorderColor)
+                ? (Color)ColorConverter.ConvertFromString(node.BorderColor)
+                : isRoot ? Color.FromRgb(47, 92, 208) : Color.FromRgb(194, 203, 220)),
+            Background = GetNodeBackground(node, layout.Depth),
             Padding = new Thickness(12, 8, 12, 8),
             Cursor = node.HasChildren ? Cursors.Hand : Cursors.Arrow,
             ToolTip = node.HasChildren
-                ? LocalizationService.GetString(node.IsExpanded ? "MindMapCollapseNode" : "MindMapExpandNode")
-                : null
+            ? LocalizationService.GetString(node.IsExpanded ? "MindMapCollapseNode" : "MindMapExpandNode")
+            : null
         };
 
-        if (isRoot)
-            border.BorderBrush = new SolidColorBrush(Color.FromRgb(47, 92, 208));
-
-        // Highlight selected node
         if (ReferenceEquals(node, _selectedNode))
         {
             border.BorderBrush = new SolidColorBrush(Color.FromRgb(63, 111, 232));
             border.BorderThickness = new Thickness(3);
         }
 
+        var mainPanel = new Grid();
+
+        // Node text
         var text = new TextBlock
         {
             Text = node.HasChildren ? $"{node.Text} {(node.IsExpanded ? "−" : "+")}" : node.Text,
@@ -361,14 +364,50 @@ public partial class MindMapPreviewWindow : Window
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
             FontWeight = isRoot ? FontWeights.SemiBold : FontWeights.Normal,
-            Foreground = isRoot
+            Foreground = isRoot && string.IsNullOrWhiteSpace(node.BackgroundColor)
                 ? Brushes.White
-                : new SolidColorBrush(Color.FromRgb(31, 41, 55))
+                : new SolidColorBrush(Color.FromRgb(31, 41, 55)),
+            Margin = !string.IsNullOrWhiteSpace(node.Icon) ? new Thickness(0, 0, 28, 0) : new Thickness(0)
         };
+        mainPanel.Children.Add(text);
 
-        border.Child = text;
+        if (!string.IsNullOrWhiteSpace(node.Icon))
+        {
+            var iconBadgeColor = !string.IsNullOrWhiteSpace(node.IconBadgeColor)
+            ? (Color)ColorConverter.ConvertFromString(node.IconBadgeColor)
+            : Color.FromRgb(245, 158, 11); // Default amber
 
-        // ✅ Left-click to select (and expand/collapse if has children)
+            var iconBadge = new Border
+            {
+                Background = new SolidColorBrush(iconBadgeColor),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(6, 4, 6, 4),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, -8, -8, 0), // Position outside the node
+                Effect = new DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    Opacity = 0.2,
+                    BlurRadius = 8,
+                    ShadowDepth = 2
+                }
+            };
+
+            var iconText = new TextBlock
+            {
+                Text = node.Icon,
+                FontSize = 14,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            iconBadge.Child = iconText;
+            mainPanel.Children.Add(iconBadge);
+        }
+
+        border.Child = mainPanel;
+
         border.MouseLeftButtonUp += (_, e) =>
         {
             if (node.HasChildren)
@@ -382,7 +421,6 @@ public partial class MindMapPreviewWindow : Window
             e.Handled = true;
         };
 
-        // ✅ Double-click to edit
         border.MouseLeftButtonDown += (_, e) =>
         {
             if (e.ClickCount == 2)
@@ -392,7 +430,6 @@ public partial class MindMapPreviewWindow : Window
             }
         };
 
-        // ✅ Right-click context menu
         border.ContextMenu = new ContextMenu();
 
         var addMenuItem = new MenuItem
@@ -410,6 +447,14 @@ public partial class MindMapPreviewWindow : Window
         };
         editMenuItem.Click += (s, e) => EditNodeText(node);
         border.ContextMenu.Items.Add(editMenuItem);
+
+        var styleMenuItem = new MenuItem
+        {
+            Header = LocalizationService.GetString("Style-Oraganize"),
+            Tag = node
+        };
+        styleMenuItem.Click += (s, e) => StyleNode(node);
+        border.ContextMenu.Items.Add(styleMenuItem);
 
         border.ContextMenu.Items.Add(new Separator());
 
@@ -432,7 +477,47 @@ public partial class MindMapPreviewWindow : Window
             DrawNodes(child);
     }
 
-    // ✅ Add node as child to selected node
+    private static CornerRadius GetCornerRadius(string? nodeShape, bool isRoot)
+    {
+        return nodeShape switch
+        {
+            "Circle" => new CornerRadius(95), // Approximate circle for 190x52 node
+            "Ellipse" => new CornerRadius(26),
+            "Rounded" => new CornerRadius(isRoot ? 14 : 10),
+            _ => new CornerRadius(0) // Rectangle
+        };
+    }
+
+    private Brush GetNodeBackground(MindMapNode node, int depth)
+    {
+        if (!string.IsNullOrWhiteSpace(node.BackgroundColor))
+        {
+            return new SolidColorBrush((Color)ColorConverter.ConvertFromString(node.BackgroundColor));
+        }
+
+        return GetDefaultNodeBackground(depth);
+    }
+
+    private Brush GetDefaultNodeBackground(int depth)
+    {
+        if (depth <= 0)
+            return _nodeBackgrounds[0];
+
+        return _nodeBackgrounds[((depth - 1) % (_nodeBackgrounds.Length - 1)) + 1];
+    }
+
+    private void StyleNode(MindMapNode node)
+    {
+        var dialog = new StyleNodeDialog { Owner = this };
+        dialog.LoadFromNode(node);
+
+        if (dialog.ShowDialog() == true)
+        {
+            dialog.ApplyToNode(node);
+            RebuildMap();
+        }
+    }
+
     private void AddNodeToParent(MindMapNode parentNode)
     {
         var dialog = new SimpleInputDialog(
@@ -457,7 +542,6 @@ public partial class MindMapPreviewWindow : Window
     }
 
 
-    // ✅ Edit node text
     private void EditNodeText(MindMapNode node)
     {
         var dialog = new SimpleInputDialog(
@@ -475,7 +559,6 @@ public partial class MindMapPreviewWindow : Window
         }
     }
 
-    // ✅ Delete node with confirmation and reparenting
     private void DeleteNodeWithConfirmation(MindMapNode node)
     {
         if (ReferenceEquals(node, _root))
@@ -518,7 +601,6 @@ public partial class MindMapPreviewWindow : Window
         }
     }
 
-    // ✅ Remove the toolbar button handlers (or keep them but they won't be visible)
     private void AddNodeButton_Click(object sender, RoutedEventArgs e)
     {
         if (_selectedNode is null)
@@ -534,7 +616,6 @@ public partial class MindMapPreviewWindow : Window
         AddNodeToParent(_selectedNode);
     }
 
-    // ✅ Delete node
     private void DeleteNodeButton_Click(object sender, RoutedEventArgs e)
     {
         if (_selectedNode is null)
@@ -568,7 +649,7 @@ public partial class MindMapPreviewWindow : Window
 
         if (result == MessageBoxResult.Yes)
         {
-            // ✅ Find parent and reparent children before deleting
+            //  Find parent and reparent children before deleting
             var parent = FindParentNode(_root, _selectedNode);
             if (parent is not null)
             {
@@ -586,7 +667,6 @@ public partial class MindMapPreviewWindow : Window
         }
     }
 
-    // ✅ Find parent of a node
     private MindMapNode? FindParentNode(MindMapNode root, MindMapNode target)
     {
         if (ReferenceEquals(root, target))
@@ -605,7 +685,6 @@ public partial class MindMapPreviewWindow : Window
         return null;
     }
 
-    // ✅ Normalize node text (reuse from MindMapConversionService pattern)
     private static string NormalizeNodeText(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
