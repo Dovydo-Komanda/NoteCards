@@ -19,6 +19,7 @@ public partial class MindMapPreviewWindow : Window
     private readonly Dictionary<MindMapNode, NodeLayout> _layouts = new();
     private string _modelDisplayName = string.Empty;
     private bool _hasCenteredOnRootInitially;
+    private MindMapNode? _selectedNode;
 
     private readonly Brush[] _nodeBackgrounds =
     [
@@ -345,6 +346,13 @@ public partial class MindMapPreviewWindow : Window
         if (isRoot)
             border.BorderBrush = new SolidColorBrush(Color.FromRgb(47, 92, 208));
 
+        // Highlight selected node
+        if (ReferenceEquals(node, _selectedNode))
+        {
+            border.BorderBrush = new SolidColorBrush(Color.FromRgb(63, 111, 232));
+            border.BorderThickness = new Thickness(3);
+        }
+
         var text = new TextBlock
         {
             Text = node.HasChildren ? $"{node.Text} {(node.IsExpanded ? "−" : "+")}" : node.Text,
@@ -359,15 +367,59 @@ public partial class MindMapPreviewWindow : Window
         };
 
         border.Child = text;
-        if (node.HasChildren)
+
+        // ✅ Left-click to select (and expand/collapse if has children)
+        border.MouseLeftButtonUp += (_, e) =>
         {
-            border.MouseLeftButtonUp += (_, e) =>
+            if (node.HasChildren)
             {
                 node.IsExpanded = !node.IsExpanded;
                 RebuildMap();
+            }
+
+            _selectedNode = node;
+            RebuildMap();
+            e.Handled = true;
+        };
+
+        // ✅ Double-click to edit
+        border.MouseLeftButtonDown += (_, e) =>
+        {
+            if (e.ClickCount == 2)
+            {
+                EditNodeText(node);
                 e.Handled = true;
-            };
-        }
+            }
+        };
+
+        // ✅ Right-click context menu
+        border.ContextMenu = new ContextMenu();
+
+        var addMenuItem = new MenuItem
+        {
+            Header = LocalizationService.GetString("Add"),
+            Tag = node
+        };
+        addMenuItem.Click += (s, e) => AddNodeToParent(node);
+        border.ContextMenu.Items.Add(addMenuItem);
+
+        var editMenuItem = new MenuItem
+        {
+            Header = LocalizationService.GetString("Edit"),
+            Tag = node
+        };
+        editMenuItem.Click += (s, e) => EditNodeText(node);
+        border.ContextMenu.Items.Add(editMenuItem);
+
+        border.ContextMenu.Items.Add(new Separator());
+
+        var deleteMenuItem = new MenuItem
+        {
+            Header = LocalizationService.GetString("Delete"),
+            Tag = node
+        };
+        deleteMenuItem.Click += (s, e) => DeleteNodeWithConfirmation(node);
+        border.ContextMenu.Items.Add(deleteMenuItem);
 
         Canvas.SetLeft(border, layout.X);
         Canvas.SetTop(border, layout.Y);
@@ -378,6 +430,195 @@ public partial class MindMapPreviewWindow : Window
 
         foreach (var child in node.Children)
             DrawNodes(child);
+    }
+
+    // ✅ Add node as child to selected node
+    private void AddNodeToParent(MindMapNode parentNode)
+    {
+        var dialog = new SimpleInputDialog(
+            LocalizationService.GetString("Add"),
+            LocalizationService.GetString("MindMapAddNodePrompt"),
+            string.Empty)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+        {
+            var newNode = new MindMapNode
+            {
+                Text = NormalizeNodeText(dialog.InputText)
+            };
+
+            parentNode.Children.Add(newNode);
+            parentNode.IsExpanded = true;
+            RebuildMap();
+        }
+    }
+
+
+    // ✅ Edit node text
+    private void EditNodeText(MindMapNode node)
+    {
+        var dialog = new SimpleInputDialog(
+            LocalizationService.GetString("Edit"),
+            LocalizationService.GetString("MindMapEditNodePrompt"),
+            node.Text)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+        {
+            node.Text = NormalizeNodeText(dialog.InputText);
+            RebuildMap();
+        }
+    }
+
+    // ✅ Delete node with confirmation and reparenting
+    private void DeleteNodeWithConfirmation(MindMapNode node)
+    {
+        if (ReferenceEquals(node, _root))
+        {
+            MessageBox.Show(
+                LocalizationService.GetString("MindMapCannotDeleteRoot"),
+                LocalizationService.GetString("Delete"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        var result = MessageBox.Show(
+            LocalizationService.GetString("MindMapDeleteNodeConfirmation"),
+            LocalizationService.GetString("Delete"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            // Find parent and reparent children before deleting
+            var parent = FindParentNode(_root, node);
+            if (parent is not null)
+            {
+                // Move all children of the deleted node to the parent
+                foreach (var child in node.Children.ToList())
+                {
+                    parent.Children.Add(child);
+                }
+
+                // Now remove the selected node
+                parent.Children.Remove(node);
+
+                if (ReferenceEquals(_selectedNode, node))
+                    _selectedNode = null;
+
+                RebuildMap();
+            }
+        }
+    }
+
+    // ✅ Remove the toolbar button handlers (or keep them but they won't be visible)
+    private void AddNodeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedNode is null)
+        {
+            MessageBox.Show(
+                LocalizationService.GetString("MindMapSelectNodeToAdd"),
+                LocalizationService.GetString("Add"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        AddNodeToParent(_selectedNode);
+    }
+
+    // ✅ Delete node
+    private void DeleteNodeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedNode is null)
+        {
+            MessageBox.Show(
+                LocalizationService.GetString("MindMapSelectNodeToDelete"),
+                LocalizationService.GetString("Delete"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        DeleteNodeWithConfirmation(_selectedNode);
+
+        if (ReferenceEquals(_selectedNode, _root))
+        {
+            MessageBox.Show(
+                LocalizationService.GetString("MindMapCannotDeleteRoot"),
+                LocalizationService.GetString("Delete"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        var result = MessageBox.Show(
+            LocalizationService.GetString("MindMapDeleteNodeConfirmation"),
+            LocalizationService.GetString("Delete"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            // ✅ Find parent and reparent children before deleting
+            var parent = FindParentNode(_root, _selectedNode);
+            if (parent is not null)
+            {
+                // Move all children of the deleted node to the parent
+                foreach (var child in _selectedNode.Children.ToList())
+                {
+                    parent.Children.Add(child);
+                }
+
+                // Now remove the selected node
+                parent.Children.Remove(_selectedNode);
+                _selectedNode = null;
+                RebuildMap();
+            }
+        }
+    }
+
+    // ✅ Find parent of a node
+    private MindMapNode? FindParentNode(MindMapNode root, MindMapNode target)
+    {
+        if (ReferenceEquals(root, target))
+            return null;
+
+        foreach (var child in root.Children)
+        {
+            if (ReferenceEquals(child, target))
+                return root;
+
+            var found = FindParentNode(child, target);
+            if (found is not null)
+                return found;
+        }
+
+        return null;
+    }
+
+    // ✅ Normalize node text (reuse from MindMapConversionService pattern)
+    private static string NormalizeNodeText(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var normalized = value.Trim();
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ");
+
+        const int maxNodeTextLength = 110;
+        if (normalized.Length > maxNodeTextLength)
+            normalized = normalized[..maxNodeTextLength].TrimEnd() + "...";
+
+        return normalized;
     }
 
     private Brush GetNodeBackground(int depth)
