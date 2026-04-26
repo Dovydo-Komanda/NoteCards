@@ -43,6 +43,10 @@
     <SolidColorBrush x:Key="SelectionBackground" Color="#F5F5F8"/>
     <SolidColorBrush x:Key="HoverBackground" Color="#FAFBFC"/>
 
+    <!-- Mind map search highlight colors -->
+    <SolidColorBrush x:Key="MindMapSearchMatchBorderBrush" Color="#EAA43A"/>
+    <SolidColorBrush x:Key="MindMapSearchActiveBorderBrush" Color="#DA6A21"/>
+
     <!-- RichTextBox Colors -->
     <SolidColorBrush x:Key="RichTextBoxBackground" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="RichTextBoxForeground" Color="#1C1C1C"/>

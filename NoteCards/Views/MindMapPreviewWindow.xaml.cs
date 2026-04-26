@@ -1,5 +1,6 @@
 using NoteCards.Localization;
 using NoteCards.Models;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -21,6 +22,9 @@ public partial class MindMapPreviewWindow : Window
     private string _modelDisplayName = string.Empty;
     private bool _hasCenteredOnRootInitially;
     private MindMapNode? _selectedNode;
+    private readonly List<MindMapNode> _searchMatches = [];
+    private string _searchQuery = string.Empty;
+    private int _currentSearchMatchIndex = -1;
 
     private readonly Brush[] _nodeBackgrounds =
     [
@@ -47,6 +51,7 @@ public partial class MindMapPreviewWindow : Window
             ? string.Empty
             : string.Join(", ", tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
         ConfigureAiGeneratedIndicator(modelDisplayName);
+        UpdateSearchResultsText();
 
         Loaded += (_, _) => RebuildMap();
         SizeChanged += (_, _) => RebuildMap();
@@ -96,6 +101,8 @@ public partial class MindMapPreviewWindow : Window
 
     private void RebuildMap()
     {
+        RefreshSearchMatches(resetIndex: false);
+
         _layouts.Clear();
         MapCanvas.Children.Clear();
 
@@ -139,7 +146,160 @@ public partial class MindMapPreviewWindow : Window
 
         DrawConnections(_root);
         DrawNodes(_root);
+
+        if (CurrentSearchMatch is not null)
+            CenterViewOnCurrentSearchMatch();
+
         QueueInitialCenterOnRoot();
+    }
+
+    private MindMapNode? CurrentSearchMatch
+        => _currentSearchMatchIndex >= 0 && _currentSearchMatchIndex < _searchMatches.Count
+            ? _searchMatches[_currentSearchMatchIndex]
+            : null;
+
+    private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        _searchQuery = SearchTextBox.Text ?? string.Empty;
+        RefreshSearchMatches(resetIndex: true);
+        RebuildMap();
+    }
+
+    private void SearchPreviousButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_searchMatches.Count == 0)
+            return;
+
+        _currentSearchMatchIndex = (_currentSearchMatchIndex - 1 + _searchMatches.Count) % _searchMatches.Count;
+        UpdateSearchResultsText();
+        CenterViewOnCurrentSearchMatch();
+        RebuildMap();
+    }
+
+    private void SearchNextButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_searchMatches.Count == 0)
+            return;
+
+        _currentSearchMatchIndex = (_currentSearchMatchIndex + 1) % _searchMatches.Count;
+        UpdateSearchResultsText();
+        CenterViewOnCurrentSearchMatch();
+        RebuildMap();
+    }
+
+    private void RefreshSearchMatches(bool resetIndex)
+    {
+        var previousCurrent = CurrentSearchMatch;
+
+        _searchMatches.Clear();
+        var tokens = GetSearchTokens(_searchQuery);
+        if (tokens.Count > 0)
+        {
+            foreach (var node in EnumerateVisibleNodes(_root))
+            {
+                if (IsSearchMatch(node, tokens))
+                    _searchMatches.Add(node);
+            }
+        }
+
+        if (_searchMatches.Count == 0)
+        {
+            _currentSearchMatchIndex = -1;
+            UpdateSearchResultsText();
+            return;
+        }
+
+        if (resetIndex)
+        {
+            _currentSearchMatchIndex = 0;
+            UpdateSearchResultsText();
+            return;
+        }
+
+        if (previousCurrent is not null)
+        {
+            var existingIndex = _searchMatches.IndexOf(previousCurrent);
+            if (existingIndex >= 0)
+            {
+                _currentSearchMatchIndex = existingIndex;
+                UpdateSearchResultsText();
+                return;
+            }
+        }
+
+        _currentSearchMatchIndex = Math.Clamp(_currentSearchMatchIndex, 0, _searchMatches.Count - 1);
+        UpdateSearchResultsText();
+    }
+
+    private static List<string> GetSearchTokens(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return [];
+
+        return query
+            .Split([' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(token => !string.IsNullOrWhiteSpace(token))
+            .ToList();
+    }
+
+    private static bool IsSearchMatch(MindMapNode node, IReadOnlyList<string> tokens)
+    {
+        if (tokens.Count == 0)
+            return false;
+
+        var text = node.Text ?? string.Empty;
+        return tokens.All(token => text.Contains(token, StringComparison.CurrentCultureIgnoreCase));
+    }
+
+    private static IEnumerable<MindMapNode> EnumerateVisibleNodes(MindMapNode root)
+    {
+        yield return root;
+
+        if (!root.IsExpanded)
+            yield break;
+
+        foreach (var child in root.Children)
+        {
+            foreach (var descendant in EnumerateVisibleNodes(child))
+                yield return descendant;
+        }
+    }
+
+    private void UpdateSearchResultsText()
+    {
+        if (SearchResultsTextBlock is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            SearchResultsTextBlock.Text = LocalizationService.GetString("MindMapSearchNoResults");
+            return;
+        }
+
+        if (_searchMatches.Count == 0)
+        {
+            SearchResultsTextBlock.Text = string.Format(
+                CultureInfo.CurrentCulture,
+                LocalizationService.GetString("MindMapSearchResultsFormat"),
+                0,
+                0);
+            return;
+        }
+
+        SearchResultsTextBlock.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            LocalizationService.GetString("MindMapSearchResultsFormat"),
+            _currentSearchMatchIndex + 1,
+            _searchMatches.Count);
+    }
+
+    private void CenterViewOnCurrentSearchMatch()
+    {
+        if (CurrentSearchMatch is null)
+            return;
+
+        if (_layouts.TryGetValue(CurrentSearchMatch, out var layout))
+            CenterViewOnLayout(layout);
     }
 
     private void UpdateMapCanvasSize()
@@ -346,6 +506,25 @@ public partial class MindMapPreviewWindow : Window
             ? LocalizationService.GetString(node.IsExpanded ? "MindMapCollapseNode" : "MindMapExpandNode")
             : null
         };
+
+        if (_searchMatches.Contains(node))
+        {
+            border.BorderBrush = GetThemeBrush("MindMapSearchMatchBorderBrush", Color.FromRgb(245, 158, 11));
+            border.BorderThickness = new Thickness(2);
+        }
+
+        if (ReferenceEquals(node, CurrentSearchMatch))
+        {
+            border.BorderBrush = GetThemeBrush("MindMapSearchActiveBorderBrush", Color.FromRgb(245, 114, 11));
+            border.BorderThickness = new Thickness(3);
+            border.Effect = new DropShadowEffect
+            {
+                Color = Colors.Black,
+                Opacity = 0.2,
+                BlurRadius = 14,
+                ShadowDepth = 0
+            };
+        }
 
         if (ReferenceEquals(node, _selectedNode))
         {
@@ -783,6 +962,14 @@ public partial class MindMapPreviewWindow : Window
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private Brush GetThemeBrush(string resourceKey, Color fallbackColor)
+    {
+        if (TryFindResource(resourceKey) is Brush brush)
+            return brush;
+
+        return new SolidColorBrush(fallbackColor);
     }
 
     private static IReadOnlyList<string> ParseTags(string? rawTags)

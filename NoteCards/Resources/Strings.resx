@@ -366,4 +366,10 @@ Right-click to remove</value></data>
   <data name="MindMapExpandNode" xml:space="preserve"><value>Expand branch</value></data>
   <data name="MindMapCollapseNode" xml:space="preserve"><value>Collapse branch</value></data>
   <data name="MindMapZoom" xml:space="preserve"><value>Zoom:</value></data>
+  <data name="MindMapSearchLabel" xml:space="preserve"><value>Search:</value></data>
+  <data name="MindMapSearchHint" xml:space="preserve"><value>Search node text or keywords...</value></data>
+  <data name="MindMapSearchPrevious" xml:space="preserve"><value>◀</value></data>
+  <data name="MindMapSearchNext" xml:space="preserve"><value>▶</value></data>
+  <data name="MindMapSearchNoResults" xml:space="preserve"><value>No search results</value></data>
+  <data name="MindMapSearchResultsFormat" xml:space="preserve"><value>{0} / {1}</value></data>
 </root>

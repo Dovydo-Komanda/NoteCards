@@ -149,6 +149,42 @@
                             VerticalAlignment="Center"
                             ValueChanged="ZoomSlider_ValueChanged"/>
                 </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="4,0,8,8">
+                    <TextBlock Text="{Binding [MindMapSearchLabel], Source={StaticResource Loc}}"
+                               VerticalAlignment="Center"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextColorSecondary}"
+                               Margin="0,0,8,0"/>
+                    <TextBox x:Name="SearchTextBox"
+                             Width="220"
+                             Height="30"
+                             Padding="8,4"
+                             VerticalContentAlignment="Center"
+                             Background="{DynamicResource CardBackground}"
+                             BorderBrush="{DynamicResource BorderColor}"
+                             Foreground="{DynamicResource TextColor}"
+                             CaretBrush="{DynamicResource TextColor}"
+                             TextChanged="SearchTextBox_TextChanged"
+                             ToolTip="{Binding [MindMapSearchHint], Source={StaticResource Loc}}"/>
+                    <Button Content="{Binding [MindMapSearchPrevious], Source={StaticResource Loc}}"
+                            Style="{StaticResource MindMapToolbarButtonStyle}"
+                            Margin="8,0,4,0"
+                            MinWidth="64"
+                            Click="SearchPreviousButton_Click"/>
+                    <Button Content="{Binding [MindMapSearchNext], Source={StaticResource Loc}}"
+                            Style="{StaticResource MindMapToolbarButtonStyle}"
+                            Margin="4,0,8,0"
+                            MinWidth="64"
+                            Click="SearchNextButton_Click"/>
+                    <TextBlock x:Name="SearchResultsTextBlock"
+                               VerticalAlignment="Center"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextColorSecondary}"
+                               Text="{Binding [MindMapSearchNoResults], Source={StaticResource Loc}}"/>
+                </StackPanel>
             </WrapPanel>
         </Border>
 
