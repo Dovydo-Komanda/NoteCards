@@ -2165,6 +2165,15 @@
                                                             Background="Transparent"
                                                             BorderThickness="0"
                                                             Cursor="Hand">
+                                                        <Button.ContextMenu>
+                                                            <ContextMenu>
+                                                                <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}"
+																Click="OpenMindMapMenuItem_Click"/>
+                                                                <Separator/>
+                                                                <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
+																Click="DeleteMindMapMenuItem_Click"/>
+                                                            </ContextMenu>
+                                                        </Button.ContextMenu>
                                                         <Border x:Name="MindMapCardBorder"
                                                                 Background="{DynamicResource CardBackground}"
                                                                 BorderBrush="{DynamicResource BorderColor}"

@@ -685,6 +685,18 @@ public class MainViewModel : ViewModelBase
             MindMaps.Add(map);
     }
 
+    public void DeleteMindMap(MindMapViewModel mindMapVm)
+    {
+        if (mindMapVm is null)
+            return;
+
+        MindMaps.Remove(mindMapVm);
+        SaveMindMaps();
+
+        OnPropertyChanged(nameof(HasMindMaps));
+        OnPropertyChanged(nameof(MindMapsView));
+    }
+
     private void NotifyMindMapsChanged()
     {
         OnPropertyChanged(nameof(HasMindMaps));

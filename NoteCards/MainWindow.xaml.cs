@@ -979,27 +979,75 @@ namespace NoteCards
 
         private void OpenMindMapButton_Click(object sender, RoutedEventArgs e)
         {
-            if (DataContext is not MainViewModel vm)
-                return;
-
-            if ((sender as FrameworkElement)?.Tag is MindMapViewModel map)
-                OpenMindMapEditor(vm, map);
+            if (sender is Button btn && btn.Tag is MindMapViewModel mindMapVm)
+            {
+                OpenMindMapEditor(mindMapVm);
+            }
         }
 
-        private void OpenMindMapEditor(MainViewModel vm, MindMapViewModel map)
+        // ✅ Open mind map from context menu
+        private void OpenMindMapMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var document = map.Document;
+            if (sender is MenuItem menuItem && menuItem.DataContext is MindMapViewModel mindMapVm)
+            {
+                OpenMindMapEditor(mindMapVm);
+            }
+        }
+
+        // ✅ Delete mind map from context menu
+        private async void DeleteMindMapMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem || menuItem.DataContext is not MindMapViewModel mindMapVm)
+                return;
+
+            // Show confirmation dialog
+            var result = MessageBox.Show(
+                LocalizationService.GetString("DeleteMindMapConfirmation"),
+                LocalizationService.GetString("DeleteMindMap"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            // Delete the mind map
+            if (DataContext is MainViewModel vm)
+            {
+                vm.DeleteMindMap(mindMapVm);
+            }
+        }
+
+        // ✅ Open mind map editor (reuse existing method or create new)
+        private void OpenMindMapEditor(MindMapViewModel mindMapVm)
+        {
             var editor = new MindMapPreviewWindow(
-                document.Root,
-                document.AiModelDisplayName,
-                document.Title,
-                document.Tags)
+                mindMapVm.Document.Root,
+                mindMapVm.Document.AiModelDisplayName,
+                mindMapVm.Document.Title,
+                mindMapVm.Document.Tags)
             {
                 Owner = this
             };
 
             if (editor.ShowDialog() == true)
-                vm.AddOrUpdateMindMap(editor.ToDocument(document));
+            {
+                // Save changes
+                var updatedDocument = editor.ToDocument(mindMapVm.Document);
+                mindMapVm.Document.Title = updatedDocument.Title;
+                mindMapVm.Document.Tags = updatedDocument.Tags;
+                mindMapVm.Document.Root = updatedDocument.Root;
+                mindMapVm.Document.LastModified = updatedDocument.LastModified;
+
+                // Notify UI of changes
+                mindMapVm.NotifyChanged();
+
+                // Save to disk
+                if (DataContext is MainViewModel vm)
+                {
+                    vm.SaveMindMaps();
+                }
+            }
         }
 
         private static bool IsWithinCalendarScheduleGearButton(DependencyObject? source)
