@@ -8,8 +8,6 @@ namespace NoteCards.Services;
 
 public sealed class FlashcardConversionService
 {
-    private const int MaxChunkCharacters = 700;
-
     public async Task<IReadOnlyList<FlashcardItem>> ConvertToFlashcardsAsync(
         string noteText,
         IProgress<BundledModelHostService.FlashcardProgress>? progress = null,
@@ -20,7 +18,7 @@ public sealed class FlashcardConversionService
 
         AiInputGuard.EnsureSuitableStudyText(noteText);
 
-        var chunks = SplitIntoChunks(noteText)
+        var chunks = AiTextChunker.Split(noteText, AiChunkingPurpose.Flashcards)
             .Where(AiInputGuard.IsSuitableStudyText)
             .ToList();
 
@@ -34,9 +32,10 @@ public sealed class FlashcardConversionService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            var chunkProgress = CreateChunkProgress(progress, i + 1, chunks.Count);
             var chunkPrompt = BuildPrompt(chunks[i], i + 1, chunks.Count);
             var result = await BundledModelHostService.Instance.CompleteAsync(
-                chunkPrompt, nPredict: 1200, temperature: 0.25, progress: progress, cancellationToken);
+                chunkPrompt, nPredict: 1200, temperature: 0.25, progress: chunkProgress, cancellationToken);
 
             outputs.Add(result);
             if (AiInputGuard.IsRefusalOutput(result))
@@ -72,6 +71,22 @@ public sealed class FlashcardConversionService
 
         var diagnosticPath = WriteParseDiagnostic(noteText, string.Join("\n\n--- CHUNK OUTPUT ---\n\n", outputs), repaired);
         throw new InvalidOperationException($"Unable to parse AI output into valid flashcards. Diagnostic log: {diagnosticPath}");
+    }
+
+    private static IProgress<BundledModelHostService.FlashcardProgress>? CreateChunkProgress(
+        IProgress<BundledModelHostService.FlashcardProgress>? progress,
+        int chunkIndex,
+        int chunkCount)
+    {
+        if (progress is null)
+            return progress;
+
+        return new Progress<BundledModelHostService.FlashcardProgress>(status =>
+            progress.Report(status with
+            {
+                ChunkIndex = Math.Max(1, chunkIndex),
+                ChunkCount = Math.Max(1, chunkCount)
+            }));
     }
 
     private static string BuildPrompt(string noteText, int chunkIndex = 1, int chunkCount = 1)
@@ -188,100 +203,6 @@ SOURCE NOTE:
         }
 
         return unique;
-    }
-
-    private static IReadOnlyList<string> SplitIntoChunks(string text)
-    {
-        var chunks = new List<string>();
-        var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\r", "\n", StringComparison.Ordinal);
-        if (normalized.Length <= MaxChunkCharacters)
-        {
-            chunks.Add(normalized.Trim());
-            return chunks;
-        }
-
-        var paragraphs = normalized.Split('\n', StringSplitOptions.None);
-        var builder = new StringBuilder();
-
-        foreach (var paragraph in paragraphs)
-        {
-            if (string.IsNullOrWhiteSpace(paragraph))
-            {
-                AppendLine(builder, string.Empty);
-                continue;
-            }
-
-            if (paragraph.Length > MaxChunkCharacters)
-            {
-                if (builder.Length > 0)
-                {
-                    chunks.Add(builder.ToString().Trim());
-                    builder.Clear();
-                }
-
-                chunks.AddRange(SplitLongParagraph(paragraph));
-
-                continue;
-            }
-
-            if (builder.Length > 0 && builder.Length + paragraph.Length + 1 > MaxChunkCharacters)
-            {
-                chunks.Add(builder.ToString().Trim());
-                builder.Clear();
-            }
-
-            AppendLine(builder, paragraph);
-        }
-
-        if (builder.Length > 0)
-            chunks.Add(builder.ToString().Trim());
-
-        return chunks;
-    }
-
-    private static List<string> SplitLongParagraph(string paragraph)
-    {
-        var chunks = new List<string>();
-        var words = paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var builder = new StringBuilder();
-
-        foreach (var word in words)
-        {
-            if (builder.Length > 0 && builder.Length + word.Length + 1 > MaxChunkCharacters)
-            {
-                chunks.Add(builder.ToString());
-                builder.Clear();
-            }
-
-            if (word.Length > MaxChunkCharacters)
-            {
-                if (builder.Length > 0)
-                {
-                    chunks.Add(builder.ToString());
-                    builder.Clear();
-                }
-
-                for (var i = 0; i < word.Length; i += MaxChunkCharacters)
-                    chunks.Add(word.Substring(i, Math.Min(MaxChunkCharacters, word.Length - i)));
-                continue;
-            }
-
-            if (builder.Length > 0)
-                builder.Append(' ');
-            builder.Append(word);
-        }
-
-        if (builder.Length > 0)
-            chunks.Add(builder.ToString());
-
-        return chunks;
-    }
-
-    private static void AppendLine(StringBuilder builder, string line)
-    {
-        if (builder.Length > 0)
-            builder.AppendLine();
-        builder.Append(line);
     }
 
     private static string NormalizeCardKey(string value)

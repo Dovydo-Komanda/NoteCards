@@ -15,7 +15,12 @@ namespace NoteCards.Services;
 
 public sealed class BundledModelHostService
 {
-    public sealed record FlashcardProgress(string StatusKey, int? Percent = null, int? GeneratedChars = null);
+    public sealed record FlashcardProgress(
+        string StatusKey,
+        int? Percent = null,
+        int? GeneratedChars = null,
+        int? ChunkIndex = null,
+        int? ChunkCount = null);
     public sealed record FlashcardToolInfo(string Key, string DisplayName);
 
     private sealed record ModelInfo(
@@ -47,6 +52,10 @@ public sealed class BundledModelHostService
     private static readonly TimeSpan InferenceOutputStallTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan InferenceLoopCheckInterval = TimeSpan.FromSeconds(2);
     private const int MinOutputCharsForLoopDetection = 1600;
+    private const int MinContextTokens = 4096;
+    private const int MaxContextTokens = 16384;
+    private const int ContextSafetyTokens = 512;
+    private const int ContextTokenGranularity = 1024;
 
     private const string RuntimeExeName = "llama-completion.exe";
     private const string RuntimeArchivePrefix = "notecards-model-runtime";
@@ -158,6 +167,7 @@ public sealed class BundledModelHostService
 
                 var threadCount = Math.Max(1, Environment.ProcessorCount - 1);
                 var temperatureText = temperature.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var contextTokens = CalculateContextTokens(prompt, nPredict);
 
                 // === ANTI-THINKING + STABILITY PARAMETRAI ===
                 var commandArgs = new[]
@@ -170,7 +180,7 @@ public sealed class BundledModelHostService
                     "--top-k", "40",
                     "--presence-penalty", "2.0",
                     "--repeat-penalty", "1.08",
-                    "-c", "16384",
+                    "-c", contextTokens.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "-t", threadCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "--no-display-prompt",
                     "-st",
@@ -343,6 +353,35 @@ public sealed class BundledModelHostService
         {
             _sync.Release();
         }
+    }
+
+    private static int CalculateContextTokens(string prompt, int nPredict)
+    {
+        var estimatedPromptTokens = EstimateTokenCount(prompt);
+        var requestedTokens = estimatedPromptTokens + Math.Max(0, nPredict) + ContextSafetyTokens;
+        var roundedTokens = RoundUp(requestedTokens, ContextTokenGranularity);
+        return Math.Clamp(roundedTokens, MinContextTokens, MaxContextTokens);
+    }
+
+    private static int EstimateTokenCount(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return 0;
+
+        var charEstimate = (int)Math.Ceiling(text.Length / 3.25);
+        var wordCount = Regex.Matches(text, @"[\p{L}\p{N}]+").Count;
+        var symbolCount = Regex.Matches(text, @"[^\s\p{L}\p{N}]").Count;
+        var wordEstimate = (int)Math.Ceiling(wordCount * 1.45 + symbolCount * 0.45);
+
+        return Math.Max(charEstimate, wordEstimate);
+    }
+
+    private static int RoundUp(int value, int granularity)
+    {
+        if (granularity <= 0)
+            return value;
+
+        return ((value + granularity - 1) / granularity) * granularity;
     }
 
     private static async Task PumpStreamAsync(

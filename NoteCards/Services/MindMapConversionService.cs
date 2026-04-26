@@ -8,7 +8,6 @@ namespace NoteCards.Services;
 
 public sealed class MindMapConversionService
 {
-    private const int MaxSourceCharacters = 9000;
     private const int MaxNodeTextLength = 110;
 
     public async Task<MindMapNode?> ConvertToMindMapAsync(
@@ -23,48 +22,104 @@ public sealed class MindMapConversionService
         AiInputGuard.EnsureSuitableStudyText(noteText);
 
         var normalizedTitle = NormalizeNodeText(noteTitle);
-        var source = noteText.Trim();
-        if (source.Length > MaxSourceCharacters)
-            source = source[..MaxSourceCharacters];
+        var chunks = AiTextChunker.Split(noteText, AiChunkingPurpose.MindMap)
+            .Where(AiInputGuard.IsSuitableStudyText)
+            .ToList();
 
-        var prompt = BuildPrompt(normalizedTitle, source);
-        var output = await BundledModelHostService.Instance.CompleteAsync(
-            prompt, nPredict: 1800, temperature: 0.15, progress: progress, cancellationToken);
-
-        if (AiInputGuard.IsRefusalOutput(output))
+        if (chunks.Count == 0)
             throw new AiInputRejectedException(LocalizationService.GetString("AiInputRejectedInsufficientContent"));
 
-        var aiMap = ParseMindMap(output, normalizedTitle);
-        if (IsUsefulMindMap(aiMap))
-            return aiMap;
+        var combinedRoot = new MindMapNode
+        {
+            Text = normalizedTitle
+        };
 
-        var repairPrompt = BuildRepairPrompt(normalizedTitle, source, output);
-        var repaired = await BundledModelHostService.Instance.CompleteAsync(
-            repairPrompt, nPredict: 1800, temperature: 0.1, progress: progress, cancellationToken);
+        var outputs = new List<string>();
+        var repairedOutputs = new List<string>();
+        var sawRefusal = false;
 
-        if (AiInputGuard.IsRefusalOutput(repaired))
+        for (var i = 0; i < chunks.Count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var chunkProgress = CreateChunkProgress(progress, i + 1, chunks.Count);
+            var prompt = BuildPrompt(normalizedTitle, chunks[i], i + 1, chunks.Count);
+            var output = await BundledModelHostService.Instance.CompleteAsync(
+                prompt, nPredict: 1800, temperature: 0.15, progress: chunkProgress, cancellationToken);
+            outputs.Add(output);
+
+            if (AiInputGuard.IsRefusalOutput(output))
+            {
+                sawRefusal = true;
+                continue;
+            }
+
+            var aiMap = ParseMindMap(output, normalizedTitle);
+            if (aiMap is not null && IsUsefulMindMap(aiMap))
+            {
+                MergeMindMap(combinedRoot, aiMap);
+                continue;
+            }
+
+            var repairPrompt = BuildRepairPrompt(normalizedTitle, chunks[i], output, i + 1, chunks.Count);
+            var repaired = await BundledModelHostService.Instance.CompleteAsync(
+                repairPrompt, nPredict: 1800, temperature: 0.1, progress: chunkProgress, cancellationToken);
+            repairedOutputs.Add(repaired);
+
+            if (AiInputGuard.IsRefusalOutput(repaired))
+            {
+                sawRefusal = true;
+                continue;
+            }
+
+            var repairedMap = ParseMindMap(repaired, normalizedTitle);
+            if (repairedMap is not null && IsUsefulMindMap(repairedMap))
+                MergeMindMap(combinedRoot, repairedMap);
+        }
+
+        if (IsUsefulMindMap(combinedRoot))
+            return combinedRoot;
+
+        if (sawRefusal && outputs.Count > 0 && outputs.All(AiInputGuard.IsRefusalOutput))
             throw new AiInputRejectedException(LocalizationService.GetString("AiInputRejectedInsufficientContent"));
-
-        var repairedMap = ParseMindMap(repaired, normalizedTitle);
-        if (IsUsefulMindMap(repairedMap))
-            return repairedMap;
 
         var fallback = BuildFallbackMindMap(normalizedTitle, noteText);
         if (IsUsefulMindMap(fallback))
             return fallback;
 
-        var diagnosticPath = WriteParseDiagnostic(noteText, output, repaired);
+        var diagnosticPath = WriteParseDiagnostic(noteText, string.Join("\n\n--- CHUNK OUTPUT ---\n\n", outputs), string.Join("\n\n--- REPAIR OUTPUT ---\n\n", repairedOutputs));
         throw new InvalidOperationException($"Unable to parse AI output into a valid mind map. Diagnostic log: {diagnosticPath}");
     }
 
-    private static string BuildPrompt(string noteTitle, string sourceNote)
+    private static IProgress<BundledModelHostService.FlashcardProgress>? CreateChunkProgress(
+        IProgress<BundledModelHostService.FlashcardProgress>? progress,
+        int chunkIndex,
+        int chunkCount)
+    {
+        if (progress is null)
+            return progress;
+
+        return new Progress<BundledModelHostService.FlashcardProgress>(status =>
+            progress.Report(status with
+            {
+                ChunkIndex = Math.Max(1, chunkIndex),
+                ChunkCount = Math.Max(1, chunkCount)
+            }));
+    }
+
+    private static string BuildPrompt(string noteTitle, string sourceNote, int chunkIndex = 1, int chunkCount = 1)
     {
         var title = string.IsNullOrWhiteSpace(noteTitle) ? "Main topic" : noteTitle;
+        var sectionInstruction = chunkCount > 1
+            ? $"You are processing section {chunkIndex} of {chunkCount} from a longer note. Build a focused hierarchy for this section and avoid repeating generic branches."
+            : "Build a focused hierarchy for the whole note.";
+
         return $"""
 You are a strict mind map generator.
 Never think out loud. Never explain. Never output reasoning, analysis, <think> tags, markdown fences, or extra text.
 
 Convert SOURCE NOTE into a hierarchical mind map.
+{sectionInstruction}
 The main topic or note title must be the central idea.
 Subsections and key points must become child branches and sub-branches.
 Use ONLY information from SOURCE NOTE.
@@ -96,13 +151,18 @@ SOURCE NOTE:
 """;
     }
 
-    private static string BuildRepairPrompt(string noteTitle, string sourceNote, string previousOutput)
+    private static string BuildRepairPrompt(string noteTitle, string sourceNote, string previousOutput, int chunkIndex = 1, int chunkCount = 1)
     {
         var title = string.IsNullOrWhiteSpace(noteTitle) ? "Main topic" : noteTitle;
+        var sectionInstruction = chunkCount > 1
+            ? $"This is section {chunkIndex} of {chunkCount}; repair only the hierarchy for this section."
+            : "Repair the hierarchy for the whole note.";
+
         return $"""
 Repair the mind map output.
 Ignore any noisy text, reasoning, comments, or markdown fences.
 Use ONLY SOURCE NOTE and output ONLY this format:
+{sectionInstruction}
 Detect the primary language and writing system of SOURCE NOTE.
 Write every root label, branch, and child node in that same detected language and script.
 Do not translate to English unless SOURCE NOTE is primarily English.
@@ -276,6 +336,60 @@ PREVIOUS OUTPUT:
             root.Children.Add(new MindMapNode { Text = sentence });
 
         return root;
+    }
+
+    private static void MergeMindMap(MindMapNode targetRoot, MindMapNode sourceRoot)
+    {
+        if (string.IsNullOrWhiteSpace(targetRoot.Text))
+            targetRoot.Text = NormalizeNodeText(sourceRoot.Text);
+
+        foreach (var child in sourceRoot.Children)
+            MergeNode(targetRoot.Children, child);
+    }
+
+    private static void MergeNode(IList<MindMapNode> siblings, MindMapNode source)
+    {
+        var key = NormalizeMergeKey(source.Text);
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+
+        var existing = siblings.FirstOrDefault(node => string.Equals(NormalizeMergeKey(node.Text), key, StringComparison.Ordinal));
+        if (existing is null)
+        {
+            siblings.Add(CloneMindMapNode(source));
+            return;
+        }
+
+        foreach (var child in source.Children)
+            MergeNode(existing.Children, child);
+    }
+
+    private static MindMapNode CloneMindMapNode(MindMapNode source)
+    {
+        var clone = new MindMapNode
+        {
+            Text = source.Text,
+            IsExpanded = source.IsExpanded,
+            BackgroundColor = source.BackgroundColor,
+            BorderColor = source.BorderColor,
+            BorderThickness = source.BorderThickness,
+            NodeShape = source.NodeShape,
+            Icon = source.Icon,
+            IconBadgeColor = source.IconBadgeColor
+        };
+
+        foreach (var child in source.Children)
+            clone.Children.Add(CloneMindMapNode(child));
+
+        return clone;
+    }
+
+    private static string NormalizeMergeKey(string value)
+    {
+        var normalized = NormalizeNodeText(value).ToLowerInvariant();
+        normalized = Regex.Replace(normalized, @"[^\p{L}\p{N}\s]", " ");
+        normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+        return normalized;
     }
 
     private static bool IsUsefulMindMap(MindMapNode? root)

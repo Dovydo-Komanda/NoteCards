@@ -626,6 +626,15 @@ namespace NoteCards
             var baseText = LocalizationService.GetString(statusKey);
             useAnimation = true;
 
+            if (status.ChunkIndex.HasValue
+                && status.ChunkCount.HasValue
+                && status.ChunkCount.Value > 0)
+            {
+                var chunkCount = Math.Max(1, status.ChunkCount.Value);
+                var chunkIndex = Math.Clamp(status.ChunkIndex.Value, 1, chunkCount);
+                baseText = $"({chunkIndex}/{chunkCount}) {baseText}";
+            }
+
             if (status.GeneratedChars.HasValue)
             {
                 return string.Format(
