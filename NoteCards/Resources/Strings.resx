@@ -365,6 +365,11 @@ Right-click to remove</value></data>
   <data name="MindMapCollapseAll" xml:space="preserve"><value>Collapse all</value></data>
   <data name="MindMapExpandNode" xml:space="preserve"><value>Expand branch</value></data>
   <data name="MindMapCollapseNode" xml:space="preserve"><value>Collapse branch</value></data>
+  <data name="DeleteMindMap" xml:space="preserve"><value>Delete mind map</value></data>
+  <data name="DeleteMindMapConfirmationFormat" xml:space="preserve"><value>Are you sure you want to delete "{0}"? This action cannot be undone.</value></data>
+  <data name="MindMapDeleteNodeTitle" xml:space="preserve"><value>Delete branch node</value></data>
+  <data name="MindMapDeleteNodeConfirmationFormat" xml:space="preserve"><value>Are you sure you want to delete "{0}"? Its child branches will be moved to the parent branch.</value></data>
+  <data name="MindMapNodeDefaultName" xml:space="preserve"><value>Untitled node</value></data>
   <data name="MindMapAddChild" xml:space="preserve"><value>Add child branch</value></data>
   <data name="MindMapAddSibling" xml:space="preserve"><value>Add sibling branch</value></data>
   <data name="MindMapAddChildPrompt" xml:space="preserve"><value>Enter child branch text:</value></data>

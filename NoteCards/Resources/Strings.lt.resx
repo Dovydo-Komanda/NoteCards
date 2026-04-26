@@ -325,6 +325,11 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="MindMapCollapseAll" xml:space="preserve"><value>Sutraukti viską</value></data>
   <data name="MindMapExpandNode" xml:space="preserve"><value>Išskleisti šaką</value></data>
   <data name="MindMapCollapseNode" xml:space="preserve"><value>Sutraukti šaką</value></data>
+  <data name="DeleteMindMap" xml:space="preserve"><value>Ištrinti minčių žemėlapį</value></data>
+  <data name="DeleteMindMapConfirmationFormat" xml:space="preserve"><value>Ar tikrai norite ištrinti „{0}“? Šio veiksmo negalima atšaukti.</value></data>
+  <data name="MindMapDeleteNodeTitle" xml:space="preserve"><value>Ištrinti šakos mazgą</value></data>
+  <data name="MindMapDeleteNodeConfirmationFormat" xml:space="preserve"><value>Ar tikrai norite ištrinti „{0}“? Jo vaikinės šakos bus perkeltos į tėvinę šaką.</value></data>
+  <data name="MindMapNodeDefaultName" xml:space="preserve"><value>Mazgas be pavadinimo</value></data>
   <data name="MindMapAddChild" xml:space="preserve"><value>Pridėti vaikinę šaką</value></data>
   <data name="MindMapAddSibling" xml:space="preserve"><value>Pridėti gretimą šaką</value></data>
   <data name="MindMapAddChildPrompt" xml:space="preserve"><value>Įveskite vaikinės šakos tekstą:</value></data>

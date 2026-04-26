@@ -823,34 +823,39 @@ public partial class MindMapPreviewWindow : Window
             return;
         }
 
-        var result = MessageBox.Show(
-            LocalizationService.GetString("MindMapDeleteNodeConfirmation"),
-            LocalizationService.GetString("Delete"),
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning,
-            MessageBoxResult.No);
+        var nodeName = string.IsNullOrWhiteSpace(node.Text)
+            ? LocalizationService.GetString("MindMapNodeDefaultName")
+            : node.Text.Trim();
 
-        if (result == MessageBoxResult.Yes)
+        var dialog = new DeleteConfirmationDialog(
+            LocalizationService.GetString("MindMapDeleteNodeTitle"),
+            string.Format(
+                CultureInfo.CurrentCulture,
+                LocalizationService.GetString("MindMapDeleteNodeConfirmationFormat"),
+                nodeName))
         {
-            // Find parent and reparent children before deleting
-            var parent = FindParentNode(_root, node);
-            if (parent is not null)
-            {
-                // Move all children of the deleted node to the parent
-                foreach (var child in node.Children.ToList())
-                {
-                    parent.Children.Add(child);
-                }
+            Owner = this
+        };
 
-                // Now remove the selected node
-                parent.Children.Remove(node);
+        if (dialog.ShowDialog() != true)
+            return;
 
-                if (ReferenceEquals(_selectedNode, node))
-                    _selectedNode = null;
+        // Find parent and reparent children before deleting
+        var parent = FindParentNode(_root, node);
+        if (parent is null)
+            return;
 
-                RebuildMap();
-            }
-        }
+        // Move all children of the deleted node to the parent
+        foreach (var child in node.Children.ToList())
+            parent.Children.Add(child);
+
+        // Now remove the selected node
+        parent.Children.Remove(node);
+
+        if (ReferenceEquals(_selectedNode, node))
+            _selectedNode = null;
+
+        RebuildMap();
     }
 
     private void AddNodeButton_Click(object sender, RoutedEventArgs e)
@@ -911,42 +916,6 @@ public partial class MindMapPreviewWindow : Window
         }
 
         DeleteNodeWithConfirmation(_selectedNode);
-
-        if (ReferenceEquals(_selectedNode, _root))
-        {
-            MessageBox.Show(
-                LocalizationService.GetString("MindMapCannotDeleteRoot"),
-                LocalizationService.GetString("Delete"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-            return;
-        }
-
-        var result = MessageBox.Show(
-            LocalizationService.GetString("MindMapDeleteNodeConfirmation"),
-            LocalizationService.GetString("Delete"),
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning,
-            MessageBoxResult.No);
-
-        if (result == MessageBoxResult.Yes)
-        {
-            //  Find parent and reparent children before deleting
-            var parent = FindParentNode(_root, _selectedNode);
-            if (parent is not null)
-            {
-                // Move all children of the deleted node to the parent
-                foreach (var child in _selectedNode.Children.ToList())
-                {
-                    parent.Children.Add(child);
-                }
-
-                // Now remove the selected node
-                parent.Children.Remove(_selectedNode);
-                _selectedNode = null;
-                RebuildMap();
-            }
-        }
     }
 
     private MindMapNode? FindParentNode(MindMapNode root, MindMapNode target)

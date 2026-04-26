@@ -1015,15 +1015,16 @@ namespace NoteCards
             if (sender is not MenuItem menuItem || menuItem.DataContext is not MindMapViewModel mindMapVm)
                 return;
 
-            // Show confirmation dialog
-            var result = MessageBox.Show(
-                LocalizationService.GetString("DeleteMindMapConfirmation"),
+            var dialog = new DeleteConfirmationDialog(
                 LocalizationService.GetString("DeleteMindMap"),
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                MessageBoxResult.No);
+                string.Format(
+                    LocalizationService.GetString("DeleteMindMapConfirmationFormat"),
+                    mindMapVm.Title))
+            {
+                Owner = this
+            };
 
-            if (result != MessageBoxResult.Yes)
+            if (dialog.ShowDialog() != true)
                 return;
 
             // Delete the mind map
