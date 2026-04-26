@@ -377,6 +377,10 @@ Right-click to remove</value></data>
   <data name="MindMapSelectNodeToAddChild" xml:space="preserve"><value>Select a node to add a child branch.</value></data>
   <data name="MindMapSelectNodeToAddSibling" xml:space="preserve"><value>Select a node to add a sibling branch.</value></data>
   <data name="MindMapCannotAddSiblingToRoot" xml:space="preserve"><value>The root node cannot have siblings.</value></data>
+  <data name="MindMapAutoLayout" xml:space="preserve"><value>Auto layout</value></data>
+  <data name="MindMapLayoutMode" xml:space="preserve"><value>Layout:</value></data>
+  <data name="MindMapLayoutBalancedTree" xml:space="preserve"><value>Balanced tree</value></data>
+  <data name="MindMapLayoutRadial" xml:space="preserve"><value>Radial</value></data>
   <data name="MindMapZoom" xml:space="preserve"><value>Zoom:</value></data>
   <data name="MindMapSearchLabel" xml:space="preserve"><value>Search:</value></data>
   <data name="MindMapSearchHint" xml:space="preserve"><value>Search node text or keywords...</value></data>

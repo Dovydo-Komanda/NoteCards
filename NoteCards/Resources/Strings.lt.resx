@@ -337,6 +337,10 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="MindMapSelectNodeToAddChild" xml:space="preserve"><value>Pasirinkite mazgą, kuriam pridėti vaikinę šaką.</value></data>
   <data name="MindMapSelectNodeToAddSibling" xml:space="preserve"><value>Pasirinkite mazgą, kuriam pridėti gretimą šaką.</value></data>
   <data name="MindMapCannotAddSiblingToRoot" xml:space="preserve"><value>Šakninis mazgas negali turėti gretimų šakų.</value></data>
+  <data name="MindMapAutoLayout" xml:space="preserve"><value>Automatinis išdėstymas</value></data>
+  <data name="MindMapLayoutMode" xml:space="preserve"><value>Išdėstymas:</value></data>
+  <data name="MindMapLayoutBalancedTree" xml:space="preserve"><value>Subalansuotas medis</value></data>
+  <data name="MindMapLayoutRadial" xml:space="preserve"><value>Radialinis</value></data>
   <data name="MindMapZoom" xml:space="preserve"><value>Mastelis:</value></data>
   <data name="MindMapSearchLabel" xml:space="preserve"><value>Paieška:</value></data>
   <data name="MindMapSearchHint" xml:space="preserve"><value>Ieškokite mazgo teksto ar raktažodžių...</value></data>

@@ -29,6 +29,8 @@ public partial class MindMapPreviewWindow : Window
     private string _searchQuery = string.Empty;
     private int _currentSearchMatchIndex = -1;
     private HashSet<MindMapNode>? _renderOnlyNodes;
+    private MindMapLayoutMode _selectedLayoutMode = MindMapLayoutMode.BalancedTree;
+    private bool _suppressLayoutModeSelectionChanged;
 
     private static readonly Brush[] LightNodeBackgrounds =
     [
@@ -65,6 +67,10 @@ public partial class MindMapPreviewWindow : Window
             : string.Join(", ", tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
         ConfigureAiGeneratedIndicator(modelDisplayName);
         UpdateSearchResultsText();
+
+        _suppressLayoutModeSelectionChanged = true;
+        LayoutModeComboBox.SelectedIndex = 0;
+        _suppressLayoutModeSelectionChanged = false;
 
         Loaded += (_, _) => RebuildMap();
         SizeChanged += (_, _) => RebuildMap();
@@ -119,6 +125,26 @@ public partial class MindMapPreviewWindow : Window
         _layouts.Clear();
         MapCanvas.Children.Clear();
 
+        if (_selectedLayoutMode == MindMapLayoutMode.Radial)
+            BuildRadialLayout();
+        else
+            BuildBalancedTreeLayout();
+
+        NormalizeLayoutOffset();
+
+        UpdateMapCanvasSize();
+
+        DrawConnections(_root);
+        DrawNodes(_root);
+
+        if (CurrentSearchMatch is not null)
+            CenterViewOnCurrentSearchMatch();
+
+        QueueInitialCenterOnRoot();
+    }
+
+    private void BuildBalancedTreeLayout()
+    {
         var step = NodeWidth + HorizontalGap;
         var rootHeight = MeasureNodeHeight(_root);
         IReadOnlyList<MindMapNode> visibleRootChildren = _root.IsExpanded
@@ -152,18 +178,81 @@ public partial class MindMapPreviewWindow : Window
             direction: 1,
             depth: 1,
             top: CanvasPadding + Math.Max(0, (totalHeight - rightHeight) / 2));
+    }
 
-        NormalizeLayoutOffset();
+    private void BuildRadialLayout()
+    {
+        var levels = GetVisibleLevels(_root);
+        var rootHeight = MeasureNodeHeight(_root);
+        var centerX = CanvasPadding + 520;
+        var centerY = CanvasPadding + 420;
 
-        UpdateMapCanvasSize();
+        _layouts[_root] = new NodeLayout(
+            centerX - NodeWidth / 2,
+            centerY - rootHeight / 2,
+            NodeWidth,
+            rootHeight,
+            Direction: 0,
+            Depth: 0);
 
-        DrawConnections(_root);
-        DrawNodes(_root);
+        var baseRadius = Math.Max(NodeWidth + 70, rootHeight + 90);
+        var minRingGap = Math.Max(130, NodeWidth * 0.75);
+        var previousRadius = 0d;
 
-        if (CurrentSearchMatch is not null)
-            CenterViewOnCurrentSearchMatch();
+        for (var depth = 1; depth < levels.Count; depth++)
+        {
+            var levelNodes = levels[depth];
+            if (levelNodes.Count == 0)
+                continue;
 
-        QueueInitialCenterOnRoot();
+            var angleStep = (Math.PI * 2) / levelNodes.Count;
+            var minArcSpacing = NodeWidth + 36;
+            var minRadiusByArc = levelNodes.Count <= 1
+                ? baseRadius + (depth - 1) * minRingGap
+                : minArcSpacing / angleStep;
+            var radius = Math.Max(baseRadius + (depth - 1) * minRingGap, minRadiusByArc);
+            radius = Math.Max(radius, previousRadius + minRingGap);
+            previousRadius = radius;
+
+            for (var i = 0; i < levelNodes.Count; i++)
+            {
+                var node = levelNodes[i];
+                var angle = -Math.PI / 2 + i * angleStep;
+                var nodeHeight = MeasureNodeHeight(node);
+                var x = centerX + Math.Cos(angle) * radius - NodeWidth / 2;
+                var y = centerY + Math.Sin(angle) * radius - nodeHeight / 2;
+                var direction = Math.Cos(angle) < 0 ? -1 : 1;
+
+                _layouts[node] = new NodeLayout(x, y, NodeWidth, nodeHeight, direction, depth);
+            }
+        }
+    }
+
+    private static List<List<MindMapNode>> GetVisibleLevels(MindMapNode root)
+    {
+        var levels = new List<List<MindMapNode>> { new() { root } };
+        var currentLevel = new List<MindMapNode> { root };
+
+        while (currentLevel.Count > 0)
+        {
+            var nextLevel = new List<MindMapNode>();
+            foreach (var node in currentLevel)
+            {
+                if (!node.IsExpanded)
+                    continue;
+
+                foreach (var child in node.Children)
+                    nextLevel.Add(child);
+            }
+
+            if (nextLevel.Count == 0)
+                break;
+
+            levels.Add(nextLevel);
+            currentLevel = nextLevel;
+        }
+
+        return levels;
     }
 
     private MindMapNode? CurrentSearchMatch
@@ -976,6 +1065,25 @@ public partial class MindMapPreviewWindow : Window
         RebuildMap();
     }
 
+    private void LayoutModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressLayoutModeSelectionChanged)
+            return;
+
+        if (LayoutModeComboBox.SelectedItem is not ComboBoxItem selectedItem)
+            return;
+
+        _selectedLayoutMode = selectedItem.Tag as string == "Radial"
+            ? MindMapLayoutMode.Radial
+            : MindMapLayoutMode.BalancedTree;
+    }
+
+    private void AutoLayoutButton_Click(object sender, RoutedEventArgs e)
+    {
+        RebuildMap();
+        Dispatcher.BeginInvoke(new Action(CenterViewOnRoot), DispatcherPriority.Loaded);
+    }
+
     private static void SetExpanded(MindMapNode node, bool isExpanded)
     {
         node.IsExpanded = isExpanded;
@@ -1433,6 +1541,12 @@ public partial class MindMapPreviewWindow : Window
             .Where(tag => !string.IsNullOrWhiteSpace(tag))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private enum MindMapLayoutMode
+    {
+        BalancedTree,
+        Radial
     }
 
     private sealed record NodeLayout(double X, double Y, double Width, double Height, int Direction, int Depth);
