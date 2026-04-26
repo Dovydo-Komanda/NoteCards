@@ -372,4 +372,15 @@ Right-click to remove</value></data>
   <data name="MindMapSearchNext" xml:space="preserve"><value>▶</value></data>
   <data name="MindMapSearchNoResults" xml:space="preserve"><value>No search results</value></data>
   <data name="MindMapSearchResultsFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="MindMapExportAll" xml:space="preserve"><value>Export all</value></data>
+  <data name="MindMapExportSelectedBranch" xml:space="preserve"><value>Export selected branch</value></data>
+  <data name="MindMapExportSelectBranchFirst" xml:space="preserve"><value>Select a branch node first.</value></data>
+  <data name="MindMapExportDialogTitle" xml:space="preserve"><value>Export mind map</value></data>
+  <data name="MindMapExportDialogFilter" xml:space="preserve"><value>PNG image (*.png)|*.png|FreeMind file (*.mm)|*.mm|NoteCards mind map (*.mmap)|*.mmap</value></data>
+  <data name="MindMapExportUnsupportedFormat" xml:space="preserve"><value>Unsupported export format.</value></data>
+  <data name="MindMapExportSuccess" xml:space="preserve"><value>Mind map exported successfully.</value></data>
+  <data name="MindMapExportFailedFormat" xml:space="preserve"><value>Failed to export mind map: {0}</value></data>
+  <data name="MindMapExportAllFileSuffix" xml:space="preserve"><value>full</value></data>
+  <data name="MindMapExportBranchFileSuffix" xml:space="preserve"><value>branch</value></data>
+  <data name="MindMapExportEmptyCanvas" xml:space="preserve"><value>Mind map has no renderable content to export.</value></data>
 </root>

@@ -1,6 +1,9 @@
 using NoteCards.Localization;
 using NoteCards.Models;
+using Microsoft.Win32;
 using System.Globalization;
+using System.Xml.Linq;
+using System.Windows.Media.Imaging;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -25,6 +28,7 @@ public partial class MindMapPreviewWindow : Window
     private readonly List<MindMapNode> _searchMatches = [];
     private string _searchQuery = string.Empty;
     private int _currentSearchMatchIndex = -1;
+    private HashSet<MindMapNode>? _renderOnlyNodes;
 
     private readonly Brush[] _nodeBackgrounds =
     [
@@ -436,49 +440,55 @@ public partial class MindMapPreviewWindow : Window
 
     private void DrawConnections(MindMapNode node)
     {
-        if (!node.IsExpanded || node.Children.Count == 0 || !_layouts.TryGetValue(node, out var parentLayout))
+        if (!node.IsExpanded || node.Children.Count == 0)
             return;
+
+        var includeNode = _renderOnlyNodes is null || _renderOnlyNodes.Contains(node);
+        var hasParentLayout = _layouts.TryGetValue(node, out var parentLayout);
 
         foreach (var child in node.Children)
         {
-            if (!_layouts.TryGetValue(child, out var childLayout))
-                continue;
+            var includeChild = _renderOnlyNodes is null || _renderOnlyNodes.Contains(child);
 
-            var direction = childLayout.Direction < 0 ? -1 : 1;
-            var start = direction < 0
-                ? new Point(parentLayout.X, parentLayout.Y + parentLayout.Height / 2)
-                : new Point(parentLayout.X + parentLayout.Width, parentLayout.Y + parentLayout.Height / 2);
-            var end = direction < 0
-                ? new Point(childLayout.X + childLayout.Width, childLayout.Y + childLayout.Height / 2)
-                : new Point(childLayout.X, childLayout.Y + childLayout.Height / 2);
-            var horizontalDistance = Math.Abs(end.X - start.X);
-            var midOffset = Math.Max(42, horizontalDistance * 0.45);
-
-            var figure = new PathFigure { StartPoint = start };
-            figure.Segments.Add(direction < 0
-                ? new BezierSegment(
-                    new Point(start.X - midOffset, start.Y),
-                    new Point(end.X + midOffset, end.Y),
-                    end,
-                    isStroked: true)
-                : new BezierSegment(
-                    new Point(start.X + midOffset, start.Y),
-                    new Point(end.X - midOffset, end.Y),
-                    end,
-                    isStroked: true));
-
-            var geometry = new PathGeometry();
-            geometry.Figures.Add(figure);
-
-            var path = new ShapePath
+            if (includeNode && includeChild && hasParentLayout && _layouts.TryGetValue(child, out var childLayout))
             {
-                Data = geometry,
-                Stroke = new SolidColorBrush(Color.FromRgb(145, 158, 183)),
-                StrokeThickness = 2,
-                Opacity = 0.78
-            };
+                var direction = childLayout.Direction < 0 ? -1 : 1;
+                var start = direction < 0
+                    ? new Point(parentLayout.X, parentLayout.Y + parentLayout.Height / 2)
+                    : new Point(parentLayout.X + parentLayout.Width, parentLayout.Y + parentLayout.Height / 2);
+                var end = direction < 0
+                    ? new Point(childLayout.X + childLayout.Width, childLayout.Y + childLayout.Height / 2)
+                    : new Point(childLayout.X, childLayout.Y + childLayout.Height / 2);
+                var horizontalDistance = Math.Abs(end.X - start.X);
+                var midOffset = Math.Max(42, horizontalDistance * 0.45);
 
-            MapCanvas.Children.Add(path);
+                var figure = new PathFigure { StartPoint = start };
+                figure.Segments.Add(direction < 0
+                    ? new BezierSegment(
+                        new Point(start.X - midOffset, start.Y),
+                        new Point(end.X + midOffset, end.Y),
+                        end,
+                        isStroked: true)
+                    : new BezierSegment(
+                        new Point(start.X + midOffset, start.Y),
+                        new Point(end.X - midOffset, end.Y),
+                        end,
+                        isStroked: true));
+
+                var geometry = new PathGeometry();
+                geometry.Figures.Add(figure);
+
+                var path = new ShapePath
+                {
+                    Data = geometry,
+                    Stroke = new SolidColorBrush(Color.FromRgb(145, 158, 183)),
+                    StrokeThickness = 2,
+                    Opacity = 0.78
+                };
+
+                MapCanvas.Children.Add(path);
+            }
+
             DrawConnections(child);
         }
     }
@@ -488,6 +498,10 @@ public partial class MindMapPreviewWindow : Window
         if (!_layouts.TryGetValue(node, out var layout))
             return;
 
+        var includeNode = _renderOnlyNodes is null || _renderOnlyNodes.Contains(node);
+
+        if (includeNode)
+        {
         var isRoot = ReferenceEquals(node, _root);
         var border = new Border
         {
@@ -648,6 +662,7 @@ public partial class MindMapPreviewWindow : Window
         Canvas.SetLeft(border, layout.X);
         Canvas.SetTop(border, layout.Y);
         MapCanvas.Children.Add(border);
+        }
 
         if (!node.IsExpanded)
             return;
@@ -957,6 +972,357 @@ public partial class MindMapPreviewWindow : Window
     {
         DialogResult = true;
         Close();
+    }
+
+    private void ExportAllButton_Click(object sender, RoutedEventArgs e)
+    {
+        ExportMindMap(exportSelectedBranchOnly: false);
+    }
+
+    private void ExportSelectedBranchButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedNode is null)
+        {
+            ShowExportDialog(
+                LocalizationService.GetString("Export"),
+                LocalizationService.GetString("MindMapExportSelectBranchFirst"));
+            return;
+        }
+
+        ExportMindMap(exportSelectedBranchOnly: true);
+    }
+
+    private void ExportMindMap(bool exportSelectedBranchOnly)
+    {
+        var saveDialog = new SaveFileDialog
+        {
+            Title = LocalizationService.GetString("MindMapExportDialogTitle"),
+            Filter = LocalizationService.GetString("MindMapExportDialogFilter"),
+            FileName = GetExportFileName(exportSelectedBranchOnly)
+        };
+
+        if (saveDialog.ShowDialog(this) != true)
+            return;
+
+        try
+        {
+            var extension = System.IO.Path.GetExtension(saveDialog.FileName).ToLowerInvariant();
+            var exportRoot = exportSelectedBranchOnly ? _selectedNode! : _root;
+
+            switch (extension)
+            {
+                case ".png":
+                    ExportToPng(saveDialog.FileName, exportRoot, exportSelectedBranchOnly);
+                    break;
+                case ".mm":
+                    ExportToMindMapFile(saveDialog.FileName, exportRoot, exportSelectedBranchOnly);
+                    break;
+                case ".mmap":
+                    ExportToMindMapFile(saveDialog.FileName, exportRoot, exportSelectedBranchOnly);
+                    break;
+                default:
+                    throw new InvalidOperationException(LocalizationService.GetString("MindMapExportUnsupportedFormat"));
+            }
+
+            ShowExportDialog(
+                LocalizationService.GetString("Success"),
+                LocalizationService.GetString("MindMapExportSuccess"));
+        }
+        catch (Exception ex)
+        {
+            ShowExportDialog(
+                LocalizationService.GetString("ExportError"),
+                string.Format(CultureInfo.CurrentCulture, LocalizationService.GetString("MindMapExportFailedFormat"), ex.Message));
+        }
+    }
+
+    private void ShowExportDialog(string title, string message)
+    {
+        var dialog = new ModernInfoDialog(title, message)
+        {
+            Owner = this
+        };
+
+        dialog.ShowDialog();
+    }
+
+    private string GetExportFileName(bool exportSelectedBranchOnly)
+    {
+        var baseName = string.IsNullOrWhiteSpace(EditorTitle)
+            ? LocalizationService.GetString("MindMapUntitled")
+            : EditorTitle;
+        var suffix = exportSelectedBranchOnly
+            ? LocalizationService.GetString("MindMapExportBranchFileSuffix")
+            : LocalizationService.GetString("MindMapExportAllFileSuffix");
+
+        foreach (var invalid in System.IO.Path.GetInvalidFileNameChars())
+            baseName = baseName.Replace(invalid, '_');
+
+        return $"{baseName}-{suffix}";
+    }
+
+    private void ExportToMindMapFile(string path, MindMapNode exportRoot, bool isBranch)
+    {
+        var sourceDocument = ToDocument();
+        var document = new XDocument(
+            new XDeclaration("1.0", "UTF-8", null),
+            new XElement("map",
+                new XAttribute("version", "1.0.1"),
+                CreateFreeMindNode(exportRoot, isRoot: true, sourceDocument.Title, isBranch)));
+
+        document.Save(path);
+    }
+
+    private static XElement CreateFreeMindNode(MindMapNode node, bool isRoot, string documentTitle, bool isBranch)
+    {
+        var text = node.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            text = isRoot
+                ? (isBranch ? $"{documentTitle} (branch)" : documentTitle)
+                : "Node";
+        }
+
+        var element = new XElement("node", new XAttribute("TEXT", text));
+
+        if (!string.IsNullOrWhiteSpace(node.BackgroundColor))
+            element.SetAttributeValue("BACKGROUND_COLOR", node.BackgroundColor);
+
+        if (!string.IsNullOrWhiteSpace(node.BorderColor))
+            element.SetAttributeValue("COLOR", node.BorderColor);
+
+        if (!string.IsNullOrWhiteSpace(node.Icon))
+            element.Add(new XElement("richcontent",
+                new XAttribute("TYPE", "NOTE"),
+                new XElement("html",
+                    new XElement("body", node.Icon))));
+
+        foreach (var child in node.Children)
+            element.Add(CreateFreeMindNode(child, isRoot: false, documentTitle, isBranch));
+
+        return element;
+    }
+
+    private MindMapNode CloneNode(MindMapNode source)
+    {
+        var copy = new MindMapNode
+        {
+            Text = source.Text,
+            IsExpanded = source.IsExpanded,
+            BackgroundColor = source.BackgroundColor,
+            BorderColor = source.BorderColor,
+            BorderThickness = source.BorderThickness,
+            NodeShape = source.NodeShape,
+            Icon = source.Icon,
+            IconBadgeColor = source.IconBadgeColor
+        };
+
+        foreach (var child in source.Children)
+            copy.Children.Add(CloneNode(child));
+
+        return copy;
+    }
+
+    private void ExportToPng(string path, MindMapNode exportRoot, bool isBranch)
+    {
+        if (MapCanvas.ActualWidth <= 0 || MapCanvas.ActualHeight <= 0)
+            RebuildMap();
+
+        var previousSearchQuery = _searchQuery;
+        var previousZoom = ZoomSlider.Value;
+        var previousRenderFilter = _renderOnlyNodes;
+        _searchQuery = string.Empty;
+        RefreshSearchMatches(resetIndex: true);
+
+        var expansionState = SnapshotExpansionState(_root);
+        try
+        {
+            ZoomSlider.Value = 1;
+            SetExpanded(exportRoot, true);
+            SetExpanded(_root, true);
+
+            _renderOnlyNodes = isBranch ? CollectSubtreeNodes(exportRoot) : null;
+
+            RebuildMap();
+            MapCanvas.UpdateLayout();
+
+            var bounds = isBranch
+                ? GetBranchBounds(exportRoot)
+                : GetAllContentBounds();
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+                throw new InvalidOperationException(LocalizationService.GetString("MindMapExportEmptyCanvas"));
+
+            var visual = new DrawingVisual();
+            double exportScale = 1;
+            const double minBranchPixelSize = 1400;
+            if (isBranch)
+            {
+                var branchBaseWidth = Math.Max(1, (int)Math.Ceiling(bounds.Width * 192.0 / 96.0));
+                var branchBaseHeight = Math.Max(1, (int)Math.Ceiling(bounds.Height * 192.0 / 96.0));
+                exportScale = Math.Max(1,
+                    Math.Min(3,
+                        Math.Max(minBranchPixelSize / branchBaseWidth, minBranchPixelSize / branchBaseHeight)));
+            }
+
+            using (var ctx = visual.RenderOpen())
+            {
+                ctx.PushTransform(new ScaleTransform(exportScale, exportScale));
+                var backgroundBrush = TryFindResource("WindowBackground") as Brush ?? Brushes.White;
+                ctx.DrawRectangle(backgroundBrush, null, new Rect(0, 0, bounds.Width, bounds.Height));
+                ctx.DrawRectangle(new VisualBrush(MapCanvas)
+                {
+                    Stretch = Stretch.None,
+                    AlignmentX = AlignmentX.Left,
+                    AlignmentY = AlignmentY.Top,
+                    Viewbox = bounds,
+                    ViewboxUnits = BrushMappingMode.Absolute,
+                    Viewport = new Rect(0, 0, bounds.Width, bounds.Height),
+                    ViewportUnits = BrushMappingMode.Absolute
+                }, null, new Rect(0, 0, bounds.Width, bounds.Height));
+                ctx.Pop();
+            }
+
+            var dpi = 192.0;
+            var pixelWidth = Math.Max(1, (int)Math.Ceiling(bounds.Width * exportScale * dpi / 96.0));
+            var pixelHeight = Math.Max(1, (int)Math.Ceiling(bounds.Height * exportScale * dpi / 96.0));
+            var renderTarget = new RenderTargetBitmap(pixelWidth, pixelHeight, dpi, dpi, PixelFormats.Pbgra32);
+            renderTarget.Render(visual);
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+            using var stream = System.IO.File.Create(path);
+            encoder.Save(stream);
+        }
+        finally
+        {
+            RestoreExpansionState(expansionState);
+            ZoomSlider.Value = previousZoom;
+            _renderOnlyNodes = previousRenderFilter;
+            _searchQuery = previousSearchQuery;
+            RefreshSearchMatches(resetIndex: true);
+            RebuildMap();
+        }
+    }
+
+    private static HashSet<MindMapNode> CollectSubtreeNodes(MindMapNode root)
+    {
+        var nodes = new HashSet<MindMapNode>();
+        foreach (var node in EnumerateAllNodes(root))
+            nodes.Add(node);
+
+        return nodes;
+    }
+
+    private Rect GetAllContentBounds()
+    {
+        var renderedBounds = GetRenderedContentBounds();
+        if (!renderedBounds.IsEmpty)
+            return renderedBounds;
+
+        var nodes = _layouts.Keys.ToList();
+        return GetNodesBounds(nodes);
+    }
+
+    private Rect GetBranchBounds(MindMapNode branchRoot)
+    {
+        var renderedBounds = GetRenderedContentBounds();
+        if (!renderedBounds.IsEmpty)
+            return renderedBounds;
+
+        var branchNodes = new HashSet<MindMapNode>(EnumerateAllNodes(branchRoot));
+        var connectedNodes = _layouts.Keys
+            .Where(node => branchNodes.Contains(node) || IsDirectlyConnectedToBranch(node, branchNodes))
+            .ToList();
+
+        return GetNodesBounds(connectedNodes);
+    }
+
+    private bool IsDirectlyConnectedToBranch(MindMapNode candidate, HashSet<MindMapNode> branchNodes)
+    {
+        if (branchNodes.Contains(candidate))
+            return true;
+
+        return branchNodes.Any(branchNode =>
+            branchNode.Children.Contains(candidate)
+            || candidate.Children.Contains(branchNode)
+            || FindParentNode(_root, branchNode) == candidate
+            || FindParentNode(_root, candidate) == branchNode);
+    }
+
+    private Rect GetRenderedContentBounds()
+    {
+        Rect? union = null;
+
+        foreach (UIElement child in MapCanvas.Children)
+        {
+            var localBounds = VisualTreeHelper.GetDescendantBounds(child);
+            if (localBounds.IsEmpty)
+                continue;
+
+            var transformedBounds = child.TransformToAncestor(MapCanvas).TransformBounds(localBounds);
+            union = union is null ? transformedBounds : Rect.Union(union.Value, transformedBounds);
+        }
+
+        if (union is null)
+            return Rect.Empty;
+
+        const double margin = 36;
+        var bounded = union.Value;
+        bounded.Inflate(margin, margin);
+
+        bounded.X = Math.Max(0, bounded.X);
+        bounded.Y = Math.Max(0, bounded.Y);
+
+        var maxWidth = Math.Max(MapCanvas.ActualWidth, MapCanvas.Width);
+        var maxHeight = Math.Max(MapCanvas.ActualHeight, MapCanvas.Height);
+        bounded.Width = Math.Min(bounded.Width, Math.Max(1, maxWidth - bounded.X));
+        bounded.Height = Math.Min(bounded.Height, Math.Max(1, maxHeight - bounded.Y));
+
+        return bounded;
+    }
+
+    private Rect GetNodesBounds(IReadOnlyList<MindMapNode> nodes)
+    {
+        if (nodes.Count == 0)
+            return Rect.Empty;
+
+        var minX = nodes.Min(node => _layouts[node].X);
+        var minY = nodes.Min(node => _layouts[node].Y);
+        var maxX = nodes.Max(node => _layouts[node].X + _layouts[node].Width);
+        var maxY = nodes.Max(node => _layouts[node].Y + _layouts[node].Height);
+
+        const double margin = 100;
+        minX = Math.Max(0, minX - margin);
+        minY = Math.Max(0, minY - margin);
+        maxX = Math.Min(MapCanvas.ActualWidth, maxX + margin);
+        maxY = Math.Min(MapCanvas.ActualHeight, maxY + margin);
+
+        return new Rect(minX, minY, Math.Max(1, maxX - minX), Math.Max(1, maxY - minY));
+    }
+
+    private Dictionary<MindMapNode, bool> SnapshotExpansionState(MindMapNode root)
+    {
+        var state = new Dictionary<MindMapNode, bool>();
+        foreach (var node in EnumerateAllNodes(root))
+            state[node] = node.IsExpanded;
+
+        return state;
+    }
+
+    private void RestoreExpansionState(Dictionary<MindMapNode, bool> state)
+    {
+        foreach (var pair in state)
+            pair.Key.IsExpanded = pair.Value;
+    }
+
+    private static IEnumerable<MindMapNode> EnumerateAllNodes(MindMapNode root)
+    {
+        yield return root;
+        foreach (var child in root.Children)
+        {
+            foreach (var descendant in EnumerateAllNodes(child))
+                yield return descendant;
+        }
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)

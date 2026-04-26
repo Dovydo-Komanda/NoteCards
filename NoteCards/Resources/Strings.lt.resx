@@ -112,7 +112,7 @@
   <data name="PdfExportComplete" xml:space="preserve"><value>PDF eksportas baigtas!</value></data>
   <data name="FailedToExportPdf" xml:space="preserve"><value>Nepavyko eksportuoti į PDF:</value></data>
   <data name="ExportError" xml:space="preserve"><value>Eksporto klaida</value></data>
-  <data name="Success" xml:space="preserve"><value>Sėkmė</value></data>
+  <data name="Success" xml:space="preserve"><value>Pavyko</value></data>
   <data name="NoContent" xml:space="preserve"><value>(Nėra turinio)</value></data>
   <data name="ImageOpenFileDialogFilter" xml:space="preserve"><value>Paveikslėlių failai (*.jpg;*.jpeg;*.png;*.bmp;*.gif)|*.jpg;*.jpeg;*.png;*.bmp;*.gif|Visi failai (*.*)|*.*</value></data>
   <data name="SelectImageToInsert" xml:space="preserve"><value>Pasirinkite paveikslėlį įterpimui</value></data>
@@ -332,6 +332,17 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="MindMapSearchNext" xml:space="preserve"><value>▶</value></data>
   <data name="MindMapSearchNoResults" xml:space="preserve"><value>Paieškos rezultatų nėra</value></data>
   <data name="MindMapSearchResultsFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="MindMapExportAll" xml:space="preserve"><value>Eksportuoti viską</value></data>
+  <data name="MindMapExportSelectedBranch" xml:space="preserve"><value>Eksportuoti pasirinktą šaką</value></data>
+  <data name="MindMapExportSelectBranchFirst" xml:space="preserve"><value>Pirma pasirinkite šakos mazgą.</value></data>
+  <data name="MindMapExportDialogTitle" xml:space="preserve"><value>Eksportuoti minčių žemėlapį</value></data>
+  <data name="MindMapExportDialogFilter" xml:space="preserve"><value>PNG paveikslėlis (*.png)|*.png|FreeMind failas (*.mm)|*.mm|NoteCards minčių žemėlapis (*.mmap)|*.mmap</value></data>
+  <data name="MindMapExportUnsupportedFormat" xml:space="preserve"><value>Nepalaikomas eksporto formatas.</value></data>
+  <data name="MindMapExportSuccess" xml:space="preserve"><value>Minčių žemėlapis sėkmingai eksportuotas.</value></data>
+  <data name="MindMapExportFailedFormat" xml:space="preserve"><value>Nepavyko eksportuoti minčių žemėlapio: {0}</value></data>
+  <data name="MindMapExportAllFileSuffix" xml:space="preserve"><value>pilnas</value></data>
+  <data name="MindMapExportBranchFileSuffix" xml:space="preserve"><value>saka</value></data>
+  <data name="MindMapExportEmptyCanvas" xml:space="preserve"><value>Minčių žemėlapyje nėra eksportuojamo turinio.</value></data>
   <data name="ResetFactorySettings" xml:space="preserve"><value>Atstatyti gamyklos nustatymus</value></data>
   <data name="ResetFactorySettingsTitle" xml:space="preserve"><value>Atstatyti gamyklos nustatymus</value></data>
   <data name="ResetFactorySettingsDescription" xml:space="preserve"><value>Atstatyti visus nustatymus ir duomenis į numatytuosius. Šis veiksmas negali būti anuliuotas.</value></data>

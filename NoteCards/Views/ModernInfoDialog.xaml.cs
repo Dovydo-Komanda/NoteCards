@@ -9,6 +9,7 @@ namespace NoteCards.Views
     public partial class ModernInfoDialog : Window
     {
         private bool _isClosingAnimationRunning;
+        private Window? _ownerWindow;
 
         public string TitleText { get; }
         public string MessageText { get; }
@@ -25,6 +26,7 @@ namespace NoteCards.Views
             InitializeComponent();
             DataContext = this;
             Loaded += ModernInfoDialog_Loaded;
+            Closed += ModernInfoDialog_Closed;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -38,10 +40,48 @@ namespace NoteCards.Views
             OverlayDialogBoundsHelper.Apply(this);
         }
 
-        private void ModernInfoDialog_Loaded(object sender, RoutedEventArgs e)
+        private void AttachOwnerHandlers()
+        {
+            if (Owner is null)
+                return;
+
+            if (ReferenceEquals(_ownerWindow, Owner))
+                return;
+
+            DetachOwnerHandlers();
+
+            _ownerWindow = Owner;
+            _ownerWindow.LocationChanged += OwnerWindow_BoundsChanged;
+            _ownerWindow.SizeChanged += OwnerWindow_BoundsChanged;
+            _ownerWindow.StateChanged += OwnerWindow_BoundsChanged;
+        }
+
+        private void DetachOwnerHandlers()
+        {
+            if (_ownerWindow is null)
+                return;
+
+            _ownerWindow.LocationChanged -= OwnerWindow_BoundsChanged;
+            _ownerWindow.SizeChanged -= OwnerWindow_BoundsChanged;
+            _ownerWindow.StateChanged -= OwnerWindow_BoundsChanged;
+            _ownerWindow = null;
+        }
+
+        private void OwnerWindow_BoundsChanged(object? sender, EventArgs e)
         {
             ApplyOwnerBounds();
+        }
+
+        private void ModernInfoDialog_Loaded(object sender, RoutedEventArgs e)
+        {
+            AttachOwnerHandlers();
+            ApplyOwnerBounds();
             BeginOpenAnimation();
+        }
+
+        private void ModernInfoDialog_Closed(object? sender, EventArgs e)
+        {
+            DetachOwnerHandlers();
         }
 
         private void OkButton_Click(object sender, RoutedEventArgs e)
