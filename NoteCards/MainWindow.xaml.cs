@@ -985,7 +985,6 @@ namespace NoteCards
             }
         }
 
-        // ✅ Open mind map from context menu
         private void OpenMindMapMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is MenuItem menuItem && menuItem.DataContext is MindMapViewModel mindMapVm)
@@ -994,7 +993,23 @@ namespace NoteCards
             }
         }
 
-        // ✅ Delete mind map from context menu
+        private async void DuplicateMindMapMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem || menuItem.DataContext is not MindMapViewModel mindMapVm)
+                return;
+
+            // Duplicate the mind map
+            if (DataContext is MainViewModel vm)
+            {
+                var newMindMap = vm.DuplicateMindMap(mindMapVm);
+                if (newMindMap != null)
+                {
+                    // Optionally open the editor for the duplicated mind map
+                    // OpenMindMapEditor(newMindMap);
+                }
+            }
+        }
+
         private async void DeleteMindMapMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.DataContext is not MindMapViewModel mindMapVm)
@@ -1018,7 +1033,6 @@ namespace NoteCards
             }
         }
 
-        // ✅ Open mind map editor (reuse existing method or create new)
         private void OpenMindMapEditor(MindMapViewModel mindMapVm)
         {
             var editor = new MindMapPreviewWindow(

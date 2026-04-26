@@ -697,6 +697,65 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(MindMapsView));
     }
 
+    public MindMapViewModel? DuplicateMindMap(MindMapViewModel sourceMindMap)
+    {
+        if (sourceMindMap is null)
+            return null;
+
+        // Create a deep copy of the mind map document
+        var newDocument = CloneMindMapDocument(sourceMindMap.Document);
+
+        // Create new view model
+        var newMindMap = new MindMapViewModel(newDocument);
+
+        // Add to collection
+        MindMaps.Add(newMindMap);
+
+        // Save to disk
+        SaveMindMaps();
+
+        return newMindMap;
+    }
+
+    private static MindMapDocument CloneMindMapDocument(MindMapDocument source)
+    {
+        return new MindMapDocument
+        {
+            Id = Guid.NewGuid(), // New ID for the copy
+            Title = $"{source.Title} (Copy)",
+            Tags = source.Tags.ToList(),
+            Root = CloneMindMapNode(source.Root),
+            CreatedAt = DateTime.UtcNow,
+            LastModified = DateTime.Now,
+            AiModelDisplayName = source.AiModelDisplayName,
+            SourceNoteId = source.SourceNoteId
+        };
+    }
+
+    private static MindMapNode CloneMindMapNode(MindMapNode source)
+    {
+        var newNode = new MindMapNode
+        {
+            Text = source.Text,
+            IsExpanded = source.IsExpanded,
+            BackgroundColor = source.BackgroundColor,
+            BorderColor = source.BorderColor,
+            BorderThickness = source.BorderThickness,
+            NodeShape = source.NodeShape,
+            Icon = source.Icon,
+            IconBadgeColor = source.IconBadgeColor,
+            Children = new List<MindMapNode>()
+        };
+
+        // Recursively clone children
+        foreach (var child in source.Children)
+        {
+            newNode.Children.Add(CloneMindMapNode(child));
+        }
+
+        return newNode;
+    }
+
     private void NotifyMindMapsChanged()
     {
         OnPropertyChanged(nameof(HasMindMaps));

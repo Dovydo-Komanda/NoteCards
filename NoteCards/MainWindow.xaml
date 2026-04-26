@@ -2169,6 +2169,8 @@
                                                             <ContextMenu>
                                                                 <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}"
 																Click="OpenMindMapMenuItem_Click"/>
+                                                                <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
+																Click="DuplicateMindMapMenuItem_Click"/>
                                                                 <Separator/>
                                                                 <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
 																Click="DeleteMindMapMenuItem_Click"/>
