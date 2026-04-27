@@ -2154,17 +2154,18 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type vm:MindMapViewModel}">
-                                                    <Button Tag="{Binding}"
+													<Button x:Name="MindMapCardButton"
+															Tag="{Binding}"
                                                             Click="OpenMindMapButton_Click"
-                                                            Width="300"
-                                                            MinHeight="164"
+															Width="330"
+															MinHeight="184"
                                                             Margin="0,0,14,14"
                                                             Padding="0"
                                                             HorizontalContentAlignment="Stretch"
                                                             VerticalContentAlignment="Stretch"
                                                             Background="Transparent"
                                                             BorderThickness="0"
-                                                            Cursor="Hand">
+																																								Cursor="Hand">
                                                         <Button.ContextMenu>
                                                             <ContextMenu>
                                                                 <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}"
@@ -2265,12 +2266,66 @@
                                                             <Border.Effect>
                                                                 <DropShadowEffect Color="#000000" Opacity="0.08" BlurRadius="14" ShadowDepth="1" Direction="270"/>
                                                             </Border.Effect>
-                                                            <Grid>
+															<Grid>
                                                                 <Grid.RowDefinitions>
                                                                     <RowDefinition Height="Auto"/>
                                                                     <RowDefinition Height="*"/>
                                                                     <RowDefinition Height="Auto"/>
                                                                 </Grid.RowDefinitions>
+
+																<Popup Placement="MousePoint"
+																	   PlacementTarget="{Binding ElementName=MindMapCardButton}"
+																	   AllowsTransparency="True"
+																	   PopupAnimation="Fade"
+																	   StaysOpen="True">
+																	<Popup.Style>
+																		<Style TargetType="Popup">
+																			<Setter Property="IsOpen" Value="False"/>
+																			<Style.Triggers>
+																				<MultiDataTrigger>
+																					<MultiDataTrigger.Conditions>
+																						<Condition Binding="{Binding PlacementTarget.DataContext.HasHoverContentPreview, RelativeSource={RelativeSource Self}}" Value="True"/>
+																						<Condition Binding="{Binding PlacementTarget.IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+																					</MultiDataTrigger.Conditions>
+																					<Setter Property="IsOpen" Value="True"/>
+																				</MultiDataTrigger>
+																			</Style.Triggers>
+																		</Style>
+																	</Popup.Style>
+																	<Border DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=Popup}}"
+																			IsHitTestVisible="False"
+																			Background="{DynamicResource CardBackground}"
+																			BorderBrush="{DynamicResource BorderColor}"
+																			BorderThickness="1"
+																			CornerRadius="10"
+																			Padding="12"
+																			MinWidth="360"
+																			MaxWidth="480"
+																			MaxHeight="360">
+																		<StackPanel>
+																			<TextBlock Text="{Binding Title}"
+																					   FontSize="14"
+																					   FontWeight="SemiBold"
+																					   Foreground="{DynamicResource TextColor}"
+																					   Margin="0,0,0,8"
+																					   TextTrimming="CharacterEllipsis"/>
+																			<ScrollViewer VerticalScrollBarVisibility="Auto"
+																						  HorizontalScrollBarVisibility="Disabled">
+																				<ItemsControl ItemsSource="{Binding HoverContentPreviewItems}">
+																					<ItemsControl.ItemTemplate>
+																						<DataTemplate>
+																							<TextBlock Text="{Binding}"
+																									   Foreground="{DynamicResource TextColorSecondary}"
+																									   FontSize="13"
+																									   TextWrapping="Wrap"
+																									   Margin="0,1,0,1"/>
+																						</DataTemplate>
+																					</ItemsControl.ItemTemplate>
+																				</ItemsControl>
+																			</ScrollViewer>
+																		</StackPanel>
+																	</Border>
+																</Popup>
                                                                 <Grid>
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="*"/>
@@ -2299,19 +2354,59 @@
                                                                     </Border>
                                                                 </Grid>
 
-                                                                <StackPanel Grid.Row="1"
-                                                                            Orientation="Horizontal"
-                                                                            Margin="0,14,0,0">
-                                                                    <TextBlock Text="{Binding NodeCountText}"
-                                                                               FontSize="13"
-                                                                               Foreground="{DynamicResource TextColorSecondary}"/>
-                                                                    <TextBlock Text="  •  "
-                                                                               FontSize="13"
-                                                                               Foreground="{DynamicResource TextColorSecondary}"/>
-                                                                    <TextBlock Text="{Binding BranchCountText}"
-                                                                               FontSize="13"
-                                                                               Foreground="{DynamicResource TextColorSecondary}"/>
-                                                                </StackPanel>
+																<Grid Grid.Row="1"
+																	  Margin="0,12,0,0"
+																	  Visibility="{Binding HasContentPreview, Converter={StaticResource BoolToVis}}">
+																	<Grid.ColumnDefinitions>
+													<ColumnDefinition Width="180"/>
+																		<ColumnDefinition Width="*"/>
+																	</Grid.ColumnDefinitions>
+
+																	<TextBlock Grid.Column="0"
+																			   Text="{Binding NodeCountText}"
+																			   FontSize="13"
+																			   Foreground="{DynamicResource TextColorSecondary}"
+																			   VerticalAlignment="Top"/>
+
+																	<Border Grid.Column="1"
+																			Background="{DynamicResource WindowBackground}"
+																			BorderBrush="{DynamicResource BorderColor}"
+																			BorderThickness="1"
+																			CornerRadius="8"
+													Padding="10,8"
+																			Margin="8,0,0,0"
+													MinHeight="82">
+																		<ScrollViewer VerticalScrollBarVisibility="Auto"
+																					  HorizontalScrollBarVisibility="Disabled">
+																			<ItemsControl ItemsSource="{Binding ContentPreviewItems}">
+																				<ItemsControl.ItemTemplate>
+																					<DataTemplate>
+																						<TextBlock Text="{Binding}"
+																								   Foreground="{DynamicResource TextColorSecondary}"
+																		   FontSize="13"
+																								   TextTrimming="CharacterEllipsis"
+																		   Margin="0,2,0,2"/>
+																					</DataTemplate>
+																				</ItemsControl.ItemTemplate>
+																			</ItemsControl>
+																		</ScrollViewer>
+																	</Border>
+																</Grid>
+
+																<StackPanel Grid.Row="1"
+																			Orientation="Horizontal"
+																			Margin="0,14,0,0"
+																			Visibility="{Binding HasContentPreview, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+																	<TextBlock Text="{Binding NodeCountText}"
+																			   FontSize="13"
+																			   Foreground="{DynamicResource TextColorSecondary}"/>
+																	<TextBlock Text="  •  "
+																			   FontSize="13"
+																			   Foreground="{DynamicResource TextColorSecondary}"/>
+																	<TextBlock Text="{Binding BranchCountText}"
+																			   FontSize="13"
+																			   Foreground="{DynamicResource TextColorSecondary}"/>
+																</StackPanel>
 
                                                                 <TextBlock Grid.Row="2"
                                                                            Text="{Binding TagsDisplay}"

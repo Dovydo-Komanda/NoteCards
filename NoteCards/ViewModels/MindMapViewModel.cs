@@ -5,6 +5,9 @@ namespace NoteCards.ViewModels;
 
 public sealed class MindMapViewModel : ViewModelBase
 {
+    private const int MaxPreviewItems = 7;
+    private const int MaxHoverPreviewItems = 20;
+
     public MindMapViewModel(MindMapDocument document)
     {
         Document = document;
@@ -23,6 +26,14 @@ public sealed class MindMapViewModel : ViewModelBase
     public int BranchCount => Document.Root?.Children?.Count ?? 0;
 
     public string BranchCountText => string.Format(LocalizationService.GetString("MindMapBranchCountFormat"), BranchCount);
+
+    public IReadOnlyList<string> ContentPreviewItems => BuildContentPreviewItems(Document.Root, MaxPreviewItems);
+
+    public IReadOnlyList<string> HoverContentPreviewItems => BuildContentPreviewItems(Document.Root, MaxHoverPreviewItems);
+
+    public bool HasContentPreview => ContentPreviewItems.Count > 0;
+
+    public bool HasHoverContentPreview => HoverContentPreviewItems.Count > 0;
 
     public bool HasTags => Document.Tags?.Any(tag => !string.IsNullOrWhiteSpace(tag)) == true;
 
@@ -43,6 +54,10 @@ public sealed class MindMapViewModel : ViewModelBase
         OnPropertyChanged(nameof(NodeCountText));
         OnPropertyChanged(nameof(BranchCount));
         OnPropertyChanged(nameof(BranchCountText));
+        OnPropertyChanged(nameof(ContentPreviewItems));
+        OnPropertyChanged(nameof(HoverContentPreviewItems));
+        OnPropertyChanged(nameof(HasContentPreview));
+        OnPropertyChanged(nameof(HasHoverContentPreview));
         OnPropertyChanged(nameof(HasTags));
         OnPropertyChanged(nameof(TagsDisplay));
         OnPropertyChanged(nameof(IsAiGenerated));
@@ -55,5 +70,39 @@ public sealed class MindMapViewModel : ViewModelBase
             return 0;
 
         return 1 + node.Children.Sum(CountNodes);
+    }
+
+    private static IReadOnlyList<string> BuildContentPreviewItems(MindMapNode? root, int maxItems)
+    {
+        if (root is null || maxItems <= 0)
+            return Array.Empty<string>();
+
+        var result = new List<string>(maxItems);
+        AppendPreviewItems(root, depth: 0, result, maxItems);
+        return result;
+    }
+
+    private static void AppendPreviewItems(MindMapNode node, int depth, List<string> result, int maxItems)
+    {
+        if (result.Count >= maxItems)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(node.Text))
+        {
+            var level = Math.Clamp(depth, 0, 3);
+            var prefix = level == 0
+                ? "• "
+                : string.Concat(Enumerable.Repeat("› ", level));
+
+            result.Add($"{prefix}{node.Text.Trim()}");
+        }
+
+        foreach (var child in node.Children)
+        {
+            if (result.Count >= maxItems)
+                return;
+
+            AppendPreviewItems(child, depth + 1, result, maxItems);
+        }
     }
 }
