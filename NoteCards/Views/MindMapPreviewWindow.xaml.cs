@@ -31,6 +31,13 @@ public partial class MindMapPreviewWindow : Window
     private HashSet<MindMapNode>? _renderOnlyNodes;
     private MindMapLayoutMode _selectedLayoutMode = MindMapLayoutMode.BalancedTree;
     private bool _suppressLayoutModeSelectionChanged;
+    private bool _isDraggingNode;
+    private MindMapNode? _draggedNode;
+    private Point _dragStartMousePos;
+    private Point _dragStartNodePos;
+    private Border? _draggedBorder;
+    private bool _isManualPositioningMode;
+    private readonly Dictionary<MindMapNode, Point> _manualPositions = new();
 
     private static readonly Brush[] LightNodeBackgrounds =
     [
@@ -504,8 +511,17 @@ public partial class MindMapPreviewWindow : Window
     private void AssignLayout(MindMapNode node, double rootX, int direction, int depth, double top, double subtreeHeight)
     {
         var ownHeight = MeasureNodeHeight(node);
-        var x = rootX + direction * depth * (NodeWidth + HorizontalGap);
-        var y = top + (subtreeHeight - ownHeight) / 2;
+        double x, y;
+        if (_isManualPositioningMode && _manualPositions.TryGetValue(node, out var manualPos))
+        {
+            x = manualPos.X;
+            y = manualPos.Y;
+        }
+        else
+        {
+            x = rootX + direction * depth * (NodeWidth + HorizontalGap);
+            y = top + (subtreeHeight - ownHeight) / 2;
+        }
         _layouts[node] = new NodeLayout(x, y, NodeWidth, ownHeight, direction, depth);
 
         if (!node.IsExpanded || node.Children.Count == 0)
@@ -711,16 +727,62 @@ public partial class MindMapPreviewWindow : Window
             e.Handled = true;
         };
 
-        border.MouseLeftButtonDown += (_, e) =>
-        {
-            if (e.ClickCount == 2)
+            border.MouseLeftButtonDown += (_, e) =>
             {
-                EditNodeText(node);
-                e.Handled = true;
-            }
-        };
+                if (e.ClickCount == 2)
+                {
+                    EditNodeText(node);
+                    e.Handled = true;
+                    return;
+                }
 
-        border.ContextMenu = new ContextMenu();
+                if (_isManualPositioningMode)
+                {
+                    _isDraggingNode = true;
+                    _draggedNode = node;
+                    _draggedBorder = border;
+                    _dragStartMousePos = e.GetPosition(MapCanvas);
+                    _dragStartNodePos = new Point(layout.X, layout.Y);
+                    border.CaptureMouse();
+                    e.Handled = true;
+                }
+            };
+
+            border.MouseMove += (_, e) =>
+            {
+                if (!_isDraggingNode || _draggedNode != node || _draggedBorder != border)
+                    return;
+
+                var currentPos = e.GetPosition(MapCanvas);
+                var dx = currentPos.X - _dragStartMousePos.X;
+                var dy = currentPos.Y - _dragStartMousePos.Y;
+                var newX = Math.Max(0, _dragStartNodePos.X + dx);
+                var newY = Math.Max(0, _dragStartNodePos.Y + dy);
+
+                _manualPositions[node] = new Point(newX, newY);
+                _layouts[node] = _layouts[node] with { X = newX, Y = newY };
+
+                Canvas.SetLeft(border, newX);
+                Canvas.SetTop(border, newY);
+
+                foreach (var path in MapCanvas.Children.OfType<ShapePath>().ToList())
+                    MapCanvas.Children.Remove(path);
+                DrawConnections(_root);
+            };
+
+            border.MouseLeftButtonUp += (_, e) =>
+            {
+                if (!_isDraggingNode || _draggedNode != node)
+                    return;
+
+                _isDraggingNode = false;
+                _draggedNode = null;
+                _draggedBorder = null;
+                border.ReleaseMouseCapture();
+                e.Handled = true;
+            };
+
+            border.ContextMenu = new ContextMenu();
 
         var addChildMenuItem = new MenuItem
         {
@@ -1082,6 +1144,21 @@ public partial class MindMapPreviewWindow : Window
     {
         RebuildMap();
         Dispatcher.BeginInvoke(new Action(CenterViewOnRoot), DispatcherPriority.Loaded);
+    }
+    private void ManualPositioningToggle_Checked(object sender, RoutedEventArgs e)
+    {
+        _isManualPositioningMode = true;
+        // Snapshot current auto-layout positions as starting manual positions
+        foreach (var (node, layout) in _layouts)
+            _manualPositions[node] = new Point(layout.X, layout.Y);
+        RebuildMap();
+    }
+
+    private void ManualPositioningToggle_Unchecked(object sender, RoutedEventArgs e)
+    {
+        _isManualPositioningMode = false;
+        _manualPositions.Clear();
+        RebuildMap();
     }
 
     private static void SetExpanded(MindMapNode node, bool isExpanded)
