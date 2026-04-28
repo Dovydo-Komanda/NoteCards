@@ -353,6 +353,7 @@ Right-click to remove</value></data>
   <data name="MindMapsDashboard" xml:space="preserve"><value>Mind maps</value></data>
   <data name="MindMapsDashboardTitle" xml:space="preserve"><value>Mind maps</value></data>
   <data name="MindMapsEmptyDashboardPrompt" xml:space="preserve"><value>Convert a note into a mind map to see it here.</value></data>
+  <data name="CreateMindMap" xml:space="preserve"><value>Create mind map</value></data>
   <data name="MindMapUntitled" xml:space="preserve"><value>Untitled mind map</value></data>
   <data name="MindMapTitleHint" xml:space="preserve"><value>Mind map title</value></data>
   <data name="MindMapCountFormat" xml:space="preserve"><value>{0} mind maps</value></data>

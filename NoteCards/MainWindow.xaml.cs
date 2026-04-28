@@ -950,6 +950,30 @@ namespace NoteCards
             if (DataContext is MainViewModel vm)
                 OpenFlashcardSetEditor(vm, null);
         }
+        private void CreateMindMapButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            // Create a blank root node with a default title
+            var rootNode = new MindMapNode { Text = "Central Topic" };
+
+            var editor = new MindMapPreviewWindow(
+                rootNode,
+                modelDisplayName: null,
+                title: null,
+                tags: null)
+            {
+                Owner = this
+            };
+
+            if (editor.ShowDialog() == true)
+            {
+                var newDocument = editor.ToDocument(existingDocument: null);
+                vm.AddOrUpdateMindMap(newDocument);
+                vm.SaveMindMaps();
+            }
+        }
 
         private void OpenFlashcardSetButton_Click(object sender, RoutedEventArgs e)
         {
