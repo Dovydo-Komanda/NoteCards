@@ -19,6 +19,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using NoteCards.Controls;
 
 namespace NoteCards
 {
@@ -64,6 +65,7 @@ namespace NoteCards
             UpdateCounter();
             UpdateOnlineSearchAvailability();
             ContentTextBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+            ContentTextBox.IsDocumentEnabled = true; // Ensure interactive elements (like ResizableImage) can receive pointer events
 
             // Subscribe to theme changes to update RichTextBox foreground
             ThemeManager.ThemeChanged += ThemeManager_ThemeChanged;
@@ -876,13 +878,24 @@ namespace NoteCards
                             if (bytes.Length >= 5)
                             {
                                 var hdr = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
-                                if (!hdr.StartsWith("{\\rtf"))
+                                if (hdr.StartsWith("{\\rtf"))
+                                {
+                                    using (MemoryStream ms = new MemoryStream(bytes))
+                                    {
+                                        tr.Load(ms, DataFormats.Rtf);
+                                    }
+                                }
+                                else if (bytes[0] == 0x50 && bytes[1] == 0x4B) // ZIP / XamlPackage
+                                {
+                                    using (MemoryStream ms = new MemoryStream(bytes))
+                                    {
+                                        tr.Load(ms, DataFormats.XamlPackage);
+                                    }
+                                }
+                                else
+                                {
                                     throw new FormatException();
-                            }
-
-                            using (MemoryStream ms = new MemoryStream(bytes))
-                            {
-                                tr.Load(ms, DataFormats.Rtf);
+                                }
                             }
                         }
                         catch (FormatException)
@@ -993,7 +1006,7 @@ namespace NoteCards
                 TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
                 using (MemoryStream ms = new MemoryStream())
                 {
-                    tr.Save(ms, DataFormats.Rtf); // save as RTF
+                    tr.Save(ms, DataFormats.XamlPackage); // save as XamlPackage
                     var newContent = Convert.ToBase64String(ms.ToArray());
                     var contentChanged = !string.Equals(previousContent, newContent, StringComparison.Ordinal);
                     if (contentChanged)
@@ -1236,7 +1249,7 @@ namespace NoteCards
                 ContentTextBox.Document.ContentEnd);
 
             using var stream = new MemoryStream();
-            textRange.Save(stream, DataFormats.Rtf);
+            textRange.Save(stream, DataFormats.XamlPackage);
             return Convert.ToBase64String(stream.ToArray());
         }
 
@@ -1634,13 +1647,24 @@ namespace NoteCards
                 if (bytes.Length >= 5)
                 {
                     var hdr = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
-                    if (!hdr.StartsWith("{\\rtf"))
+                    if (hdr.StartsWith("{\\rtf"))
+                    {
+                        using (MemoryStream ms = new MemoryStream(bytes))
+                        {
+                            tr.Load(ms, DataFormats.Rtf);
+                        }
+                    }
+                    else if (bytes[0] == 0x50 && bytes[1] == 0x4B) // ZIP / XamlPackage
+                    {
+                        using (MemoryStream ms = new MemoryStream(bytes))
+                        {
+                            tr.Load(ms, DataFormats.XamlPackage);
+                        }
+                    }
+                    else
+                    {
                         throw new FormatException();
-                }
-
-                using (MemoryStream ms = new MemoryStream(bytes))
-                {
-                    tr.Load(ms, DataFormats.Rtf);
+                    }
                 }
             }
             catch (FormatException)
@@ -1945,150 +1969,64 @@ namespace NoteCards
                     if (displayWidth > maxWidth)
                     {
                         displayWidth = maxWidth;
-                        displayHeight = maxWidth / aspectRatio;
+                        displayHeight = displayWidth / aspectRatio;
                     }
                     if (displayHeight > maxHeight)
                     {
                         displayHeight = maxHeight;
-                        displayWidth = maxHeight * aspectRatio;
+                        displayWidth = displayHeight * aspectRatio;
                     }
                 }
 
-                // Create Image control
-                Image image = new Image
+                var resizableImage = new ResizableImage
                 {
                     Source = bitmap,
                     Width = displayWidth,
-                    Height = displayHeight,
-                    Stretch = Stretch.UniformToFill,
-                    Margin = new Thickness(0, 10, 0, 10),
-                    ContextMenu = CreateImageContextMenu()
+                    Height = displayHeight
                 };
 
-                // Make image draggable and resizable
-                MakeImageDraggable(image);
+                Canvas.SetLeft(resizableImage, 50);
+                Canvas.SetTop(resizableImage, 50);
 
-                // Create a container for the image
-                InlineUIContainer container = new InlineUIContainer(image)
+                var canvas = new Canvas
                 {
-                    BaselineAlignment = BaselineAlignment.Bottom
+                    Width = double.NaN, // Allow it to stretch to the page width
+                    Height = displayHeight + 50, // Give some initial room
+                    Background = Brushes.Transparent,
+                    ClipToBounds = false // Prevent cutting off the image if dragged outside the block
                 };
 
-                // Get the current paragraph or create a new one
+                // Clear selection if the canvas is clicked
+                canvas.PreviewMouseDown += (s, e) =>
+                {
+                    if (e.OriginalSource == canvas)
+                    {
+                        resizableImage.IsSelected = false;
+                        Keyboard.ClearFocus();
+                        e.Handled = true; // PREVENT RichTextBox from selecting the block!
+                    }
+                };
+
+                canvas.Children.Add(resizableImage);
+
+                var container = new BlockUIContainer(canvas);
+
                 TextPointer caretPosition = ContentTextBox.CaretPosition;
-                Paragraph currentParagraph = caretPosition.Paragraph;
-
-                if (currentParagraph == null)
+                if (caretPosition.Paragraph != null)
                 {
-                    // If no paragraph exists, create one
-                    currentParagraph = new Paragraph();
-                    ContentTextBox.Document.Blocks.Add(currentParagraph);
-                }
-
-                // Insert the image container at the caret position
-                var insertionPosition = caretPosition.GetInsertionPosition(LogicalDirection.Forward);
-                if (currentParagraph.Inlines.FirstInline != null && insertionPosition != null)
-                {
-                    currentParagraph.Inlines.InsertBefore(currentParagraph.Inlines.FirstInline, container);
+                    ContentTextBox.Document.Blocks.InsertAfter(caretPosition.Paragraph, container);
                 }
                 else
                 {
-                    currentParagraph.Inlines.Add(container);
+                    ContentTextBox.Document.Blocks.Add(container);
                 }
 
-                // Add a new line after image for better spacing
-                currentParagraph.Inlines.Add(new LineBreak());
-
-                // Move caret after the image
                 ContentTextBox.CaretPosition = container.ContentEnd.GetNextInsertionPosition(LogicalDirection.Forward) ?? ContentTextBox.Document.ContentEnd;
             }
             catch (Exception ex)
             {
                 throw new Exception($"{LocalizationService.GetString("ErrorLoadingImage")}: {ex.Message}", ex);
             }
-        }
-
-        private ContextMenu CreateImageContextMenu()
-        {
-            var contextMenu = new ContextMenu();
-
-            var removeItem = new MenuItem
-            {
-                Header = LocalizationService.GetString("RemoveImage")
-            };
-            removeItem.Click += (s, e) =>
-            {
-                // Get the sender's parent
-                if (s is MenuItem menuItem && menuItem.Parent is ContextMenu cm)
-                {
-                    if (cm.PlacementTarget is Image img)
-                    {
-                        // Find and remove the InlineUIContainer
-                        var doc = ContentTextBox.Document;
-                        var start = doc.ContentStart;
-                        var end = doc.ContentEnd;
-
-                        var navigator = start.GetNextInsertionPosition(LogicalDirection.Forward);
-                        while (navigator != null && navigator.CompareTo(end) < 0)
-                        {
-                            if (navigator.Parent is InlineUIContainer container && container.Child == img)
-                            {
-                                ((Paragraph)container.Parent)?.Inlines.Remove(container);
-                                break;
-                            }
-                            navigator = navigator.GetNextInsertionPosition(LogicalDirection.Forward);
-                        }
-                    }
-                }
-            };
-
-            contextMenu.Items.Add(removeItem);
-            return contextMenu;
-        }
-
-        private void MakeImageDraggable(Image image)
-        {
-            bool isDragging = false;
-            double lastX = 0;
-            double lastY = 0;
-
-            image.MouseDown += (s, e) =>
-            {
-                if (e.LeftButton == MouseButtonState.Pressed)
-                {
-                    isDragging = true;
-                    lastX = e.GetPosition(ContentTextBox).X;
-                    lastY = e.GetPosition(ContentTextBox).Y;
-                }
-            };
-
-            image.MouseMove += (s, e) =>
-            {
-                if (isDragging && e.LeftButton == MouseButtonState.Pressed)
-                {
-                    var currentPos = e.GetPosition(ContentTextBox);
-                    double deltaX = currentPos.X - lastX;
-                    double deltaY = currentPos.Y - lastY;
-
-                    // Resize on drag (hold Shift key for resize)
-                    if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
-                    {
-                        image.Width = Math.Max(50, image.Width + deltaX);
-                        image.Height = Math.Max(50, image.Height + deltaY);
-                    }
-
-                    lastX = currentPos.X;
-                    lastY = currentPos.Y;
-                }
-            };
-
-            image.MouseUp += (s, e) =>
-            {
-                isDragging = false;
-            };
-
-            // Add tooltip for resize instruction
-            image.ToolTip = LocalizationService.GetString("ImageResizeTooltip");
         }
 
         private double _zoomLevel = 1.0;
