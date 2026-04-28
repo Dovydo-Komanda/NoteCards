@@ -1554,6 +1554,98 @@ namespace NoteCards
                     MessageBoxImage.Error);
             }
         }
+        private MindMapViewModel? GetMindMapFromMenuSender(object sender)
+        {
+            if (sender is not MenuItem menuItem) return null;
+            var contextMenu = menuItem.Parent as ContextMenu;
+            var button = contextMenu?.PlacementTarget as Button;
+            return button?.Tag as MindMapViewModel;
+        }
 
+        private MindMapGroupViewModel? GetMindMapGroupFromMenuSender(object sender)
+        {
+            if (sender is not MenuItem menuItem) return null;
+            var contextMenu = menuItem.Parent as ContextMenu;
+            var button = contextMenu?.PlacementTarget as Button;
+            return button?.Tag as MindMapGroupViewModel;
+        }
+
+        private void RenameMindMapGroupMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var group = GetMindMapGroupFromMenuSender(sender);
+            if (group is null) return;
+            if (DataContext is not MainViewModel vm) return;
+
+            var dialog = new SimpleInputDialog("Rename set", "Enter a new name:", group.Name) { Owner = this };
+            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+                vm.RenameMindMapGroup(group, dialog.InputText!);
+        }
+
+        private void DeleteMindMapGroupMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var group = GetMindMapGroupFromMenuSender(sender);
+            if (group is null) return;
+            if (DataContext is not MainViewModel vm) return;
+
+            var dialog = new DeleteConfirmationDialog(
+                "Delete set",
+                $"Delete the set \"{group.Name}\"? Mind maps inside will not be deleted.")
+            { Owner = this };
+            if (dialog.ShowDialog() == true)
+                vm.DeleteMindMapGroup(group);
+        }
+
+        private void AddMindMapToSetMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var map = GetMindMapFromMenuSender(sender);
+            if (map is null) return;
+            if (DataContext is not MainViewModel vm) return;
+
+            if (!vm.MindMapGroups.Any())
+            {
+                var nameDialog = new SimpleInputDialog("Create set", "Enter a name for the new set:", "") { Owner = this };
+                if (nameDialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(nameDialog.InputText))
+                {
+                    var newGroup = vm.CreateMindMapGroup(nameDialog.InputText!);
+                    vm.AddMindMapToGroup(map, newGroup);
+                    vm.RebuildMindMapGroups();
+                }
+                return;
+            }
+
+            var setNames = string.Join("\n", vm.MindMapGroups.Select((g, i) => $"{i + 1}. {g.Name}"));
+            var pickDialog = new SimpleInputDialog(
+                "Add to set",
+                $"Existing sets:\n{setNames}\n\nType a set name to add to it, or a new name to create one:",
+                "")
+            { Owner = this };
+
+            if (pickDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(pickDialog.InputText))
+                return;
+
+            var input = pickDialog.InputText.Trim();
+            var existing = vm.MindMapGroups.FirstOrDefault(
+                g => g.Name.Equals(input, StringComparison.OrdinalIgnoreCase));
+
+            if (existing is not null)
+                vm.AddMindMapToGroup(map, existing);
+            else
+            {
+                var newGroup = vm.CreateMindMapGroup(input);
+                vm.AddMindMapToGroup(map, newGroup);
+            }
+            vm.RebuildMindMapGroups();
+        }
+
+        private void RemoveMindMapFromSetMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var map = GetMindMapFromMenuSender(sender);
+            if (map is null) return;
+            if (DataContext is not MainViewModel vm) return;
+
+            map.Document.GroupId = null;
+            vm.SaveMindMaps();
+            vm.RebuildMindMapGroups();
+        }
     }
 }

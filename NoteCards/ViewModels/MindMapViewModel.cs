@@ -105,4 +105,5 @@ public sealed class MindMapViewModel : ViewModelBase
             AppendPreviewItems(child, depth + 1, result, maxItems);
         }
     }
+
 }

@@ -10,4 +10,5 @@ public sealed class MindMapDocument
     public DateTime LastModified { get; set; } = DateTime.Now;
     public string AiModelDisplayName { get; set; } = string.Empty;
     public Guid? SourceNoteId { get; set; }
+    public Guid? GroupId { get; set; }
 }

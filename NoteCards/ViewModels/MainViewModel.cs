@@ -48,6 +48,8 @@ public class MainViewModel : ViewModelBase
     private bool _isMassSelectMode;
     private DateTime _calendarSelectedDate = DateTime.Today;
     private AppSettings _settings;
+    private readonly Dictionary<Guid, MindMapGroupData> _mindMapGroupMetadata = new();
+    public ObservableCollection<MindMapGroupViewModel> MindMapGroups { get; } = new();
 
     public bool EnableScrollbar
     {
@@ -616,7 +618,28 @@ public class MainViewModel : ViewModelBase
         }
 
         var json = File.ReadAllText(path);
-        var maps = JsonSerializer.Deserialize<List<MindMapDocument>>(json) ?? new();
+
+        // Try new format first, fall back to legacy list format
+        List<MindMapDocument> maps;
+        try
+        {
+            var store = JsonSerializer.Deserialize<MindMapStoreData>(json);
+            if (store?.Maps != null && store.Maps.Count > 0)
+            {
+                maps = store.Maps;
+                _mindMapGroupMetadata.Clear();
+                foreach (var meta in store.Groups ?? new List<MindMapGroupData>())
+                    _mindMapGroupMetadata[meta.GroupId] = meta;
+            }
+            else
+            {
+                maps = JsonSerializer.Deserialize<List<MindMapDocument>>(json) ?? new();
+            }
+        }
+        catch
+        {
+            maps = JsonSerializer.Deserialize<List<MindMapDocument>>(json) ?? new();
+        }
 
         foreach (var map in maps
                      .Where(map => map != null)
@@ -627,6 +650,7 @@ public class MainViewModel : ViewModelBase
             MindMaps.Add(new MindMapViewModel(map));
         }
 
+        RebuildMindMapGroups();
         NotifyMindMapsChanged();
     }
 
@@ -659,6 +683,43 @@ public class MainViewModel : ViewModelBase
         NotifyMindMapsChanged();
         return existing;
     }
+    public MindMapGroupViewModel CreateMindMapGroup(string name)
+    {
+        var groupId = Guid.NewGuid();
+        _mindMapGroupMetadata[groupId] = new MindMapGroupData { GroupId = groupId, Name = name };
+        var group = new MindMapGroupViewModel(groupId, name, Enumerable.Empty<MindMapViewModel>());
+        MindMapGroups.Add(group);
+        SaveMindMaps();
+        return group;
+    }
+
+    public bool RenameMindMapGroup(MindMapGroupViewModel group, string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName)) return false;
+        group.Name = newName.Trim();
+        if (_mindMapGroupMetadata.TryGetValue(group.GroupId, out var meta))
+            meta.Name = group.Name;
+        SaveMindMaps();
+        return true;
+    }
+
+    public void DeleteMindMapGroup(MindMapGroupViewModel group)
+    {
+        // Ungroup all mind maps in this group
+        foreach (var map in MindMaps.Where(m => m.Document.GroupId == group.GroupId))
+            map.Document.GroupId = null;
+
+        _mindMapGroupMetadata.Remove(group.GroupId);
+        MindMapGroups.Remove(group);
+        SaveMindMaps();
+    }
+
+    public void AddMindMapToGroup(MindMapViewModel map, MindMapGroupViewModel group)
+    {
+        map.Document.GroupId = group.GroupId;
+        SaveMindMaps();
+        RebuildMindMapGroups(); // add this line
+    }
 
     public void SaveMindMaps()
     {
@@ -669,7 +730,16 @@ public class MainViewModel : ViewModelBase
             .ThenBy(map => map.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
-        var json = JsonSerializer.Serialize(documents, new JsonSerializerOptions { WriteIndented = true });
+        var store = new MindMapStoreData
+        {
+            Maps = documents,
+            Groups = _mindMapGroupMetadata.Values
+                .OrderBy(g => g.SortOrder ?? int.MaxValue)
+                .ThenBy(g => g.Name)
+                .ToList()
+        };
+
+        var json = JsonSerializer.Serialize(store, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(path, json);
     }
 
@@ -2630,6 +2700,35 @@ public class MainViewModel : ViewModelBase
         }
 
         OnPropertyChanged(nameof(HasGroups));
+    }
+
+    public void RebuildMindMapGroups()
+    {
+        MindMapGroups.Clear();
+
+        var grouped = MindMaps
+            .Where(m => m.Document.GroupId.HasValue)
+            .GroupBy(m => m.Document.GroupId!.Value)
+            .OrderBy(g =>
+            {
+                if (_mindMapGroupMetadata.TryGetValue(g.Key, out var meta))
+                    return meta.SortOrder ?? int.MaxValue;
+                return int.MaxValue;
+            })
+            .ToList();
+
+        foreach (var group in grouped)
+        {
+            if (!_mindMapGroupMetadata.TryGetValue(group.Key, out var meta))
+            {
+                meta = new MindMapGroupData { GroupId = group.Key, Name = "Set" };
+                _mindMapGroupMetadata[group.Key] = meta;
+            }
+
+            MindMapGroups.Add(new MindMapGroupViewModel(group.Key, meta.Name, group));
+        }
+
+        OnPropertyChanged(nameof(MindMapGroups));
     }
     // Persistence: save/load notes to a local JSON file
     private static string GetNotesFilePath()

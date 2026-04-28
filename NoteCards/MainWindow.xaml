@@ -1524,25 +1524,7 @@
 																Tag="{Binding}"
 																ToolTip="{Binding [GroupBackgroundColor], Source={StaticResource Loc}}"
 																Click="GroupColorButton_Click">
-                                                                        <Button.ContextMenu>
-                                                                            <ContextMenu>
-                                                                                <MenuItem Header="{Binding [GroupColorDefault], Source={StaticResource Loc}}"
-																		  Tag="#F8FAFF"
-																		  Click="GroupColorMenuItem_Click"/>
-                                                                                <MenuItem Header="{Binding [GroupColorMint], Source={StaticResource Loc}}"
-																		  Tag="#ECFEF1"
-																		  Click="GroupColorMenuItem_Click"/>
-                                                                                <MenuItem Header="{Binding [GroupColorRose], Source={StaticResource Loc}}"
-																		  Tag="#FFF1F2"
-																		  Click="GroupColorMenuItem_Click"/>
-                                                                                <MenuItem Header="{Binding [GroupColorAmber], Source={StaticResource Loc}}"
-																		  Tag="#FFFBEB"
-																		  Click="GroupColorMenuItem_Click"/>
-                                                                                <MenuItem Header="{Binding [GroupColorLilac], Source={StaticResource Loc}}"
-																		  Tag="#F5F3FF"
-																		  Click="GroupColorMenuItem_Click"/>
-                                                                            </ContextMenu>
-                                                                        </Button.ContextMenu>
+                                                                       
                                                                     </Button>
                                                                     <Button Grid.Column="3"
                                                           Style="{StaticResource GroupHeaderIconButtonStyle}"
@@ -2144,7 +2126,94 @@
                                                        Foreground="{DynamicResource TextColor}"
                                                        VerticalAlignment="Center"/>
                                         </Grid>
+                                        <!-- Mind Map Groups/Sets -->
+                                        <ItemsControl ItemsSource="{Binding MindMapGroups}"
+              Margin="0,0,0,10">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:MindMapGroupViewModel}">
+                                                    <Border Background="{DynamicResource SidebarBackground}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="12"
+                    Margin="8,0,8,10">
+                                                        <StackPanel>
+                                                            <!-- Group header with name and context menu -->
+                                                            <Grid Margin="0,0,0,8">
+                                                                <TextBlock Text="{Binding Name}"
+                                   FontWeight="SemiBold"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextColor}"
+                                   VerticalAlignment="Center"/>
+                                                                <Button HorizontalAlignment="Right"
+                                Content="···"
+                                Tag="{Binding}"
+                                Style="{StaticResource GroupHeaderIconButtonStyle}">
+                                                                    <Button.ContextMenu>
+                                                                        <ContextMenu>
+                                                                            <MenuItem Header="Rename set"
+                                              Click="RenameMindMapGroupMenuItem_Click"/>
+                                                                            <MenuItem Header="Delete set"
+                                              Click="DeleteMindMapGroupMenuItem_Click"/>
+                                                                        </ContextMenu>
+                                                                    </Button.ContextMenu>
+                                                                </Button>
+                                                            </Grid>
+                                                            <!-- Mind maps inside the group -->
+                                                            <ItemsControl ItemsSource="{Binding MindMaps}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <WrapPanel Orientation="Horizontal"/>
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate DataType="{x:Type vm:MindMapViewModel}">
+                                                                        <Button Tag="{Binding}"
+        Click="OpenMindMapButton_Click"
+        Width="220" MinHeight="120"
+        Margin="0,0,10,10"
+        Padding="0"
+        HorizontalContentAlignment="Stretch"
+        VerticalContentAlignment="Stretch"
+        Background="Transparent"
+        BorderThickness="0"
+        Cursor="Hand">
+                                                                            <Border Background="{DynamicResource CardBackground}"
+            BorderBrush="{DynamicResource BorderColor}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="12">
+                                                                                <Border.Effect>
+                                                                                    <DropShadowEffect Color="#000000" Opacity="0.08" BlurRadius="10" ShadowDepth="1" Direction="270"/>
+                                                                                </Border.Effect>
+                                                                                <Grid>
+                                                                                    <Grid.RowDefinitions>
+                                                                                        <RowDefinition Height="Auto"/>
+                                                                                        <RowDefinition Height="*"/>
+                                                                                    </Grid.RowDefinitions>
+                                                                                    <TextBlock Text="{Binding Title}"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextColor}"
+                       TextTrimming="CharacterEllipsis"/>
+                                                                                    <TextBlock Grid.Row="1"
+                       Text="{Binding NodeCountText}"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextColorSecondary}"
+                       Margin="0,6,0,0"/>
+                                                                                </Grid>
+                                                                            </Border>
+                                                                        </Button>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
 
+                                        
                                         <ItemsControl ItemsSource="{Binding MindMapsView}"
                                                       Visibility="{Binding HasMindMaps, Converter={StaticResource BoolToVis}}">
                                             <ItemsControl.ItemsPanel>
@@ -2169,12 +2238,17 @@
                                                         <Button.ContextMenu>
                                                             <ContextMenu>
                                                                 <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}"
-																Click="OpenMindMapMenuItem_Click"/>
+                  Click="OpenMindMapMenuItem_Click"/>
                                                                 <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
-																Click="DuplicateMindMapMenuItem_Click"/>
+                  Click="DuplicateMindMapMenuItem_Click"/>
+                                                                <Separator/>
+                                                                <MenuItem Header="Add to set"
+                  Click="AddMindMapToSetMenuItem_Click"/>
+                                                                <MenuItem Header="Remove from set"
+                  Click="RemoveMindMapFromSetMenuItem_Click"/>
                                                                 <Separator/>
                                                                 <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
-																Click="DeleteMindMapMenuItem_Click"/>
+                  Click="DeleteMindMapMenuItem_Click"/>
                                                             </ContextMenu>
                                                         </Button.ContextMenu>
                                                         <Border x:Name="MindMapCardBorder"
@@ -2445,7 +2519,15 @@
         Click="CreateMindMapButton_Click"/>
                         </StackPanel>
                     </Grid>
+                    <Button Style="{StaticResource FabStyle}"
+        VerticalAlignment="Bottom"
+        HorizontalAlignment="Right"
+        Margin="0,0,28,24"
+        Content="+"
+        ToolTip="{Binding [CreateMindMap], Source={StaticResource Loc}}"
+        Click="CreateMindMapButton_Click"/>
                 </Grid>
+                
             </Grid>
         </Grid>
 
