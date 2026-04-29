@@ -1,27 +1,35 @@
 <Window x:Class="NoteCards.Views.StyleNodeDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{Binding [StyleNode], Source={StaticResource Loc}}"
-        Height="520"
-        Width="480"
-        WindowStartupLocation="CenterOwner"
-        WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
-        ShowInTaskbar="False"
-        Topmost="True">
-	<Grid>
-		<Border Background="{DynamicResource CardBackground}"
-                BorderBrush="{DynamicResource BorderColor}"
-                BorderThickness="1"
-                CornerRadius="16"
-                Padding="28"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                MaxWidth="440" Height="542">
+        Title="{Binding [MindMapStyleOrganizeTitle], Source={StaticResource Loc}}"
+		Height="520"
+		Width="480"
+		WindowStartupLocation="CenterOwner"
+		WindowStyle="None"
+		AllowsTransparency="True"
+		Background="Transparent"
+		UseLayoutRounding="True"
+		SnapsToDevicePixels="True"
+		TextOptions.TextFormattingMode="Display"
+		TextOptions.TextRenderingMode="ClearType"
+		ShowInTaskbar="False"
+		Topmost="True">
+	<Grid Background="#66000000">
+		<Border x:Name="DialogCard"
+				Background="{DynamicResource CardBackground}"
+				BorderBrush="{DynamicResource BorderColor}"
+				BorderThickness="1"
+				CornerRadius="16"
+				Padding="28"
+				HorizontalAlignment="Center"
+				VerticalAlignment="Center"
+				MaxWidth="440" Height="542">
 			<Border.Effect>
 				<DropShadowEffect Color="#000000" Opacity="0.25" BlurRadius="32" ShadowDepth="4"/>
 			</Border.Effect>
+			<Border.RenderTransform>
+				<TranslateTransform/>
+			</Border.RenderTransform>
 
 			<Grid>
 				<Grid.RowDefinitions>
@@ -32,8 +40,8 @@
 				</Grid.RowDefinitions>
 
 				<!-- Title -->
-				<TextBlock Grid.Row="0"
-                           Text="{Binding [StyleNode], Source={StaticResource Loc}}"
+             <TextBlock Grid.Row="0"
+						   Text="{Binding [MindMapStyleOrganizeTitle], Source={StaticResource Loc}}"
                            FontSize="20"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource TextColor}"
@@ -289,27 +297,15 @@
                             HorizontalAlignment="Right"
                             Margin="0,20,0,0">
 					<Button Content="{Binding [Cancel], Source={StaticResource Loc}}"
-                            Padding="20,10"
-                            MinWidth="110"
-                            Background="Transparent"
-                            BorderBrush="{DynamicResource BorderColor}"
-                            BorderThickness="1"
-                            Foreground="{DynamicResource TextColor}"
-                            FontSize="13"
-                            FontWeight="SemiBold"
-                            Cursor="Hand"
+                            Style="{StaticResource DialogSecondaryButtonStyle}"
+							Padding="20,10"
+							MinWidth="110"
                             Click="CancelButton_Click"/>
 					<Button Content="{Binding [Save], Source={StaticResource Loc}}"
-                            Padding="20,10"
-                            MinWidth="110"
-                            Margin="12,0,0,0"
-                            Background="#4A6EE0"
-                            BorderBrush="#4A6EE0"
-                            BorderThickness="1"
-                            Foreground="White"
-                            FontSize="13"
-                            FontWeight="SemiBold"
-                            Cursor="Hand"
+                            Style="{StaticResource DialogPrimaryButtonStyle}"
+							Padding="20,10"
+							MinWidth="110"
+							Margin="12,0,0,0"
                             Click="SaveButton_Click"/>
 				</StackPanel>
 			</Grid>

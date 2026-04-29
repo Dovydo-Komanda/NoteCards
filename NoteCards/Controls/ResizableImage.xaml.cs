@@ -1,16 +1,37 @@
 using System;
+using NoteCards.Localization;
+using NoteCards.Models;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace NoteCards.Controls
 {
     public partial class ResizableImage : UserControl
     {
+        private const double CanvasPadding = 24;
+        private const double FloatingCanvasAnchorHeight = 80;
+        private const double EdgeScrollZone = 42;
+        private const double MaxEdgeScrollStep = 24;
+        private const double NormalImageOpacity = 1.0;
+        private const double SelectedImageOpacity = 1.0;
+        private const int FloatingImageZIndex = 1000;
+        private const double MinimumAspectRatio = 0.01;
         private bool _isDragging;
+        private bool _isInlineDragCandidate;
+        private bool _isInlineDragging;
         private Point _clickPosition;
+        private Point _inlineDragStartPosition;
+        private double _lockedAspectRatio;
+
+        public event EventHandler? ImageBoundsChanged;
+        public event EventHandler<ImageLayoutChangeRequestedEventArgs>? LayoutChangeRequested;
+        public event EventHandler<InlineImageMoveRequestedEventArgs>? InlineMoveRequested;
+        public RichTextBox? EditorHost { get; set; }
 
         public static readonly DependencyProperty IsSelectedProperty =
             DependencyProperty.Register("IsSelected", typeof(bool), typeof(ResizableImage),
@@ -26,7 +47,7 @@ namespace NoteCards.Controls
         {
             if (d is ResizableImage control)
             {
-                control.ResizeHandlesGrid.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed;
+                control.UpdateSelectionVisualState((bool)e.NewValue);
             }
         }
 
@@ -54,7 +75,10 @@ namespace NoteCards.Controls
                     bmp.StreamSource = ms;
                     bmp.EndInit();
                     bmp.Freeze();
-                    control.InnerImage.Source = bmp;
+                    var displaySource = CreateOpaqueDisplaySource(bmp);
+                    control.InnerImage.Source = displaySource;
+                    control.SetCurrentValue(SourceProperty, displaySource);
+                    control.RefreshVisualState();
                 }
                 catch { }
             }
@@ -70,11 +94,73 @@ namespace NoteCards.Controls
             set => SetValue(SourceProperty, value);
         }
 
+        public bool ShouldSerializeSource() => false;
+        public bool ShouldSerializeIsSelected() => false;
+        public bool ShouldSerializeImageData() => !string.IsNullOrWhiteSpace(ImageData);
+        public bool ShouldSerializePreserveAspectRatio() => PreserveAspectRatio;
+
+        public static readonly DependencyProperty ImageIdProperty =
+            DependencyProperty.Register("ImageId", typeof(Guid), typeof(ResizableImage),
+            new PropertyMetadata(Guid.Empty));
+
+        public Guid ImageId
+        {
+            get => (Guid)GetValue(ImageIdProperty);
+            set => SetValue(ImageIdProperty, value);
+        }
+
+        public static readonly DependencyProperty LayoutModeProperty =
+            DependencyProperty.Register("LayoutMode", typeof(string), typeof(ResizableImage),
+            new PropertyMetadata(NoteImageLayout.Floating, OnLayoutModeChanged));
+
+        public string LayoutMode
+        {
+            get => (string)GetValue(LayoutModeProperty);
+            set => SetValue(LayoutModeProperty, value);
+        }
+
+        private static void OnLayoutModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ResizableImage control)
+            {
+                control.UpdateLayoutMenuChecks();
+            }
+        }
+
+        public static readonly DependencyProperty PreserveAspectRatioProperty =
+            DependencyProperty.Register(
+                nameof(PreserveAspectRatio),
+                typeof(bool),
+                typeof(ResizableImage),
+                new PropertyMetadata(false, OnPreserveAspectRatioChanged));
+
+        public bool PreserveAspectRatio
+        {
+            get => (bool)GetValue(PreserveAspectRatioProperty);
+            set => SetValue(PreserveAspectRatioProperty, value);
+        }
+
+        private static void OnPreserveAspectRatioChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not ResizableImage control)
+                return;
+
+            if ((bool)e.NewValue)
+                control._lockedAspectRatio = control.ResolveCurrentAspectRatio();
+
+            control.UpdateAspectRatioToggleState();
+            control.ImageBoundsChanged?.Invoke(control, EventArgs.Empty);
+        }
+
         private static void OnSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is ResizableImage control)
             {
-                control.InnerImage.Source = e.NewValue as ImageSource;
+                var displaySource = CreateOpaqueDisplaySource(e.NewValue as ImageSource);
+                control.InnerImage.Source = displaySource;
+                if (!ReferenceEquals(displaySource, e.NewValue))
+                    control.SetCurrentValue(SourceProperty, displaySource);
+                control.RefreshVisualState();
             }
         }
 
@@ -98,13 +184,124 @@ namespace NoteCards.Controls
             BottomLeftThumb.DragDelta += BottomLeft_DragDelta;
             LeftThumb.DragDelta += Left_DragDelta;
 
+            SetLocalizedLayoutText();
+            UpdateLayoutMenuChecks();
+            UpdateAspectRatioToggleState();
+            UpdateSelectionVisualState(IsSelected);
+
             // Make sure the UserControl itself can receive focus when clicked
             FocusManager.SetIsFocusScope(this, true);
         }
 
+        private void UpdateSelectionVisualState(bool isSelected)
+        {
+            Opacity = NormalImageOpacity;
+            RootGrid.Opacity = NormalImageOpacity;
+            InnerImage.Opacity = isSelected ? SelectedImageOpacity : NormalImageOpacity;
+            ResizeHandlesGrid.Visibility = isSelected ? Visibility.Visible : Visibility.Collapsed;
+            Panel.SetZIndex(this, isSelected ? FloatingImageZIndex + 2 : FloatingImageZIndex + 1);
+        }
+
+        public void RefreshVisualState()
+        {
+            UpdateSelectionVisualState(IsSelected);
+        }
+
+        private static ImageSource? CreateOpaqueDisplaySource(ImageSource? source)
+        {
+            if (source is not BitmapSource bitmapSource || !HasAlpha(bitmapSource.Format))
+                return source;
+
+            try
+            {
+                var pixelWidth = Math.Max(1, bitmapSource.PixelWidth);
+                var pixelHeight = Math.Max(1, bitmapSource.PixelHeight);
+                var visual = new DrawingVisual();
+
+                using (var context = visual.RenderOpen())
+                {
+                    var bounds = new Rect(0, 0, pixelWidth, pixelHeight);
+                    context.DrawRectangle(ResolveOpaqueImageBackgroundBrush(), null, bounds);
+                    context.DrawImage(bitmapSource, bounds);
+                }
+
+                var rendered = new RenderTargetBitmap(pixelWidth, pixelHeight, 96, 96, PixelFormats.Pbgra32);
+                rendered.Render(visual);
+
+                var opaque = new FormatConvertedBitmap(rendered, PixelFormats.Bgr32, null, 0);
+                if (opaque.CanFreeze)
+                    opaque.Freeze();
+
+                return opaque;
+            }
+            catch
+            {
+                return source;
+            }
+        }
+
+        private static Brush ResolveOpaqueImageBackgroundBrush()
+        {
+            var brush = Application.Current?.TryFindResource("RichTextBoxBackground") as SolidColorBrush
+                ?? Application.Current?.TryFindResource("CardBackground") as SolidColorBrush;
+            if (brush == null)
+                return Brushes.White;
+
+            var color = brush.Color;
+            color.A = 255;
+            var opaqueBrush = new SolidColorBrush(color);
+            opaqueBrush.Freeze();
+            return opaqueBrush;
+        }
+
+        private static bool HasAlpha(PixelFormat format)
+        {
+            return format == PixelFormats.Bgra32
+                || format == PixelFormats.Pbgra32
+                || format == PixelFormats.Prgba64
+                || format == PixelFormats.Rgba64;
+        }
+
+        private void SetLocalizedLayoutText()
+        {
+            LayoutButton.ToolTip = LocalizationService.GetString("ImageLayoutOptions");
+            InlineLayoutMenuItem.Header = LocalizationService.GetString("ImageLayoutInline");
+            FloatingLayoutMenuItem.Header = LocalizationService.GetString("ImageLayoutFloating");
+            UpdateAspectRatioToggleState();
+        }
+
+        private void UpdateLayoutMenuChecks()
+        {
+            if (InlineLayoutMenuItem == null || FloatingLayoutMenuItem == null)
+                return;
+
+            InlineLayoutMenuItem.IsCheckable = true;
+            FloatingLayoutMenuItem.IsCheckable = true;
+            InlineLayoutMenuItem.IsChecked = string.Equals(LayoutMode, NoteImageLayout.Inline, StringComparison.OrdinalIgnoreCase);
+            FloatingLayoutMenuItem.IsChecked = string.Equals(LayoutMode, NoteImageLayout.Floating, StringComparison.OrdinalIgnoreCase);
+            LayoutButton.Content = InlineLayoutMenuItem.IsChecked
+                ? LocalizationService.GetString("ImageLayoutInlineShort")
+                : LocalizationService.GetString("ImageLayoutFloatingShort");
+        }
+
+        private void UpdateAspectRatioToggleState()
+        {
+            if (AspectRatioToggleButton == null)
+                return;
+
+            AspectRatioToggleButton.IsChecked = PreserveAspectRatio;
+            AspectRatioToggleButton.ToolTip = LocalizationService.GetString(PreserveAspectRatio
+                ? "ImageAspectRatioUnlockTooltip"
+                : "ImageAspectRatioLockTooltip");
+        }
+
         private void ResizableImage_LostFocus(object sender, RoutedEventArgs e)
         {
-            IsSelected = false;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (!IsKeyboardFocusWithin && LayoutButton.ContextMenu?.IsOpen != true)
+                    IsSelected = false;
+            }));
         }
 
         private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -115,6 +312,21 @@ namespace NoteCards.Controls
 
         private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (IsLayoutChrome(e.OriginalSource as DependencyObject))
+                return;
+
+            if (IsInlineLayout())
+            {
+                _isInlineDragCandidate = true;
+                _inlineDragStartPosition = e.GetPosition(this);
+                CaptureMouse();
+                e.Handled = true;
+                return;
+            }
+
+            if (Parent is not Canvas)
+                return;
+
             // If dragging started from a Thumb, this bubbling event wouldn't fire because Thumb marks it Handled.
             // Ergo, this is the main image body being clicked.
             _isDragging = true;
@@ -125,6 +337,27 @@ namespace NoteCards.Controls
 
         private void OnMouseMove(object sender, MouseEventArgs e)
         {
+            if (_isInlineDragCandidate && e.LeftButton == MouseButtonState.Pressed)
+            {
+                var currentPosition = e.GetPosition(this);
+                if (Math.Abs(currentPosition.X - _inlineDragStartPosition.X) >= SystemParameters.MinimumHorizontalDragDistance
+                    || Math.Abs(currentPosition.Y - _inlineDragStartPosition.Y) >= SystemParameters.MinimumVerticalDragDistance)
+                {
+                    _isInlineDragCandidate = false;
+                    _isInlineDragging = true;
+                    CaptureMouse();
+                    e.Handled = true;
+                }
+
+                return;
+            }
+
+            if (_isInlineDragging && e.LeftButton == MouseButtonState.Pressed)
+            {
+                e.Handled = true;
+                return;
+            }
+
             if (_isDragging && this.Parent is UIElement parent && e.LeftButton == MouseButtonState.Pressed)
             {
                 var currentPosition = e.GetPosition(parent);
@@ -138,28 +371,52 @@ namespace NoteCards.Controls
 
                 var newLeft = left + delta.X;
                 var newTop = top + delta.Y;
+                var clampedPosition = ClampPositionToParentCanvas(newLeft, newTop);
 
-                Canvas.SetLeft(this, newLeft);
-                Canvas.SetTop(this, newTop);
+                Canvas.SetLeft(this, clampedPosition.X);
+                Canvas.SetTop(this, clampedPosition.Y);
 
-                // Dynamically update the parent canvas size if we drag out of bounds
-                if (parent is Canvas canvas)
-                {
-                    double currentCanvasHeight = double.IsNaN(canvas.Height) ? canvas.ActualHeight : canvas.Height;
-                    double requiredHeight = newTop + this.Height + 50;
-                    if (requiredHeight > currentCanvasHeight)
-                    {
-                        canvas.Height = requiredHeight;
-                    }
-                }
+                EnsureParentCanvasContainsImage();
+                AutoScrollEditor(e);
+                ImageBoundsChanged?.Invoke(this, EventArgs.Empty);
 
                 _clickPosition = currentPosition;
                 e.Handled = true;
             }
         }
 
+        private bool IsInlineLayout()
+        {
+            return string.Equals(LayoutMode, NoteImageLayout.Inline, StringComparison.OrdinalIgnoreCase);
+        }
+
         private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            if (_isInlineDragging)
+            {
+                _isInlineDragging = false;
+                _isInlineDragCandidate = false;
+                if (IsMouseCaptured)
+                    ReleaseMouseCapture();
+
+                var editor = EditorHost ?? FindVisualAncestor<RichTextBox>(this);
+                if (editor != null)
+                    InlineMoveRequested?.Invoke(this, new InlineImageMoveRequestedEventArgs(e.GetPosition(editor)));
+
+                e.Handled = true;
+                return;
+            }
+
+            if (_isInlineDragCandidate)
+            {
+                _isInlineDragCandidate = false;
+                if (IsMouseCaptured)
+                    ReleaseMouseCapture();
+
+                e.Handled = true;
+                return;
+            }
+
             if (_isDragging)
             {
                 _isDragging = false;
@@ -168,51 +425,399 @@ namespace NoteCards.Controls
             }
         }
 
+        private static bool IsLayoutChrome(DependencyObject? source)
+        {
+            while (source != null)
+            {
+                if (source is ButtonBase or System.Windows.Controls.ContextMenu or MenuItem or Thumb)
+                    return true;
+
+                DependencyObject? parent = null;
+                if (source is Visual or System.Windows.Media.Media3D.Visual3D)
+                {
+                    parent = VisualTreeHelper.GetParent(source);
+                }
+
+                parent ??= source switch
+                {
+                    FrameworkElement element => element.Parent,
+                    FrameworkContentElement contentElement => contentElement.Parent,
+                    _ => null
+                };
+
+                source = parent;
+            }
+
+            return false;
+        }
+
         private void Resize(double dX, double dY, bool adjustLeft, bool adjustTop)
         {
-            if (Parent is not Canvas) return;
+            var currentWidth = ResolveElementWidth(this);
+            var currentHeight = ResolveElementHeight(this);
+            var newWidth = currentWidth + dX;
+            var newHeight = currentHeight + dY;
 
-            var newWidth = Width + dX;
-            var newHeight = Height + dY;
-
-            if (newWidth < MinWidth)
+            if (PreserveAspectRatio)
             {
-                dX = MinWidth - Width;
-                newWidth = MinWidth;
+                var lockedSize = ResolveAspectLockedSize(currentWidth, currentHeight, dX, dY);
+                newWidth = lockedSize.Width;
+                newHeight = lockedSize.Height;
             }
-            if (newHeight < MinHeight)
+            else
             {
-                dY = MinHeight - Height;
-                newHeight = MinHeight;
+                newWidth = Math.Max(MinWidth, newWidth);
+                newHeight = Math.Max(MinHeight, newHeight);
             }
 
-            if (adjustLeft)
+            var widthDelta = newWidth - currentWidth;
+            var heightDelta = newHeight - currentHeight;
+            var isHorizontalResize = Math.Abs(dX) > 0.001;
+            var isVerticalResize = Math.Abs(dY) > 0.001;
+
+            if (Parent is Canvas)
             {
                 var left = Canvas.GetLeft(this);
-                Canvas.SetLeft(this, double.IsNaN(left) ? -dX : left - dX);
-            }
-            if (adjustTop)
-            {
                 var top = Canvas.GetTop(this);
-                Canvas.SetTop(this, double.IsNaN(top) ? -dY : top - dY);
+                if (double.IsNaN(left))
+                    left = 0;
+                if (double.IsNaN(top))
+                    top = 0;
+
+                if (adjustLeft)
+                    left -= widthDelta;
+                else if (PreserveAspectRatio && isVerticalResize && !isHorizontalResize)
+                    left -= widthDelta / 2;
+
+                if (adjustTop)
+                    top -= heightDelta;
+                else if (PreserveAspectRatio && isHorizontalResize && !isVerticalResize)
+                    top -= heightDelta / 2;
+
+                Canvas.SetLeft(this, left);
+                Canvas.SetTop(this, top);
             }
 
             Width = newWidth;
             Height = newHeight;
 
-            // Expand canvas height if resized downwards
-            if (Parent is Canvas canvas)
-            {
-                double currentTop = Canvas.GetTop(this);
-                if (double.IsNaN(currentTop)) currentTop = 0;
+            ClampBoundsToParentCanvas();
+            EnsureParentCanvasContainsImage();
+            ImageBoundsChanged?.Invoke(this, EventArgs.Empty);
+        }
 
-                double requiredHeight = currentTop + newHeight + 50;
-                double currentCanvasHeight = double.IsNaN(canvas.Height) ? canvas.ActualHeight : canvas.Height;
-                if (requiredHeight > currentCanvasHeight)
+        private Size ResolveAspectLockedSize(double currentWidth, double currentHeight, double dX, double dY)
+        {
+            var ratio = ResolveLockedAspectRatio(currentWidth, currentHeight);
+            var isHorizontalResize = Math.Abs(dX) > 0.001;
+            var isVerticalResize = Math.Abs(dY) > 0.001;
+
+            double targetWidth;
+            double targetHeight;
+
+            if (isHorizontalResize && (!isVerticalResize || Math.Abs(dX) >= Math.Abs(dY * ratio)))
+            {
+                targetWidth = currentWidth + dX;
+                targetHeight = targetWidth / ratio;
+            }
+            else
+            {
+                targetHeight = currentHeight + dY;
+                targetWidth = targetHeight * ratio;
+            }
+
+            if (targetWidth < MinWidth)
+            {
+                targetWidth = MinWidth;
+                targetHeight = targetWidth / ratio;
+            }
+
+            if (targetHeight < MinHeight)
+            {
+                targetHeight = MinHeight;
+                targetWidth = targetHeight * ratio;
+            }
+
+            var maximumWidth = ResolveMaximumAspectLockedWidth();
+            if (maximumWidth > 0 && targetWidth > maximumWidth)
+            {
+                targetWidth = maximumWidth;
+                targetHeight = targetWidth / ratio;
+
+                if (targetHeight < MinHeight)
                 {
-                    canvas.Height = requiredHeight;
+                    targetHeight = MinHeight;
+                    targetWidth = targetHeight * ratio;
                 }
             }
+
+            return new Size(Math.Max(MinWidth, targetWidth), Math.Max(MinHeight, targetHeight));
+        }
+
+        private double ResolveLockedAspectRatio(double currentWidth, double currentHeight)
+        {
+            if (_lockedAspectRatio >= MinimumAspectRatio && !double.IsInfinity(_lockedAspectRatio))
+                return _lockedAspectRatio;
+
+            _lockedAspectRatio = ResolveCurrentAspectRatio(currentWidth, currentHeight);
+            return _lockedAspectRatio;
+        }
+
+        private double ResolveCurrentAspectRatio()
+        {
+            return ResolveCurrentAspectRatio(ResolveElementWidth(this), ResolveElementHeight(this));
+        }
+
+        private static double ResolveCurrentAspectRatio(double width, double height)
+        {
+            if (width >= MinimumAspectRatio && height >= MinimumAspectRatio)
+                return Math.Max(MinimumAspectRatio, width / height);
+
+            return 1d;
+        }
+
+        private double ResolveMaximumAspectLockedWidth()
+        {
+            if (Parent is not Canvas canvas)
+                return 0;
+
+            var canvasWidth = ResolveCanvasWidth(canvas);
+            if (canvasWidth <= 0)
+                return 0;
+
+            return Math.Max(MinWidth, canvasWidth);
+        }
+
+        private void LayoutButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (LayoutButton.ContextMenu == null)
+                return;
+
+            LayoutButton.ContextMenu.PlacementTarget = LayoutButton;
+            LayoutButton.ContextMenu.Placement = PlacementMode.Bottom;
+            LayoutButton.ContextMenu.IsOpen = true;
+            e.Handled = true;
+        }
+
+        private void AspectRatioToggleButton_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!PreserveAspectRatio)
+                PreserveAspectRatio = true;
+
+            e.Handled = true;
+        }
+
+        private void AspectRatioToggleButton_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (PreserveAspectRatio)
+                PreserveAspectRatio = false;
+
+            e.Handled = true;
+        }
+
+        private void InlineLayoutMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            RequestLayoutChange(NoteImageLayout.Inline);
+        }
+
+        private void FloatingLayoutMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            RequestLayoutChange(NoteImageLayout.Floating);
+        }
+
+        private void RequestLayoutChange(string layoutMode)
+        {
+            if (string.Equals(LayoutMode, layoutMode, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (LayoutButton.ContextMenu != null)
+                LayoutButton.ContextMenu.IsOpen = false;
+
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                LayoutChangeRequested?.Invoke(this, new ImageLayoutChangeRequestedEventArgs(layoutMode));
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        private Point ClampPositionToParentCanvas(double left, double top)
+        {
+            left = Math.Max(0, left);
+
+            if (Parent is not Canvas canvas)
+                return new Point(left, Math.Max(0, top));
+
+            var imageHeight = ResolveElementHeight(this);
+            var minimumTop = 0d;
+            var maximumTop = ResolveMaximumTop(canvas, imageHeight);
+            top = maximumTop >= minimumTop
+                ? Math.Min(Math.Max(minimumTop, top), maximumTop)
+                : minimumTop;
+
+            var canvasWidth = ResolveCanvasWidth(canvas);
+            var imageWidth = ResolveElementWidth(this);
+            if (canvasWidth > 0 && imageWidth > 0)
+            {
+                left = Math.Min(left, Math.Max(0, canvasWidth - imageWidth));
+            }
+
+            return new Point(left, top);
+        }
+
+        private void ClampBoundsToParentCanvas()
+        {
+            if (Parent is not Canvas canvas)
+                return;
+
+            var canvasWidth = ResolveCanvasWidth(canvas);
+            if (canvasWidth > 0)
+            {
+                Width = Math.Min(Width, Math.Max(MinWidth, canvasWidth));
+            }
+
+            var left = Canvas.GetLeft(this);
+            if (double.IsNaN(left))
+                left = 0;
+
+            var top = Canvas.GetTop(this);
+            if (double.IsNaN(top))
+                top = 0;
+
+            var clampedPosition = ClampPositionToParentCanvas(left, top);
+            Canvas.SetLeft(this, clampedPosition.X);
+            Canvas.SetTop(this, clampedPosition.Y);
+        }
+
+        private double ResolveCanvasWidth(Canvas canvas)
+        {
+            if (!double.IsNaN(canvas.Width) && canvas.Width > 0)
+                return canvas.Width;
+
+            if (canvas.ActualWidth > 0)
+                return canvas.ActualWidth;
+
+            var editor = EditorHost ?? FindVisualAncestor<RichTextBox>(canvas);
+            if (editor?.ActualWidth > 0)
+                return Math.Max(0, editor.ActualWidth - editor.Padding.Left - editor.Padding.Right);
+
+            return 0;
+        }
+
+        private double ResolveMaximumTop(Canvas canvas, double imageHeight)
+        {
+            if (canvas.Parent is not BlockUIContainer && canvas.ActualHeight > 0 && imageHeight > 0)
+                return Math.Max(0, canvas.ActualHeight - imageHeight);
+
+            var editor = EditorHost ?? FindVisualAncestor<RichTextBox>(canvas);
+            if (editor == null || editor.ActualHeight <= 0 || imageHeight <= 0)
+                return double.PositiveInfinity;
+
+            try
+            {
+                var canvasOrigin = canvas.TranslatePoint(new Point(0, 0), editor);
+                var editorBottom = Math.Max(0, editor.ActualHeight - editor.Padding.Bottom);
+                return editorBottom - imageHeight - canvasOrigin.Y;
+            }
+            catch
+            {
+                return double.PositiveInfinity;
+            }
+        }
+
+        private static double ResolveElementWidth(FrameworkElement element)
+        {
+            if (!double.IsNaN(element.Width) && element.Width > 0)
+                return element.Width;
+
+            if (element.ActualWidth > 0)
+                return element.ActualWidth;
+
+            return Math.Max(0, element.MinWidth);
+        }
+
+        private static double ResolveElementHeight(FrameworkElement element)
+        {
+            if (!double.IsNaN(element.Height) && element.Height > 0)
+                return element.Height;
+
+            if (element.ActualHeight > 0)
+                return element.ActualHeight;
+
+            return Math.Max(0, element.MinHeight);
+        }
+
+        private void EnsureParentCanvasContainsImage()
+        {
+            if (Parent is not Canvas canvas)
+                return;
+
+            if (string.Equals(LayoutMode, NoteImageLayout.Floating, StringComparison.OrdinalIgnoreCase))
+            {
+                if (canvas.Parent is BlockUIContainer)
+                {
+                    canvas.Height = FloatingCanvasAnchorHeight;
+                    canvas.MinHeight = FloatingCanvasAnchorHeight;
+                }
+
+                canvas.InvalidateMeasure();
+                return;
+            }
+
+            var top = Canvas.GetTop(this);
+            if (double.IsNaN(top) || top < 0)
+            {
+                top = 0;
+                Canvas.SetTop(this, top);
+            }
+
+            var imageHeight = double.IsNaN(Height) || Height <= 0 ? ActualHeight : Height;
+            if (imageHeight <= 0)
+                imageHeight = MinHeight;
+
+            var requiredHeight = Math.Max(FloatingCanvasAnchorHeight, top + imageHeight + CanvasPadding);
+            if (Math.Abs(canvas.Height - requiredHeight) > 0.5 || double.IsNaN(canvas.Height))
+            {
+                canvas.Height = requiredHeight;
+            }
+
+            canvas.MinHeight = requiredHeight;
+            canvas.InvalidateMeasure();
+        }
+
+        private void AutoScrollEditor(MouseEventArgs e)
+        {
+            var editor = EditorHost ?? FindVisualAncestor<RichTextBox>(this);
+            if (editor == null || editor.ActualHeight <= 0)
+                return;
+
+            var pointer = e.GetPosition(editor);
+            if (pointer.Y > editor.ActualHeight - EdgeScrollZone)
+            {
+                var distance = pointer.Y - (editor.ActualHeight - EdgeScrollZone);
+                var step = Math.Min(MaxEdgeScrollStep, Math.Max(4, distance * 0.35));
+                editor.ScrollToVerticalOffset(editor.VerticalOffset + step);
+            }
+            else if (pointer.Y < EdgeScrollZone)
+            {
+                var distance = EdgeScrollZone - pointer.Y;
+                var step = Math.Min(MaxEdgeScrollStep, Math.Max(4, distance * 0.35));
+                editor.ScrollToVerticalOffset(Math.Max(0, editor.VerticalOffset - step));
+            }
+        }
+
+        private static T? FindVisualAncestor<T>(DependencyObject current)
+            where T : DependencyObject
+        {
+            DependencyObject? cursor = current;
+
+            while (cursor != null)
+            {
+                if (cursor is T match)
+                    return match;
+
+                cursor = VisualTreeHelper.GetParent(cursor);
+            }
+
+            return null;
         }
 
         private void TopLeft_DragDelta(object sender, DragDeltaEventArgs e) => Resize(-e.HorizontalChange, -e.VerticalChange, true, true);
@@ -223,5 +828,25 @@ namespace NoteCards.Controls
         private void Bottom_DragDelta(object sender, DragDeltaEventArgs e) => Resize(0, e.VerticalChange, false, false);
         private void BottomLeft_DragDelta(object sender, DragDeltaEventArgs e) => Resize(-e.HorizontalChange, e.VerticalChange, true, false);
         private void Left_DragDelta(object sender, DragDeltaEventArgs e) => Resize(-e.HorizontalChange, 0, true, false);
+    }
+
+    public sealed class ImageLayoutChangeRequestedEventArgs : EventArgs
+    {
+        public ImageLayoutChangeRequestedEventArgs(string layoutMode)
+        {
+            LayoutMode = layoutMode;
+        }
+
+        public string LayoutMode { get; }
+    }
+
+    public sealed class InlineImageMoveRequestedEventArgs : EventArgs
+    {
+        public InlineImageMoveRequestedEventArgs(Point editorPoint)
+        {
+            EditorPoint = editorPoint;
+        }
+
+        public Point EditorPoint { get; }
     }
 }

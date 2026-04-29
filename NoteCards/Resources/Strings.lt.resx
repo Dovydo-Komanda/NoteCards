@@ -121,6 +121,13 @@
   <data name="ErrorLoadingImage" xml:space="preserve"><value>Klaida įkeliant paveikslėlį</value></data>
   <data name="RemoveImage" xml:space="preserve"><value>Pašalinti paveikslėlį</value></data>
   <data name="PicturePlaceholder" xml:space="preserve"><value>[Nuotrauka]</value></data>
+  <data name="ImageLayoutOptions" xml:space="preserve"><value>Nuotraukos išdėstymo parinktys</value></data>
+  <data name="ImageLayoutInline" xml:space="preserve"><value>Vienoje eilutėje su tekstu</value></data>
+  <data name="ImageLayoutFloating" xml:space="preserve"><value>Plaukiojanti virš teksto</value></data>
+  <data name="ImageLayoutInlineShort" xml:space="preserve"><value>Eilutėje</value></data>
+  <data name="ImageLayoutFloatingShort" xml:space="preserve"><value>Plaukiojanti</value></data>
+  <data name="ImageAspectRatioLockTooltip" xml:space="preserve"><value>Užrakinti nuotraukos proporcijas keičiant dydį</value></data>
+  <data name="ImageAspectRatioUnlockTooltip" xml:space="preserve"><value>Atrakinti nuotraukos proporcijas</value></data>
   <data name="ImageResizeTooltip" xml:space="preserve"><value>Laikykite Shift ir tempkite, kad keistumėte dydį
 Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FirstNoteTitle" xml:space="preserve"><value>Sveiki atvykę į NoteCards</value></data>
@@ -341,6 +348,17 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="MindMapLayoutMode" xml:space="preserve"><value>Išdėstymas:</value></data>
   <data name="MindMapLayoutBalancedTree" xml:space="preserve"><value>Subalansuotas medis</value></data>
   <data name="MindMapLayoutRadial" xml:space="preserve"><value>Radialinis</value></data>
+  <data name="MindMapStyleOrganize" xml:space="preserve"><value>Stilius ir tvarka</value></data>
+  <data name="MindMapStyleOrganizeTitle" xml:space="preserve"><value>Minčių žemėlapio stilius</value></data>
+  <data name="NodeBackgroundColor" xml:space="preserve"><value>Fono spalva</value></data>
+  <data name="NodeBorderColor" xml:space="preserve"><value>Rėmelio spalva</value></data>
+  <data name="NodeBorderThickness" xml:space="preserve"><value>Rėmelio storis</value></data>
+  <data name="NodeShape" xml:space="preserve"><value>Forma</value></data>
+  <data name="NodeIcon" xml:space="preserve"><value>Ikona</value></data>
+  <data name="AddCustomIcon" xml:space="preserve"><value>Pridėti savo ikoną</value></data>
+  <data name="ClearIcon" xml:space="preserve"><value>Pašalinti ikoną</value></data>
+  <data name="SelectColor" xml:space="preserve"><value>Pasirinkti spalvą</value></data>
+  <data name="ClearColor" xml:space="preserve"><value>Išvalyti spalvą</value></data>
   <data name="MindMapZoom" xml:space="preserve"><value>Mastelis:</value></data>
   <data name="MindMapSearchLabel" xml:space="preserve"><value>Paieška:</value></data>
   <data name="MindMapSearchHint" xml:space="preserve"><value>Ieškokite mazgo teksto ar raktažodžių...</value></data>

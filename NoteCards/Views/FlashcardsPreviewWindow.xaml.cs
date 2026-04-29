@@ -965,8 +965,10 @@ public partial class FlashcardsPreviewWindow : Window
                 e.Cancel = true;
                 return;
             case UnsavedCloseDecision.SaveAndClose:
-                e.Cancel = true;
-                SaveAndClose();
+                _allowCloseWithoutPrompt = true;
+                MarkCurrentStateSaved();
+                DialogResult = true;
+                e.Cancel = false;
                 return;
             case UnsavedCloseDecision.LeaveWithoutSaving:
                 _allowCloseWithoutPrompt = true;

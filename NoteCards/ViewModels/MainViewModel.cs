@@ -234,7 +234,7 @@ public class MainViewModel : ViewModelBase
         set => SetActiveDashboard(value ? DashboardFlashcards : DashboardNotes);
     }
     public bool IsMindMapsView => string.Equals(_activeDashboard, DashboardMindMaps, StringComparison.Ordinal);
-    public FlashcardItem SelectedFlashcard { get; set; }
+    public FlashcardItem? SelectedFlashcard { get; set; }
 
     public bool IsShowingAnswer { get; set; }
 
@@ -1241,7 +1241,20 @@ public class MainViewModel : ViewModelBase
         {
             Title = $"{noteCard.Document.Title} (Copy)",
             Content = noteCard.Document.Content,
-            Tags = noteCard.Document.Tags?.ToList(), // Copy tags if they exist
+            Images = noteCard.Document.Images?
+                .Select(image => new NoteImageAttachment
+                {
+                    Id = image.Id,
+                    Data = image.Data,
+                    Layout = image.Layout,
+                    Width = image.Width,
+                    Height = image.Height,
+                    Left = image.Left,
+                    Top = image.Top,
+                    PreserveAspectRatio = image.PreserveAspectRatio
+                })
+                .ToList() ?? new List<NoteImageAttachment>(),
+            Tags = noteCard.Document.Tags?.ToList() ?? new List<string>(), // Copy tags if they exist
             FontFamily = noteCard.Document.FontFamily,
             FontSize = noteCard.Document.FontSize,
             CreatedAt = DateTime.Now,

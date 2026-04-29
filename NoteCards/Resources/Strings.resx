@@ -121,6 +121,13 @@
   <data name="ErrorLoadingImage" xml:space="preserve"><value>Error loading image</value></data>
   <data name="RemoveImage" xml:space="preserve"><value>Remove image</value></data>
   <data name="PicturePlaceholder" xml:space="preserve"><value>[Picture]</value></data>
+  <data name="ImageLayoutOptions" xml:space="preserve"><value>Picture layout options</value></data>
+  <data name="ImageLayoutInline" xml:space="preserve"><value>In line with text</value></data>
+  <data name="ImageLayoutFloating" xml:space="preserve"><value>Floating over text</value></data>
+  <data name="ImageLayoutInlineShort" xml:space="preserve"><value>Inline</value></data>
+  <data name="ImageLayoutFloatingShort" xml:space="preserve"><value>Floating</value></data>
+  <data name="ImageAspectRatioLockTooltip" xml:space="preserve"><value>Lock picture proportions while resizing</value></data>
+  <data name="ImageAspectRatioUnlockTooltip" xml:space="preserve"><value>Unlock picture proportions</value></data>
   <data name="ImageResizeTooltip" xml:space="preserve"><value>Shift+Drag to resize image
 Right-click to remove</value></data>
   <data name="FirstNoteTitle" xml:space="preserve"><value>Welcome to NoteCards</value></data>
@@ -382,6 +389,17 @@ Right-click to remove</value></data>
   <data name="MindMapLayoutMode" xml:space="preserve"><value>Layout:</value></data>
   <data name="MindMapLayoutBalancedTree" xml:space="preserve"><value>Balanced tree</value></data>
   <data name="MindMapLayoutRadial" xml:space="preserve"><value>Radial</value></data>
+  <data name="MindMapStyleOrganize" xml:space="preserve"><value>Style &amp; organize</value></data>
+  <data name="MindMapStyleOrganizeTitle" xml:space="preserve"><value>Mind map style</value></data>
+  <data name="NodeBackgroundColor" xml:space="preserve"><value>Background color</value></data>
+  <data name="NodeBorderColor" xml:space="preserve"><value>Border color</value></data>
+  <data name="NodeBorderThickness" xml:space="preserve"><value>Border thickness</value></data>
+  <data name="NodeShape" xml:space="preserve"><value>Shape</value></data>
+  <data name="NodeIcon" xml:space="preserve"><value>Icon</value></data>
+  <data name="AddCustomIcon" xml:space="preserve"><value>Add custom icon</value></data>
+  <data name="ClearIcon" xml:space="preserve"><value>Clear icon</value></data>
+  <data name="SelectColor" xml:space="preserve"><value>Select color</value></data>
+  <data name="ClearColor" xml:space="preserve"><value>Clear color</value></data>
   <data name="MindMapZoom" xml:space="preserve"><value>Zoom:</value></data>
   <data name="MindMapSearchLabel" xml:space="preserve"><value>Search:</value></data>
   <data name="MindMapSearchHint" xml:space="preserve"><value>Search node text or keywords...</value></data>

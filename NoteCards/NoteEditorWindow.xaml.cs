@@ -53,8 +53,39 @@ namespace NoteCards
         private CancellationTokenSource? _mindMapConversionCancellationSource;
         private bool _isSyncingFontSelectors;
         private bool _isLoadingDocument;
+        private bool _isSerializingEditorContent;
         private bool _allowCloseWithoutPrompt;
+        private long _editorChangeVersion;
+        private long _lastSavedEditorChangeVersion;
         private const double StatusIndicatorExpandedHeight = 20;
+        private const double FloatingImageAnchorHeight = 80;
+        private const string ImageMarkerPrefix = "[[NoteCardsImage:";
+        private const string ImageMarkerSuffix = "]]";
+        private ScrollViewer? _contentScrollViewer;
+        private bool _isUpdatingFloatingImageLayout;
+        private bool _isFloatingImageOverlayLayoutUpdateQueued;
+        private bool _isInlineImageDropPending;
+
+        private static readonly DependencyProperty FloatingDocumentLeftProperty =
+            DependencyProperty.RegisterAttached(
+                "FloatingDocumentLeft",
+                typeof(double),
+                typeof(NoteEditorWindow),
+                new PropertyMetadata(0d));
+
+        private static readonly DependencyProperty FloatingDocumentTopProperty =
+            DependencyProperty.RegisterAttached(
+                "FloatingDocumentTop",
+                typeof(double),
+                typeof(NoteEditorWindow),
+                new PropertyMetadata(0d));
+
+        private static readonly DependencyProperty InlineImageIdProperty =
+            DependencyProperty.RegisterAttached(
+                "InlineImageId",
+                typeof(Guid),
+                typeof(NoteEditorWindow),
+                new PropertyMetadata(Guid.Empty));
 
         public static bool IsAiGenerationInProgress => _activeAiGenerationCount > 0;
 
@@ -66,6 +97,11 @@ namespace NoteCards
             UpdateOnlineSearchAvailability();
             ContentTextBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
             ContentTextBox.IsDocumentEnabled = true; // Ensure interactive elements (like ResizableImage) can receive pointer events
+            ContentTextBox.PreviewMouseDown += ContentTextBox_PreviewMouseDown;
+            ContentTextBox.SizeChanged += (_, _) => ScheduleFloatingImageOverlayLayoutUpdate();
+            EditorSurface.SizeChanged += (_, _) => ScheduleFloatingImageOverlayLayoutUpdate();
+            Loaded += NoteEditorWindow_Loaded;
+            RootGrid.Loaded += NoteEditorWindow_Loaded;
 
             // Subscribe to theme changes to update RichTextBox foreground
             ThemeManager.ThemeChanged += ThemeManager_ThemeChanged;
@@ -74,6 +110,38 @@ namespace NoteCards
         private void ThemeManager_ThemeChanged(object? sender, EventArgs e)
         {
             ApplyRichTextBoxTheme();
+        }
+
+        private void NoteEditorWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            AttachContentScrollViewer();
+            UpdateFloatingImageOverlayLayout();
+            ScheduleFloatingImageOverlayLayoutUpdate();
+        }
+
+        private void AttachContentScrollViewer()
+        {
+            if (_contentScrollViewer != null)
+                return;
+
+            ContentTextBox.ApplyTemplate();
+            _contentScrollViewer = FindVisualChild<ScrollViewer>(ContentTextBox);
+            if (_contentScrollViewer != null)
+                _contentScrollViewer.ScrollChanged += ContentScrollViewer_ScrollChanged;
+        }
+
+        private void DetachContentScrollViewer()
+        {
+            if (_contentScrollViewer != null)
+                _contentScrollViewer.ScrollChanged -= ContentScrollViewer_ScrollChanged;
+
+            _contentScrollViewer = null;
+        }
+
+        private void ContentScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            UpdateFloatingImageOverlayLayout();
+            ScheduleFloatingImageOverlayLayoutUpdate();
         }
 
         public void EnableTabMode()
@@ -102,6 +170,9 @@ namespace NoteCards
         public void DisposeHostedEditor()
         {
             StopAutoSaveTimer();
+            DetachContentScrollViewer();
+            Loaded -= NoteEditorWindow_Loaded;
+            RootGrid.Loaded -= NoteEditorWindow_Loaded;
             _flashcardConversionCancellationSource?.Cancel();
             _flashcardConversionCancellationSource?.Dispose();
             _flashcardConversionCancellationSource = null;
@@ -128,6 +199,9 @@ namespace NoteCards
             }
 
             StopAutoSaveTimer();
+            DetachContentScrollViewer();
+            Loaded -= NoteEditorWindow_Loaded;
+            RootGrid.Loaded -= NoteEditorWindow_Loaded;
             _flashcardConversionCancellationSource?.Cancel();
             _mindMapConversionCancellationSource?.Cancel();
             ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
@@ -281,14 +355,40 @@ namespace NoteCards
 
         private void ContentTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (_isSerializingEditorContent)
+                return;
+
+            MarkEditorContentChanged();
+
             // Only update counter, not theme (theme is applied during load and on theme change)
             UpdateCounter();
             UpdateEditedIndicator();
+            ScheduleFloatingImageOverlayLayoutUpdate();
         }
 
         private void EditorField_TextChanged(object sender, TextChangedEventArgs e)
         {
             UpdateEditedIndicator();
+        }
+
+        private void ContentTextBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var clickedImage = FindVisualAncestor<ResizableImage>(e.OriginalSource as DependencyObject);
+            if (clickedImage != null)
+            {
+                ClearImageSelectionsExcept(clickedImage);
+                return;
+            }
+
+            ClearImageSelections();
+        }
+
+        private void MarkEditorContentChanged()
+        {
+            if (_isLoadingDocument || _isSerializingEditorContent)
+                return;
+
+            _editorChangeVersion++;
         }
 
         private void OnlineSearchButton_Click(object sender, RoutedEventArgs e)
@@ -773,7 +873,7 @@ namespace NoteCards
             var doc = ContentTextBox.Document;
             ClearAllHighlights();
 
-            TextPointer startPos = null;
+            TextPointer? startPos = null;
             var sel = ContentTextBox.Selection;
             if (sel != null && !sel.IsEmpty)
             {
@@ -932,8 +1032,11 @@ namespace NoteCards
                     // Initialize last saved content
                     MarkCurrentStateSaved();
 
+                    RestoreImagesFromMarkers(document.Images);
+
                     // Apply theme colors to the loaded content
                     ApplyRichTextBoxTheme();
+                    ConfigureResizableImages();
 
                     // Clear any selection and move caret to start
                     ContentTextBox.CaretPosition = ContentTextBox.Document.ContentStart;
@@ -993,6 +1096,7 @@ namespace NoteCards
             if (document != null)
             {
                 var previousContent = document.Content ?? string.Empty;
+                var previousImages = CloneImageAttachments(document.Images);
                 var previousTitle = document.Title ?? string.Empty;
                 var previousTags = document.Tags ?? new List<string>();
                 var previousFontFamily = document.FontFamily ?? string.Empty;
@@ -1002,33 +1106,30 @@ namespace NoteCards
                 var newTags = ParseTags(TagsTextBox.Text);
                 var newFontFamily = ContentTextBox.FontFamily.Source;
                 var newFontSize = ContentTextBox.FontSize;
+                var newImages = BuildImageAttachments();
+                var newContent = SerializeEditorContentWithImageMarkers();
 
-                TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
-                using (MemoryStream ms = new MemoryStream())
+                var imagesChanged = !AreImageListsEqual(previousImages, newImages);
+                var contentChanged = !string.Equals(previousContent, newContent, StringComparison.Ordinal) || imagesChanged;
+                if (contentChanged)
                 {
-                    tr.Save(ms, DataFormats.XamlPackage); // save as XamlPackage
-                    var newContent = Convert.ToBase64String(ms.ToArray());
-                    var contentChanged = !string.Equals(previousContent, newContent, StringComparison.Ordinal);
-                    if (contentChanged)
-                    {
-                        AppendEditHistoryVersion(document, previousContent);
-                    }
-
-                    var titleChanged = !string.Equals(previousTitle, newTitle, StringComparison.Ordinal);
-                    var tagsChanged = !AreTagListsEqual(previousTags, newTags);
-                    var fontChanged = !string.Equals(previousFontFamily, newFontFamily, StringComparison.Ordinal)
-                        || !previousFontSize.Equals(newFontSize);
-
-                    if (contentChanged || titleChanged || tagsChanged || fontChanged)
-                    {
-                        document.LastModified = DateTime.Now;
-                    }
-
-                    document.Title = newTitle;
-                    document.Tags = newTags;
-                    document.Content = newContent;
+                    AppendEditHistoryVersion(document, previousContent, previousImages);
                 }
 
+                var titleChanged = !string.Equals(previousTitle, newTitle, StringComparison.Ordinal);
+                var tagsChanged = !AreTagListsEqual(previousTags, newTags);
+                var fontChanged = !string.Equals(previousFontFamily, newFontFamily, StringComparison.Ordinal)
+                    || !previousFontSize.Equals(newFontSize);
+
+                if (contentChanged || titleChanged || tagsChanged || fontChanged)
+                {
+                    document.LastModified = DateTime.Now;
+                }
+
+                document.Title = newTitle;
+                document.Tags = newTags;
+                document.Content = newContent;
+                document.Images = CloneImageAttachments(newImages);
                 document.FontFamily = newFontFamily;
                 document.FontSize = newFontSize;
             }
@@ -1051,13 +1152,17 @@ namespace NoteCards
             return true;
         }
 
-        private static void AppendEditHistoryVersion(NoteDocument document, string previousContent)
+        private static void AppendEditHistoryVersion(
+            NoteDocument document,
+            string previousContent,
+            IReadOnlyList<NoteImageAttachment>? previousImages)
         {
             document.EditHistory ??= new List<NoteEditHistoryEntry>();
             document.EditHistory.Add(new NoteEditHistoryEntry
             {
                 Timestamp = DateTime.UtcNow,
-                Content = previousContent
+                Content = previousContent,
+                Images = CloneImageAttachments(previousImages)
             });
 
             if (document.EditHistory.Count > MaxEditHistoryEntries)
@@ -1217,6 +1322,7 @@ namespace NoteCards
         private void MarkCurrentStateSaved()
         {
             _lastSavedContent = GetContentAsText();
+            _lastSavedEditorChangeVersion = _editorChangeVersion;
             _lastSavedSnapshot = GetEditorSnapshot();
             UpdateEditedIndicator();
         }
@@ -1239,7 +1345,7 @@ namespace NoteCards
                 string.Join('\u001E', ParseTags(TagsTextBox.Text)),
                 ContentTextBox.FontFamily.Source,
                 ContentTextBox.FontSize.ToString(CultureInfo.InvariantCulture),
-                GetContentAsRtfBase64());
+                _editorChangeVersion.ToString(CultureInfo.InvariantCulture));
         }
 
         private string GetContentAsRtfBase64()
@@ -1586,7 +1692,7 @@ namespace NoteCards
             if (dialog.ShowDialog() != true || dialog.SelectedVersion == null)
                 return;
 
-            ApplyContentToEditor(dialog.SelectedVersion.Content);
+            ApplyContentToEditor(dialog.SelectedVersion.Content, dialog.SelectedVersion.Images);
             SaveToDocument(_currentDocument);
             MarkCurrentStateSaved();
 
@@ -1631,13 +1737,16 @@ namespace NoteCards
             return true;
         }
 
-        private void ApplyContentToEditor(string? content)
+        private void ApplyContentToEditor(string? content, IReadOnlyList<NoteImageAttachment>? images = null)
         {
             TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
+            FloatingImageOverlay.Children.Clear();
 
             if (string.IsNullOrEmpty(content))
             {
                 tr.Text = string.Empty;
+                RestoreImagesFromMarkers(images);
+                ConfigureResizableImages();
                 return;
             }
 
@@ -1671,6 +1780,9 @@ namespace NoteCards
             {
                 tr.Text = content;
             }
+
+            RestoreImagesFromMarkers(images);
+            ConfigureResizableImages();
         }
 
         private void ShowStatusIndicator(string message)
@@ -1713,6 +1825,7 @@ namespace NoteCards
                     SavePreferredTypography(ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
                     SyncFontSelectorsFromEditor();
                     UpdateFontButtonText();
+                    MarkEditorContentChanged();
                     UpdateEditedIndicator();
                 }
             }
@@ -1741,6 +1854,7 @@ namespace NoteCards
                     SavePreferredTypography(ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
                     SyncFontSelectorsFromEditor();
                     UpdateFontButtonText();
+                    MarkEditorContentChanged();
                     UpdateEditedIndicator();
                 }
             }
@@ -1778,6 +1892,7 @@ namespace NoteCards
                 Inline.TextDecorationsProperty,
                 isUnderlined ? DependencyProperty.UnsetValue : TextDecorations.Underline);
 
+            MarkEditorContentChanged();
             UpdateEditedIndicator();
             ContentTextBox.Focus();
         }
@@ -1789,6 +1904,7 @@ namespace NoteCards
             var shouldEnable = currentValue == DependencyProperty.UnsetValue || !Equals(currentValue, enabledValue);
 
             selection.ApplyPropertyValue(property, shouldEnable ? enabledValue : disabledValue);
+            MarkEditorContentChanged();
             UpdateEditedIndicator();
             ContentTextBox.Focus();
         }
@@ -1910,6 +2026,9 @@ namespace NoteCards
                     // Clear all content from the RichTextBox
                     TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
                     tr.Text = string.Empty;
+                    FloatingImageOverlay.Children.Clear();
+                    MarkEditorContentChanged();
+                    UpdateEditedIndicator();
                 }
             }
             finally
@@ -1943,17 +2062,1962 @@ namespace NoteCards
             }
         }
 
+        private void ConfigureResizableImages()
+        {
+            ConfigureResizableImages(ContentTextBox.Document.Blocks);
+            ConfigureFloatingImageOverlay();
+        }
+
+        private void ConfigureResizableImages(BlockCollection blocks)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case BlockUIContainer { Child: Canvas canvas }:
+                        ConfigureImageCanvas(canvas);
+                        break;
+                    case BlockUIContainer { Child: ResizableImage image }:
+                        ConfigureImageControl(image);
+                        break;
+                    case Paragraph paragraph:
+                        ConfigureResizableImages(paragraph.Inlines);
+                        break;
+                    case Section section:
+                        ConfigureResizableImages(section.Blocks);
+                        break;
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                        {
+                            ConfigureResizableImages(item.Blocks);
+                        }
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                {
+                                    ConfigureResizableImages(cell.Blocks);
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        private void ConfigureResizableImages(InlineCollection inlines)
+        {
+            foreach (Inline inline in inlines)
+            {
+                switch (inline)
+                {
+                    case InlineUIContainer { Child: ResizableImage image }:
+                        ConfigureImageControl(image);
+                        break;
+                    case Span span:
+                        ConfigureResizableImages(span.Inlines);
+                        break;
+                    case AnchoredBlock anchoredBlock:
+                        ConfigureResizableImages(anchoredBlock.Blocks);
+                        break;
+                }
+            }
+        }
+
+        private void ConfigureImageCanvas(Canvas canvas)
+        {
+            canvas.Background ??= Brushes.Transparent;
+            canvas.ClipToBounds = false;
+            canvas.PreviewMouseDown -= ImageCanvas_PreviewMouseDown;
+            canvas.PreviewMouseDown += ImageCanvas_PreviewMouseDown;
+
+            foreach (ResizableImage image in canvas.Children.OfType<ResizableImage>())
+            {
+                Panel.SetZIndex(image, 1001);
+                image.LayoutMode = NoteImageLayout.Floating;
+                ConfigureImageControl(image);
+            }
+
+            EnsureImageCanvasSize(canvas);
+        }
+
+        private void ConfigureImageControl(ResizableImage image)
+        {
+            if (image.ImageId == Guid.Empty)
+                image.ImageId = Guid.NewGuid();
+
+            image.EditorHost = ContentTextBox;
+            image.RefreshVisualState();
+            image.PreviewMouseLeftButtonDown -= ResizableImage_PreviewMouseLeftButtonDown;
+            image.PreviewMouseLeftButtonDown += ResizableImage_PreviewMouseLeftButtonDown;
+            image.ImageBoundsChanged -= ResizableImage_ImageBoundsChanged;
+            image.ImageBoundsChanged += ResizableImage_ImageBoundsChanged;
+            image.LayoutChangeRequested -= ResizableImage_LayoutChangeRequested;
+            image.LayoutChangeRequested += ResizableImage_LayoutChangeRequested;
+            image.InlineMoveRequested -= ResizableImage_InlineMoveRequested;
+            image.InlineMoveRequested += ResizableImage_InlineMoveRequested;
+        }
+
+        private void ConfigureFloatingImageOverlay()
+        {
+            foreach (ResizableImage image in FloatingImageOverlay.Children.OfType<ResizableImage>())
+            {
+                Panel.SetZIndex(image, 1001);
+                ConfigureImageControl(image);
+            }
+
+            UpdateFloatingImageOverlayLayout();
+        }
+
+        private void ResizableImage_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is ResizableImage image)
+                ClearImageSelectionsExcept(image);
+        }
+
+        private void ClearImageSelections()
+        {
+            foreach (ResizableImage image in FloatingImageOverlay.Children.OfType<ResizableImage>())
+                image.IsSelected = false;
+
+            ClearImageSelections(ContentTextBox.Document.Blocks);
+        }
+
+        private void ClearImageSelectionsExcept(ResizableImage selectedImage)
+        {
+            foreach (ResizableImage image in FloatingImageOverlay.Children.OfType<ResizableImage>())
+            {
+                if (!ReferenceEquals(image, selectedImage))
+                    image.IsSelected = false;
+            }
+
+            ClearImageSelectionsExcept(ContentTextBox.Document.Blocks, selectedImage);
+        }
+
+        private static void ClearImageSelections(BlockCollection blocks)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case BlockUIContainer { Child: Canvas canvas }:
+                        foreach (ResizableImage image in canvas.Children.OfType<ResizableImage>())
+                            image.IsSelected = false;
+                        break;
+                    case BlockUIContainer { Child: ResizableImage image }:
+                        image.IsSelected = false;
+                        break;
+                    case Paragraph paragraph:
+                        ClearImageSelections(paragraph.Inlines);
+                        break;
+                    case Section section:
+                        ClearImageSelections(section.Blocks);
+                        break;
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                            ClearImageSelections(item.Blocks);
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                    ClearImageSelections(cell.Blocks);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        private static void ClearImageSelectionsExcept(BlockCollection blocks, ResizableImage selectedImage)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case BlockUIContainer { Child: Canvas canvas }:
+                        foreach (ResizableImage image in canvas.Children.OfType<ResizableImage>())
+                        {
+                            if (!ReferenceEquals(image, selectedImage))
+                                image.IsSelected = false;
+                        }
+                        break;
+                    case BlockUIContainer { Child: ResizableImage image }:
+                        if (!ReferenceEquals(image, selectedImage))
+                            image.IsSelected = false;
+                        break;
+                    case Paragraph paragraph:
+                        ClearImageSelectionsExcept(paragraph.Inlines, selectedImage);
+                        break;
+                    case Section section:
+                        ClearImageSelectionsExcept(section.Blocks, selectedImage);
+                        break;
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                            ClearImageSelectionsExcept(item.Blocks, selectedImage);
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                    ClearImageSelectionsExcept(cell.Blocks, selectedImage);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        private static void ClearImageSelections(InlineCollection inlines)
+        {
+            foreach (Inline inline in inlines)
+            {
+                switch (inline)
+                {
+                    case InlineUIContainer { Child: ResizableImage image }:
+                        image.IsSelected = false;
+                        break;
+                    case Span span:
+                        ClearImageSelections(span.Inlines);
+                        break;
+                    case AnchoredBlock anchoredBlock:
+                        ClearImageSelections(anchoredBlock.Blocks);
+                        break;
+                }
+            }
+        }
+
+        private static void ClearImageSelectionsExcept(InlineCollection inlines, ResizableImage selectedImage)
+        {
+            foreach (Inline inline in inlines)
+            {
+                switch (inline)
+                {
+                    case InlineUIContainer { Child: ResizableImage image }:
+                        if (!ReferenceEquals(image, selectedImage))
+                            image.IsSelected = false;
+                        break;
+                    case Span span:
+                        ClearImageSelectionsExcept(span.Inlines, selectedImage);
+                        break;
+                    case AnchoredBlock anchoredBlock:
+                        ClearImageSelectionsExcept(anchoredBlock.Blocks, selectedImage);
+                        break;
+                }
+            }
+        }
+
+        private static T? FindVisualAncestor<T>(DependencyObject? source)
+            where T : DependencyObject
+        {
+            while (source != null)
+            {
+                if (source is T match)
+                    return match;
+
+                DependencyObject? parent = null;
+                if (source is Visual or System.Windows.Media.Media3D.Visual3D)
+                    parent = VisualTreeHelper.GetParent(source);
+
+                parent ??= source switch
+                {
+                    FrameworkElement element => element.Parent,
+                    FrameworkContentElement contentElement => contentElement.Parent,
+                    _ => null
+                };
+
+                source = parent;
+            }
+
+            return null;
+        }
+
+        private static T? FindVisualChild<T>(DependencyObject? source)
+            where T : DependencyObject
+        {
+            if (source == null)
+                return null;
+
+            var childCount = VisualTreeHelper.GetChildrenCount(source);
+            for (var i = 0; i < childCount; i++)
+            {
+                var child = VisualTreeHelper.GetChild(source, i);
+                if (child is T match)
+                    return match;
+
+                var descendant = FindVisualChild<T>(child);
+                if (descendant != null)
+                    return descendant;
+            }
+
+            return null;
+        }
+
+        private static double GetFloatingDocumentLeft(DependencyObject image)
+        {
+            return (double)image.GetValue(FloatingDocumentLeftProperty);
+        }
+
+        private static void SetFloatingDocumentLeft(DependencyObject image, double value)
+        {
+            image.SetValue(FloatingDocumentLeftProperty, value);
+        }
+
+        private static double GetFloatingDocumentTop(DependencyObject image)
+        {
+            return (double)image.GetValue(FloatingDocumentTopProperty);
+        }
+
+        private static void SetFloatingDocumentTop(DependencyObject image, double value)
+        {
+            image.SetValue(FloatingDocumentTopProperty, value);
+        }
+
+        private static Guid GetInlineImageId(DependencyObject element)
+        {
+            return (Guid)element.GetValue(InlineImageIdProperty);
+        }
+
+        private static void SetInlineImageId(DependencyObject element, Guid value)
+        {
+            element.SetValue(InlineImageIdProperty, value);
+        }
+
+        private bool IsFloatingOverlayImage(ResizableImage image)
+        {
+            return ReferenceEquals(image.Parent, FloatingImageOverlay);
+        }
+
+        private bool IsInlineOverlayImage(ResizableImage image)
+        {
+            return IsFloatingOverlayImage(image)
+                && string.Equals(image.LayoutMode, NoteImageLayout.Inline, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void AddFloatingImageToOverlay(ResizableImage image, double documentLeft, double documentTop)
+        {
+            if (image.Parent is Canvas currentCanvas)
+                currentCanvas.Children.Remove(image);
+
+            image.LayoutMode = NoteImageLayout.Floating;
+            SetFloatingDocumentLeft(image, Math.Max(0, documentLeft));
+            SetFloatingDocumentTop(image, Math.Max(0, documentTop));
+            Panel.SetZIndex(image, 1001);
+            FloatingImageOverlay.Children.Add(image);
+            ConfigureImageControl(image);
+            UpdateFloatingImageCanvasPosition(image);
+        }
+
+        private void AddInlineImageToOverlay(ResizableImage image)
+        {
+            if (image.Parent is Canvas currentCanvas)
+                currentCanvas.Children.Remove(image);
+
+            image.LayoutMode = NoteImageLayout.Inline;
+            Panel.SetZIndex(image, 1001);
+            FloatingImageOverlay.Children.Add(image);
+            ConfigureImageControl(image);
+            UpdateInlineImagePlaceholderSize(image);
+            UpdateInlineImageCanvasPosition(image);
+            ScheduleFloatingImageOverlayLayoutUpdate();
+        }
+
+        private Point ResolveFloatingInsertionPosition()
+        {
+            var documentLeft = 12d;
+            var documentTop = ContentTextBox.VerticalOffset + 12d;
+
+            try
+            {
+                var caretRect = ContentTextBox.CaretPosition.GetCharacterRect(LogicalDirection.Forward);
+                if (!caretRect.IsEmpty && caretRect.Top >= 0)
+                {
+                    documentLeft = Math.Max(0, caretRect.Left + ContentTextBox.HorizontalOffset - ContentTextBox.Padding.Left);
+                    documentTop = Math.Max(0, caretRect.Bottom + ContentTextBox.VerticalOffset - ContentTextBox.Padding.Top + 8);
+                }
+            }
+            catch
+            {
+                // The caret can be outside the realized viewport; the visible top fallback is good enough.
+            }
+
+            return new Point(documentLeft, documentTop);
+        }
+
+        private Point ResolveFloatingDocumentPosition(ResizableImage image)
+        {
+            try
+            {
+                var visualPosition = image.TransformToAncestor(ContentTextBox).Transform(new Point(0, 0));
+                return new Point(
+                    Math.Max(0, visualPosition.X + ContentTextBox.HorizontalOffset - ContentTextBox.Padding.Left),
+                    Math.Max(0, visualPosition.Y + ContentTextBox.VerticalOffset - ContentTextBox.Padding.Top));
+            }
+            catch
+            {
+                return ResolveFloatingInsertionPosition();
+            }
+        }
+
+        private void UpdateFloatingImageDocumentPositionFromCanvas(ResizableImage image)
+        {
+            if (!IsFloatingOverlayImage(image) || _isUpdatingFloatingImageLayout)
+                return;
+
+            var canvasLeft = Canvas.GetLeft(image);
+            if (double.IsNaN(canvasLeft))
+                canvasLeft = 0;
+
+            var canvasTop = Canvas.GetTop(image);
+            if (double.IsNaN(canvasTop))
+                canvasTop = 0;
+
+            SetFloatingDocumentLeft(image, Math.Max(0, canvasLeft + ContentTextBox.HorizontalOffset - ContentTextBox.Padding.Left));
+            SetFloatingDocumentTop(image, Math.Max(0, canvasTop + ContentTextBox.VerticalOffset - ContentTextBox.Padding.Top));
+        }
+
+        private void UpdateFloatingImageCanvasPosition(ResizableImage image)
+        {
+            var canvasLeft = GetFloatingDocumentLeft(image) - ContentTextBox.HorizontalOffset + ContentTextBox.Padding.Left;
+            var canvasTop = GetFloatingDocumentTop(image) - ContentTextBox.VerticalOffset + ContentTextBox.Padding.Top;
+            Canvas.SetLeft(image, canvasLeft);
+            Canvas.SetTop(image, canvasTop);
+        }
+
+        private void UpdateInlineImageCanvasPosition(ResizableImage image, bool queueRetry = true)
+        {
+            if (!IsInlineOverlayImage(image))
+                return;
+
+            if (TryResolveInlineImageOverlayPosition(image.ImageId, out var position))
+            {
+                image.Visibility = Visibility.Visible;
+                Canvas.SetLeft(image, position.X);
+                Canvas.SetTop(image, position.Y);
+                return;
+            }
+
+            if (!double.IsNaN(Canvas.GetLeft(image)) && !double.IsNaN(Canvas.GetTop(image)))
+                image.Visibility = Visibility.Visible;
+
+            if (queueRetry)
+                ScheduleFloatingImageOverlayLayoutUpdate();
+        }
+
+        private bool TryResolveInlineImageOverlayPosition(Guid imageId, out Point position)
+        {
+            position = new Point();
+            var placeholder = FindInlineImagePlaceholder(imageId);
+            if (placeholder == null)
+                return false;
+
+            try
+            {
+                if (!placeholder.IsMeasureValid || !placeholder.IsArrangeValid)
+                    ContentTextBox.UpdateLayout();
+
+                position = placeholder.TransformToAncestor(EditorSurface).Transform(new Point(0, 0));
+                return IsFinitePoint(position);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to position inline image overlay: {ex.Message}");
+            }
+
+            var container = FindInlineImagePlaceholderContainer(imageId);
+            return container != null && TryResolveInlineImageTextPosition(container, out position);
+        }
+
+        private bool TryResolveInlineImageTextPosition(InlineUIContainer container, out Point position)
+        {
+            position = new Point();
+
+            try
+            {
+                var rect = container.ElementStart.GetCharacterRect(LogicalDirection.Forward);
+                if (rect.IsEmpty)
+                    rect = container.ElementEnd.GetCharacterRect(LogicalDirection.Backward);
+
+                if (rect.IsEmpty)
+                    return false;
+
+                position = ContentTextBox.TranslatePoint(new Point(rect.Left, rect.Top), EditorSurface);
+                return IsFinitePoint(position);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to resolve inline image text position: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool IsFinitePoint(Point point)
+        {
+            return !double.IsNaN(point.X)
+                && !double.IsInfinity(point.X)
+                && !double.IsNaN(point.Y)
+                && !double.IsInfinity(point.Y);
+        }
+
+        private void ScheduleFloatingImageOverlayLayoutUpdate()
+        {
+            if (_isFloatingImageOverlayLayoutUpdateQueued)
+                return;
+
+            _isFloatingImageOverlayLayoutUpdateQueued = true;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _isFloatingImageOverlayLayoutUpdateQueued = false;
+                UpdateFloatingImageOverlayLayout();
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private void UpdateFloatingImageOverlayLayout()
+        {
+            if (_isUpdatingFloatingImageLayout)
+                return;
+
+            try
+            {
+                _isUpdatingFloatingImageLayout = true;
+                foreach (ResizableImage image in FloatingImageOverlay.Children.OfType<ResizableImage>())
+                {
+                    if (string.Equals(image.LayoutMode, NoteImageLayout.Inline, StringComparison.OrdinalIgnoreCase))
+                        UpdateInlineImageCanvasPosition(image, queueRetry: false);
+                    else
+                        UpdateFloatingImageCanvasPosition(image);
+                }
+            }
+            finally
+            {
+                _isUpdatingFloatingImageLayout = false;
+            }
+        }
+
+        private Border CreateInlineImagePlaceholder(ResizableImage image)
+        {
+            if (image.ImageId == Guid.Empty)
+                image.ImageId = Guid.NewGuid();
+
+            var placeholder = new Border
+            {
+                Width = ResolveElementWidth(image),
+                Height = ResolveElementHeight(image),
+                Background = Brushes.Transparent,
+                IsHitTestVisible = false,
+                Focusable = false,
+                SnapsToDevicePixels = true
+            };
+
+            SetInlineImageId(placeholder, image.ImageId);
+            return placeholder;
+        }
+
+        private void UpdateInlineImagePlaceholderSize(ResizableImage image)
+        {
+            var placeholder = FindInlineImagePlaceholder(image.ImageId);
+            if (placeholder == null)
+                return;
+
+            placeholder.Width = ResolveElementWidth(image);
+            placeholder.Height = ResolveElementHeight(image);
+        }
+
+        private bool TryInsertInlineImagePlaceholder(
+            TextPointer insertionPosition,
+            ResizableImage image,
+            out InlineUIContainer container)
+        {
+            container = new InlineUIContainer();
+
+            try
+            {
+                var normalizedPosition = insertionPosition.GetInsertionPosition(LogicalDirection.Forward)
+                    ?? insertionPosition;
+                container = new InlineUIContainer(CreateInlineImagePlaceholder(image), normalizedPosition);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to insert inline image placeholder: {ex.Message}");
+                return false;
+            }
+        }
+
+        private bool TryInsertInlineImagePlaceholderAtPoint(
+            Point editorPoint,
+            ResizableImage image,
+            out InlineUIContainer container)
+        {
+            var insertionPosition = ResolveInlineInsertionPosition(editorPoint)
+                ?? ContentTextBox.CaretPosition;
+
+            if (TryInsertInlineImagePlaceholder(insertionPosition, image, out container))
+                return true;
+
+            return TryInsertInlineImagePlaceholderAtDocumentEnd(image, out container);
+        }
+
+        private bool TryInsertInlineImagePlaceholderAtDocumentEnd(
+            ResizableImage image,
+            out InlineUIContainer container)
+        {
+            container = new InlineUIContainer();
+
+            try
+            {
+                var paragraph = ContentTextBox.Document.Blocks.LastBlock as Paragraph;
+                if (paragraph == null)
+                {
+                    paragraph = new Paragraph();
+                    ContentTextBox.Document.Blocks.Add(paragraph);
+                }
+
+                container = new InlineUIContainer(CreateInlineImagePlaceholder(image));
+                paragraph.Inlines.Add(container);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to insert fallback inline image placeholder: {ex.Message}");
+                return false;
+            }
+        }
+
+        private TextPointer? ResolveInlineInsertionPosition(Point editorPoint)
+        {
+            var insertionPosition = ContentTextBox.GetPositionFromPoint(editorPoint, snapToText: true);
+            if (insertionPosition != null)
+                return insertionPosition;
+
+            if (ContentTextBox.ActualWidth > 0 && ContentTextBox.ActualHeight > 0)
+            {
+                var minimumX = Math.Max(0, ContentTextBox.Padding.Left + 1);
+                var maximumX = Math.Max(minimumX, ContentTextBox.ActualWidth - ContentTextBox.Padding.Right - 1);
+                var minimumY = Math.Max(0, ContentTextBox.Padding.Top + 1);
+                var maximumY = Math.Max(minimumY, ContentTextBox.ActualHeight - ContentTextBox.Padding.Bottom - 1);
+                var clampedPoint = new Point(
+                    Math.Min(Math.Max(editorPoint.X, minimumX), maximumX),
+                    Math.Min(Math.Max(editorPoint.Y, minimumY), maximumY));
+
+                insertionPosition = ContentTextBox.GetPositionFromPoint(clampedPoint, snapToText: true);
+                if (insertionPosition != null)
+                    return insertionPosition;
+            }
+
+            return ContentTextBox.CaretPosition?.GetInsertionPosition(LogicalDirection.Forward)
+                ?? ContentTextBox.Document.ContentEnd.GetInsertionPosition(LogicalDirection.Backward);
+        }
+
+        private FrameworkElement? FindInlineImagePlaceholder(Guid imageId)
+        {
+            return FindInlineImagePlaceholder(ContentTextBox.Document.Blocks, imageId);
+        }
+
+        private InlineUIContainer? FindInlineImagePlaceholderContainer(Guid imageId)
+        {
+            return FindInlineImagePlaceholderContainer(ContentTextBox.Document.Blocks, imageId);
+        }
+
+        private static FrameworkElement? FindInlineImagePlaceholder(BlockCollection blocks, Guid imageId)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case Paragraph paragraph:
+                    {
+                        var match = FindInlineImagePlaceholder(paragraph.Inlines, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case Section section:
+                    {
+                        var match = FindInlineImagePlaceholder(section.Blocks, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                        {
+                            var match = FindInlineImagePlaceholder(item.Blocks, imageId);
+                            if (match != null)
+                                return match;
+                        }
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                {
+                                    var match = FindInlineImagePlaceholder(cell.Blocks, imageId);
+                                    if (match != null)
+                                        return match;
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
+
+            return null;
+        }
+
+        private static FrameworkElement? FindInlineImagePlaceholder(InlineCollection inlines, Guid imageId)
+        {
+            foreach (Inline inline in inlines)
+            {
+                switch (inline)
+                {
+                    case InlineUIContainer { Child: FrameworkElement element }
+                        when GetInlineImageId(element) == imageId:
+                        return element;
+                    case Span span:
+                    {
+                        var match = FindInlineImagePlaceholder(span.Inlines, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case AnchoredBlock anchoredBlock:
+                    {
+                        var match = FindInlineImagePlaceholder(anchoredBlock.Blocks, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static InlineUIContainer? FindInlineImagePlaceholderContainer(BlockCollection blocks, Guid imageId)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case Paragraph paragraph:
+                    {
+                        var match = FindInlineImagePlaceholderContainer(paragraph.Inlines, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case Section section:
+                    {
+                        var match = FindInlineImagePlaceholderContainer(section.Blocks, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                        {
+                            var match = FindInlineImagePlaceholderContainer(item.Blocks, imageId);
+                            if (match != null)
+                                return match;
+                        }
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                {
+                                    var match = FindInlineImagePlaceholderContainer(cell.Blocks, imageId);
+                                    if (match != null)
+                                        return match;
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
+
+            return null;
+        }
+
+        private static InlineUIContainer? FindInlineImagePlaceholderContainer(InlineCollection inlines, Guid imageId)
+        {
+            foreach (Inline inline in inlines)
+            {
+                switch (inline)
+                {
+                    case InlineUIContainer { Child: FrameworkElement element }
+                        when GetInlineImageId(element) == imageId:
+                        return (InlineUIContainer)inline;
+                    case Span span:
+                    {
+                        var match = FindInlineImagePlaceholderContainer(span.Inlines, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case AnchoredBlock anchoredBlock:
+                    {
+                        var match = FindInlineImagePlaceholderContainer(anchoredBlock.Blocks, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static void RemoveInlineContainer(InlineUIContainer container)
+        {
+            var parentInlines = GetParentInlineCollection(container);
+            if (parentInlines == null)
+                return;
+
+            parentInlines.Remove(container);
+        }
+
+        private void ImageCanvas_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not Canvas canvas || e.OriginalSource != canvas)
+                return;
+
+            ClearImageSelections();
+
+            Keyboard.ClearFocus();
+            e.Handled = true;
+        }
+
+        private void ResizableImage_ImageBoundsChanged(object? sender, EventArgs e)
+        {
+            if (sender is ResizableImage image && IsInlineOverlayImage(image))
+            {
+                UpdateInlineImagePlaceholderSize(image);
+                UpdateInlineImageCanvasPosition(image);
+                ScheduleFloatingImageOverlayLayoutUpdate();
+            }
+            else if (sender is ResizableImage floatingImage && IsFloatingOverlayImage(floatingImage))
+            {
+                UpdateFloatingImageDocumentPositionFromCanvas(floatingImage);
+            }
+            else if (sender is ResizableImage { Parent: Canvas canvas })
+            {
+                EnsureImageCanvasSize(canvas);
+            }
+
+            ContentTextBox.InvalidateMeasure();
+            ContentTextBox.InvalidateArrange();
+            MarkEditorContentChanged();
+            UpdateEditedIndicator();
+        }
+
+        private void ResizableImage_LayoutChangeRequested(object? sender, ImageLayoutChangeRequestedEventArgs e)
+        {
+            if (sender is not ResizableImage image)
+                return;
+
+            try
+            {
+                if (string.Equals(e.LayoutMode, NoteImageLayout.Inline, StringComparison.OrdinalIgnoreCase))
+                {
+                    MoveImageInline(image);
+                }
+                else
+                {
+                    MoveImageFloating(image);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to change image layout: {ex.Message}");
+                return;
+            }
+
+            ConfigureResizableImages();
+            ContentTextBox.InvalidateMeasure();
+            ContentTextBox.InvalidateArrange();
+            MarkEditorContentChanged();
+            UpdateEditedIndicator();
+        }
+
+        private void ResizableImage_InlineMoveRequested(object? sender, InlineImageMoveRequestedEventArgs e)
+        {
+            if (sender is not ResizableImage image || !IsInlineOverlayImage(image) || _isInlineImageDropPending)
+                return;
+
+            var insertionPosition = ResolveInlineInsertionPosition(e.EditorPoint);
+            if (insertionPosition == null)
+                return;
+
+            _isInlineImageDropPending = true;
+            try
+            {
+                MoveInlineImageToTextPosition(image.ImageId, insertionPosition);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to move inline image by mouse: {ex.Message}");
+            }
+            finally
+            {
+                _isInlineImageDropPending = false;
+            }
+        }
+
+        private void MoveImageInline(ResizableImage image)
+        {
+            if (IsFloatingOverlayImage(image))
+            {
+                var canvasLeft = Canvas.GetLeft(image);
+                var canvasTop = Canvas.GetTop(image);
+                var editorPoint = new Point(
+                    (double.IsNaN(canvasLeft) ? 0 : canvasLeft) + ResolveElementWidth(image) / 2,
+                    (double.IsNaN(canvasTop) ? 0 : canvasTop) + ResolveElementHeight(image) / 2);
+
+                if (!TryInsertInlineImagePlaceholderAtPoint(editorPoint, image, out _))
+                    return;
+
+                image.LayoutMode = NoteImageLayout.Inline;
+                image.IsSelected = true;
+                UpdateInlineImageCanvasPosition(image);
+                ScheduleFloatingImageOverlayLayoutUpdate();
+                return;
+            }
+
+            if (image.Parent is not Canvas canvas)
+                return;
+
+            var block = canvas.Parent as BlockUIContainer;
+            var parentBlocks = block == null ? null : GetParentBlockCollection(block);
+            if (block == null || parentBlocks == null)
+                return;
+
+            canvas.Children.Remove(image);
+
+            var paragraph = new Paragraph
+            {
+                Margin = new Thickness(0, 4, 0, 4)
+            };
+            paragraph.Inlines.Add(new InlineUIContainer(CreateInlineImagePlaceholder(image)));
+
+            parentBlocks.InsertBefore(block, paragraph);
+            parentBlocks.Remove(block);
+            AddInlineImageToOverlay(image);
+            image.IsSelected = true;
+        }
+
+        private void MoveImageFloating(ResizableImage image)
+        {
+            if (IsInlineOverlayImage(image))
+            {
+                var placeholderContainer = FindInlineImagePlaceholderContainer(image.ImageId);
+                var canvasLeft = Canvas.GetLeft(image);
+                var canvasTop = Canvas.GetTop(image);
+                var documentLeft = Math.Max(0, (double.IsNaN(canvasLeft) ? 0 : canvasLeft) + ContentTextBox.HorizontalOffset - ContentTextBox.Padding.Left);
+                var documentTop = Math.Max(0, (double.IsNaN(canvasTop) ? 0 : canvasTop) + ContentTextBox.VerticalOffset - ContentTextBox.Padding.Top);
+
+                if (placeholderContainer != null)
+                    RemoveInlineContainer(placeholderContainer);
+
+                AddFloatingImageToOverlay(image, documentLeft, documentTop);
+                image.IsSelected = true;
+                return;
+            }
+
+            var inlineContainer = FindInlineContainerForImage(image);
+            if (inlineContainer == null)
+                return;
+
+            var paragraph = FindParentParagraph(inlineContainer);
+            var parentBlocks = paragraph == null ? null : GetParentBlockCollection(paragraph);
+            var parentInlines = GetParentInlineCollection(inlineContainer);
+            if (paragraph == null || parentBlocks == null || parentInlines == null)
+                return;
+
+            var floatingPosition = ResolveFloatingDocumentPosition(image);
+
+            try
+            {
+                inlineContainer.Child = null;
+                parentInlines.Remove(inlineContainer);
+
+                AddFloatingImageToOverlay(image, floatingPosition.X, floatingPosition.Y);
+
+                if (IsParagraphEffectivelyEmpty(paragraph))
+                    parentBlocks.Remove(paragraph);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to change inline image to floating: {ex.Message}");
+                if (image.Parent == null && inlineContainer.Child == null)
+                    inlineContainer.Child = image;
+
+                if (inlineContainer.Parent == null)
+                    parentInlines.Add(inlineContainer);
+            }
+        }
+
+        private void MoveInlineImageToTextPosition(Guid imageId, TextPointer insertionPosition)
+        {
+            var image = FloatingImageOverlay.Children
+                .OfType<ResizableImage>()
+                .FirstOrDefault(candidate => candidate.ImageId == imageId);
+            if (image == null || !IsInlineOverlayImage(image))
+                return;
+
+            var oldPlaceholderContainer = FindInlineImagePlaceholderContainer(imageId);
+            if (oldPlaceholderContainer == null)
+                return;
+
+            if (IsTextPointerInsideElement(insertionPosition, oldPlaceholderContainer))
+                return;
+
+            if (!TryInsertInlineImagePlaceholder(insertionPosition, image, out var newPlaceholderContainer)
+                && !TryInsertInlineImagePlaceholderAtDocumentEnd(image, out newPlaceholderContainer))
+                return;
+
+            try
+            {
+                image.LayoutMode = NoteImageLayout.Inline;
+                image.IsSelected = true;
+                RemoveInlineContainer(oldPlaceholderContainer);
+                UpdateInlineImageCanvasPosition(image);
+                ScheduleFloatingImageOverlayLayoutUpdate();
+
+                ConfigureResizableImages();
+                ContentTextBox.Focus();
+                MarkEditorContentChanged();
+                UpdateEditedIndicator();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to place inline image: {ex.Message}");
+                RemoveInlineContainer(newPlaceholderContainer);
+            }
+        }
+
+        private static bool IsTextPointerInsideElement(TextPointer pointer, TextElement element)
+        {
+            try
+            {
+                return pointer.CompareTo(element.ElementStart) >= 0
+                    && pointer.CompareTo(element.ElementEnd) <= 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void EnsureImageCanvasSize(Canvas canvas)
+        {
+            if (double.IsNaN(canvas.Height) || Math.Abs(canvas.Height - FloatingImageAnchorHeight) > 0.5)
+            {
+                canvas.Height = FloatingImageAnchorHeight;
+            }
+
+            canvas.MinHeight = FloatingImageAnchorHeight;
+            canvas.InvalidateMeasure();
+            canvas.InvalidateArrange();
+        }
+
+        private Canvas CreateImageCanvas(ResizableImage image, double height)
+        {
+            var canvas = new Canvas
+            {
+                Width = double.NaN,
+                Height = Math.Max(FloatingImageAnchorHeight, height),
+                Background = Brushes.Transparent,
+                ClipToBounds = false
+            };
+
+            Panel.SetZIndex(canvas, 1000);
+            Panel.SetZIndex(image, 1001);
+            canvas.Children.Add(image);
+            ConfigureImageCanvas(canvas);
+            return canvas;
+        }
+
+        private string SerializeEditorContentWithImageMarkers()
+        {
+            var replacements = new List<ImageMarkerReplacement>();
+            _isSerializingEditorContent = true;
+
+            try
+            {
+                ReplaceImagesWithMarkers(ContentTextBox.Document.Blocks, replacements);
+
+                var textRange = new TextRange(
+                    ContentTextBox.Document.ContentStart,
+                    ContentTextBox.Document.ContentEnd);
+
+                using var stream = new MemoryStream();
+                textRange.Save(stream, DataFormats.XamlPackage);
+                return Convert.ToBase64String(stream.ToArray());
+            }
+            finally
+            {
+                for (var i = replacements.Count - 1; i >= 0; i--)
+                {
+                    replacements[i].Restore();
+                }
+
+                _isSerializingEditorContent = false;
+                ConfigureResizableImages();
+            }
+        }
+
+        private void ReplaceImagesWithMarkers(BlockCollection blocks, List<ImageMarkerReplacement> replacements)
+        {
+            for (var block = blocks.FirstBlock; block != null;)
+            {
+                var nextBlock = block.NextBlock;
+
+                switch (block)
+                {
+                    case BlockUIContainer { Child: Canvas canvas }:
+                    {
+                        var image = canvas.Children.OfType<ResizableImage>().FirstOrDefault();
+                        if (image != null)
+                            ReplaceBlockWithImageMarker(blocks, block, image, replacements);
+                        break;
+                    }
+                    case BlockUIContainer { Child: ResizableImage image }:
+                        ReplaceBlockWithImageMarker(blocks, block, image, replacements);
+                        break;
+                    case Paragraph paragraph:
+                        ReplaceInlineImagesWithMarkers(paragraph.Inlines, replacements);
+                        break;
+                    case Section section:
+                        ReplaceImagesWithMarkers(section.Blocks, replacements);
+                        break;
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                            ReplaceImagesWithMarkers(item.Blocks, replacements);
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                    ReplaceImagesWithMarkers(cell.Blocks, replacements);
+                            }
+                        }
+                        break;
+                }
+
+                block = nextBlock;
+            }
+        }
+
+        private void ReplaceInlineImagesWithMarkers(InlineCollection inlines, List<ImageMarkerReplacement> replacements)
+        {
+            foreach (Inline inline in inlines.ToList())
+            {
+                switch (inline)
+                {
+                    case InlineUIContainer { Child: ResizableImage image }:
+                        ReplaceInlineWithImageMarker(inlines, inline, image, replacements);
+                        break;
+                    case InlineUIContainer { Child: FrameworkElement element } when GetInlineImageId(element) is var imageId && imageId != Guid.Empty:
+                        ReplaceInlinePlaceholderWithImageMarker(inlines, inline, imageId, replacements);
+                        break;
+                    case Span span:
+                        ReplaceInlineImagesWithMarkers(span.Inlines, replacements);
+                        break;
+                    case AnchoredBlock anchoredBlock:
+                        ReplaceImagesWithMarkers(anchoredBlock.Blocks, replacements);
+                        break;
+                }
+            }
+        }
+
+        private static void ReplaceBlockWithImageMarker(
+            BlockCollection blocks,
+            Block originalBlock,
+            ResizableImage image,
+            List<ImageMarkerReplacement> replacements)
+        {
+            if (image.ImageId == Guid.Empty)
+                image.ImageId = Guid.NewGuid();
+
+            var markerBlock = new Paragraph(new Run(CreateImageMarker(image.ImageId)))
+            {
+                Margin = originalBlock.Margin
+            };
+
+            blocks.InsertBefore(originalBlock, markerBlock);
+            blocks.Remove(originalBlock);
+            replacements.Add(new ImageMarkerReplacement(() =>
+            {
+                blocks.InsertBefore(markerBlock, originalBlock);
+                blocks.Remove(markerBlock);
+            }));
+        }
+
+        private static void ReplaceInlineWithImageMarker(
+            InlineCollection inlines,
+            Inline originalInline,
+            ResizableImage image,
+            List<ImageMarkerReplacement> replacements)
+        {
+            if (image.ImageId == Guid.Empty)
+                image.ImageId = Guid.NewGuid();
+
+            var markerRun = new Run(CreateImageMarker(image.ImageId));
+            inlines.InsertBefore(originalInline, markerRun);
+            inlines.Remove(originalInline);
+            replacements.Add(new ImageMarkerReplacement(() =>
+            {
+                inlines.InsertBefore(markerRun, originalInline);
+                inlines.Remove(markerRun);
+            }));
+        }
+
+        private static void ReplaceInlinePlaceholderWithImageMarker(
+            InlineCollection inlines,
+            Inline originalInline,
+            Guid imageId,
+            List<ImageMarkerReplacement> replacements)
+        {
+            var markerRun = new Run(CreateImageMarker(imageId));
+            inlines.InsertBefore(originalInline, markerRun);
+            inlines.Remove(originalInline);
+            replacements.Add(new ImageMarkerReplacement(() =>
+            {
+                inlines.InsertBefore(markerRun, originalInline);
+                inlines.Remove(markerRun);
+            }));
+        }
+
+        private void RestoreImagesFromMarkers(IReadOnlyList<NoteImageAttachment>? images)
+        {
+            if (images == null || images.Count == 0)
+                return;
+
+            foreach (var image in images.Where(image => image.Id != Guid.Empty && !string.IsNullOrWhiteSpace(image.Data)))
+            {
+                var markerRange = FindTextRange(CreateImageMarker(image.Id));
+                var resizableImage = CreateResizableImage(image);
+                if (markerRange == null)
+                {
+                    AppendFloatingImageAtEnd(resizableImage, image);
+                    continue;
+                }
+
+                if (string.Equals(image.Layout, NoteImageLayout.Inline, StringComparison.OrdinalIgnoreCase))
+                {
+                    ReplaceMarkerWithInlineImage(markerRange, resizableImage);
+                }
+                else
+                {
+                    ReplaceMarkerWithFloatingImage(markerRange, resizableImage, image);
+                }
+            }
+        }
+
+        private void AppendFloatingImageAtEnd(ResizableImage image, NoteImageAttachment attachment)
+        {
+            AddFloatingImageToOverlay(
+                image,
+                double.IsNaN(attachment.Left) ? 12 : attachment.Left,
+                double.IsNaN(attachment.Top) ? 12 : attachment.Top);
+        }
+
+        private void ReplaceMarkerWithInlineImage(TextRange markerRange, ResizableImage image)
+        {
+            image.LayoutMode = NoteImageLayout.Inline;
+            var insertionPosition = markerRange.Start;
+            markerRange.Text = string.Empty;
+            insertionPosition = insertionPosition.GetInsertionPosition(LogicalDirection.Forward) ?? insertionPosition;
+            new InlineUIContainer(CreateInlineImagePlaceholder(image), insertionPosition);
+            AddInlineImageToOverlay(image);
+        }
+
+        private void ReplaceMarkerWithFloatingImage(
+            TextRange markerRange,
+            ResizableImage image,
+            NoteImageAttachment attachment)
+        {
+            var markerParagraph = markerRange.Start.Paragraph;
+            var parentBlocks = markerParagraph == null ? null : GetParentBlockCollection(markerParagraph);
+
+            if (markerParagraph != null && parentBlocks != null && IsParagraphMarkerOnly(markerParagraph, CreateImageMarker(attachment.Id)))
+            {
+                parentBlocks.Remove(markerParagraph);
+            }
+            else
+            {
+                markerRange.Text = string.Empty;
+            }
+
+            AddFloatingImageToOverlay(
+                image,
+                double.IsNaN(attachment.Left) ? 12 : attachment.Left,
+                double.IsNaN(attachment.Top) ? 12 : attachment.Top);
+        }
+
+        private ResizableImage CreateResizableImage(NoteImageAttachment attachment)
+        {
+            var image = new ResizableImage
+            {
+                ImageId = attachment.Id == Guid.Empty ? Guid.NewGuid() : attachment.Id,
+                ImageData = attachment.Data,
+                LayoutMode = NormalizeImageLayout(attachment.Layout),
+                Width = Math.Max(50, attachment.Width),
+                Height = Math.Max(50, attachment.Height),
+                PreserveAspectRatio = attachment.PreserveAspectRatio
+            };
+
+            ConfigureImageControl(image);
+            return image;
+        }
+
+        private TextRange? FindTextRange(string text)
+        {
+            var navigator = ContentTextBox.Document.ContentStart;
+            while (navigator != null && navigator.CompareTo(ContentTextBox.Document.ContentEnd) < 0)
+            {
+                var runText = navigator.GetTextInRun(LogicalDirection.Forward);
+                if (!string.IsNullOrEmpty(runText))
+                {
+                    var index = runText.IndexOf(text, StringComparison.Ordinal);
+                    if (index >= 0)
+                    {
+                        var start = navigator.GetPositionAtOffset(index);
+                        var end = start?.GetPositionAtOffset(text.Length);
+                        if (start != null && end != null)
+                            return new TextRange(start, end);
+                    }
+                }
+
+                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+            }
+
+            return null;
+        }
+
+        private List<NoteImageAttachment> BuildImageAttachments()
+        {
+            var images = new List<NoteImageAttachment>();
+            var seen = new HashSet<Guid>();
+            AppendImageAttachments(ContentTextBox.Document.Blocks, images, seen);
+            foreach (ResizableImage image in FloatingImageOverlay.Children.OfType<ResizableImage>())
+                AddImageAttachment(image, images, seen);
+
+            return images;
+        }
+
+        private void AppendImageAttachments(
+            BlockCollection blocks,
+            List<NoteImageAttachment> images,
+            HashSet<Guid> seen)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case BlockUIContainer { Child: Canvas canvas }:
+                        foreach (ResizableImage image in canvas.Children.OfType<ResizableImage>())
+                            AddImageAttachment(image, images, seen);
+                        break;
+                    case BlockUIContainer { Child: ResizableImage image }:
+                        AddImageAttachment(image, images, seen);
+                        break;
+                    case Paragraph paragraph:
+                        AppendImageAttachments(paragraph.Inlines, images, seen);
+                        break;
+                    case Section section:
+                        AppendImageAttachments(section.Blocks, images, seen);
+                        break;
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                            AppendImageAttachments(item.Blocks, images, seen);
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                    AppendImageAttachments(cell.Blocks, images, seen);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        private void AppendImageAttachments(
+            InlineCollection inlines,
+            List<NoteImageAttachment> images,
+            HashSet<Guid> seen)
+        {
+            foreach (Inline inline in inlines)
+            {
+                switch (inline)
+                {
+                    case InlineUIContainer { Child: ResizableImage image }:
+                        AddImageAttachment(image, images, seen);
+                        break;
+                    case Span span:
+                        AppendImageAttachments(span.Inlines, images, seen);
+                        break;
+                    case AnchoredBlock anchoredBlock:
+                        AppendImageAttachments(anchoredBlock.Blocks, images, seen);
+                        break;
+                }
+            }
+        }
+
+        private void AddImageAttachment(
+            ResizableImage image,
+            List<NoteImageAttachment> images,
+            HashSet<Guid> seen)
+        {
+            var attachment = CreateImageAttachment(image);
+            if (attachment == null || !seen.Add(attachment.Id))
+                return;
+
+            images.Add(attachment);
+        }
+
+        private NoteImageAttachment? CreateImageAttachment(ResizableImage image, string? forcedLayout = null)
+        {
+            ConfigureImageControl(image);
+
+            if (image.ImageId == Guid.Empty)
+                image.ImageId = Guid.NewGuid();
+
+            var width = ResolveElementWidth(image);
+            var height = ResolveElementHeight(image);
+            var encodedSource = TryEncodeImageSource(image.Source, width, height);
+            var existingData = image.ImageData;
+            var data = SelectCompactImageData(existingData, encodedSource);
+            if (string.IsNullOrWhiteSpace(data))
+                return null;
+
+            if (!string.Equals(image.ImageData, data, StringComparison.Ordinal))
+                image.ImageData = data;
+
+            var layout = forcedLayout ?? NormalizeImageLayout(image.LayoutMode);
+            var isFloating = string.Equals(layout, NoteImageLayout.Floating, StringComparison.OrdinalIgnoreCase);
+            var isOverlayImage = IsFloatingOverlayImage(image);
+            if (isOverlayImage && isFloating)
+                UpdateFloatingImageDocumentPositionFromCanvas(image);
+
+            var left = isFloating && isOverlayImage
+                ? GetFloatingDocumentLeft(image)
+                : isFloating && image.Parent is Canvas ? Canvas.GetLeft(image) : 0;
+            var top = isFloating && isOverlayImage
+                ? GetFloatingDocumentTop(image)
+                : isFloating && image.Parent is Canvas ? Canvas.GetTop(image) : 0;
+
+            return new NoteImageAttachment
+            {
+                Id = image.ImageId,
+                Data = data,
+                Layout = NormalizeImageLayout(layout),
+                Width = width,
+                Height = height,
+                Left = double.IsNaN(left) ? 0 : left,
+                Top = double.IsNaN(top) ? 0 : top,
+                PreserveAspectRatio = image.PreserveAspectRatio
+            };
+        }
+
+        private string GetImageSnapshot()
+        {
+            var images = BuildImageAttachments();
+            if (images.Count == 0)
+                return string.Empty;
+
+            return string.Join(
+                '\u001D',
+                images.Select(image => string.Join(
+                    '\u001C',
+                    image.Id.ToString("D"),
+                    NormalizeImageLayout(image.Layout),
+                    image.Width.ToString("R", CultureInfo.InvariantCulture),
+                    image.Height.ToString("R", CultureInfo.InvariantCulture),
+                    image.Left.ToString("R", CultureInfo.InvariantCulture),
+                    image.Top.ToString("R", CultureInfo.InvariantCulture),
+                    image.PreserveAspectRatio ? "1" : "0",
+                    image.Data)));
+        }
+
+        private static string SelectCompactImageData(string? existingData, string? encodedSource)
+        {
+            if (string.IsNullOrWhiteSpace(existingData))
+                return encodedSource ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(encodedSource))
+                return existingData;
+
+            if (ImageDataHasAlpha(existingData))
+                return encodedSource;
+
+            return encodedSource.Length < existingData.Length
+                ? encodedSource
+                : existingData;
+        }
+
+        private static string TryEncodeImageSource(ImageSource? source, double targetWidth, double targetHeight)
+        {
+            if (source is not BitmapSource bitmapSource)
+                return string.Empty;
+
+            try
+            {
+                var resized = ResizeBitmapForStorage(bitmapSource, targetWidth, targetHeight);
+                var encoder = CreateStorageEncoder(resized);
+                using var stream = new MemoryStream();
+                encoder.Save(stream);
+                return Convert.ToBase64String(stream.ToArray());
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static BitmapSource ResizeBitmapForStorage(BitmapSource source, double targetWidth, double targetHeight)
+        {
+            var maxWidth = targetWidth > 0 ? targetWidth : source.PixelWidth;
+            var maxHeight = targetHeight > 0 ? targetHeight : source.PixelHeight;
+
+            maxWidth = Math.Min(maxWidth, 1200);
+            maxHeight = Math.Min(maxHeight, 1200);
+
+            var scale = Math.Min(maxWidth / source.PixelWidth, maxHeight / source.PixelHeight);
+            if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0 || scale >= 0.98)
+                return source;
+
+            var resized = new TransformedBitmap(source, new ScaleTransform(scale, scale));
+            resized.Freeze();
+            return resized;
+        }
+
+        private static BitmapEncoder CreateStorageEncoder(BitmapSource source)
+        {
+            var storageSource = HasAlpha(source.Format)
+                ? CreateOpaqueStorageSource(source)
+                : source;
+
+            var converted = storageSource.Format == PixelFormats.Bgr24
+                ? storageSource
+                : new FormatConvertedBitmap(storageSource, PixelFormats.Bgr24, null, 0);
+
+            if (converted.CanFreeze)
+                converted.Freeze();
+
+            var jpeg = new JpegBitmapEncoder
+            {
+                QualityLevel = 86
+            };
+            jpeg.Frames.Add(BitmapFrame.Create(converted));
+            return jpeg;
+        }
+
+        private static BitmapSource CreateOpaqueStorageSource(BitmapSource source)
+        {
+            try
+            {
+                var pixelWidth = Math.Max(1, source.PixelWidth);
+                var pixelHeight = Math.Max(1, source.PixelHeight);
+                var visual = new DrawingVisual();
+
+                using (var context = visual.RenderOpen())
+                {
+                    var bounds = new Rect(0, 0, pixelWidth, pixelHeight);
+                    context.DrawRectangle(ResolveOpaqueImageBackgroundBrush(), null, bounds);
+                    context.DrawImage(source, bounds);
+                }
+
+                var rendered = new RenderTargetBitmap(pixelWidth, pixelHeight, 96, 96, PixelFormats.Pbgra32);
+                rendered.Render(visual);
+
+                var opaque = new FormatConvertedBitmap(rendered, PixelFormats.Bgr24, null, 0);
+                if (opaque.CanFreeze)
+                    opaque.Freeze();
+
+                return opaque;
+            }
+            catch
+            {
+                return source;
+            }
+        }
+
+        private static Brush ResolveOpaqueImageBackgroundBrush()
+        {
+            var brush = Application.Current?.TryFindResource("RichTextBoxBackground") as SolidColorBrush
+                ?? Application.Current?.TryFindResource("CardBackground") as SolidColorBrush;
+            if (brush == null)
+                return Brushes.White;
+
+            var color = brush.Color;
+            color.A = 255;
+            var opaqueBrush = new SolidColorBrush(color);
+            opaqueBrush.Freeze();
+            return opaqueBrush;
+        }
+
+        private static bool HasAlpha(PixelFormat format)
+        {
+            return format == PixelFormats.Bgra32
+                || format == PixelFormats.Pbgra32
+                || format == PixelFormats.Prgba64
+                || format == PixelFormats.Rgba64;
+        }
+
+        private static bool ImageDataHasAlpha(string? imageData)
+        {
+            if (string.IsNullOrWhiteSpace(imageData))
+                return false;
+
+            try
+            {
+                var bytes = Convert.FromBase64String(imageData);
+                using var stream = new MemoryStream(bytes);
+                var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+                var frame = decoder.Frames.FirstOrDefault();
+                return frame != null && HasAlpha(frame.Format);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static List<NoteImageAttachment> CloneImageAttachments(IReadOnlyList<NoteImageAttachment>? images)
+        {
+            if (images == null || images.Count == 0)
+                return new List<NoteImageAttachment>();
+
+            return images
+                .Where(image => image != null)
+                .Select(image => new NoteImageAttachment
+                {
+                    Id = image.Id,
+                    Data = image.Data ?? string.Empty,
+                    Layout = NormalizeImageLayout(image.Layout),
+                    Width = image.Width,
+                    Height = image.Height,
+                    Left = image.Left,
+                    Top = image.Top,
+                    PreserveAspectRatio = image.PreserveAspectRatio
+                })
+                .ToList();
+        }
+
+        private static bool AreImageListsEqual(
+            IReadOnlyList<NoteImageAttachment>? left,
+            IReadOnlyList<NoteImageAttachment>? right)
+        {
+            left ??= Array.Empty<NoteImageAttachment>();
+            right ??= Array.Empty<NoteImageAttachment>();
+
+            if (left.Count != right.Count)
+                return false;
+
+            for (var i = 0; i < left.Count; i++)
+            {
+                if (left[i].Id != right[i].Id
+                    || !string.Equals(left[i].Data, right[i].Data, StringComparison.Ordinal)
+                    || !string.Equals(NormalizeImageLayout(left[i].Layout), NormalizeImageLayout(right[i].Layout), StringComparison.Ordinal)
+                    || !NearlyEqual(left[i].Width, right[i].Width)
+                    || !NearlyEqual(left[i].Height, right[i].Height)
+                    || !NearlyEqual(left[i].Left, right[i].Left)
+                    || !NearlyEqual(left[i].Top, right[i].Top)
+                    || left[i].PreserveAspectRatio != right[i].PreserveAspectRatio)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool NearlyEqual(double left, double right)
+        {
+            return Math.Abs(left - right) < 0.5;
+        }
+
+        private static string NormalizeImageLayout(string? layout)
+        {
+            return string.Equals(layout, NoteImageLayout.Inline, StringComparison.OrdinalIgnoreCase)
+                ? NoteImageLayout.Inline
+                : NoteImageLayout.Floating;
+        }
+
+        private static string CreateImageMarker(Guid id)
+        {
+            return $"{ImageMarkerPrefix}{id:D}{ImageMarkerSuffix}";
+        }
+
+        private static bool IsParagraphMarkerOnly(Paragraph paragraph, string marker)
+        {
+            var text = new TextRange(paragraph.ContentStart, paragraph.ContentEnd).Text;
+            return string.Equals(text.Trim(), marker, StringComparison.Ordinal);
+        }
+
+        private static bool IsParagraphEffectivelyEmpty(Paragraph paragraph)
+        {
+            return string.IsNullOrWhiteSpace(new TextRange(paragraph.ContentStart, paragraph.ContentEnd).Text);
+        }
+
+        private static double ResolveElementWidth(FrameworkElement element)
+        {
+            if (!double.IsNaN(element.Width) && element.Width > 0)
+                return element.Width;
+
+            if (element.ActualWidth > 0)
+                return element.ActualWidth;
+
+            return Math.Max(50, element.MinWidth);
+        }
+
+        private static double ResolveElementHeight(FrameworkElement element)
+        {
+            if (!double.IsNaN(element.Height) && element.Height > 0)
+                return element.Height;
+
+            if (element.ActualHeight > 0)
+                return element.ActualHeight;
+
+            return Math.Max(50, element.MinHeight);
+        }
+
+        private InlineUIContainer? FindInlineContainerForImage(ResizableImage image)
+        {
+            return FindInlineContainerForImage(ContentTextBox.Document.Blocks, image);
+        }
+
+        private InlineUIContainer? FindInlineContainerForImage(Guid imageId)
+        {
+            return FindInlineContainerForImage(ContentTextBox.Document.Blocks, imageId);
+        }
+
+        private static InlineUIContainer? FindInlineContainerForImage(BlockCollection blocks, ResizableImage image)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case Paragraph paragraph:
+                    {
+                        var match = FindInlineContainerForImage(paragraph.Inlines, image);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case Section section:
+                    {
+                        var match = FindInlineContainerForImage(section.Blocks, image);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                        {
+                            var match = FindInlineContainerForImage(item.Blocks, image);
+                            if (match != null)
+                                return match;
+                        }
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                {
+                                    var match = FindInlineContainerForImage(cell.Blocks, image);
+                                    if (match != null)
+                                        return match;
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
+
+            return null;
+        }
+
+        private static InlineUIContainer? FindInlineContainerForImage(BlockCollection blocks, Guid imageId)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case Paragraph paragraph:
+                    {
+                        var match = FindInlineContainerForImage(paragraph.Inlines, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case Section section:
+                    {
+                        var match = FindInlineContainerForImage(section.Blocks, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                        {
+                            var match = FindInlineContainerForImage(item.Blocks, imageId);
+                            if (match != null)
+                                return match;
+                        }
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                {
+                                    var match = FindInlineContainerForImage(cell.Blocks, imageId);
+                                    if (match != null)
+                                        return match;
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
+
+            return null;
+        }
+
+        private static InlineUIContainer? FindInlineContainerForImage(InlineCollection inlines, ResizableImage image)
+        {
+            foreach (Inline inline in inlines)
+            {
+                switch (inline)
+                {
+                    case InlineUIContainer { Child: ResizableImage child } when ReferenceEquals(child, image):
+                        return (InlineUIContainer)inline;
+                    case Span span:
+                    {
+                        var match = FindInlineContainerForImage(span.Inlines, image);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case AnchoredBlock anchoredBlock:
+                    {
+                        var match = FindInlineContainerForImage(anchoredBlock.Blocks, image);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static InlineUIContainer? FindInlineContainerForImage(InlineCollection inlines, Guid imageId)
+        {
+            foreach (Inline inline in inlines)
+            {
+                switch (inline)
+                {
+                    case InlineUIContainer { Child: ResizableImage child } when child.ImageId == imageId:
+                        return (InlineUIContainer)inline;
+                    case Span span:
+                    {
+                        var match = FindInlineContainerForImage(span.Inlines, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                    case AnchoredBlock anchoredBlock:
+                    {
+                        var match = FindInlineContainerForImage(anchoredBlock.Blocks, imageId);
+                        if (match != null)
+                            return match;
+                        break;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static Paragraph? FindParentParagraph(TextElement element)
+        {
+            DependencyObject? current = element;
+            while (current != null)
+            {
+                if (current is Paragraph paragraph)
+                    return paragraph;
+
+                current = current is TextElement textElement ? textElement.Parent : null;
+            }
+
+            return null;
+        }
+
+        private static InlineCollection? GetParentInlineCollection(Inline inline)
+        {
+            return inline.Parent switch
+            {
+                Paragraph paragraph => paragraph.Inlines,
+                Span span => span.Inlines,
+                _ => null
+            };
+        }
+
+        private static BlockCollection? GetParentBlockCollection(Block block)
+        {
+            return block.Parent switch
+            {
+                FlowDocument document => document.Blocks,
+                Section section => section.Blocks,
+                ListItem listItem => listItem.Blocks,
+                TableCell tableCell => tableCell.Blocks,
+                _ => null
+            };
+        }
+
+        private sealed class ImageMarkerReplacement
+        {
+            private readonly Action _restore;
+
+            public ImageMarkerReplacement(Action restore)
+            {
+                _restore = restore;
+            }
+
+            public void Restore() => _restore();
+        }
+
         private void InsertImageFromFile(string imagePath)
         {
             try
             {
                 // Create image from file
-                BitmapImage bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.EndInit();
-                bitmap.Freeze();
+                var bitmap = LoadBitmapFromFile(imagePath);
 
                 // Set a max width/height for the image to fit in the note
                 const double maxWidth = 400;
@@ -1978,55 +4042,44 @@ namespace NoteCards
                     }
                 }
 
+                var displayBitmap = LoadBitmapFromFile(imagePath, (int)Math.Ceiling(displayWidth));
+                var imageData = TryEncodeImageSource(displayBitmap, displayWidth, displayHeight);
+                if (string.IsNullOrWhiteSpace(imageData))
+                    imageData = Convert.ToBase64String(File.ReadAllBytes(imagePath));
+
                 var resizableImage = new ResizableImage
                 {
-                    Source = bitmap,
+                    ImageId = Guid.NewGuid(),
+                    Source = displayBitmap,
+                    ImageData = imageData,
+                    LayoutMode = NoteImageLayout.Floating,
                     Width = displayWidth,
                     Height = displayHeight
                 };
 
-                Canvas.SetLeft(resizableImage, 50);
-                Canvas.SetTop(resizableImage, 50);
-
-                var canvas = new Canvas
-                {
-                    Width = double.NaN, // Allow it to stretch to the page width
-                    Height = displayHeight + 50, // Give some initial room
-                    Background = Brushes.Transparent,
-                    ClipToBounds = false // Prevent cutting off the image if dragged outside the block
-                };
-
-                // Clear selection if the canvas is clicked
-                canvas.PreviewMouseDown += (s, e) =>
-                {
-                    if (e.OriginalSource == canvas)
-                    {
-                        resizableImage.IsSelected = false;
-                        Keyboard.ClearFocus();
-                        e.Handled = true; // PREVENT RichTextBox from selecting the block!
-                    }
-                };
-
-                canvas.Children.Add(resizableImage);
-
-                var container = new BlockUIContainer(canvas);
-
-                TextPointer caretPosition = ContentTextBox.CaretPosition;
-                if (caretPosition.Paragraph != null)
-                {
-                    ContentTextBox.Document.Blocks.InsertAfter(caretPosition.Paragraph, container);
-                }
-                else
-                {
-                    ContentTextBox.Document.Blocks.Add(container);
-                }
-
-                ContentTextBox.CaretPosition = container.ContentEnd.GetNextInsertionPosition(LogicalDirection.Forward) ?? ContentTextBox.Document.ContentEnd;
+                var insertionPosition = ResolveFloatingInsertionPosition();
+                AddFloatingImageToOverlay(resizableImage, insertionPosition.X, insertionPosition.Y);
+                resizableImage.IsSelected = true;
+                MarkEditorContentChanged();
+                UpdateEditedIndicator();
             }
             catch (Exception ex)
             {
                 throw new Exception($"{LocalizationService.GetString("ErrorLoadingImage")}: {ex.Message}", ex);
             }
+        }
+
+        private static BitmapImage LoadBitmapFromFile(string imagePath, int decodePixelWidth = 0)
+        {
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            if (decodePixelWidth > 0)
+                bitmap.DecodePixelWidth = decodePixelWidth;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
         }
 
         private double _zoomLevel = 1.0;

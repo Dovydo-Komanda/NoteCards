@@ -564,7 +564,7 @@ public partial class MindMapPreviewWindow : Window
         {
             var includeChild = _renderOnlyNodes is null || _renderOnlyNodes.Contains(child);
 
-            if (includeNode && includeChild && hasParentLayout && _layouts.TryGetValue(child, out var childLayout))
+            if (includeNode && includeChild && hasParentLayout && parentLayout is not null && _layouts.TryGetValue(child, out var childLayout) && childLayout is not null)
             {
                 var direction = childLayout.Direction < 0 ? -1 : 1;
                 var start = direction < 0
@@ -811,7 +811,7 @@ public partial class MindMapPreviewWindow : Window
 
         var styleMenuItem = new MenuItem
         {
-            Header = LocalizationService.GetString("Style-Oraganize"),
+            Header = LocalizationService.GetString("MindMapStyleOrganize"),
             Tag = node
         };
         styleMenuItem.Click += (s, e) => StyleNode(node);

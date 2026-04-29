@@ -56,14 +56,14 @@ public partial class EditHistoryWindow : Window
         {
             Version = version;
             TimestampText = version.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture);
-            PreviewText = BuildPreview(version.Content);
+            PreviewText = BuildPreview(version.Content, version.Images);
         }
 
         public NoteEditHistoryEntry Version { get; }
         public string TimestampText { get; }
         public string PreviewText { get; }
 
-        private static string BuildPreview(string? encodedContent)
+        private static string BuildPreview(string? encodedContent, IReadOnlyList<NoteImageAttachment>? images)
         {
             if (string.IsNullOrWhiteSpace(encodedContent))
                 return LocalizationService.GetString("EditHistoryEmptyPreview");
@@ -75,14 +75,26 @@ public partial class EditHistoryWindow : Window
                 if (bytes.Length >= 5)
                 {
                     var header = Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
-                    if (!header.StartsWith("{\\rtf", StringComparison.Ordinal))
+                    if (header.StartsWith("{\\rtf", StringComparison.Ordinal))
+                    {
+                        // RTF is the legacy rich-text format.
+                    }
+                    else if (bytes.Length >= 2 && bytes[0] == 0x50 && bytes[1] == 0x4B)
+                    {
+                        // XamlPackage is the current rich-text format.
+                    }
+                    else
+                    {
                         throw new FormatException();
+                    }
                 }
 
                 var flowDoc = new FlowDocument();
                 using var stream = new MemoryStream(bytes);
                 var range = new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd);
-                range.Load(stream, DataFormats.Rtf);
+                range.Load(stream, bytes.Length >= 2 && bytes[0] == 0x50 && bytes[1] == 0x4B
+                    ? DataFormats.XamlPackage
+                    : DataFormats.Rtf);
                 rawText = new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd).Text ?? string.Empty;
             }
             catch (FormatException)
@@ -98,9 +110,25 @@ public partial class EditHistoryWindow : Window
             if (string.IsNullOrWhiteSpace(normalized))
                 return LocalizationService.GetString("EditHistoryEmptyPreview");
 
+            normalized = ReplaceImageMarkers(normalized, images);
             return normalized.Length > PreviewMaxLength
                 ? normalized[..PreviewMaxLength] + "..."
                 : normalized;
+        }
+
+        private static string ReplaceImageMarkers(string text, IReadOnlyList<NoteImageAttachment>? images)
+        {
+            if (string.IsNullOrEmpty(text) || images == null || images.Count == 0)
+                return text;
+
+            var placeholder = LocalizationService.GetString("PicturePlaceholder");
+            foreach (var image in images)
+            {
+                if (image.Id != Guid.Empty)
+                    text = text.Replace($"[[NoteCardsImage:{image.Id:D}]]", placeholder, StringComparison.Ordinal);
+            }
+
+            return text;
         }
     }
 }

@@ -84,29 +84,39 @@ public class NoteCardViewModel : ViewModelBase
 
             try
             {
-                // Try to treat stored content as Base64-encoded RTF
+                // Try to treat stored content as Base64-encoded RTF/XamlPackage.
                 byte[] bytes = Convert.FromBase64String(raw);
 
-                // Heuristic: ensure decoded bytes start with RTF header
+                var dataFormat = DataFormats.Rtf;
                 if (bytes.Length >= 5)
                 {
                     var hdr = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
-                    if (!hdr.StartsWith("{\\rtf"))
+                    if (hdr.StartsWith("{\\rtf"))
+                    {
+                        dataFormat = DataFormats.Rtf;
+                    }
+                    else if (bytes.Length >= 2 && bytes[0] == 0x50 && bytes[1] == 0x4B)
+                    {
+                        dataFormat = DataFormats.XamlPackage;
+                    }
+                    else
+                    {
                         throw new FormatException();
+                    }
                 }
 
                 using (var ms = new MemoryStream(bytes))
                 {
                     var flowDoc = new FlowDocument();
                     var tr = new TextRange(flowDoc.ContentStart, flowDoc.ContentEnd);
-                    tr.Load(ms, DataFormats.Rtf);
-                    return BuildOrderedContentPreview(flowDoc);
+                    tr.Load(ms, dataFormat);
+                    return ReplaceImageMarkers(BuildOrderedContentPreview(flowDoc), Document.Images);
                 }
             }
             catch (FormatException)
             {
                 // Not Base64 -> assume plain text
-                return raw;
+                return ReplaceImageMarkers(raw, Document.Images);
             }
             catch
             {
@@ -244,6 +254,23 @@ public class NoteCardViewModel : ViewModelBase
             BlockUIContainer { Child: Image image } => image,
             _ => null
         };
+    }
+
+    private static string ReplaceImageMarkers(string text, IReadOnlyList<NoteImageAttachment>? images)
+    {
+        if (string.IsNullOrEmpty(text) || images == null || images.Count == 0)
+            return text;
+
+        var placeholder = LocalizationService.GetString("PicturePlaceholder");
+        foreach (var image in images)
+        {
+            if (image.Id == Guid.Empty)
+                continue;
+
+            text = text.Replace($"[[NoteCardsImage:{image.Id:D}]]", placeholder, StringComparison.Ordinal);
+        }
+
+        return text;
     }
 
     private static void AppendImagePlaceholderIfNeeded(

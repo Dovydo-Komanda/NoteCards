@@ -547,7 +547,9 @@
             </Border.Effect>
             <Border CornerRadius="10"
                     Background="{DynamicResource RichTextBoxBackground}">
-                <RichTextBox x:Name="ContentTextBox"
+                <Grid x:Name="EditorSurface"
+                      ClipToBounds="True">
+                    <RichTextBox x:Name="ContentTextBox"
                              Style="{StaticResource EditorRichTextBoxStyle}"
                              SelectionChanged="ContentTextBox_SelectionChanged"
                              PreviewMouseWheel="ContentTextBox_PreviewMouseWheel"
@@ -575,7 +577,11 @@
 				 <MenuItem Header="{Binding [SelectAll], Source={StaticResource Loc}}" Command="SelectAll"/>
 				</ContextMenu>
 			</RichTextBox.ContextMenu>
-              </RichTextBox>
+                    </RichTextBox>
+                    <Canvas x:Name="FloatingImageOverlay"
+                            Panel.ZIndex="20"
+                            ClipToBounds="False"/>
+                </Grid>
             </Border>
         </Border>
         <!-- COUNTER -->
