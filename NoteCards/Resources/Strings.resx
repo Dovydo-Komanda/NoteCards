@@ -291,6 +291,16 @@ Right-click to remove</value></data>
   <data name="ConvertToMindMapParseFailed" xml:space="preserve"><value>AI response did not contain a usable mind map structure.</value></data>
   <data name="ConvertToMindMapStatusProcessing" xml:space="preserve"><value>AI is generating a mind map...</value></data>
   <data name="ConvertToMindMapStatusFinalizing" xml:space="preserve"><value>Finalizing mind map...</value></data>
+  <data name="ConvertToMindMapStatusRepairing" xml:space="preserve"><value>AI is generating a mind map... (repair)</value></data>
+  <data name="ConvertToTest" xml:space="preserve"><value>Convert to test</value></data>
+  <data name="ConvertToTestEmpty" xml:space="preserve"><value>Add note text before converting to a test.</value></data>
+  <data name="ConvertToTestInProgress" xml:space="preserve"><value>Generating test...</value></data>
+  <data name="ConvertToTestFailed" xml:space="preserve"><value>Failed to convert note into a test with the bundled Qwen model.</value></data>
+  <data name="ConvertToTestSuccess" xml:space="preserve"><value>Test generated</value></data>
+  <data name="ConvertToTestParseFailed" xml:space="preserve"><value>AI response did not contain a usable test.</value></data>
+  <data name="ConvertToTestStatusProcessing" xml:space="preserve"><value>AI is generating a test...</value></data>
+  <data name="ConvertToTestStatusFinalizing" xml:space="preserve"><value>Finalizing test...</value></data>
+  <data name="ConvertToTestStatusRepairing" xml:space="preserve"><value>AI is generating a test... (repair)</value></data>
   <data name="AiInputRejectedTitle" xml:space="preserve"><value>AI generation refused</value></data>
   <data name="AiInputRejectedInsufficientContent" xml:space="preserve"><value>The note does not contain enough meaningful text to generate study material. Add coherent text content and try again.</value></data>
   <data name="AiGenerationTimedOut" xml:space="preserve"><value>AI generation was stopped because the model did not produce a usable response in time.</value></data>
@@ -302,6 +312,7 @@ Right-click to remove</value></data>
   <data name="ConvertToFlashcardsStatusAssetsReady" xml:space="preserve"><value>AI resources ready.</value></data>
   <data name="ConvertToFlashcardsStatusProcessing" xml:space="preserve"><value>AI is generating flashcards...</value></data>
   <data name="ConvertToFlashcardsStatusFinalizing" xml:space="preserve"><value>Finalizing flashcards...</value></data>
+  <data name="ConvertToFlashcardsStatusRepairing" xml:space="preserve"><value>AI is generating flashcards... (repair)</value></data>
   <data name="ConvertToFlashcardsStatusPercentFormat" xml:space="preserve"><value>{0} ({1}%)</value></data>
   <data name="ConvertToFlashcardsStatusGeneratedCharsFormat" xml:space="preserve"><value>{0} ({1} chars)</value></data>
   <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Flashcard Editor</value></data>
@@ -324,6 +335,23 @@ Right-click to remove</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Answer</value></data>
   <data name="FlashcardCategory" xml:space="preserve"><value>Category</value></data>
   <data name="ConvertToFlashcardsParseFailed" xml:space="preserve"><value>AI response did not contain valid Q/A flashcards.</value></data>
+  <data name="QuizPreviewTitle" xml:space="preserve"><value>Test</value></data>
+  <data name="QuizTitleHint" xml:space="preserve"><value>Test title</value></data>
+  <data name="QuizUntitled" xml:space="preserve"><value>Untitled test</value></data>
+  <data name="QuizGeneratedWithModel" xml:space="preserve"><value>Generated with model: {0}</value></data>
+  <data name="QuizQuestionCountFormat" xml:space="preserve"><value>{0} questions</value></data>
+  <data name="QuizAnsweredCountFormat" xml:space="preserve"><value>{0}/{1} answered</value></data>
+  <data name="QuizScoreFormat" xml:space="preserve"><value>Score: {0}/{1} ({2}%)</value></data>
+  <data name="QuizQuestionHeaderFormat" xml:space="preserve"><value>Question {0} · {1}</value></data>
+  <data name="QuizTypeSingleChoice" xml:space="preserve"><value>single choice</value></data>
+  <data name="QuizTypeMultipleChoice" xml:space="preserve"><value>multiple choice</value></data>
+  <data name="QuizTypeTrueFalse" xml:space="preserve"><value>true / false</value></data>
+  <data name="QuizCorrect" xml:space="preserve"><value>Correct</value></data>
+  <data name="QuizIncorrect" xml:space="preserve"><value>Incorrect</value></data>
+  <data name="QuizUnanswered" xml:space="preserve"><value>No answer</value></data>
+  <data name="QuizExplanationFormat" xml:space="preserve"><value>Explanation: {0}</value></data>
+  <data name="QuizCheckAnswers" xml:space="preserve"><value>Check answers</value></data>
+  <data name="QuizResetAnswers" xml:space="preserve"><value>Reset</value></data>
   <data name="FlashcardsTapHint" xml:space="preserve"><value>Click a card to flip</value></data>
   <data name="FlashcardSideQuestion" xml:space="preserve"><value>Question</value></data>
   <data name="FlashcardSideAnswer" xml:space="preserve"><value>Answer</value></data>

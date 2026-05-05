@@ -47,10 +47,13 @@ namespace NoteCards
         private const int MaxEditHistoryEntries = 100;
         private readonly FlashcardConversionService _flashcardConversionService = new();
         private readonly MindMapConversionService _mindMapConversionService = new();
+        private readonly QuizConversionService _quizConversionService = new();
         private bool _isConvertingToFlashcards;
         private CancellationTokenSource? _flashcardConversionCancellationSource;
         private bool _isConvertingToMindMap;
         private CancellationTokenSource? _mindMapConversionCancellationSource;
+        private bool _isConvertingToTest;
+        private CancellationTokenSource? _testConversionCancellationSource;
         private bool _isSyncingFontSelectors;
         private bool _isLoadingDocument;
         private bool _isSerializingEditorContent;
@@ -179,6 +182,9 @@ namespace NoteCards
             _mindMapConversionCancellationSource?.Cancel();
             _mindMapConversionCancellationSource?.Dispose();
             _mindMapConversionCancellationSource = null;
+            _testConversionCancellationSource?.Cancel();
+            _testConversionCancellationSource?.Dispose();
+            _testConversionCancellationSource = null;
             ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
         }
 
@@ -204,6 +210,7 @@ namespace NoteCards
             RootGrid.Loaded -= NoteEditorWindow_Loaded;
             _flashcardConversionCancellationSource?.Cancel();
             _mindMapConversionCancellationSource?.Cancel();
+            _testConversionCancellationSource?.Cancel();
             ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
 
             // For non-modal windows, just close directly
@@ -450,9 +457,21 @@ namespace NoteCards
             }
         }
 
+        private bool IsAnyAiConversionInProgress()
+        {
+            return _isConvertingToFlashcards || _isConvertingToMindMap || _isConvertingToTest;
+        }
+
+        private void SetAiConversionButtonsEnabled(bool isEnabled)
+        {
+            ConvertToFlashcardsButton.IsEnabled = isEnabled;
+            ConvertToMindMapButton.IsEnabled = isEnabled;
+            ConvertToTestButton.IsEnabled = isEnabled;
+        }
+
         private async void ConvertToFlashcardsButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_isConvertingToFlashcards || _isConvertingToMindMap)
+            if (IsAnyAiConversionInProgress())
                 return;
 
             var plainText = GetEditorAiText();
@@ -468,8 +487,7 @@ namespace NoteCards
 
             _isConvertingToFlashcards = true;
             BeginAiGeneration();
-            ConvertToFlashcardsButton.IsEnabled = false;
-            ConvertToMindMapButton.IsEnabled = false;
+            SetAiConversionButtonsEnabled(false);
             ShowPersistentStatusIndicator(LocalizationService.GetString("ConvertToFlashcardsInProgress"));
 
             _flashcardConversionCancellationSource?.Dispose();
@@ -568,8 +586,7 @@ namespace NoteCards
                 RestoreAutoSaveAfterAi(ref restoreAutoSave);
                 _isConvertingToFlashcards = false;
                 EndAiGeneration();
-                ConvertToFlashcardsButton.IsEnabled = true;
-                ConvertToMindMapButton.IsEnabled = true;
+                SetAiConversionButtonsEnabled(true);
                 _flashcardConversionCancellationSource?.Dispose();
                 _flashcardConversionCancellationSource = null;
             }
@@ -577,7 +594,7 @@ namespace NoteCards
 
         private async void ConvertToMindMapButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_isConvertingToFlashcards || _isConvertingToMindMap)
+            if (IsAnyAiConversionInProgress())
                 return;
 
             var plainText = GetEditorAiText();
@@ -593,8 +610,7 @@ namespace NoteCards
 
             _isConvertingToMindMap = true;
             BeginAiGeneration();
-            ConvertToFlashcardsButton.IsEnabled = false;
-            ConvertToMindMapButton.IsEnabled = false;
+            SetAiConversionButtonsEnabled(false);
             ShowPersistentStatusIndicator(LocalizationService.GetString("ConvertToMindMapInProgress"));
 
             _mindMapConversionCancellationSource?.Dispose();
@@ -700,10 +716,133 @@ namespace NoteCards
                 RestoreAutoSaveAfterAi(ref restoreAutoSave);
                 _isConvertingToMindMap = false;
                 EndAiGeneration();
-                ConvertToFlashcardsButton.IsEnabled = true;
-                ConvertToMindMapButton.IsEnabled = true;
+                SetAiConversionButtonsEnabled(true);
                 _mindMapConversionCancellationSource?.Dispose();
                 _mindMapConversionCancellationSource = null;
+            }
+        }
+
+        private async void ConvertToTestButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsAnyAiConversionInProgress())
+                return;
+
+            var plainText = GetEditorAiText();
+            if (string.IsNullOrWhiteSpace(plainText))
+            {
+                MessageBox.Show(
+                    LocalizationService.GetString("ConvertToTestEmpty"),
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            _isConvertingToTest = true;
+            BeginAiGeneration();
+            SetAiConversionButtonsEnabled(false);
+            ShowPersistentStatusIndicator(LocalizationService.GetString("ConvertToTestInProgress"));
+
+            _testConversionCancellationSource?.Dispose();
+            _testConversionCancellationSource = new CancellationTokenSource();
+
+            var progress = new Progress<BundledModelHostService.FlashcardProgress>(status =>
+            {
+                var text = BuildAiProgressText(
+                    status,
+                    processingStatusKey: "ConvertToTestStatusProcessing",
+                    finalizingStatusKey: "ConvertToTestStatusFinalizing",
+                    out var useAnimation);
+
+                if (useAnimation)
+                    ShowPersistentStatusIndicator(text);
+                else
+                    ShowPersistentStatusIndicatorWithoutAnimation(text);
+            });
+
+            var restoreAutoSave = false;
+            try
+            {
+                restoreAutoSave = TemporarilyDisableAutoSaveForAi();
+                var quiz = await _quizConversionService.ConvertToQuizAsync(
+                    TitleTextBox.Text,
+                    plainText,
+                    progress,
+                    _testConversionCancellationSource.Token);
+                RestoreAutoSaveAfterAi(ref restoreAutoSave);
+
+                if (quiz is null || quiz.Questions.Count == 0)
+                {
+                    HideStatusIndicator();
+                    MessageBox.Show(
+                        LocalizationService.GetString("ConvertToTestParseFailed"),
+                        LocalizationService.GetString("Error"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                var modelDisplayName = BundledModelHostService.Instance.GetSelectedModelDisplayName();
+                quiz.AiModelDisplayName = modelDisplayName;
+                quiz.SourceNoteId = _currentDocument?.Id;
+                quiz.Tags = ParseTags(TagsTextBox.Text).ToList();
+
+                var preview = new QuizPreviewWindow(quiz, modelDisplayName)
+                {
+                    Owner = GetDialogOwnerWindow()
+                };
+
+                preview.ShowDialog();
+
+                ShowStatusIndicator(LocalizationService.GetString("ConvertToTestSuccess"));
+            }
+            catch (OperationCanceledException ex)
+            {
+                HideStatusIndicator();
+                if (_testConversionCancellationSource?.IsCancellationRequested == true)
+                    return;
+
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("ConvertToTestFailed")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            catch (AiInputRejectedException ex)
+            {
+                HideStatusIndicator();
+                MessageBox.Show(
+                    ex.Message,
+                    LocalizationService.GetString("AiInputRejectedTitle"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (TimeoutException ex)
+            {
+                HideStatusIndicator();
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("AiGenerationTimedOut")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                HideStatusIndicator();
+                MessageBox.Show(
+                    $"{LocalizationService.GetString("ConvertToTestFailed")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                RestoreAutoSaveAfterAi(ref restoreAutoSave);
+                _isConvertingToTest = false;
+                EndAiGeneration();
+                SetAiConversionButtonsEnabled(true);
+                _testConversionCancellationSource?.Dispose();
+                _testConversionCancellationSource = null;
             }
         }
 

@@ -251,6 +251,16 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ConvertToMindMapParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamos minčių žemėlapio struktūros.</value></data>
   <data name="ConvertToMindMapStatusProcessing" xml:space="preserve"><value>DI generuoja minčių žemėlapį...</value></data>
   <data name="ConvertToMindMapStatusFinalizing" xml:space="preserve"><value>Baigiamas formuoti minčių žemėlapis...</value></data>
+  <data name="ConvertToMindMapStatusRepairing" xml:space="preserve"><value>DI generuoja minčių žemėlapį... (repair)</value></data>
+  <data name="ConvertToTest" xml:space="preserve"><value>Paversti į testą</value></data>
+  <data name="ConvertToTestEmpty" xml:space="preserve"><value>Prieš konvertuodami į testą, įrašykite užrašo tekstą.</value></data>
+  <data name="ConvertToTestInProgress" xml:space="preserve"><value>Generuojamas testas...</value></data>
+  <data name="ConvertToTestFailed" xml:space="preserve"><value>Nepavyko paversti užrašo į testą naudojant su programėle pateiktą Qwen modelį.</value></data>
+  <data name="ConvertToTestSuccess" xml:space="preserve"><value>Testas sugeneruotas</value></data>
+  <data name="ConvertToTestParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamo testo.</value></data>
+  <data name="ConvertToTestStatusProcessing" xml:space="preserve"><value>DI generuoja testą...</value></data>
+  <data name="ConvertToTestStatusFinalizing" xml:space="preserve"><value>Baigiamas formuoti testas...</value></data>
+  <data name="ConvertToTestStatusRepairing" xml:space="preserve"><value>DI generuoja testą... (repair)</value></data>
   <data name="AiInputRejectedTitle" xml:space="preserve"><value>DI generavimas atmestas</value></data>
   <data name="AiInputRejectedInsufficientContent" xml:space="preserve"><value>Užraše nėra pakankamai prasmingo teksto mokymosi medžiagai sugeneruoti. Įrašykite rišlų tekstinį turinį ir bandykite dar kartą.</value></data>
   <data name="AiGenerationTimedOut" xml:space="preserve"><value>DI generavimas sustabdytas, nes modelis laiku nepateikė tinkamo atsakymo.</value></data>
@@ -262,6 +272,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ConvertToFlashcardsStatusAssetsReady" xml:space="preserve"><value>DI resursai paruošti.</value></data>
   <data name="ConvertToFlashcardsStatusProcessing" xml:space="preserve"><value>DI generuoja mokymosi korteles...</value></data>
   <data name="ConvertToFlashcardsStatusFinalizing" xml:space="preserve"><value>Baigiama formuoti korteles...</value></data>
+  <data name="ConvertToFlashcardsStatusRepairing" xml:space="preserve"><value>DI generuoja mokymosi korteles... (repair)</value></data>
   <data name="ConvertToFlashcardsStatusPercentFormat" xml:space="preserve"><value>{0} ({1}%)</value></data>
   <data name="ConvertToFlashcardsStatusGeneratedCharsFormat" xml:space="preserve"><value>{0} ({1} simb.)</value></data>
   <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Kortelių redaktorius</value></data>
@@ -284,6 +295,23 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Atsakymas</value></data>
   <data name="FlashcardCategory" xml:space="preserve"><value>Kategorija</value></data>
   <data name="ConvertToFlashcardsParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamų Q/A kortelių.</value></data>
+  <data name="QuizPreviewTitle" xml:space="preserve"><value>Testas</value></data>
+  <data name="QuizTitleHint" xml:space="preserve"><value>Testo pavadinimas</value></data>
+  <data name="QuizUntitled" xml:space="preserve"><value>Testas be pavadinimo</value></data>
+  <data name="QuizGeneratedWithModel" xml:space="preserve"><value>Sugeneruota su modeliu: {0}</value></data>
+  <data name="QuizQuestionCountFormat" xml:space="preserve"><value>{0} klaus.</value></data>
+  <data name="QuizAnsweredCountFormat" xml:space="preserve"><value>Atsakyta {0}/{1}</value></data>
+  <data name="QuizScoreFormat" xml:space="preserve"><value>Rezultatas: {0}/{1} ({2}%)</value></data>
+  <data name="QuizQuestionHeaderFormat" xml:space="preserve"><value>Klausimas {0} · {1}</value></data>
+  <data name="QuizTypeSingleChoice" xml:space="preserve"><value>vienas atsakymas</value></data>
+  <data name="QuizTypeMultipleChoice" xml:space="preserve"><value>keli atsakymai</value></data>
+  <data name="QuizTypeTrueFalse" xml:space="preserve"><value>teisinga / klaidinga</value></data>
+  <data name="QuizCorrect" xml:space="preserve"><value>Teisingai</value></data>
+  <data name="QuizIncorrect" xml:space="preserve"><value>Neteisingai</value></data>
+  <data name="QuizUnanswered" xml:space="preserve"><value>Neatsakyta</value></data>
+  <data name="QuizExplanationFormat" xml:space="preserve"><value>Paaiškinimas: {0}</value></data>
+  <data name="QuizCheckAnswers" xml:space="preserve"><value>Tikrinti atsakymus</value></data>
+  <data name="QuizResetAnswers" xml:space="preserve"><value>Iš naujo</value></data>
   <data name="FlashcardsTapHint" xml:space="preserve"><value>Spustelėkite kortelę, kad apverstumėte</value></data>
   <data name="FlashcardSideQuestion" xml:space="preserve"><value>Klausimas</value></data>
   <data name="FlashcardSideAnswer" xml:space="preserve"><value>Atsakymas</value></data>

@@ -62,8 +62,9 @@ public sealed class MindMapConversionService
             }
 
             var repairPrompt = BuildRepairPrompt(normalizedTitle, chunks[i], output, i + 1, chunks.Count);
+            var repairProgress = CreateRepairProgress(progress, "ConvertToMindMapStatusRepairing", i + 1, chunks.Count);
             var repaired = await BundledModelHostService.Instance.CompleteAsync(
-                repairPrompt, nPredict: 1800, temperature: 0.1, progress: chunkProgress, cancellationToken);
+                repairPrompt, nPredict: 1800, temperature: 0.1, progress: repairProgress, cancellationToken);
             repairedOutputs.Add(repaired);
 
             if (AiInputGuard.IsRefusalOutput(repaired))
@@ -104,6 +105,31 @@ public sealed class MindMapConversionService
             {
                 ChunkIndex = Math.Max(1, chunkIndex),
                 ChunkCount = Math.Max(1, chunkCount)
+            }));
+    }
+
+    private static IProgress<BundledModelHostService.FlashcardProgress>? CreateRepairProgress(
+        IProgress<BundledModelHostService.FlashcardProgress>? progress,
+        string repairStatusKey,
+        int chunkIndex,
+        int chunkCount)
+    {
+        if (progress is null)
+            return progress;
+
+        var safeChunkIndex = Math.Max(1, chunkIndex);
+        var safeChunkCount = Math.Max(1, chunkCount);
+        progress.Report(new BundledModelHostService.FlashcardProgress(
+            repairStatusKey,
+            ChunkIndex: safeChunkIndex,
+            ChunkCount: safeChunkCount));
+
+        return new Progress<BundledModelHostService.FlashcardProgress>(status =>
+            progress.Report(status with
+            {
+                StatusKey = repairStatusKey,
+                ChunkIndex = safeChunkIndex,
+                ChunkCount = safeChunkCount
             }));
     }
 

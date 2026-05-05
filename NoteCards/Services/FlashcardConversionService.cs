@@ -52,8 +52,9 @@ public sealed class FlashcardConversionService
 
         // Repair pass over the full note, but still ask for a bounded set of cards.
         var repairPrompt = BuildRepairPrompt(noteText);
+        var repairProgress = CreateRepairProgress(progress, "ConvertToFlashcardsStatusRepairing");
         var repaired = await BundledModelHostService.Instance.CompleteAsync(
-            repairPrompt, nPredict: 1500, temperature: 0.1, progress: progress, cancellationToken);
+            repairPrompt, nPredict: 1500, temperature: 0.1, progress: repairProgress, cancellationToken);
 
         if (AiInputGuard.IsRefusalOutput(repaired))
             throw new AiInputRejectedException(LocalizationService.GetString("AiInputRejectedInsufficientContent"));
@@ -86,6 +87,22 @@ public sealed class FlashcardConversionService
             {
                 ChunkIndex = Math.Max(1, chunkIndex),
                 ChunkCount = Math.Max(1, chunkCount)
+            }));
+    }
+
+    private static IProgress<BundledModelHostService.FlashcardProgress>? CreateRepairProgress(
+        IProgress<BundledModelHostService.FlashcardProgress>? progress,
+        string repairStatusKey)
+    {
+        if (progress is null)
+            return progress;
+
+        progress.Report(new BundledModelHostService.FlashcardProgress(repairStatusKey));
+
+        return new Progress<BundledModelHostService.FlashcardProgress>(status =>
+            progress.Report(status with
+            {
+                StatusKey = repairStatusKey
             }));
     }
 

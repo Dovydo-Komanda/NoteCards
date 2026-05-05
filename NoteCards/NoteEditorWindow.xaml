@@ -398,6 +398,11 @@
                             Style="{StaticResource EditorToolIconButtonStyle}"
                             ToolTip="{Binding [ConvertToMindMap], Source={StaticResource Loc}}"
                             Click="ConvertToMindMapButton_Click"/>
+                    <Button x:Name="ConvertToTestButton"
+                            Content="☑"
+                            Style="{StaticResource EditorToolIconButtonStyle}"
+                            ToolTip="{Binding [ConvertToTest], Source={StaticResource Loc}}"
+                            Click="ConvertToTestButton_Click"/>
                     <Button x:Name="SearchButton"
                             Content="🔎"
                             Style="{StaticResource EditorToolIconButtonStyle}"

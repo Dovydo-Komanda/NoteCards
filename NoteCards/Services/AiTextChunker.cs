@@ -6,7 +6,8 @@ namespace NoteCards.Services;
 internal enum AiChunkingPurpose
 {
     Flashcards,
-    MindMap
+    MindMap,
+    Quiz
 }
 
 internal static class AiTextChunker
@@ -40,14 +41,34 @@ internal static class AiTextChunker
         var paragraphCount = CountParagraphs(text);
         var averageParagraphLength = paragraphCount == 0 ? textLength : textLength / Math.Max(1, paragraphCount);
 
-        var minimum = purpose == AiChunkingPurpose.Flashcards ? 900 : 1400;
-        var maximum = purpose == AiChunkingPurpose.Flashcards ? 2800 : 3600;
-        var singlePassLimit = purpose == AiChunkingPurpose.Flashcards ? 1300 : 1900;
+        var minimum = purpose switch
+        {
+            AiChunkingPurpose.Flashcards => 900,
+            AiChunkingPurpose.Quiz => 900,
+            _ => 1400
+        };
+        var maximum = purpose switch
+        {
+            AiChunkingPurpose.Flashcards => 2800,
+            AiChunkingPurpose.Quiz => 2800,
+            _ => 3600
+        };
+        var singlePassLimit = purpose switch
+        {
+            AiChunkingPurpose.Flashcards => 1300,
+            AiChunkingPurpose.Quiz => 1300,
+            _ => 1900
+        };
 
         if (textLength <= singlePassLimit)
             return Math.Max(textLength, minimum);
 
-        var scale = purpose == AiChunkingPurpose.Flashcards ? 17.5 : 20.0;
+        var scale = purpose switch
+        {
+            AiChunkingPurpose.Flashcards => 17.5,
+            AiChunkingPurpose.Quiz => 17.5,
+            _ => 20.0
+        };
         var target = minimum + (int)Math.Round(Math.Sqrt(textLength) * scale);
 
         if (averageParagraphLength < 180 && paragraphCount >= 4)
@@ -60,7 +81,12 @@ internal static class AiTextChunker
 
     private static int CalculateMinimumUsefulChunk(int targetCharacters, AiChunkingPurpose purpose)
     {
-        var share = purpose == AiChunkingPurpose.Flashcards ? 0.42 : 0.48;
+        var share = purpose switch
+        {
+            AiChunkingPurpose.Flashcards => 0.42,
+            AiChunkingPurpose.Quiz => 0.42,
+            _ => 0.48
+        };
         return Math.Max(450, (int)Math.Round(targetCharacters * share));
     }
 
