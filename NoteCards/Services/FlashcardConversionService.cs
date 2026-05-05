@@ -118,8 +118,9 @@ Do not focus only on the opening lines.
 Create as many high-quality flashcards as needed from this section.
 Use ONLY facts from the note. Make every card atomic and useful for spaced repetition.
 Detect the primary language and writing system of SOURCE NOTE.
-Write every question and answer in that same detected language and script.
-Do not translate to English unless SOURCE NOTE is primarily English.
+Generate every question and answer in that same language and script.
+Do not translate SOURCE NOTE into another language; keep flashcard content in the source language.
+Keep format keys exactly as shown: q, a.
 If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
 {AiInputGuard.RefusalOutput}
 Do not invent context to make unsuitable text look useful.
@@ -143,8 +144,9 @@ Never think out loud. Never explain. Never output reasoning or extra text.
 
 Use ONLY information from SOURCE NOTE.
 Detect the primary language and writing system of SOURCE NOTE.
-Write every repaired question and answer in that same detected language and script.
-Do not translate to English unless SOURCE NOTE is primarily English.
+Generate every repaired question and answer in that same language and script.
+Do not translate SOURCE NOTE into another language; keep flashcard content in the source language.
+Keep format keys exactly as shown: q, a.
 If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
 {AiInputGuard.RefusalOutput}
 Do not invent context to make unsuitable text look useful.

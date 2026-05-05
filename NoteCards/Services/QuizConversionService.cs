@@ -10,8 +10,6 @@ public sealed class QuizConversionService
 {
     private const int MaxQuizTitleLength = 90;
     private const int MaxQuestionCount = 60;
-    private const int PrimaryPredictTokens = 2400;
-    private const int RepairPredictTokens = 2800;
 
     public async Task<QuizDocument?> ConvertToQuizAsync(
         string noteTitle,
@@ -42,9 +40,14 @@ public sealed class QuizConversionService
             cancellationToken.ThrowIfCancellationRequested();
 
             var chunkProgress = CreateChunkProgress(progress, i + 1, chunks.Count);
+            var targetQuestionCount = CalculateTargetChunkQuestionCount(chunks[i], chunks.Count);
             var prompt = BuildPrompt(normalizedNoteTitle, chunks[i], i + 1, chunks.Count);
             var output = await BundledModelHostService.Instance.CompleteAsync(
-                prompt, nPredict: PrimaryPredictTokens, temperature: 0.25, progress: chunkProgress, cancellationToken);
+                prompt,
+                nPredict: CalculatePredictTokens(targetQuestionCount),
+                temperature: 0.25,
+                progress: chunkProgress,
+                cancellationToken);
             outputs.Add(output);
 
             if (AiInputGuard.IsRefusalOutput(output))
@@ -60,7 +63,7 @@ public sealed class QuizConversionService
             AddParsedQuestions(questions, parsed.Questions, i + 1);
         }
 
-        var parsedQuestions = DeduplicateQuestions(questions).Take(MaxQuestionCount).ToList();
+        var parsedQuestions = PrepareDisplayQuestions(DeduplicateQuestions(questions).Take(MaxQuestionCount).ToList());
         if (parsedQuestions.Count > 0)
         {
             return new QuizDocument
@@ -76,9 +79,14 @@ public sealed class QuizConversionService
         var repairPrompt = BuildRepairPrompt(
             normalizedNoteTitle,
             noteText);
+        var repairTargetQuestionCount = CalculateTargetChunkQuestionCount(noteText, chunkCount: 1);
         var repairProgress = CreateRepairProgress(progress, "ConvertToTestStatusRepairing");
         var repaired = await BundledModelHostService.Instance.CompleteAsync(
-            repairPrompt, nPredict: RepairPredictTokens, temperature: 0.1, progress: repairProgress, cancellationToken);
+            repairPrompt,
+            nPredict: CalculatePredictTokens(repairTargetQuestionCount, isRepair: true),
+            temperature: 0.1,
+            progress: repairProgress,
+            cancellationToken);
 
         if (AiInputGuard.IsRefusalOutput(repaired))
             throw new AiInputRejectedException(LocalizationService.GetString("AiInputRejectedInsufficientContent"));
@@ -89,7 +97,7 @@ public sealed class QuizConversionService
 
         var repairedQuestions = new List<QuizQuestion>();
         AddParsedQuestions(repairedQuestions, repairedParsed.Questions, 1);
-        var repairedOnlyQuestions = DeduplicateQuestions(repairedQuestions).Take(MaxQuestionCount).ToList();
+        var repairedOnlyQuestions = PrepareDisplayQuestions(DeduplicateQuestions(repairedQuestions).Take(MaxQuestionCount).ToList());
         if (repairedOnlyQuestions.Count > 0)
         {
             return new QuizDocument
@@ -154,6 +162,13 @@ public sealed class QuizConversionService
         return wordCount < 180 ? 5 : 7;
     }
 
+    private static int CalculatePredictTokens(int targetQuestionCount, bool isRepair = false)
+    {
+        var baseTokens = isRepair ? 900 : 700;
+        var perQuestionTokens = isRepair ? 260 : 240;
+        return Math.Clamp(baseTokens + (targetQuestionCount * perQuestionTokens), 1400, 3600);
+    }
+
     private static int CountWords(string text)
     {
         return Regex.Matches(text, @"[\p{L}][\p{L}\p{Mn}'’-]{1,}").Count;
@@ -166,15 +181,15 @@ public sealed class QuizConversionService
         {
             var type = i switch
             {
-                1 => "single-choice",
-                2 => "true-false (prefer a false statement when plausible)",
-                3 => "single-choice",
-                4 => "multiple-choice",
-                5 => "true-false (prefer a true statement)",
-                6 => "single-choice",
-                7 => "true-false (prefer a false statement when plausible)",
-                8 => "multiple-choice",
-                _ => i % 2 == 0 ? "true-false" : "single-choice"
+                1 => "type: single, 4 options preferred",
+                2 => "type: truefalse (prefer a false statement when plausible)",
+                3 => "type: multi, 4 options preferred",
+                4 => "type: single, 3 options ok",
+                5 => "type: truefalse (prefer a true statement)",
+                6 => "type: multi, 4 options preferred",
+                7 => "type: single, 4 options preferred",
+                8 => "type: truefalse (prefer a false statement when plausible)",
+                _ => i % 3 == 0 ? "type: multi, 4 options preferred" : i % 2 == 0 ? "type: truefalse" : "type: single, 3 options ok"
             };
 
             plan.Add($"- Q{i}: {type}");
@@ -201,9 +216,8 @@ Cover the important facts in this section from beginning to end.
 Create exactly {targetQuestionCount} high-quality quiz questions.
 Use SOURCE NOTE as the authority for correct answers and explanations.
 Incorrect options and false true-false statements may invent plausible wrong facts related to SOURCE NOTE.
-Detect the primary language and writing system of SOURCE NOTE.
-Write every title, question, option, true-false label, and explanation in that same detected language and script.
-Do not translate to English unless SOURCE NOTE is primarily English.
+Use SOURCE NOTE's language and script for all generated quiz content; use English only for the format keys.
+Keep format keys exactly as shown: title, q, type, correct, wrong, answer, explanation.
 Use NOTE TITLE only as optional title context.
 If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
 {AiInputGuard.RefusalOutput}
@@ -214,10 +228,24 @@ Output ONLY in this exact format, nothing else:
 title: quiz title
 
 q: question text
-type: single | multi | truefalse
+type: single
 correct: correct answer
 wrong: plausible wrong answer
 wrong: plausible wrong answer
+wrong: plausible wrong answer
+explanation: short factual explanation
+
+q: question text
+type: multi
+correct: correct answer
+correct: another correct answer
+wrong: plausible wrong answer
+wrong: plausible wrong answer
+explanation: short factual explanation
+
+q: true-false statement
+type: truefalse
+answer: true/false
 explanation: short factual explanation
 
 Question type plan:
@@ -228,10 +256,14 @@ Rules:
 - Do not use OPTIONS, [x], tables, markdown, numbering, or END markers.
 - Keep question text concise and explanations short.
 - Follow the question type plan exactly.
-- single: output exactly one correct line and at least two wrong lines.
-- multi: output at least two correct lines and at least one wrong line.
+- For type: single, output exactly one correct line and two or three wrong lines. Prefer three wrong lines.
+- For type: multi, output type: multi, then at least two correct lines and one or two wrong lines. Prefer four total options.
+- Follow the option count hint in the question type plan when possible.
+- Single and multi questions should have 3-4 total options; truefalse has exactly 2 options.
+- Do not pad with an unrelated fourth option; use 3 total options if a plausible fourth option is not available.
+- Wrong options must match the semantic category of the correct answer: dates with dates, places with places, people with people, concepts with concepts.
 - truefalse: output answer: true/false or the translated equivalent instead of correct/wrong lines.
-- Multiple-choice can ask which statements are correct, using SOURCE NOTE-supported facts and plausible distractors.
+- Multi questions should ask which statements/items are correct, using SOURCE NOTE-supported facts and plausible distractors.
 - True-false should include both true and false statements when plausible.
 - Mark only SOURCE NOTE-supported facts as correct; wrong lines may be plausible distractors.
 - Ask about SOURCE NOTE facts only.
@@ -258,9 +290,8 @@ Never think out loud. Never explain. Never output reasoning, analysis, <think> t
 Create exactly {targetQuestionCount} valid quiz questions for the whole note.
 Use SOURCE NOTE as the authority for correct answers and explanations.
 Incorrect options and false true-false statements may invent plausible wrong facts related to SOURCE NOTE.
-Detect the primary language and writing system of SOURCE NOTE.
-Write every title, question, option, true-false label, and explanation in that same detected language and script.
-Do not translate to English unless SOURCE NOTE is primarily English.
+Use SOURCE NOTE's language and script for all generated quiz content; use English only for the format keys.
+Keep format keys exactly as shown: title, q, type, correct, wrong, answer, explanation.
 If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
 {AiInputGuard.RefusalOutput}
 Do not invent context to make unsuitable text look useful.
@@ -270,10 +301,24 @@ Output ONLY in this exact format, nothing else:
 title: quiz title
 
 q: question text
-type: single | multi | truefalse
+type: single
 correct: correct answer
 wrong: plausible wrong answer
 wrong: plausible wrong answer
+wrong: plausible wrong answer
+explanation: short factual explanation
+
+q: question text
+type: multi
+correct: correct answer
+correct: another correct answer
+wrong: plausible wrong answer
+wrong: plausible wrong answer
+explanation: short factual explanation
+
+q: true-false statement
+type: truefalse
+answer: true/false
 explanation: short factual explanation
 
 Question type plan:
@@ -284,10 +329,14 @@ Rules:
 - Do not use OPTIONS, [x], tables, markdown, numbering, or END markers.
 - Keep question text concise and explanations short.
 - Follow the question type plan exactly.
-- single: output exactly one correct line and at least two wrong lines.
-- multi: output at least two correct lines and at least one wrong line.
+- For type: single, output exactly one correct line and two or three wrong lines. Prefer three wrong lines.
+- For type: multi, output type: multi, then at least two correct lines and one or two wrong lines. Prefer four total options.
+- Follow the option count hint in the question type plan when possible.
+- Single and multi questions should have 3-4 total options; truefalse has exactly 2 options.
+- Do not pad with an unrelated fourth option; use 3 total options if a plausible fourth option is not available.
+- Wrong options must match the semantic category of the correct answer: dates with dates, places with places, people with people, concepts with concepts.
 - truefalse: output answer: true/false or the translated equivalent instead of correct/wrong lines.
-- Multiple-choice can ask which statements are correct, using SOURCE NOTE-supported facts and plausible distractors.
+- Multi questions should ask which statements/items are correct, using SOURCE NOTE-supported facts and plausible distractors.
 - True-false should include both true and false statements when plausible.
 - Mark only SOURCE NOTE-supported facts as correct; wrong lines may be plausible distractors.
 - Ask about SOURCE NOTE facts only.
@@ -535,6 +584,49 @@ SOURCE NOTE:
         }
 
         return unique;
+    }
+
+    private static List<QuizQuestion> PrepareDisplayQuestions(IReadOnlyList<QuizQuestion> questions)
+    {
+        foreach (var question in questions.Where(question => question.Type != QuizQuestionType.TrueFalse))
+            ShuffleChoiceOptions(question);
+
+        return questions
+            .Where(IsDisplayReadyQuestion)
+            .ToList();
+    }
+
+    private static bool IsDisplayReadyQuestion(QuizQuestion question)
+    {
+        var correctCount = question.Options.Count(option => option.IsCorrect);
+        return question.Type switch
+        {
+            QuizQuestionType.TrueFalse => question.Options.Count == 2 && correctCount == 1,
+            QuizQuestionType.SingleChoice => question.Options.Count is >= 3 and <= 6 && correctCount == 1,
+            QuizQuestionType.MultipleChoice => question.Options.Count is >= 3 and <= 6
+                && correctCount >= 2
+                && correctCount < question.Options.Count,
+            _ => false
+        };
+    }
+
+    private static void ShuffleChoiceOptions(QuizQuestion question)
+    {
+        question.Options = question.Options
+            .OrderBy(option => StableOptionOrderKey(question.Question, option.Text))
+            .ThenBy(option => NormalizeKey(option.Text), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static int StableOptionOrderKey(string question, string option)
+    {
+        unchecked
+        {
+            var hash = 17;
+            foreach (var c in NormalizeKey(question + " " + option))
+                hash = (hash * 31) + c;
+            return hash;
+        }
     }
 
     private static string ExtractTitle(IEnumerable<string> lines)
