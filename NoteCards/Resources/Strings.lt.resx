@@ -344,7 +344,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardsShowQuestions" xml:space="preserve"><value>Rodyti klausimus</value></data>
   <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Rodyti atsakymus</value></data>
   <data name="ShuffleCards" xml:space="preserve"><value>Sumaišyti</value></data>
-  <data name="FlashcardSearchHint" xml:space="preserve"><value>Rašykite, kad ieškotumėte klausimuose ir atsakymuose...</value></data>
+  <data name="FlashcardSearchHint" xml:space="preserve"><value>Rašykite, kad ieškotumėte klausimuose, atsakymuose ir kategorijose...</value></data>
   <data name="FlashcardSetLabel" xml:space="preserve"><value>Rinkinys:</value></data>
   <data name="FlashcardSetFormat" xml:space="preserve"><value>Rinkinys {0}</value></data>
   <data name="CreateFlashcardSet" xml:space="preserve"><value>Kurti rinkinį</value></data>
@@ -363,6 +363,8 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="Known" xml:space="preserve"><value>Moku</value></data>
   <data name="Unknown" xml:space="preserve"><value>Nemoku</value></data>
   <data name="FlashcardStatusAll" xml:space="preserve"><value>Visos</value></data>
+  <data name="FlashcardCategoryAll" xml:space="preserve"><value>Visos kategorijos</value></data>
+  <data name="FlashcardFilters" xml:space="preserve"><value>Filtrai</value></data>
   <data name="StudyModeStudiedFormat" xml:space="preserve"><value>Išmoktos kortelės: {0}</value></data>
   <data name="StudyModeComplete" xml:space="preserve"><value>Mokymosi sesija baigta</value></data>
   <data name="StudyModeCompleteTitle" xml:space="preserve"><value>Mokymosi sesija baigta</value></data>

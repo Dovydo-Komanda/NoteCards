@@ -275,75 +275,85 @@
 
         <Border Grid.Row="2"
                 Margin="20,10,20,0"
-                Padding="10,10,10,2"
+                Padding="10,8,10,2"
                 Background="{DynamicResource CardBackground}"
                 BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
                 CornerRadius="10">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0"
-                            Orientation="Horizontal"
-                            VerticalAlignment="Top"
-                            Margin="0,0,12,8">
-                    <Button x:Name="FlashcardSearchToggleButton"
-                            Content="⌕"
-                            Style="{StaticResource FlashcardSearchIconButtonStyle}"
-                            ToolTip="{Binding [Search], Source={StaticResource Loc}}"
-                            Click="FlashcardSearchToggleButton_Click"/>
-                    <Border x:Name="FlashcardSearchPanel"
-                            Width="0"
-                            Height="30"
-                            Padding="10,0"
-                            Margin="8,0,0,0"
-                            Visibility="Collapsed"
-                            IsHitTestVisible="False"
-                            Background="{DynamicResource WindowBackground}"
-                            BorderBrush="{DynamicResource BorderColor}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Opacity="0">
-                        <DockPanel LastChildFill="True">
-                            <TextBlock Text="⌕"
-                                       Foreground="{DynamicResource TextColorSecondary}"
-                                       Margin="0,0,8,0"
-                                       VerticalAlignment="Center"
-                                       FontSize="13"/>
-                            <TextBox x:Name="FlashcardSearchTextBox"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     Foreground="{DynamicResource TextColor}"
-                                     CaretBrush="{DynamicResource TextColor}"
-                                     VerticalContentAlignment="Center"
-                                     TextChanged="FlashcardSearchTextBox_TextChanged"
-                                     KeyDown="FlashcardSearchTextBox_KeyDown"
-                                     ToolTip="{Binding [FlashcardSearchHint], Source={StaticResource Loc}}"/>
-                        </DockPanel>
-                    </Border>
-                </StackPanel>
 
                 <WrapPanel Grid.Column="1"
                            Orientation="Horizontal"
                            HorizontalAlignment="Right"
                            VerticalAlignment="Top">
-                    <ComboBox x:Name="StatusFilterComboBox"
-                              Width="112"
-                              Style="{StaticResource SetSelectorComboBoxStyle}"
-                              ItemContainerStyle="{StaticResource SetSelectorComboBoxItemStyle}"
-                              DisplayMemberPath="DisplayName"
-                              Margin="0,0,8,8"
-                              SelectionChanged="StatusFilterComboBox_SelectionChanged"/>
-                    <ComboBox x:Name="SetSelectorComboBox"
-                              Width="148"
-                              Style="{StaticResource SetSelectorComboBoxStyle}"
-                              ItemContainerStyle="{StaticResource SetSelectorComboBoxItemStyle}"
-                              DisplayMemberPath="DisplayName"
-                              Margin="0,0,8,8"
-                              SelectionChanged="SetSelectorComboBox_SelectionChanged"/>
+                    <Button x:Name="FiltersButton"
+                            Content="{Binding [FlashcardFilters], Source={StaticResource Loc}}"
+                            Style="{StaticResource FlashcardToolbarButtonStyle}"
+                            Margin="0,0,10,8"
+                            Click="FiltersButton_Click"/>
+                    <Popup x:Name="FiltersPopup"
+                           PlacementTarget="{Binding ElementName=FiltersButton}"
+                           Placement="Bottom"
+                           StaysOpen="False"
+                           AllowsTransparency="True"
+                           PopupAnimation="Fade">
+                        <Border Margin="0,6,0,0"
+                                Padding="10"
+                                MinWidth="280"
+                                Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1"
+                                CornerRadius="10">
+                            <StackPanel Orientation="Vertical">
+                                <ComboBox x:Name="StatusFilterComboBox"
+                                          Width="260"
+                                          Style="{StaticResource SetSelectorComboBoxStyle}"
+                                          ItemContainerStyle="{StaticResource SetSelectorComboBoxItemStyle}"
+                                          DisplayMemberPath="DisplayName"
+                                          Margin="0,0,0,8"
+                                          SelectionChanged="StatusFilterComboBox_SelectionChanged"/>
+                                <ComboBox x:Name="CategoryFilterComboBox"
+                                          Width="260"
+                                          Style="{StaticResource SetSelectorComboBoxStyle}"
+                                          ItemContainerStyle="{StaticResource SetSelectorComboBoxItemStyle}"
+                                          DisplayMemberPath="DisplayName"
+                                          Margin="0,0,0,8"
+                                          SelectionChanged="CategoryFilterComboBox_SelectionChanged"/>
+                                <Border Height="32"
+                                        Padding="10,0"
+                                        Margin="0,0,0,8"
+                                        Background="{DynamicResource WindowBackground}"
+                                        BorderBrush="{DynamicResource BorderColor}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <DockPanel LastChildFill="True">
+                                        <TextBlock Text="⌕"
+                                                   Foreground="{DynamicResource TextColorSecondary}"
+                                                   Margin="0,0,8,0"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="13"/>
+                                        <TextBox x:Name="FlashcardSearchTextBox"
+                                                 BorderThickness="0"
+                                                 Background="Transparent"
+                                                 Foreground="{DynamicResource TextColor}"
+                                                 CaretBrush="{DynamicResource TextColor}"
+                                                 VerticalContentAlignment="Center"
+                                                 TextChanged="FlashcardSearchTextBox_TextChanged"
+                                                 ToolTip="{Binding [FlashcardSearchHint], Source={StaticResource Loc}}"/>
+                                    </DockPanel>
+                                </Border>
+                                <Button Content="{Binding [ClearFilters], Source={StaticResource Loc}}"
+                                        Style="{StaticResource FlashcardToolbarButtonStyle}"
+                                        HorizontalAlignment="Left"
+                                        Margin="0"
+                                        Click="ClearFiltersButton_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
                     <Button Content="✎"
                             Style="{StaticResource FlashcardEditorIconButtonStyle}"
                             Margin="0,0,8,8"
@@ -351,9 +361,16 @@
                             Click="RenameSetButton_Click"/>
                     <Button Content="×"
                             Style="{StaticResource FlashcardEditorIconButtonStyle}"
-                            Margin="0,0,12,8"
+                            Margin="0,0,8,8"
                             ToolTip="{Binding [DeleteFlashcardSet], Source={StaticResource Loc}}"
                             Click="DeleteSetButton_Click"/>
+                    <ComboBox x:Name="SetSelectorComboBox"
+                              Width="128"
+                              Style="{StaticResource SetSelectorComboBoxStyle}"
+                              ItemContainerStyle="{StaticResource SetSelectorComboBoxItemStyle}"
+                              DisplayMemberPath="DisplayName"
+                              Margin="0,0,8,8"
+                              SelectionChanged="SetSelectorComboBox_SelectionChanged"/>
                     <Button Content="{Binding [CreateFlashcardSet], Source={StaticResource Loc}}"
                             Style="{StaticResource FlashcardToolbarButtonStyle}"
                             Click="CreateSetButton_Click"/>

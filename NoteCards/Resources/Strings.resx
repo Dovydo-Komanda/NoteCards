@@ -384,7 +384,7 @@ Right-click to remove</value></data>
   <data name="FlashcardsShowQuestions" xml:space="preserve"><value>Show questions</value></data>
   <data name="FlashcardsShowAnswers" xml:space="preserve"><value>Show answers</value></data>
   <data name="ShuffleCards" xml:space="preserve"><value>Shuffle</value></data>
-  <data name="FlashcardSearchHint" xml:space="preserve"><value>Type to search questions and answers...</value></data>
+  <data name="FlashcardSearchHint" xml:space="preserve"><value>Type to search questions, answers, and categories...</value></data>
   <data name="FlashcardSetLabel" xml:space="preserve"><value>Set:</value></data>
   <data name="FlashcardSetFormat" xml:space="preserve"><value>Set {0}</value></data>
   <data name="CreateFlashcardSet" xml:space="preserve"><value>Create set</value></data>
@@ -403,6 +403,8 @@ Right-click to remove</value></data>
   <data name="Known" xml:space="preserve"><value>Known</value></data>
   <data name="Unknown" xml:space="preserve"><value>Unknown</value></data>
   <data name="FlashcardStatusAll" xml:space="preserve"><value>All</value></data>
+  <data name="FlashcardCategoryAll" xml:space="preserve"><value>All categories</value></data>
+  <data name="FlashcardFilters" xml:space="preserve"><value>Filters</value></data>
   <data name="StudyModeStudiedFormat" xml:space="preserve"><value>Studied cards: {0}</value></data>
   <data name="StudyModeComplete" xml:space="preserve"><value>Study session complete</value></data>
   <data name="StudyModeCompleteTitle" xml:space="preserve"><value>Study session complete</value></data>

@@ -22,12 +22,11 @@ public partial class FlashcardsPreviewWindow : Window
     }
 
     private const int DefaultSetIndex = 1;
-    private const double FlashcardSearchExpandedWidth = 260;
-    private const int FlashcardSearchAnimationMs = 240;
     private readonly List<FlashcardPreviewItem> _allItems;
     private readonly ObservableCollection<FlashcardPreviewItem> _items;
     private readonly ObservableCollection<FlashcardSetOption> _setOptions;
     private readonly ObservableCollection<FlashcardStatusFilterOption> _statusFilterOptions;
+    private readonly ObservableCollection<FlashcardCategoryFilterOption> _categoryFilterOptions;
     private readonly List<FlashcardPreviewItem> _studyHistory = new();
     private readonly Random _random = new();
     private bool _isStudyMode;
@@ -37,6 +36,7 @@ public partial class FlashcardsPreviewWindow : Window
     private int _studyHistoryPosition = -1;
     private int _currentSetIndex = DefaultSetIndex;
     private bool? _statusFilterIsKnown;
+    private string _categoryFilter = string.Empty;
     private string _searchText = string.Empty;
     private string _modelDisplayName = string.Empty;
     private string _lastSavedSnapshot = string.Empty;
@@ -66,9 +66,11 @@ public partial class FlashcardsPreviewWindow : Window
         _items = new ObservableCollection<FlashcardPreviewItem>();
         _setOptions = new ObservableCollection<FlashcardSetOption>();
         _statusFilterOptions = new ObservableCollection<FlashcardStatusFilterOption>();
+        _categoryFilterOptions = new ObservableCollection<FlashcardCategoryFilterOption>();
 
         SetSelectorComboBox.ItemsSource = _setOptions;
         StatusFilterComboBox.ItemsSource = _statusFilterOptions;
+        CategoryFilterComboBox.ItemsSource = _categoryFilterOptions;
         FlashcardsItemsControl.ItemsSource = _items;
         TitleTextBox.Text = string.IsNullOrWhiteSpace(title)
             ? LocalizationService.GetString("FlashcardsEditorTitle")
@@ -352,6 +354,42 @@ public partial class FlashcardsPreviewWindow : Window
         StatusFilterComboBox.SelectedIndex = 0;
     }
 
+    private void InitializeCategoryFilterOptions(bool preserveSelection = true)
+    {
+        var selectedCategory = preserveSelection
+            ? _categoryFilter
+            : string.Empty;
+
+        _categoryFilterOptions.Clear();
+        _categoryFilterOptions.Add(new FlashcardCategoryFilterOption
+        {
+            Category = string.Empty,
+            DisplayName = LocalizationService.GetString("FlashcardCategoryAll")
+        });
+
+        var categories = _allItems
+            .Where(item => item.SetIndex == _currentSetIndex)
+            .Select(item => item.Category.Trim())
+            .Where(category => !string.IsNullOrWhiteSpace(category))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(category => category, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        foreach (var category in categories)
+        {
+            _categoryFilterOptions.Add(new FlashcardCategoryFilterOption
+            {
+                Category = category,
+                DisplayName = category
+            });
+        }
+
+        var matchedOption = _categoryFilterOptions.FirstOrDefault(option =>
+            string.Equals(option.Category, selectedCategory, StringComparison.OrdinalIgnoreCase));
+
+        CategoryFilterComboBox.SelectedItem = matchedOption ?? _categoryFilterOptions.First();
+    }
+
     private void StatusFilterComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (StatusFilterComboBox.SelectedItem is not FlashcardStatusFilterOption option)
@@ -444,6 +482,7 @@ public partial class FlashcardsPreviewWindow : Window
     private void ApplySetFilter(int setIndex)
     {
         _currentSetIndex = Math.Max(DefaultSetIndex, setIndex);
+        InitializeCategoryFilterOptions();
         ApplyFilters();
     }
 
@@ -457,6 +496,12 @@ public partial class FlashcardsPreviewWindow : Window
             filteredItems = _statusFilterIsKnown.Value
                 ? filteredItems.Where(item => item.IsKnown)
                 : filteredItems.Where(item => item.IsUnknown);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_categoryFilter))
+        {
+            filteredItems = filteredItems.Where(item =>
+                string.Equals(item.Category, _categoryFilter, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(normalizedQuery))
@@ -644,47 +689,11 @@ public partial class FlashcardsPreviewWindow : Window
         ApplyFilters();
     }
 
-    private void FlashcardSearchToggleButton_Click(object sender, RoutedEventArgs e)
+    private void FiltersButton_Click(object sender, RoutedEventArgs e)
     {
-        if (FlashcardSearchPanel.Visibility == Visibility.Visible)
-        {
-            CollapseFlashcardSearchPanel();
+        FiltersPopup.IsOpen = !FiltersPopup.IsOpen;
+        if (!FiltersPopup.IsOpen)
             return;
-        }
-
-        ExpandFlashcardSearchPanel();
-    }
-
-    private void FlashcardSearchTextBox_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Escape)
-            return;
-
-        CollapseFlashcardSearchPanel();
-        e.Handled = true;
-    }
-
-    private void ExpandFlashcardSearchPanel()
-    {
-        FlashcardSearchPanel.Visibility = Visibility.Visible;
-        FlashcardSearchPanel.IsHitTestVisible = true;
-        FlashcardSearchPanel.BeginAnimation(FrameworkElement.WidthProperty, null);
-        FlashcardSearchPanel.BeginAnimation(OpacityProperty, null);
-
-        FlashcardSearchPanel.Width = 0;
-        FlashcardSearchPanel.Opacity = 0;
-
-        var duration = TimeSpan.FromMilliseconds(FlashcardSearchAnimationMs);
-        var easeOut = new CubicEase { EasingMode = EasingMode.EaseOut };
-
-        FlashcardSearchPanel.BeginAnimation(FrameworkElement.WidthProperty, new DoubleAnimation(0, FlashcardSearchExpandedWidth, duration)
-        {
-            EasingFunction = easeOut
-        });
-        FlashcardSearchPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration)
-        {
-            EasingFunction = easeOut
-        });
 
         Dispatcher.BeginInvoke(() =>
         {
@@ -693,39 +702,22 @@ public partial class FlashcardsPreviewWindow : Window
         }, System.Windows.Threading.DispatcherPriority.Input);
     }
 
-    private void CollapseFlashcardSearchPanel()
+    private void CategoryFilterComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (FlashcardSearchPanel.Visibility != Visibility.Visible)
+        if (CategoryFilterComboBox.SelectedItem is not FlashcardCategoryFilterOption option)
             return;
 
-        var startWidth = FlashcardSearchPanel.ActualWidth > 0
-            ? FlashcardSearchPanel.ActualWidth
-            : Math.Max(FlashcardSearchPanel.Width, 1);
-        var startOpacity = FlashcardSearchPanel.Opacity;
+        _categoryFilter = option.Category?.Trim() ?? string.Empty;
+        ApplyFilters();
+    }
 
-        if (startOpacity <= 0)
-            startOpacity = 1;
-
-        var duration = TimeSpan.FromMilliseconds(FlashcardSearchAnimationMs);
-        var easeIn = new CubicEase { EasingMode = EasingMode.EaseIn };
-
-        var widthAnimation = new DoubleAnimation(startWidth, 0, duration)
-        {
-            EasingFunction = easeIn
-        };
-        widthAnimation.Completed += (_, _) =>
-        {
-            FlashcardSearchPanel.Visibility = Visibility.Collapsed;
-            FlashcardSearchPanel.IsHitTestVisible = false;
-            FlashcardSearchPanel.Width = 0;
-            FlashcardSearchPanel.Opacity = 0;
-        };
-
-        FlashcardSearchPanel.BeginAnimation(FrameworkElement.WidthProperty, widthAnimation);
-        FlashcardSearchPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(startOpacity, 0, duration)
-        {
-            EasingFunction = easeIn
-        });
+    private void ClearFiltersButton_Click(object sender, RoutedEventArgs e)
+    {
+        StatusFilterComboBox.SelectedIndex = 0;
+        CategoryFilterComboBox.SelectedIndex = 0;
+        FlashcardSearchTextBox.Clear();
+        ApplyFilters();
+        FiltersPopup.IsOpen = false;
     }
 
     private int? GetSelectedSetIndex()
@@ -800,6 +792,7 @@ public partial class FlashcardsPreviewWindow : Window
             _currentSetIndex = DefaultSetIndex;
 
         UpdateSetSelectorState();
+        InitializeCategoryFilterOptions();
         ApplyFilters();
         UpdateEditedIndicator();
     }
@@ -1601,6 +1594,8 @@ public partial class FlashcardsPreviewWindow : Window
             flashcard.Question = dialog.Question;
             flashcard.Answer = dialog.Answer;
             flashcard.Category = dialog.Category;
+            InitializeCategoryFilterOptions();
+            ApplyFilters();
             UpdateEditedIndicator();
         }
     }
@@ -1648,6 +1643,8 @@ public partial class FlashcardsPreviewWindow : Window
         if (_studyModeIndex >= _items.Count)
             _studyModeIndex = Math.Max(0, _items.Count - 1);
 
+        InitializeCategoryFilterOptions();
+        ApplyFilters();
         ApplyStudyModeState();
         UpdateEditedIndicator();
     }
@@ -1661,6 +1658,12 @@ public partial class FlashcardsPreviewWindow : Window
     private sealed class FlashcardStatusFilterOption
     {
         public bool? IsKnown { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+    }
+
+    private sealed class FlashcardCategoryFilterOption
+    {
+        public string Category { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
     }
 }
