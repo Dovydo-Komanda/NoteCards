@@ -176,9 +176,19 @@
                         <Border Margin="0,0,0,12"
                                 Padding="16"
                                 Background="{DynamicResource CardBackground}"
-                                BorderBrush="{DynamicResource BorderColor}"
-                                BorderThickness="1"
                                 CornerRadius="12">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFocused}" Value="True">
+                                            <Setter Property="BorderBrush" Value="#3F6FE8"/>
+                                            <Setter Property="BorderThickness" Value="2"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <Border.Effect>
                                 <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.08"/>
                             </Border.Effect>
@@ -280,6 +290,11 @@
                 CornerRadius="10">
             <WrapPanel Orientation="Horizontal"
                        HorizontalAlignment="Right">
+                <Button x:Name="FullscreenButton"
+                        Content="⛶ Fullscreen"
+                        Style="{StaticResource QuizToolbarButtonStyle}"
+                        Click="FullscreenButton_Click"
+                        ToolTip="Toggle Fullscreen (F11)"/>
                 <Button x:Name="CheckAnswersButton"
                         Content="{Binding [QuizCheckAnswers], Source={StaticResource Loc}}"
                         Style="{StaticResource QuizToolbarPrimaryButtonStyle}"
