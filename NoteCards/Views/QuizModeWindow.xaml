@@ -1,0 +1,187 @@
+<Window x:Class="NoteCards.Views.QuizModeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Quiz Mode"
+        Height="650"
+        Width="800"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized"
+        Background="{DynamicResource WindowBackground}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="0,0,0,1"
+                Padding="20,16">
+            <Grid>
+                <TextBlock x:Name="ProgressText"
+                           FontSize="14"
+                           Foreground="{DynamicResource TextColorSecondary}"/>
+                <TextBlock x:Name="TimerText"
+                           HorizontalAlignment="Right"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextColor}"/>
+            </Grid>
+        </Border>
+
+        <!-- Question Area -->
+        <Border Grid.Row="1"
+                x:Name="QuestionView"
+                Background="{DynamicResource CardBackground}"
+                Margin="20,16"
+                Padding="20"
+                CornerRadius="12">
+            <StackPanel>
+				<!-- Question Type Indicator -->
+                <StackPanel x:Name="QuestionTypeIndicator"
+                            Orientation="Horizontal"
+                            Margin="0,0,0,12"
+                            Visibility="Collapsed">
+                    <Border Background="#E8F4FD"
+                            BorderBrush="#3F6FE8"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="8,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="☑"
+                                        FontSize="14"
+                                        Foreground="#3F6FE8"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,6,0"/>
+                            <TextBlock x:Name="QuestionTypeText"
+                                        Text="Multiple Choice - Select all that apply"
+                                        FontSize="12"
+                                        FontWeight="SemiBold"
+                                        Foreground="#3F6FE8"
+                                        VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <!-- Question Text -->
+                <TextBlock x:Name="QuestionTextBlock"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextColor}"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,20"/>
+
+                <!-- Options -->
+                <StackPanel x:Name="OptionsPanel"
+                            Margin="0,0,0,20"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Results View (hidden during quiz) -->
+        <Border Grid.Row="1"
+                x:Name="ResultsView"
+                Background="{DynamicResource CardBackground}"
+                Margin="20,16"
+                Padding="20"
+                CornerRadius="12"
+                Visibility="Collapsed">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Score Summary -->
+                    <Border Background="{DynamicResource SelectionBackground}"
+                            CornerRadius="10"
+                            Padding="20"
+                            Margin="0,0,0,20">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock x:Name="ResultsTitleText"
+                                       Text="Quiz Complete!"
+                                       FontSize="28"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextColor}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                            <TextBlock x:Name="ResultsScoreText"
+                                       FontSize="20"
+                                       Foreground="{DynamicResource TextColor}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                            <TextBlock x:Name="ResultsTimeText"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextColorSecondary}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Questions Review -->
+                    <TextBlock Text="Review Answers:"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextColor}"
+                               Margin="0,0,0,16"/>
+
+                    <StackPanel x:Name="ResultsQuestionsPanel"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Navigation -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource CardBackground}"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="0,1,0,0"
+                Padding="20,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0"
+                        x:Name="PreviousButton"
+                        Content="← Previous"
+                        Style="{StaticResource DialogSecondaryButtonStyle}"
+                        MinWidth="130"
+                        Padding="16,10"
+                        Click="PreviousButton_Click"/>
+
+                <Button Grid.Column="2"
+                        x:Name="NextButton"
+                        Content="Next →"
+                        Style="{StaticResource DialogPrimaryButtonStyle}"
+                        MinWidth="130"
+                        Padding="16,10"
+                        Background="#3F6FE8"
+                        BorderBrush="#3F6FE8"
+                        Foreground="White"
+                        Click="NextButton_Click"/>
+
+                <Button Grid.Column="2"
+                        x:Name="SubmitButton"
+                        Content="Submit Quiz"
+                        Style="{StaticResource DialogPrimaryButtonStyle}"
+                        MinWidth="130"
+                        Padding="16,10"
+                        Background="#10B981"
+                        BorderBrush="#10B981"
+                        Foreground="White"
+                        Visibility="Collapsed"
+                        Click="SubmitButton_Click"/>
+
+                <Button Grid.Column="2"
+                        x:Name="DoneButton"
+                        Content="Done"
+                        Style="{StaticResource DialogPrimaryButtonStyle}"
+                        MinWidth="130"
+                        Padding="16,10"
+                        Background="#10B981"
+                        BorderBrush="#10B981"
+                        Foreground="White"
+                        Visibility="Collapsed"
+                        Click="DoneButton_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

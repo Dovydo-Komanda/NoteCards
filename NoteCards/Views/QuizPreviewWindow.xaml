@@ -567,6 +567,14 @@
                 CornerRadius="10">
             <WrapPanel Orientation="Horizontal"
                        HorizontalAlignment="Right">
+                <Button x:Name="StartQuizButton"
+                Content="▶ START"
+                Style="{StaticResource QuizToolbarPrimaryButtonStyle}"
+                Background="#10B981"
+                BorderBrush="#10B981"
+                Foreground="White"
+                Click="StartQuizButton_Click"
+                ToolTip="Start Quiz Mode"/>
                 <Button x:Name="FullscreenButton"
                         Content="⛶ Fullscreen"
                         Style="{StaticResource QuizToolbarButtonStyle}"

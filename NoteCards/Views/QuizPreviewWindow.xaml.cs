@@ -55,8 +55,8 @@ public partial class QuizPreviewWindow : Window
         }
 
         PreviewKeyDown += QuizPreviewWindow_PreviewKeyDown;
-    }
 
+    }
     public string EditorTitle => TitleTextBox.Text.Trim();
 
     public string AiModelDisplayName => _modelDisplayName;
@@ -124,6 +124,33 @@ public partial class QuizPreviewWindow : Window
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private void StartQuizButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_sourceDocument?.Questions == null || _sourceDocument.Questions.Count == 0)
+        {
+            MessageBox.Show(
+                LocalizationService.GetString("QuizNoQuestions"),
+                LocalizationService.GetString("QuizMode"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            var quizModeWindow = new QuizModeWindow(_sourceDocument);
+            quizModeWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Error starting quiz: {ex.Message}",
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
