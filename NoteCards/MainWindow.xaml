@@ -2136,9 +2136,12 @@
                                                             BorderThickness="0"
                                                             Cursor="Hand">
                                                         <Button.ContextMenu>
-                                                            <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                                <MenuItem Header="{Binding [DeleteQuiz], Source={StaticResource Loc}}"
-                                                                          Click="DeleteQuizMenuItem_Click"/>
+                                                            <ContextMenu>
+                                                                <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}"
+                                                                Click="OpenQuizMenuItem_Click"/>
+                                                                <Separator/>
+                                                                <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
+                                                                Click="DeleteQuizMenuItem_Click"/>
                                                             </ContextMenu>
                                                         </Button.ContextMenu>
                                                         <Border x:Name="QuizCardBorder"

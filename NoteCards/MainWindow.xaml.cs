@@ -1088,6 +1088,14 @@ namespace NoteCards
                 vm.DeleteQuiz(quiz);
         }
 
+        private void OpenQuizMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is QuizViewModel quizVm)
+            {
+                OpenQuizEditor(DataContext as MainViewModel, quizVm);
+            }
+        }
+
         private FlashcardSetViewModel? GetFlashcardSetFromMenuSender(object sender)
         {
             if (sender is not MenuItem menuItem)
