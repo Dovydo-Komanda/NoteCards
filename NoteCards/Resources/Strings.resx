@@ -346,12 +346,38 @@ Right-click to remove</value></data>
   <data name="QuizTypeSingleChoice" xml:space="preserve"><value>single choice</value></data>
   <data name="QuizTypeMultipleChoice" xml:space="preserve"><value>multiple choice</value></data>
   <data name="QuizTypeTrueFalse" xml:space="preserve"><value>true / false</value></data>
+  <data name="QuizOptionTrue" xml:space="preserve"><value>True</value></data>
+  <data name="QuizOptionFalse" xml:space="preserve"><value>False</value></data>
   <data name="QuizCorrect" xml:space="preserve"><value>Correct</value></data>
   <data name="QuizIncorrect" xml:space="preserve"><value>Incorrect</value></data>
   <data name="QuizUnanswered" xml:space="preserve"><value>No answer</value></data>
   <data name="QuizExplanationFormat" xml:space="preserve"><value>Explanation: {0}</value></data>
   <data name="QuizCheckAnswers" xml:space="preserve"><value>Check answers</value></data>
   <data name="QuizResetAnswers" xml:space="preserve"><value>Reset</value></data>
+  <data name="QuizzesDashboard" xml:space="preserve"><value>Tests</value></data>
+  <data name="QuizzesDashboardTitle" xml:space="preserve"><value>Tests</value></data>
+  <data name="QuizzesEmptyDashboardPrompt" xml:space="preserve"><value>Create a test or convert a note into a test to see it here.</value></data>
+  <data name="CreateQuiz" xml:space="preserve"><value>Create test</value></data>
+  <data name="QuizCountFormat" xml:space="preserve"><value>{0} tests</value></data>
+  <data name="SortByQuizQuestionsDesc" xml:space="preserve"><value>Most questions</value></data>
+  <data name="SortByQuizQuestionsAsc" xml:space="preserve"><value>Fewest questions</value></data>
+  <data name="DeleteQuiz" xml:space="preserve"><value>Delete test</value></data>
+  <data name="DeleteQuizConfirmationFormat" xml:space="preserve"><value>Are you sure you want to delete "{0}"? This action cannot be undone.</value></data>
+  <data name="EditQuiz" xml:space="preserve"><value>Edit test</value></data>
+  <data name="ViewQuiz" xml:space="preserve"><value>View test</value></data>
+  <data name="AddQuestion" xml:space="preserve"><value>Add question</value></data>
+  <data name="AddOption" xml:space="preserve"><value>Add option</value></data>
+  <data name="DeleteQuestion" xml:space="preserve"><value>Delete question</value></data>
+  <data name="MoveQuestionUp" xml:space="preserve"><value>Move question up</value></data>
+  <data name="MoveQuestionDown" xml:space="preserve"><value>Move question down</value></data>
+  <data name="CorrectAnswer" xml:space="preserve"><value>Correct answer</value></data>
+  <data name="MoveOptionUp" xml:space="preserve"><value>Move option up</value></data>
+  <data name="MoveOptionDown" xml:space="preserve"><value>Move option down</value></data>
+  <data name="QuizExplanationLabel" xml:space="preserve"><value>Explanation</value></data>
+  <data name="QuizExplanationHint" xml:space="preserve"><value>Optional explanation</value></data>
+  <data name="NewQuizQuestion" xml:space="preserve"><value>New question</value></data>
+  <data name="NewQuizCorrectAnswer" xml:space="preserve"><value>Correct answer</value></data>
+  <data name="NewQuizWrongAnswer" xml:space="preserve"><value>Wrong answer</value></data>
   <data name="FlashcardsTapHint" xml:space="preserve"><value>Click a card to flip</value></data>
   <data name="FlashcardSideQuestion" xml:space="preserve"><value>Question</value></data>
   <data name="FlashcardSideAnswer" xml:space="preserve"><value>Answer</value></data>

@@ -38,6 +38,10 @@ public class AppSettings
 
     public string MindMapSortOptionKey { get; set; } = "last-modified-desc";
 
+    public string FlashcardSortOptionKey { get; set; } = "last-modified-desc";
+
+    public string QuizSortOptionKey { get; set; } = "last-modified-desc";
+
     public string DefaultViewMode { get; set; } = "Grid";
 
     public bool IsGroupsFirst { get; set; } = true;

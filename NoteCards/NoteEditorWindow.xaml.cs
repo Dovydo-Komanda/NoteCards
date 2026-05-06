@@ -795,7 +795,11 @@ namespace NoteCards
                     Owner = GetDialogOwnerWindow()
                 };
 
-                preview.ShowDialog();
+                if (preview.ShowDialog() == true
+                    && Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                {
+                    mainViewModel.AddOrUpdateQuiz(preview.ToDocument());
+                }
 
                 ShowStatusIndicator(LocalizationService.GetString("ConvertToTestSuccess"));
             }

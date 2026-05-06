@@ -306,12 +306,38 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="QuizTypeSingleChoice" xml:space="preserve"><value>vienas atsakymas</value></data>
   <data name="QuizTypeMultipleChoice" xml:space="preserve"><value>keli atsakymai</value></data>
   <data name="QuizTypeTrueFalse" xml:space="preserve"><value>teisinga / klaidinga</value></data>
+  <data name="QuizOptionTrue" xml:space="preserve"><value>Teisinga</value></data>
+  <data name="QuizOptionFalse" xml:space="preserve"><value>Klaidinga</value></data>
   <data name="QuizCorrect" xml:space="preserve"><value>Teisingai</value></data>
   <data name="QuizIncorrect" xml:space="preserve"><value>Neteisingai</value></data>
   <data name="QuizUnanswered" xml:space="preserve"><value>Neatsakyta</value></data>
   <data name="QuizExplanationFormat" xml:space="preserve"><value>Paaiškinimas: {0}</value></data>
   <data name="QuizCheckAnswers" xml:space="preserve"><value>Tikrinti atsakymus</value></data>
   <data name="QuizResetAnswers" xml:space="preserve"><value>Iš naujo</value></data>
+  <data name="QuizzesDashboard" xml:space="preserve"><value>Testai</value></data>
+  <data name="QuizzesDashboardTitle" xml:space="preserve"><value>Testai</value></data>
+  <data name="QuizzesEmptyDashboardPrompt" xml:space="preserve"><value>Sukurkite testą arba paverskite užrašą testu ir jis atsiras čia.</value></data>
+  <data name="CreateQuiz" xml:space="preserve"><value>Sukurti testą</value></data>
+  <data name="QuizCountFormat" xml:space="preserve"><value>{0} testai(-ų)</value></data>
+  <data name="SortByQuizQuestionsDesc" xml:space="preserve"><value>Daugiausia klausimų</value></data>
+  <data name="SortByQuizQuestionsAsc" xml:space="preserve"><value>Mažiausiai klausimų</value></data>
+  <data name="DeleteQuiz" xml:space="preserve"><value>Ištrinti testą</value></data>
+  <data name="DeleteQuizConfirmationFormat" xml:space="preserve"><value>Ar tikrai norite ištrinti „{0}“? Šio veiksmo negalima atšaukti.</value></data>
+  <data name="EditQuiz" xml:space="preserve"><value>Redaguoti testą</value></data>
+  <data name="ViewQuiz" xml:space="preserve"><value>Žiūrėti testą</value></data>
+  <data name="AddQuestion" xml:space="preserve"><value>Pridėti klausimą</value></data>
+  <data name="AddOption" xml:space="preserve"><value>Pridėti variantą</value></data>
+  <data name="DeleteQuestion" xml:space="preserve"><value>Ištrinti klausimą</value></data>
+  <data name="MoveQuestionUp" xml:space="preserve"><value>Perkelti klausimą aukštyn</value></data>
+  <data name="MoveQuestionDown" xml:space="preserve"><value>Perkelti klausimą žemyn</value></data>
+  <data name="CorrectAnswer" xml:space="preserve"><value>Teisingas atsakymas</value></data>
+  <data name="MoveOptionUp" xml:space="preserve"><value>Perkelti variantą aukštyn</value></data>
+  <data name="MoveOptionDown" xml:space="preserve"><value>Perkelti variantą žemyn</value></data>
+  <data name="QuizExplanationLabel" xml:space="preserve"><value>Paaiškinimas</value></data>
+  <data name="QuizExplanationHint" xml:space="preserve"><value>Pasirenkamas paaiškinimas</value></data>
+  <data name="NewQuizQuestion" xml:space="preserve"><value>Naujas klausimas</value></data>
+  <data name="NewQuizCorrectAnswer" xml:space="preserve"><value>Teisingas atsakymas</value></data>
+  <data name="NewQuizWrongAnswer" xml:space="preserve"><value>Klaidingas atsakymas</value></data>
   <data name="FlashcardsTapHint" xml:space="preserve"><value>Spustelėkite kortelę, kad apverstumėte</value></data>
   <data name="FlashcardSideQuestion" xml:space="preserve"><value>Klausimas</value></data>
   <data name="FlashcardSideAnswer" xml:space="preserve"><value>Atsakymas</value></data>
@@ -349,6 +375,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="MindMapPreviewTitle" xml:space="preserve"><value>Minčių žemėlapis</value></data>
   <data name="MindMapsDashboard" xml:space="preserve"><value>Minčių žemėlapiai</value></data>
   <data name="MindMapsDashboardTitle" xml:space="preserve"><value>Minčių žemėlapiai</value></data>
+  <data name="CreateMindMap" xml:space="preserve"><value>Sukurti minčių žemėlapį</value></data>
   <data name="MindMapsEmptyDashboardPrompt" xml:space="preserve"><value>Paverskite užrašą į minčių žemėlapį ir jis atsiras čia.</value></data>
   <data name="MindMapUntitled" xml:space="preserve"><value>Minčių žemėlapis be pavadinimo</value></data>
   <data name="MindMapTitleHint" xml:space="preserve"><value>Minčių žemėlapio pavadinimas</value></data>

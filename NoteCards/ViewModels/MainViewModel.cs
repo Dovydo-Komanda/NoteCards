@@ -27,9 +27,12 @@ public class MainViewModel : ViewModelBase
     private const string SortFlashcardCardsAsc = "flashcard-cards-asc";
     private const string SortMindMapNodesDesc = "mindmap-nodes-desc";
     private const string SortMindMapNodesAsc = "mindmap-nodes-asc";
+    private const string SortQuizQuestionsDesc = "quiz-questions-desc";
+    private const string SortQuizQuestionsAsc = "quiz-questions-asc";
     private const string DashboardNotes = "Notes";
     private const string DashboardFlashcards = "Flashcards";
     private const string DashboardMindMaps = "MindMaps";
+    private const string DashboardQuizzes = "Quizzes";
 
     private bool _isLoadingSettings;
     private bool _saveNotesQueued;
@@ -40,10 +43,12 @@ public class MainViewModel : ViewModelBase
     private string _selectedSortOptionKey = SortLastModifiedDesc;
     private string _selectedFlashcardSortOptionKey = SortLastModifiedDesc;
     private string _selectedMindMapSortOptionKey = SortLastModifiedDesc;
+    private string _selectedQuizSortOptionKey = SortLastModifiedDesc;
     private readonly Dictionary<Guid, NoteGroupData> _groupMetadata = new();
     private readonly HashSet<string> _selectedTags = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _selectedFlashcardTags = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _selectedMindMapTags = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _selectedQuizTags = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<Guid> _massSelectedNoteIds = new();
     private bool _isMassSelectMode;
     private DateTime _calendarSelectedDate = DateTime.Today;
@@ -83,6 +88,13 @@ public class MainViewModel : ViewModelBase
         var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NoteCards");
         Directory.CreateDirectory(dir);
         return Path.Combine(dir, "mind-maps.json");
+    }
+
+    private string GetQuizzesFilePath()
+    {
+        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NoteCards");
+        Directory.CreateDirectory(dir);
+        return Path.Combine(dir, "quizzes.json");
     }
     
    
@@ -200,6 +212,7 @@ public class MainViewModel : ViewModelBase
                 RefreshSortOptions();
                 RefreshFlashcardSortOptions();
                 RefreshMindMapSortOptions();
+                RefreshQuizSortOptions();
                 OnPropertyChanged(nameof(SortButtonText));
                 OnPropertyChanged(nameof(ActiveSortButtonText));
                 OnPropertyChanged(nameof(UserActivitySummaryTitle));
@@ -234,6 +247,7 @@ public class MainViewModel : ViewModelBase
         set => SetActiveDashboard(value ? DashboardFlashcards : DashboardNotes);
     }
     public bool IsMindMapsView => string.Equals(_activeDashboard, DashboardMindMaps, StringComparison.Ordinal);
+    public bool IsQuizzesView => string.Equals(_activeDashboard, DashboardQuizzes, StringComparison.Ordinal);
     public FlashcardItem? SelectedFlashcard { get; set; }
 
     public bool IsShowingAnswer { get; set; }
@@ -300,6 +314,7 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsNotesView));
         OnPropertyChanged(nameof(IsFlashcardsView));
         OnPropertyChanged(nameof(IsMindMapsView));
+        OnPropertyChanged(nameof(IsQuizzesView));
         NotifyActiveDashboardChromeChanged();
         SaveAppSettings();
     }
@@ -315,9 +330,11 @@ public class MainViewModel : ViewModelBase
         TagFilters = new ObservableCollection<TagFilterItemViewModel>();
         FlashcardTagFilters = new ObservableCollection<TagFilterItemViewModel>();
         MindMapTagFilters = new ObservableCollection<TagFilterItemViewModel>();
+        QuizTagFilters = new ObservableCollection<TagFilterItemViewModel>();
         SortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
         FlashcardSortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
         MindMapSortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
+        QuizSortOptions = new ObservableCollection<NoteSortOptionItemViewModel>();
         CalendarScheduledNotes = new ObservableCollection<CalendarScheduledItemViewModel>();
         // Create a view for Notes so we can apply filtering for search
         _notesView = CollectionViewSource.GetDefaultView(Notes);
@@ -329,6 +346,9 @@ public class MainViewModel : ViewModelBase
         _mindMapsView = CollectionViewSource.GetDefaultView(MindMaps);
         _mindMapsView.Filter = FilterMindMap;
         ApplySortToMindMapsView();
+        _quizzesView = CollectionViewSource.GetDefaultView(Quizzes);
+        _quizzesView.Filter = FilterQuiz;
+        ApplySortToQuizzesView();
         Notes.CollectionChanged += (_, _) =>
         {
             RefreshAvailableTags();
@@ -348,19 +368,28 @@ public class MainViewModel : ViewModelBase
             ApplyMindMapFilters();
             NotifyMindMapsChanged();
         };
+        Quizzes.CollectionChanged += (_, _) =>
+        {
+            RefreshAvailableQuizTags();
+            ApplyQuizFilters();
+            NotifyQuizzesChanged();
+        };
         
         NoteCards.Services.ActivityTracker.ActivityUpdated += RefreshActivityStats;
         
         RefreshSortOptions();
         RefreshFlashcardSortOptions();
         RefreshMindMapSortOptions();
+        RefreshQuizSortOptions();
         RefreshAvailableTags();
         RefreshAvailableFlashcardTags();
         RefreshAvailableMindMapTags();
+        RefreshAvailableQuizTags();
         RefreshRecentNotes();
         RefreshCalendarScheduledNotes();
         LoadFlashcards();
         LoadMindMaps();
+        LoadQuizzes();
         AddNoteCommand = new RelayCommand(AddNote);
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
         ClearTagFiltersCommand = new RelayCommand(ClearActiveTagFilters, () => ActiveHasActiveTagFilters);
@@ -412,6 +441,10 @@ public class MainViewModel : ViewModelBase
         ShowMindMapsCommand = new RelayCommand(() =>
         {
             SetActiveDashboard(DashboardMindMaps);
+        });
+        ShowQuizzesCommand = new RelayCommand(() =>
+        {
+            SetActiveDashboard(DashboardQuizzes);
         });
         // 🔧 FIX – inicializuojam visus command, kad ViewModel nelūžtų
         MoveGroupsUpCommand = new RelayCommand(() => { });
@@ -652,7 +685,7 @@ public class MainViewModel : ViewModelBase
         try
         {
             var store = JsonSerializer.Deserialize<MindMapStoreData>(json);
-            if (store?.Maps != null && store.Maps.Count > 0)
+            if (store?.Maps != null)
             {
                 maps = store.Maps;
                 _mindMapGroupMetadata.Clear();
@@ -666,7 +699,15 @@ public class MainViewModel : ViewModelBase
         }
         catch
         {
-            maps = JsonSerializer.Deserialize<List<MindMapDocument>>(json) ?? new();
+            try
+            {
+                maps = JsonSerializer.Deserialize<List<MindMapDocument>>(json) ?? new();
+            }
+            catch
+            {
+                maps = new List<MindMapDocument>();
+                _mindMapGroupMetadata.Clear();
+            }
         }
 
         foreach (var map in maps
@@ -861,6 +902,143 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(MindMapCountText));
     }
 
+    private void LoadQuizzes()
+    {
+        Quizzes.Clear();
+
+        var path = GetQuizzesFilePath();
+        if (!File.Exists(path))
+        {
+            NotifyQuizzesChanged();
+            return;
+        }
+
+        var json = File.ReadAllText(path);
+        var documents = JsonSerializer.Deserialize<List<QuizDocument>>(json) ?? new();
+
+        foreach (var quiz in documents
+                     .Where(quiz => quiz != null)
+                     .OrderByDescending(quiz => quiz.LastModified)
+                     .ThenBy(quiz => quiz.Title, StringComparer.CurrentCultureIgnoreCase))
+        {
+            NormalizeQuizDocument(quiz);
+            Quizzes.Add(new QuizViewModel(quiz));
+        }
+
+        NotifyQuizzesChanged();
+    }
+
+    public QuizViewModel AddOrUpdateQuiz(QuizDocument document)
+    {
+        NormalizeQuizDocument(document);
+
+        var existing = Quizzes.FirstOrDefault(quiz => quiz.Document.Id == document.Id);
+        if (existing is null)
+        {
+            existing = new QuizViewModel(document);
+            Quizzes.Add(existing);
+        }
+        else
+        {
+            existing.Document.Title = document.Title;
+            existing.Document.Tags = document.Tags;
+            existing.Document.Questions = document.Questions;
+            existing.Document.CreatedAt = document.CreatedAt;
+            existing.Document.LastModified = document.LastModified;
+            existing.Document.AiModelDisplayName = document.AiModelDisplayName;
+            existing.Document.SourceNoteId = document.SourceNoteId;
+            existing.NotifyChanged();
+        }
+
+        ReorderQuizzes();
+        RefreshAvailableQuizTags();
+        ApplyQuizFilters();
+        SaveQuizzes();
+        NotifyQuizzesChanged();
+        return existing;
+    }
+
+    public void DeleteQuiz(QuizViewModel quiz)
+    {
+        if (quiz is null)
+            return;
+
+        Quizzes.Remove(quiz);
+        SaveQuizzes();
+        RefreshAvailableQuizTags();
+        ApplyQuizFilters();
+        NotifyQuizzesChanged();
+    }
+
+    public void SaveQuizzes()
+    {
+        var path = GetQuizzesFilePath();
+        var documents = Quizzes
+            .Select(quiz => quiz.Document)
+            .OrderByDescending(quiz => quiz.LastModified)
+            .ThenBy(quiz => quiz.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        var json = JsonSerializer.Serialize(documents, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(path, json);
+    }
+
+    private void ReorderQuizzes()
+    {
+        var ordered = Quizzes
+            .OrderByDescending(quiz => quiz.Document.LastModified)
+            .ThenBy(quiz => quiz.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        Quizzes.Clear();
+        foreach (var quiz in ordered)
+            Quizzes.Add(quiz);
+    }
+
+    private void NotifyQuizzesChanged()
+    {
+        OnPropertyChanged(nameof(HasQuizzes));
+        OnPropertyChanged(nameof(QuizCount));
+        OnPropertyChanged(nameof(QuizCountText));
+    }
+
+    private static void NormalizeQuizDocument(QuizDocument document)
+    {
+        document.Id = document.Id == Guid.Empty ? Guid.NewGuid() : document.Id;
+        document.Title = string.IsNullOrWhiteSpace(document.Title)
+            ? LocalizationService.GetString("QuizUntitled")
+            : document.Title.Trim();
+        document.Tags = document.Tags?
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Select(tag => tag.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? new List<string>();
+        document.Questions = document.Questions?
+            .Where(question => question != null)
+            .Select(NormalizeQuizQuestion)
+            .Where(question => !string.IsNullOrWhiteSpace(question.Question) && question.Options.Count > 0)
+            .ToList() ?? new List<QuizQuestion>();
+        document.CreatedAt = document.CreatedAt == default ? DateTime.UtcNow : document.CreatedAt;
+        document.LastModified = document.LastModified == default ? DateTime.Now : document.LastModified;
+        document.AiModelDisplayName = document.AiModelDisplayName?.Trim() ?? string.Empty;
+    }
+
+    private static QuizQuestion NormalizeQuizQuestion(QuizQuestion question)
+    {
+        question.Question = question.Question?.Trim() ?? string.Empty;
+        question.Explanation = question.Explanation?.Trim() ?? string.Empty;
+        question.Options = question.Options?
+            .Where(option => option != null && !string.IsNullOrWhiteSpace(option.Text))
+            .Select(option => new QuizOption
+            {
+                Text = option.Text.Trim(),
+                IsCorrect = option.IsCorrect
+            })
+            .ToList() ?? new List<QuizOption>();
+        question.SetIndex = Math.Max(1, question.SetIndex);
+        return question;
+    }
+
     private static void NormalizeMindMapDocument(MindMapDocument document)
     {
         document.Id = document.Id == Guid.Empty ? Guid.NewGuid() : document.Id;
@@ -898,29 +1076,33 @@ public class MainViewModel : ViewModelBase
     public ObservableCollection<TagFilterItemViewModel> TagFilters { get; }
     public ObservableCollection<TagFilterItemViewModel> FlashcardTagFilters { get; }
     public ObservableCollection<TagFilterItemViewModel> MindMapTagFilters { get; }
+    public ObservableCollection<TagFilterItemViewModel> QuizTagFilters { get; }
     public ObservableCollection<NoteSortOptionItemViewModel> SortOptions { get; }
     public ObservableCollection<NoteSortOptionItemViewModel> FlashcardSortOptions { get; }
     public ObservableCollection<NoteSortOptionItemViewModel> MindMapSortOptions { get; }
+    public ObservableCollection<NoteSortOptionItemViewModel> QuizSortOptions { get; }
     public IEnumerable<NoteSortOptionItemViewModel> ActiveSortOptions => IsMindMapsView
         ? MindMapSortOptions
-        : IsFlashcardsView ? FlashcardSortOptions : SortOptions;
+        : IsQuizzesView ? QuizSortOptions : IsFlashcardsView ? FlashcardSortOptions : SortOptions;
     public IEnumerable<TagFilterItemViewModel> ActiveTagFilters => IsMindMapsView
         ? MindMapTagFilters
-        : IsFlashcardsView ? FlashcardTagFilters : TagFilters;
+        : IsQuizzesView ? QuizTagFilters : IsFlashcardsView ? FlashcardTagFilters : TagFilters;
     public ObservableCollection<CalendarScheduledItemViewModel> CalendarScheduledNotes { get; }
      public bool HasGroups => NoteGroups.Count > 0;
     public bool HasTagFilters => TagFilters.Count > 0;
     public bool HasFlashcardTagFilters => FlashcardTagFilters.Count > 0;
     public bool HasMindMapTagFilters => MindMapTagFilters.Count > 0;
+    public bool HasQuizTagFilters => QuizTagFilters.Count > 0;
     public bool ActiveHasTagFilters => IsMindMapsView
         ? HasMindMapTagFilters
-        : IsFlashcardsView ? HasFlashcardTagFilters : HasTagFilters;
+        : IsQuizzesView ? HasQuizTagFilters : IsFlashcardsView ? HasFlashcardTagFilters : HasTagFilters;
     public bool HasActiveTagFilters => _selectedTags.Count > 0;
     public bool HasActiveFlashcardTagFilters => _selectedFlashcardTags.Count > 0;
     public bool HasActiveMindMapTagFilters => _selectedMindMapTags.Count > 0;
+    public bool HasActiveQuizTagFilters => _selectedQuizTags.Count > 0;
     public bool ActiveHasActiveTagFilters => IsMindMapsView
         ? HasActiveMindMapTagFilters
-        : IsFlashcardsView ? HasActiveFlashcardTagFilters : HasActiveTagFilters;
+        : IsQuizzesView ? HasActiveQuizTagFilters : IsFlashcardsView ? HasActiveFlashcardTagFilters : HasActiveTagFilters;
     public bool IsMassSelectMode
     {
         get => _isMassSelectMode;
@@ -950,6 +1132,13 @@ public class MainViewModel : ViewModelBase
                     : LocalizationService.GetString("FilterTags");
             }
 
+            if (IsQuizzesView)
+            {
+                return HasActiveQuizTagFilters
+                    ? $"{LocalizationService.GetString("FilterTags")} ({_selectedQuizTags.Count})"
+                    : LocalizationService.GetString("FilterTags");
+            }
+
             if (IsFlashcardsView)
             {
                 return HasActiveFlashcardTagFilters
@@ -965,6 +1154,8 @@ public class MainViewModel : ViewModelBase
         GetSortOptionDisplayName(_selectedSortOptionKey));
     public string ActiveSortButtonText => IsMindMapsView
         ? string.Format(LocalizationService.GetString("SortButtonFormat"), GetMindMapSortOptionDisplayName(_selectedMindMapSortOptionKey))
+        : IsQuizzesView
+            ? string.Format(LocalizationService.GetString("SortButtonFormat"), GetQuizSortOptionDisplayName(_selectedQuizSortOptionKey))
         : IsFlashcardsView
             ? string.Format(LocalizationService.GetString("SortButtonFormat"), GetFlashcardSortOptionDisplayName(_selectedFlashcardSortOptionKey))
             : SortButtonText;
@@ -1010,6 +1201,8 @@ public class MainViewModel : ViewModelBase
     public ICollectionView FlashcardSetsView => _flashcardSetsView;
     private readonly ICollectionView _mindMapsView;
     public ICollectionView MindMapsView => _mindMapsView;
+    private readonly ICollectionView _quizzesView;
+    public ICollectionView QuizzesView => _quizzesView;
 
     private bool _isRecentSectionExpanded = true;
     public bool IsRecentSectionExpanded
@@ -1106,6 +1299,7 @@ public class MainViewModel : ViewModelBase
     private string _searchQuery = string.Empty;
     private string _flashcardSearchQuery = string.Empty;
     private string _mindMapSearchQuery = string.Empty;
+    private string _quizSearchQuery = string.Empty;
     public string SearchQuery
     {
         get => _searchQuery;
@@ -1151,15 +1345,33 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    public string QuizSearchQuery
+    {
+        get => _quizSearchQuery;
+        set
+        {
+            if (_quizSearchQuery == (value ?? string.Empty))
+                return;
+
+            _quizSearchQuery = value ?? string.Empty;
+            OnPropertyChanged(nameof(QuizSearchQuery));
+            OnPropertyChanged(nameof(ActiveSearchQuery));
+            ApplyQuizFilters();
+        }
+    }
+
     public string ActiveSearchQuery
     {
         get => IsMindMapsView
             ? MindMapSearchQuery
+            : IsQuizzesView ? QuizSearchQuery
             : IsFlashcardsView ? FlashcardSearchQuery : SearchQuery;
         set
         {
             if (IsMindMapsView)
                 MindMapSearchQuery = value;
+            else if (IsQuizzesView)
+                QuizSearchQuery = value;
             else if (IsFlashcardsView)
                 FlashcardSearchQuery = value;
             else
@@ -1188,6 +1400,7 @@ public class MainViewModel : ViewModelBase
     public ICommand DuplicateSelectedNotesCommand { get; }
     public ICommand AddFlashcardCommand { get; }
     public ICommand ShowFlashcardsCommand { get; }
+    public ICommand ShowQuizzesCommand { get; }
     public ICommand OpenFlashcardCommand { get; }
     public ICommand FlipFlashcardCommand { get; }
     public ICommand CloseFlashcardCommand { get; }
@@ -1616,6 +1829,22 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    public string SelectedQuizSortOptionKey
+    {
+        get => _selectedQuizSortOptionKey;
+        set
+        {
+            var normalized = NormalizeQuizSortOptionKey(value);
+            if (!SetProperty(ref _selectedQuizSortOptionKey, normalized))
+                return;
+
+            UpdateQuizSortOptionSelection();
+            ApplySortToQuizzesView();
+            OnPropertyChanged(nameof(ActiveSortButtonText));
+            SaveAppSettings();
+        }
+    }
+
     public ObservableCollection<FlashcardSetViewModel> FlashcardSets { get; } = new();
     public bool HasFlashcardSets => FlashcardSets.Count > 0;
     public int FlashcardSetCount => FlashcardSets.Count;
@@ -1624,6 +1853,10 @@ public class MainViewModel : ViewModelBase
     public bool HasMindMaps => MindMaps.Count > 0;
     public int MindMapCount => MindMaps.Count;
     public string MindMapCountText => string.Format(LocalizationService.GetString("MindMapCountFormat"), MindMapCount);
+    public ObservableCollection<QuizViewModel> Quizzes { get; } = new();
+    public bool HasQuizzes => Quizzes.Count > 0;
+    public int QuizCount => Quizzes.Count;
+    public string QuizCountText => string.Format(LocalizationService.GetString("QuizCountFormat"), QuizCount);
     public ObservableCollection<FlashcardItem> Flashcards { get; set; } = new();
 
     
@@ -1765,6 +1998,8 @@ public class MainViewModel : ViewModelBase
     {
         if (IsMindMapsView)
             ClearMindMapTagFilters();
+        else if (IsQuizzesView)
+            ClearQuizTagFilters();
         else if (IsFlashcardsView)
             ClearFlashcardTagFilters();
         else
@@ -1821,6 +2056,23 @@ public class MainViewModel : ViewModelBase
         ApplyMindMapFilters();
     }
 
+    public void SetQuizTagFilterSelected(string tag, bool isSelected)
+    {
+        if (string.IsNullOrWhiteSpace(tag))
+            return;
+
+        if (isSelected)
+            _selectedQuizTags.Add(tag);
+        else
+            _selectedQuizTags.Remove(tag);
+
+        OnPropertyChanged(nameof(HasActiveQuizTagFilters));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+        ApplyQuizFilters();
+    }
+
     private void NotifyActiveDashboardChromeChanged()
     {
         OnPropertyChanged(nameof(ActiveSearchQuery));
@@ -1863,6 +2115,22 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ActiveTagFilterButtonText));
         CommandManager.InvalidateRequerySuggested();
         ApplyMindMapFilters();
+    }
+
+    private void ClearQuizTagFilters()
+    {
+        if (_selectedQuizTags.Count == 0)
+            return;
+
+        _selectedQuizTags.Clear();
+        foreach (var tag in QuizTagFilters)
+            tag.IsSelected = false;
+
+        OnPropertyChanged(nameof(HasActiveQuizTagFilters));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+        ApplyQuizFilters();
     }
 
     private void ApplyFilters()
@@ -1927,6 +2195,33 @@ public class MainViewModel : ViewModelBase
         CommandManager.InvalidateRequerySuggested();
     }
 
+    private void RefreshAvailableQuizTags()
+    {
+        var tags = Quizzes
+            .SelectMany(quiz => quiz.Document.Tags ?? new List<string>())
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Select(tag => tag.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(tag => tag, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        _selectedQuizTags.RemoveWhere(selected => !tags.Any(tag => string.Equals(tag, selected, StringComparison.OrdinalIgnoreCase)));
+
+        QuizTagFilters.Clear();
+        foreach (var tag in tags)
+        {
+            var isSelected = _selectedQuizTags.Contains(tag);
+            QuizTagFilters.Add(new TagFilterItemViewModel(tag, isSelected, SetQuizTagFilterSelected));
+        }
+
+        OnPropertyChanged(nameof(HasQuizTagFilters));
+        OnPropertyChanged(nameof(ActiveHasTagFilters));
+        OnPropertyChanged(nameof(HasActiveQuizTagFilters));
+        OnPropertyChanged(nameof(ActiveHasActiveTagFilters));
+        OnPropertyChanged(nameof(ActiveTagFilterButtonText));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
     private void ApplyFlashcardFilters()
     {
         _flashcardSetsView.Refresh();
@@ -1937,6 +2232,12 @@ public class MainViewModel : ViewModelBase
     {
         _mindMapsView.Refresh();
         NotifyMindMapsChanged();
+    }
+
+    private void ApplyQuizFilters()
+    {
+        _quizzesView.Refresh();
+        NotifyQuizzesChanged();
     }
 
     private bool FilterFlashcardSet(object obj)
@@ -1988,6 +2289,30 @@ public class MainViewModel : ViewModelBase
         return map.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
                || map.TagsDisplay.Contains(query, StringComparison.OrdinalIgnoreCase)
                || MindMapContainsText(map.Document.Root, query);
+    }
+
+    private bool FilterQuiz(object obj)
+    {
+        if (obj is not QuizViewModel quiz)
+            return false;
+
+        if (_selectedQuizTags.Count > 0)
+        {
+            var tags = quiz.Document.Tags ?? new List<string>();
+            if (!tags.Any(tag => _selectedQuizTags.Contains(tag)))
+                return false;
+        }
+
+        var query = QuizSearchQuery.Trim();
+        if (string.IsNullOrWhiteSpace(query))
+            return true;
+
+        return quiz.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+               || quiz.TagsDisplay.Contains(query, StringComparison.OrdinalIgnoreCase)
+               || quiz.Document.Questions.Any(question =>
+                   (question.Question ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)
+                   || (question.Explanation ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)
+                   || question.Options.Any(option => (option.Text ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)));
     }
 
     private static bool MindMapContainsText(MindMapNode? node, string query)
@@ -2259,6 +2584,8 @@ public class MainViewModel : ViewModelBase
 
         if (IsMindMapsView)
             SelectedMindMapSortOptionKey = key;
+        else if (IsQuizzesView)
+            SelectedQuizSortOptionKey = key;
         else if (IsFlashcardsView)
             SelectedFlashcardSortOptionKey = key;
         else
@@ -2311,6 +2638,22 @@ public class MainViewModel : ViewModelBase
         MindMapSortOptions.Add(new NoteSortOptionItemViewModel(SortMindMapNodesAsc, LocalizationService.GetString("SortByMindMapNodesAsc"), selectedKey == SortMindMapNodesAsc, SetSortOptionSelected));
     }
 
+    private void RefreshQuizSortOptions()
+    {
+        var selectedKey = NormalizeQuizSortOptionKey(_selectedQuizSortOptionKey);
+        _selectedQuizSortOptionKey = selectedKey;
+
+        QuizSortOptions.Clear();
+        QuizSortOptions.Add(new NoteSortOptionItemViewModel(SortLastModifiedDesc, LocalizationService.GetString("SortByLastModifiedDesc"), selectedKey == SortLastModifiedDesc, SetSortOptionSelected));
+        QuizSortOptions.Add(new NoteSortOptionItemViewModel(SortLastModifiedAsc, LocalizationService.GetString("SortByLastModifiedAsc"), selectedKey == SortLastModifiedAsc, SetSortOptionSelected));
+        QuizSortOptions.Add(new NoteSortOptionItemViewModel(SortCreatedAtDesc, LocalizationService.GetString("SortByCreatedAtDesc"), selectedKey == SortCreatedAtDesc, SetSortOptionSelected));
+        QuizSortOptions.Add(new NoteSortOptionItemViewModel(SortCreatedAtAsc, LocalizationService.GetString("SortByCreatedAtAsc"), selectedKey == SortCreatedAtAsc, SetSortOptionSelected));
+        QuizSortOptions.Add(new NoteSortOptionItemViewModel(SortTitleAsc, LocalizationService.GetString("SortByTitleAsc"), selectedKey == SortTitleAsc, SetSortOptionSelected));
+        QuizSortOptions.Add(new NoteSortOptionItemViewModel(SortTitleDesc, LocalizationService.GetString("SortByTitleDesc"), selectedKey == SortTitleDesc, SetSortOptionSelected));
+        QuizSortOptions.Add(new NoteSortOptionItemViewModel(SortQuizQuestionsDesc, LocalizationService.GetString("SortByQuizQuestionsDesc"), selectedKey == SortQuizQuestionsDesc, SetSortOptionSelected));
+        QuizSortOptions.Add(new NoteSortOptionItemViewModel(SortQuizQuestionsAsc, LocalizationService.GetString("SortByQuizQuestionsAsc"), selectedKey == SortQuizQuestionsAsc, SetSortOptionSelected));
+    }
+
     private void UpdateSortOptionSelection()
     {
         foreach (var option in SortOptions)
@@ -2327,6 +2670,12 @@ public class MainViewModel : ViewModelBase
     {
         foreach (var option in MindMapSortOptions)
             option.IsSelected = string.Equals(option.Key, _selectedMindMapSortOptionKey, StringComparison.Ordinal);
+    }
+
+    private void UpdateQuizSortOptionSelection()
+    {
+        foreach (var option in QuizSortOptions)
+            option.IsSelected = string.Equals(option.Key, _selectedQuizSortOptionKey, StringComparison.Ordinal);
     }
 
     private void ApplySortToFlashcardSetsView()
@@ -2403,6 +2752,45 @@ public class MainViewModel : ViewModelBase
             default:
                 _mindMapsView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
                 _mindMapsView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Descending));
+                break;
+        }
+    }
+
+    private void ApplySortToQuizzesView()
+    {
+        _quizzesView.SortDescriptions.Clear();
+
+        switch (_selectedQuizSortOptionKey)
+        {
+            case SortLastModifiedAsc:
+                _quizzesView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Ascending));
+                _quizzesView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            case SortCreatedAtDesc:
+                _quizzesView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Descending));
+                _quizzesView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                break;
+            case SortCreatedAtAsc:
+                _quizzesView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Ascending));
+                _quizzesView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                break;
+            case SortTitleAsc:
+                _quizzesView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            case SortTitleDesc:
+                _quizzesView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Descending));
+                break;
+            case SortQuizQuestionsAsc:
+                _quizzesView.SortDescriptions.Add(new SortDescription("QuestionCount", ListSortDirection.Ascending));
+                _quizzesView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            case SortQuizQuestionsDesc:
+                _quizzesView.SortDescriptions.Add(new SortDescription("QuestionCount", ListSortDirection.Descending));
+                _quizzesView.SortDescriptions.Add(new SortDescription("Title", ListSortDirection.Ascending));
+                break;
+            default:
+                _quizzesView.SortDescriptions.Add(new SortDescription("Document.LastModified", ListSortDirection.Descending));
+                _quizzesView.SortDescriptions.Add(new SortDescription("Document.CreatedAt", ListSortDirection.Descending));
                 break;
         }
     }
@@ -2516,12 +2904,24 @@ public class MainViewModel : ViewModelBase
         return NormalizeSortOptionKey(value);
     }
 
+    private static string NormalizeQuizSortOptionKey(string? value)
+    {
+        if (string.Equals(value, SortQuizQuestionsDesc, StringComparison.OrdinalIgnoreCase))
+            return SortQuizQuestionsDesc;
+        if (string.Equals(value, SortQuizQuestionsAsc, StringComparison.OrdinalIgnoreCase))
+            return SortQuizQuestionsAsc;
+
+        return NormalizeSortOptionKey(value);
+    }
+
     private static string NormalizeDashboard(string? dashboard)
     {
         if (string.Equals(dashboard, DashboardFlashcards, StringComparison.OrdinalIgnoreCase))
             return DashboardFlashcards;
         if (string.Equals(dashboard, DashboardMindMaps, StringComparison.OrdinalIgnoreCase))
             return DashboardMindMaps;
+        if (string.Equals(dashboard, DashboardQuizzes, StringComparison.OrdinalIgnoreCase))
+            return DashboardQuizzes;
 
         return DashboardNotes;
     }
@@ -2555,6 +2955,16 @@ public class MainViewModel : ViewModelBase
         {
             SortMindMapNodesDesc => LocalizationService.GetString("SortByMindMapNodesDesc"),
             SortMindMapNodesAsc => LocalizationService.GetString("SortByMindMapNodesAsc"),
+            var normalized => GetSortOptionDisplayName(normalized)
+        };
+    }
+
+    private static string GetQuizSortOptionDisplayName(string sortKey)
+    {
+        return NormalizeQuizSortOptionKey(sortKey) switch
+        {
+            SortQuizQuestionsDesc => LocalizationService.GetString("SortByQuizQuestionsDesc"),
+            SortQuizQuestionsAsc => LocalizationService.GetString("SortByQuizQuestionsAsc"),
             var normalized => GetSortOptionDisplayName(normalized)
         };
     }
@@ -2816,7 +3226,9 @@ public class MainViewModel : ViewModelBase
         _selectedTheme = string.Equals(settings.Theme, "Dark", StringComparison.OrdinalIgnoreCase) ? "Dark" : "Light";
         _activeDashboard = NormalizeDashboard(settings.LastView);
         _selectedSortOptionKey = NormalizeSortOptionKey(settings.NoteSortOptionKey);
+        _selectedFlashcardSortOptionKey = NormalizeFlashcardSortOptionKey(settings.FlashcardSortOptionKey);
         _selectedMindMapSortOptionKey = NormalizeMindMapSortOptionKey(settings.MindMapSortOptionKey);
+        _selectedQuizSortOptionKey = NormalizeQuizSortOptionKey(settings.QuizSortOptionKey);
         _isRecentSectionExpanded = settings.IsRecentSectionExpanded;
         _isGroupsSectionExpanded = settings.IsGroupsSectionExpanded;
         _isUngroupedSectionExpanded = settings.IsUngroupedSectionExpanded;
@@ -2846,7 +3258,9 @@ public class MainViewModel : ViewModelBase
         settings.Language = _selectedLanguage;
         settings.Theme = _selectedTheme;
         settings.NoteSortOptionKey = _selectedSortOptionKey;
+        settings.FlashcardSortOptionKey = _selectedFlashcardSortOptionKey;
         settings.MindMapSortOptionKey = _selectedMindMapSortOptionKey;
+        settings.QuizSortOptionKey = _selectedQuizSortOptionKey;
         settings.EnableScrollbar = _enableScrollbar;
         settings.IsRecentSectionExpanded = _isRecentSectionExpanded;
         settings.IsGroupsSectionExpanded = _isGroupsSectionExpanded;

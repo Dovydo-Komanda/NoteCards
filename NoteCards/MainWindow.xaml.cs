@@ -190,6 +190,7 @@ namespace NoteCards
                 }
                 else if (e.PropertyName == nameof(MainViewModel.IsFlashcardsView)
                       || e.PropertyName == nameof(MainViewModel.IsMindMapsView)
+                      || e.PropertyName == nameof(MainViewModel.IsQuizzesView)
                       || e.PropertyName == nameof(MainViewModel.IsNotesView))
                 {
                     CloseNotesDashboardChrome();
@@ -754,8 +755,17 @@ namespace NoteCards
                 return;
             }
 
-            if (vm.IsMindMapsView)
+            if (vm.IsQuizzesView)
+            {
+                CreateQuizButton_Click(sender, e);
                 return;
+            }
+
+            if (vm.IsMindMapsView)
+            {
+                CreateMindMapButton_Click(sender, e);
+                return;
+            }
 
             vm.AddNoteCommand.Execute(null);
         }
@@ -950,6 +960,13 @@ namespace NoteCards
             if (DataContext is MainViewModel vm)
                 OpenFlashcardSetEditor(vm, null);
         }
+
+        private void CreateQuizButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+                OpenQuizEditor(vm, null);
+        }
+
         private void CreateMindMapButton_Click(object sender, RoutedEventArgs e)
         {
             if (DataContext is not MainViewModel vm)
@@ -1000,6 +1017,75 @@ namespace NoteCards
 
             if (editor.ShowDialog() == true)
                 vm.AddOrUpdateFlashcardSet(editor.ToDocument(document));
+        }
+
+        private void OpenQuizButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            if ((sender as FrameworkElement)?.Tag is QuizViewModel quiz)
+                OpenQuizEditor(vm, quiz);
+        }
+
+        private void OpenQuizEditor(MainViewModel vm, QuizViewModel? quiz)
+        {
+            var document = quiz?.Document ?? new QuizDocument
+            {
+                Title = LocalizationService.GetString("QuizUntitled"),
+                Questions = new List<QuizQuestion>
+                {
+                    new()
+                    {
+                        Type = QuizQuestionType.SingleChoice,
+                        Question = LocalizationService.GetString("NewQuizQuestion"),
+                        Options = new List<QuizOption>
+                        {
+                            new() { Text = LocalizationService.GetString("NewQuizCorrectAnswer"), IsCorrect = true },
+                            new() { Text = LocalizationService.GetString("NewQuizWrongAnswer"), IsCorrect = false },
+                            new() { Text = LocalizationService.GetString("NewQuizWrongAnswer"), IsCorrect = false }
+                        }
+                    }
+                }
+            };
+
+            var editor = new QuizPreviewWindow(document, document.AiModelDisplayName, document.Title)
+            {
+                Owner = this
+            };
+
+            if (editor.ShowDialog() == true)
+                vm.AddOrUpdateQuiz(editor.ToDocument(quiz?.Document));
+        }
+
+        private QuizViewModel? GetQuizFromMenuSender(object sender)
+        {
+            if (sender is not MenuItem menuItem)
+                return null;
+
+            var contextMenu = menuItem.Parent as ContextMenu;
+            var target = contextMenu?.PlacementTarget as FrameworkElement;
+            return target?.DataContext as QuizViewModel;
+        }
+
+        private void DeleteQuizMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var quiz = GetQuizFromMenuSender(sender);
+            if (quiz is null)
+                return;
+
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            var dialog = new DeleteConfirmationDialog(
+                LocalizationService.GetString("DeleteQuiz"),
+                string.Format(LocalizationService.GetString("DeleteQuizConfirmationFormat"), quiz.Title))
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() == true)
+                vm.DeleteQuiz(quiz);
         }
 
         private FlashcardSetViewModel? GetFlashcardSetFromMenuSender(object sender)
