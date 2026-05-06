@@ -337,9 +337,8 @@
 		<Style x:Key="SidebarQuizzesDashboardButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarActionButtonStyle}">
 			<Style.Triggers>
 				<DataTrigger Binding="{Binding IsQuizzesView}" Value="True">
-                    <Setter Property="Background" Value="White"/>
+                    <Setter Property="Background" Value="{DynamicResource SelectionBackground}"/>
 					<Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
-                    <Setter Property="Foreground" Value="#000000"/>
 					<Setter Property="FontWeight" Value="SemiBold"/>
 				</DataTrigger>
 			</Style.Triggers>
@@ -759,21 +758,24 @@
 								Margin="0,5"
 								ToolTip="{Binding [QuizzesDashboard], Source={StaticResource Loc}}">
 							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Border Width="16"
-                                        Height="16"
-                                        Background="Transparent"
-                                        BorderBrush="#000000"
-                                        BorderThickness="0.8"
-                                        CornerRadius="3"
-                                        VerticalAlignment="Center">
-                                    <TextBlock Text="✓"
-                                                FontSize="10"
-                                                FontWeight="SemiBold"
-                                                Foreground="#000000"
-                                                TextAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                HorizontalAlignment="Center"/>
-                                </Border>
+                                <Grid Width="20" Height="20" VerticalAlignment="Center">
+                                    <Border Width="16"
+                                            Height="16"
+                                            Background="Transparent"
+                                            BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                            BorderThickness="0.8"
+                                            CornerRadius="3"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center">
+                                        <TextBlock Text="✓"
+                                                    FontSize="10"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                    TextAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    HorizontalAlignment="Center"/>
+                                    </Border>
+                                </Grid>
 								<TextBlock Style="{StaticResource SidebarLabelTextStyle}" Text="{Binding [QuizzesDashboard], Source={StaticResource Loc}}"/>
 							</StackPanel>
 						</Button>
