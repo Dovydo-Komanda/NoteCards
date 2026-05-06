@@ -21,7 +21,7 @@ public partial class QuizPreviewWindow : Window
     private string _modelDisplayName = string.Empty;
     private bool _isSubmitted;
 
-    public QuizPreviewWindow(QuizDocument document, string? modelDisplayName = null)
+    public QuizPreviewWindow(QuizDocument document, string? modelDisplayName = null, string? title = null)
     {
         _sourceDocument = document;
         _questions = new ObservableCollection<QuizPreviewQuestion>(
@@ -30,9 +30,12 @@ public partial class QuizPreviewWindow : Window
 
         InitializeComponent();
 
-        TitleTextBox.Text = string.IsNullOrWhiteSpace(document.Title)
+        var displayTitle = string.IsNullOrWhiteSpace(title)
+            ? document.Title
+            : title;
+        TitleTextBox.Text = string.IsNullOrWhiteSpace(displayTitle)
             ? LocalizationService.GetString("QuizUntitled")
-            : document.Title.Trim();
+            : displayTitle.Trim();
         QuestionsItemsControl.ItemsSource = _questions;
         ConfigureAiGeneratedIndicator(modelDisplayName ?? document.AiModelDisplayName);
         UpdateSummary();

@@ -23,7 +23,8 @@ public sealed class QuizConversionService
         AiInputGuard.EnsureSuitableStudyText(noteText);
 
         var normalizedNoteTitle = NormalizeTitle(noteTitle);
-        var chunks = AiTextChunker.Split(noteText, AiChunkingPurpose.Quiz)
+        var chunkingProfile = BundledModelHostService.Instance.GetSelectedChunkingProfile();
+        var chunks = AiTextChunker.Split(noteText, AiChunkingPurpose.Quiz, chunkingProfile)
             .Where(AiInputGuard.IsSuitableStudyText)
             .ToList();
 
@@ -32,7 +33,6 @@ public sealed class QuizConversionService
 
         var questions = new List<QuizQuestion>();
         var outputs = new List<string>();
-        var parsedTitle = string.Empty;
         var sawRefusal = false;
 
         for (var i = 0; i < chunks.Count; i++)
@@ -57,9 +57,6 @@ public sealed class QuizConversionService
             }
 
             var parsed = ParseQuiz(output);
-            if (!string.IsNullOrWhiteSpace(parsed.Title) && string.IsNullOrWhiteSpace(parsedTitle))
-                parsedTitle = parsed.Title;
-
             AddParsedQuestions(questions, parsed.Questions, i + 1);
         }
 
@@ -68,7 +65,7 @@ public sealed class QuizConversionService
         {
             return new QuizDocument
             {
-                Title = ResolveQuizTitle(normalizedNoteTitle, parsedTitle, noteText),
+                Title = ResolveQuizTitle(normalizedNoteTitle, noteText),
                 Questions = parsedQuestions
             };
         }
@@ -92,9 +89,6 @@ public sealed class QuizConversionService
             throw new AiInputRejectedException(LocalizationService.GetString("AiInputRejectedInsufficientContent"));
 
         var repairedParsed = ParseQuiz(repaired);
-        if (!string.IsNullOrWhiteSpace(repairedParsed.Title) && string.IsNullOrWhiteSpace(parsedTitle))
-            parsedTitle = repairedParsed.Title;
-
         var repairedQuestions = new List<QuizQuestion>();
         AddParsedQuestions(repairedQuestions, repairedParsed.Questions, 1);
         var repairedOnlyQuestions = PrepareDisplayQuestions(DeduplicateQuestions(repairedQuestions).Take(MaxQuestionCount).ToList());
@@ -102,7 +96,7 @@ public sealed class QuizConversionService
         {
             return new QuizDocument
             {
-                Title = ResolveQuizTitle(normalizedNoteTitle, parsedTitle, noteText),
+                Title = ResolveQuizTitle(normalizedNoteTitle, noteText),
                 Questions = repairedOnlyQuestions
             };
         }
@@ -215,17 +209,18 @@ Never think out loud. Never explain. Never output reasoning, analysis, <think> t
 Cover the important facts in this section from beginning to end.
 Create exactly {targetQuestionCount} high-quality quiz questions.
 Use SOURCE NOTE as the authority for correct answers and explanations.
-Incorrect options and false true-false statements may invent plausible wrong facts related to SOURCE NOTE.
+Questions, correct lines, true statements in truefalse questions, and explanations must use only SOURCE NOTE facts.
+Only wrong lines and false true-false statements may invent plausible false distractors related to SOURCE NOTE.
 Use SOURCE NOTE's language and script for all generated quiz content; use English only for the format keys.
 Keep format keys exactly as shown: title, q, type, correct, wrong, answer, explanation.
-Use NOTE TITLE only as optional title context.
+Use NOTE TITLE as the quiz title. Do not create questions from NOTE TITLE alone.
 If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
 {AiInputGuard.RefusalOutput}
 Do not invent context to make unsuitable text look useful.
 
 Output ONLY in this exact format, nothing else:
 
-title: quiz title
+title: NOTE TITLE
 
 q: question text
 type: single
@@ -289,16 +284,18 @@ Never think out loud. Never explain. Never output reasoning, analysis, <think> t
 
 Create exactly {targetQuestionCount} valid quiz questions for the whole note.
 Use SOURCE NOTE as the authority for correct answers and explanations.
-Incorrect options and false true-false statements may invent plausible wrong facts related to SOURCE NOTE.
+Questions, correct lines, true statements in truefalse questions, and explanations must use only SOURCE NOTE facts.
+Only wrong lines and false true-false statements may invent plausible false distractors related to SOURCE NOTE.
 Use SOURCE NOTE's language and script for all generated quiz content; use English only for the format keys.
 Keep format keys exactly as shown: title, q, type, correct, wrong, answer, explanation.
+Use NOTE TITLE as the quiz title. Do not create questions from NOTE TITLE alone.
 If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
 {AiInputGuard.RefusalOutput}
 Do not invent context to make unsuitable text look useful.
 
 Output ONLY in this exact format, nothing else:
 
-title: quiz title
+title: NOTE TITLE
 
 q: question text
 type: single
@@ -371,7 +368,6 @@ SOURCE NOTE:
             .Where(line => !line.StartsWith("```", StringComparison.Ordinal))
             .ToList();
 
-        var title = ExtractTitle(lines);
         var questions = new List<QuizQuestion>();
         SimpleQuizParseState? current = null;
 
@@ -423,7 +419,7 @@ SOURCE NOTE:
         }
 
         AddSimpleQuestion(questions, current);
-        return new ParsedQuiz(title, questions);
+        return new ParsedQuiz(string.Empty, questions);
     }
 
     private static void AddSimpleQuestion(ICollection<QuizQuestion> questions, SimpleQuizParseState? state)
@@ -629,17 +625,6 @@ SOURCE NOTE:
         }
     }
 
-    private static string ExtractTitle(IEnumerable<string> lines)
-    {
-        foreach (var line in lines)
-        {
-            if (TryParseTitleLine(line, out var title))
-                return title;
-        }
-
-        return string.Empty;
-    }
-
     private static bool TryParseTitleLine(string line, out string title)
     {
         var match = Regex.Match(line, @"^(?:TITLE|QUIZ TITLE|TEST TITLE|PAVADINIMAS)\s*[:：-]\s*(.+)$", RegexOptions.IgnoreCase);
@@ -745,11 +730,8 @@ SOURCE NOTE:
         return Regex.Replace(normalized, @"\s+", " ").Trim();
     }
 
-    private static string ResolveQuizTitle(string noteTitle, string parsedTitle, string noteText)
+    private static string ResolveQuizTitle(string noteTitle, string noteText)
     {
-        if (!string.IsNullOrWhiteSpace(parsedTitle))
-            return NormalizeTitle(parsedTitle);
-
         if (!IsGenericNoteTitle(noteTitle))
             return NormalizeTitle(noteTitle);
 

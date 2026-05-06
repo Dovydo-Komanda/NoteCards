@@ -507,6 +507,7 @@ namespace NoteCards
             try
             {
                 restoreAutoSave = TemporarilyDisableAutoSaveForAi();
+                var documentTitle = ResolveEditorTitleForPrompt();
                 var flashcards = await _flashcardConversionService.ConvertToFlashcardsAsync(
                     plainText,
                     progress,
@@ -528,7 +529,7 @@ namespace NoteCards
                 var preview = new FlashcardsPreviewWindow(
                     flashcards,
                     modelDisplayName,
-                    TitleTextBox.Text,
+                    documentTitle,
                     ParseTags(TagsTextBox.Text))
                 {
                     Owner = GetDialogOwnerWindow()
@@ -634,8 +635,9 @@ namespace NoteCards
             try
             {
                 restoreAutoSave = TemporarilyDisableAutoSaveForAi();
+                var documentTitle = ResolveEditorTitleForPrompt();
                 var mindMap = await _mindMapConversionService.ConvertToMindMapAsync(
-                    TitleTextBox.Text,
+                    documentTitle,
                     plainText,
                     progress,
                     _mindMapConversionCancellationSource.Token);
@@ -656,7 +658,7 @@ namespace NoteCards
                 var preview = new MindMapPreviewWindow(
                     mindMap,
                     modelDisplayName,
-                    TitleTextBox.Text,
+                    documentTitle,
                     ParseTags(TagsTextBox.Text))
                 {
                     Owner = GetDialogOwnerWindow()
@@ -764,8 +766,9 @@ namespace NoteCards
             try
             {
                 restoreAutoSave = TemporarilyDisableAutoSaveForAi();
+                var documentTitle = ResolveEditorTitleForPrompt();
                 var quiz = await _quizConversionService.ConvertToQuizAsync(
-                    TitleTextBox.Text,
+                    documentTitle,
                     plainText,
                     progress,
                     _testConversionCancellationSource.Token);
@@ -787,7 +790,7 @@ namespace NoteCards
                 quiz.SourceNoteId = _currentDocument?.Id;
                 quiz.Tags = ParseTags(TagsTextBox.Text).ToList();
 
-                var preview = new QuizPreviewWindow(quiz, modelDisplayName)
+                var preview = new QuizPreviewWindow(quiz, modelDisplayName, documentTitle)
                 {
                     Owner = GetDialogOwnerWindow()
                 };

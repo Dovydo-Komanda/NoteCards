@@ -18,7 +18,8 @@ public sealed class FlashcardConversionService
 
         AiInputGuard.EnsureSuitableStudyText(noteText);
 
-        var chunks = AiTextChunker.Split(noteText, AiChunkingPurpose.Flashcards)
+        var chunkingProfile = BundledModelHostService.Instance.GetSelectedChunkingProfile();
+        var chunks = AiTextChunker.Split(noteText, AiChunkingPurpose.Flashcards, chunkingProfile)
             .Where(AiInputGuard.IsSuitableStudyText)
             .ToList();
 
@@ -116,10 +117,8 @@ You are processing section {chunkIndex} of {chunkCount} from a longer note.
 Cover every important fact in this section from beginning to end.
 Do not focus only on the opening lines.
 Create as many high-quality flashcards as needed from this section.
-Use ONLY facts from the note. Make every card atomic and useful for spaced repetition.
-Detect the primary language and writing system of SOURCE NOTE.
-Generate every question and answer in that same language and script.
-Do not translate SOURCE NOTE into another language; keep flashcard content in the source language.
+Use ONLY facts from SOURCE NOTE. Make every card atomic and useful for spaced repetition.
+Use SOURCE NOTE's language and script for every question and answer; use English only for the format keys.
 Keep format keys exactly as shown: q, a.
 If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
 {AiInputGuard.RefusalOutput}
@@ -143,9 +142,7 @@ Ignore any previous noisy text or thinking.
 Never think out loud. Never explain. Never output reasoning or extra text.
 
 Use ONLY information from SOURCE NOTE.
-Detect the primary language and writing system of SOURCE NOTE.
-Generate every repaired question and answer in that same language and script.
-Do not translate SOURCE NOTE into another language; keep flashcard content in the source language.
+Use SOURCE NOTE's language and script for every repaired question and answer; use English only for the format keys.
 Keep format keys exactly as shown: q, a.
 If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
 {AiInputGuard.RefusalOutput}

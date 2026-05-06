@@ -10,17 +10,27 @@ internal enum AiChunkingPurpose
     Quiz
 }
 
+internal enum AiChunkingModelProfile
+{
+    Small,
+    Medium,
+    Large
+}
+
 internal static class AiTextChunker
 {
-    public static IReadOnlyList<string> Split(string text, AiChunkingPurpose purpose)
+    public static IReadOnlyList<string> Split(
+        string text,
+        AiChunkingPurpose purpose,
+        AiChunkingModelProfile modelProfile = AiChunkingModelProfile.Large)
     {
         var normalized = NormalizeText(text);
         if (string.IsNullOrWhiteSpace(normalized))
             return Array.Empty<string>();
 
-        var targetCharacters = CalculateTargetCharacters(normalized, purpose);
+        var targetCharacters = CalculateTargetCharacters(normalized, purpose, modelProfile);
         var softLimit = (int)Math.Round(targetCharacters * 1.18);
-        var minimumUsefulChunk = CalculateMinimumUsefulChunk(targetCharacters, purpose);
+        var minimumUsefulChunk = CalculateMinimumUsefulChunk(targetCharacters, purpose, modelProfile);
 
         var segments = SplitIntoNaturalSegments(normalized, targetCharacters);
         if (segments.Count == 0)
@@ -35,11 +45,15 @@ internal static class AiTextChunker
             .ToList();
     }
 
-    private static int CalculateTargetCharacters(string text, AiChunkingPurpose purpose)
+    private static int CalculateTargetCharacters(
+        string text,
+        AiChunkingPurpose purpose,
+        AiChunkingModelProfile modelProfile)
     {
         var textLength = text.Length;
         var paragraphCount = CountParagraphs(text);
         var averageParagraphLength = paragraphCount == 0 ? textLength : textLength / Math.Max(1, paragraphCount);
+        var modelScale = GetModelChunkScale(modelProfile);
 
         var minimum = purpose switch
         {
@@ -47,18 +61,23 @@ internal static class AiTextChunker
             AiChunkingPurpose.Quiz => 900,
             _ => 1400
         };
+        minimum = (int)Math.Round(minimum * modelScale);
+
         var maximum = purpose switch
         {
             AiChunkingPurpose.Flashcards => 2800,
             AiChunkingPurpose.Quiz => 2800,
             _ => 3600
         };
+        maximum = (int)Math.Round(maximum * modelScale);
+
         var singlePassLimit = purpose switch
         {
             AiChunkingPurpose.Flashcards => 1300,
             AiChunkingPurpose.Quiz => 1300,
             _ => 1900
         };
+        singlePassLimit = (int)Math.Round(singlePassLimit * modelScale);
 
         if (textLength <= singlePassLimit)
             return Math.Max(textLength, minimum);
@@ -68,7 +87,7 @@ internal static class AiTextChunker
             AiChunkingPurpose.Flashcards => 17.5,
             AiChunkingPurpose.Quiz => 17.5,
             _ => 20.0
-        };
+        } * modelScale;
         var target = minimum + (int)Math.Round(Math.Sqrt(textLength) * scale);
 
         if (averageParagraphLength < 180 && paragraphCount >= 4)
@@ -79,7 +98,10 @@ internal static class AiTextChunker
         return Math.Clamp(target, minimum, maximum);
     }
 
-    private static int CalculateMinimumUsefulChunk(int targetCharacters, AiChunkingPurpose purpose)
+    private static int CalculateMinimumUsefulChunk(
+        int targetCharacters,
+        AiChunkingPurpose purpose,
+        AiChunkingModelProfile modelProfile)
     {
         var share = purpose switch
         {
@@ -87,7 +109,23 @@ internal static class AiTextChunker
             AiChunkingPurpose.Quiz => 0.42,
             _ => 0.48
         };
-        return Math.Max(450, (int)Math.Round(targetCharacters * share));
+        var floor = modelProfile switch
+        {
+            AiChunkingModelProfile.Small => 280,
+            AiChunkingModelProfile.Medium => 360,
+            _ => 450
+        };
+        return Math.Max(floor, (int)Math.Round(targetCharacters * share));
+    }
+
+    private static double GetModelChunkScale(AiChunkingModelProfile modelProfile)
+    {
+        return modelProfile switch
+        {
+            AiChunkingModelProfile.Small => 0.60,
+            AiChunkingModelProfile.Medium => 0.80,
+            _ => 1.0
+        };
     }
 
     private static List<string> SplitIntoNaturalSegments(string text, int targetCharacters)

@@ -169,7 +169,7 @@ public sealed class BundledModelHostService
                 var temperatureText = temperature.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var contextTokens = CalculateContextTokens(prompt, nPredict);
 
-                // === ANTI-THINKING + STABILITY PARAMETRAI ===
+                // Qwen instruct GGUF models follow format instructions more reliably through their chat template.
                 var commandArgs = new[]
                 {
                     "-m", modelPath,
@@ -178,7 +178,7 @@ public sealed class BundledModelHostService
                     "--temp", temperatureText,
                     "--top-p", "0.95",
                     "--top-k", "40",
-                    "--presence-penalty", "2.0",
+                    "--presence-penalty", "0.0",
                     "--repeat-penalty", "1.08",
                     "-c", contextTokens.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "-t", threadCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -225,6 +225,7 @@ public sealed class BundledModelHostService
                     var lastCharReportAt = DateTime.UtcNow;
                     var lastLoopCheckAt = DateTime.UtcNow;
                     var stoppedAfterOutputLimit = false;
+                    var stoppedAfterRepetitiveOutput = false;
 
                     var outputTask = PumpStreamAsync(process.StandardOutput.BaseStream, outputBuilder, streamLock, chunkLen =>
                     {
@@ -291,9 +292,8 @@ public sealed class BundledModelHostService
 
                             if (LooksLikeRepetitiveGeneration(outputSnapshot))
                             {
+                                stoppedAfterRepetitiveOutput = true;
                                 TryKillProcess(process);
-                                var logPath = WriteInferenceDiagnosticLog(args, outputSnapshot, errorBuilder.ToString(), generatedChars, null);
-                                throw new TimeoutException($"AI generation was stopped because output became repetitive. Diagnostic log: {logPath}");
                             }
                         }
 
@@ -319,6 +319,7 @@ public sealed class BundledModelHostService
                     if (process.ExitCode != 0)
                     {
                         if (!stoppedAfterOutputLimit
+                            && !stoppedAfterRepetitiveOutput
                             && !(process.ExitCode == 130 && normalizedOutput.Contains("q:", StringComparison.OrdinalIgnoreCase)))
                         {
                             var logPath = WriteInferenceDiagnosticLog(args, output, error, generatedChars, process.ExitCode);
@@ -433,6 +434,7 @@ public sealed class BundledModelHostService
             .Replace("\r", "", StringComparison.Ordinal)
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(line => Regex.Replace(line, @"\s+", " ").Trim())
+            .Where(line => !IsRepeatedFormatLine(line))
             .Where(line => line.Length >= 6)
             .TakeLast(24)
             .ToList();
@@ -452,6 +454,14 @@ public sealed class BundledModelHostService
             .ToList();
 
         return HasRepeatedTokenNgrams(tokens);
+    }
+
+    private static bool IsRepeatedFormatLine(string line)
+    {
+        return Regex.IsMatch(
+            line,
+            @"^(?:type\s*:\s*(?:single|multi|truefalse)|answer\s*:\s*(?:true|false|teisinga|klaidinga))$",
+            RegexOptions.IgnoreCase);
     }
 
     private static bool HasRepeatedTokenNgrams(IReadOnlyList<string> tokens)
@@ -683,6 +693,18 @@ public sealed class BundledModelHostService
     public string GetSelectedModelDisplayName()
     {
         return GetSelectedModelInfo().DisplayName;
+    }
+
+    internal AiChunkingModelProfile GetSelectedChunkingProfile()
+    {
+        var selectedKey = GetSelectedModelInfo().Key;
+        if (selectedKey.Contains("0.8B", StringComparison.OrdinalIgnoreCase))
+            return AiChunkingModelProfile.Small;
+
+        if (selectedKey.Contains("2B", StringComparison.OrdinalIgnoreCase))
+            return AiChunkingModelProfile.Medium;
+
+        return AiChunkingModelProfile.Large;
     }
 
     private static async Task EnsureBundledAssetsAsync(

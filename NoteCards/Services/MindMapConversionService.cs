@@ -22,7 +22,8 @@ public sealed class MindMapConversionService
         AiInputGuard.EnsureSuitableStudyText(noteText);
 
         var normalizedTitle = NormalizeNodeText(noteTitle);
-        var chunks = AiTextChunker.Split(noteText, AiChunkingPurpose.MindMap)
+        var chunkingProfile = BundledModelHostService.Instance.GetSelectedChunkingProfile();
+        var chunks = AiTextChunker.Split(noteText, AiChunkingPurpose.MindMap, chunkingProfile)
             .Where(AiInputGuard.IsSuitableStudyText)
             .ToList();
 
@@ -148,11 +149,10 @@ Convert SOURCE NOTE into a hierarchical mind map.
 {sectionInstruction}
 The main topic or note title must be the central idea.
 Subsections and key points must become child branches and sub-branches.
-Use ONLY information from SOURCE NOTE.
-Detect the primary language and writing system of SOURCE NOTE.
-Write every root label, branch, and child node in that same detected language and script.
-Do not translate to English unless SOURCE NOTE is primarily English.
-Keep the structural marker "ROOT:" exactly as shown, but the text after it must follow SOURCE NOTE language.
+Use the provided root title only for the root title.
+Use ONLY SOURCE NOTE facts for branches and child nodes.
+Use SOURCE NOTE's language and script for every generated label; use English only for structural markers.
+Keep the structural marker "ROOT:" exactly as shown.
 If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
 {AiInputGuard.RefusalOutput}
 Do not invent context to make unsuitable text look useful.
@@ -187,12 +187,12 @@ SOURCE NOTE:
         return $"""
 Repair the mind map output.
 Ignore any noisy text, reasoning, comments, or markdown fences.
-Use ONLY SOURCE NOTE and output ONLY this format:
+Use the provided root title only for the root title.
+Use ONLY SOURCE NOTE facts for branches and child nodes.
+Output ONLY this format:
 {sectionInstruction}
-Detect the primary language and writing system of SOURCE NOTE.
-Write every root label, branch, and child node in that same detected language and script.
-Do not translate to English unless SOURCE NOTE is primarily English.
-Keep the structural marker "ROOT:" exactly as shown, but the text after it must follow SOURCE NOTE language.
+Use SOURCE NOTE's language and script for every generated label; use English only for structural markers.
+Keep the structural marker "ROOT:" exactly as shown.
 If SOURCE NOTE is random, incoherent, mostly symbols, image placeholders, only a few words, only one thin sentence, or does not contain enough meaningful study content, output exactly:
 {AiInputGuard.RefusalOutput}
 Do not invent context to make unsuitable text look useful.
