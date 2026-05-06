@@ -1865,6 +1865,12 @@
                                                             Background="Transparent"
                                                             BorderThickness="0"
                                                             Cursor="Hand">
+														<Button.ContextMenu>
+															<ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+																<MenuItem Header="{Binding [DeleteFlashcardSet], Source={StaticResource Loc}}"
+																		  Click="DeleteFlashcardSetMenuItem_Click"/>
+															</ContextMenu>
+														</Button.ContextMenu>
                                                         <Border x:Name="FlashcardSetCardBorder"
                                                                 Background="{DynamicResource CardBackground}"
                                                                 BorderBrush="{DynamicResource BorderColor}"

@@ -992,13 +992,44 @@ namespace NoteCards
                 document?.AiModelDisplayName,
                 document?.Title,
                 document?.Tags,
-                document?.SetNames)
+                document?.SetNames,
+                document?.StudySession)
             {
                 Owner = this
             };
 
             if (editor.ShowDialog() == true)
                 vm.AddOrUpdateFlashcardSet(editor.ToDocument(document));
+        }
+
+        private FlashcardSetViewModel? GetFlashcardSetFromMenuSender(object sender)
+        {
+            if (sender is not MenuItem menuItem)
+                return null;
+
+            var contextMenu = menuItem.Parent as ContextMenu;
+            var target = contextMenu?.PlacementTarget as FrameworkElement;
+            return target?.DataContext as FlashcardSetViewModel;
+        }
+
+        private void DeleteFlashcardSetMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var set = GetFlashcardSetFromMenuSender(sender);
+            if (set is null)
+                return;
+
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            var dialog = new DeleteConfirmationDialog(
+                LocalizationService.GetString("DeleteFlashcardSet"),
+                string.Format(LocalizationService.GetString("DeleteFlashcardSetConfirmationFormat"), set.Title))
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() == true)
+                vm.DeleteFlashcardSet(set);
         }
 
         private void OpenMindMapButton_Click(object sender, RoutedEventArgs e)
