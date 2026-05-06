@@ -337,8 +337,9 @@
 		<Style x:Key="SidebarQuizzesDashboardButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarActionButtonStyle}">
 			<Style.Triggers>
 				<DataTrigger Binding="{Binding IsQuizzesView}" Value="True">
-					<Setter Property="Background" Value="{DynamicResource SelectionBackground}"/>
+                    <Setter Property="Background" Value="White"/>
 					<Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                    <Setter Property="Foreground" Value="#000000"/>
 					<Setter Property="FontWeight" Value="SemiBold"/>
 				</DataTrigger>
 			</Style.Triggers>
@@ -722,61 +723,6 @@
 							  VerticalScrollBarVisibility="Auto"
 							  HorizontalScrollBarVisibility="Disabled">
 					<StackPanel>
-						<Button Style="{StaticResource SidebarActionButtonStyle}"
-								Click="SidebarAddButton_Click">
-							<Button.ToolTip>
-								<TextBlock>
-									<TextBlock.Style>
-										<Style TargetType="TextBlock">
-											<Setter Property="Text" Value="{Binding [AddNote], Source={StaticResource Loc}}"/>
-											<Style.Triggers>
-												<DataTrigger Binding="{Binding IsFlashcardsView}" Value="True">
-													<Setter Property="Text" Value="{Binding [CreateFlashcards], Source={StaticResource Loc}}"/>
-												</DataTrigger>
-												<DataTrigger Binding="{Binding IsQuizzesView}" Value="True">
-													<Setter Property="Text" Value="{Binding [CreateQuiz], Source={StaticResource Loc}}"/>
-												</DataTrigger>
-												<DataTrigger Binding="{Binding IsMindMapsView}" Value="True">
-													<Setter Property="Text" Value="{Binding [CreateMindMap], Source={StaticResource Loc}}"/>
-												</DataTrigger>
-											</Style.Triggers>
-										</Style>
-									</TextBlock.Style>
-								</TextBlock>
-							</Button.ToolTip>
-							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-								<TextBlock Text="➕" FontSize="14" Width="20" TextAlignment="Center" VerticalAlignment="Center"/>
-								<TextBlock>
-									<TextBlock.Style>
-										<Style TargetType="TextBlock" BasedOn="{StaticResource SidebarLabelTextStyle}">
-											<Setter Property="Text" Value="{Binding [AddNote], Source={StaticResource Loc}}"/>
-											<Style.Triggers>
-												<DataTrigger Binding="{Binding IsFlashcardsView}" Value="True">
-													<Setter Property="Text" Value="{Binding [CreateFlashcards], Source={StaticResource Loc}}"/>
-												</DataTrigger>
-												<DataTrigger Binding="{Binding IsQuizzesView}" Value="True">
-													<Setter Property="Text" Value="{Binding [CreateQuiz], Source={StaticResource Loc}}"/>
-												</DataTrigger>
-												<DataTrigger Binding="{Binding IsMindMapsView}" Value="True">
-													<Setter Property="Text" Value="{Binding [CreateMindMap], Source={StaticResource Loc}}"/>
-												</DataTrigger>
-											</Style.Triggers>
-										</Style>
-									</TextBlock.Style>
-								</TextBlock>
-							</StackPanel>
-						</Button>
-
-						<Button Style="{StaticResource SidebarActionButtonStyle}"
-								Click="ImportButton_Click"
-								ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}"
-								Visibility="{Binding IsNotesView, Converter={StaticResource BoolToVis}}">
-							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-								<TextBlock Text="📥" FontSize="14" Width="20" TextAlignment="Center" VerticalAlignment="Center"/>
-								<TextBlock Style="{StaticResource SidebarLabelTextStyle}" Text="{Binding [ImportNotes], Source={StaticResource Loc}}"/>
-							</StackPanel>
-						</Button>
-
 						<Separator Margin="6,10,6,10"/>
 						<Button Style="{StaticResource SidebarNotesDashboardButtonStyle}"
 								Command="{Binding ShowNotesCommand}"
@@ -813,7 +759,21 @@
 								Margin="0,5"
 								ToolTip="{Binding [QuizzesDashboard], Source={StaticResource Loc}}">
 							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-								<TextBlock Text="☑" FontSize="14" Width="20" TextAlignment="Center" VerticalAlignment="Center"/>
+                                <Border Width="16"
+                                        Height="16"
+                                        Background="Transparent"
+                                        BorderBrush="#000000"
+                                        BorderThickness="0.8"
+                                        CornerRadius="3"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="✓"
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                Foreground="#000000"
+                                                TextAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                HorizontalAlignment="Center"/>
+                                </Border>
 								<TextBlock Style="{StaticResource SidebarLabelTextStyle}" Text="{Binding [QuizzesDashboard], Source={StaticResource Loc}}"/>
 							</StackPanel>
 						</Button>
@@ -1699,12 +1659,15 @@
                         </ScrollViewer>
                         <Button x:Name="ImportButton"
                           Style="{StaticResource FloatingSecondaryButtonStyle}"
+                          Width="32"
+                          Height="30"
+                          FontSize="13"
                           IsEnabled="{Binding IsNotMassSelectMode}"
-						   VerticalAlignment="Bottom"
-						   HorizontalAlignment="Right"
-						   Content="📥"
-						   Margin="0,0,37,84"
-						   ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}"
+                           VerticalAlignment="Bottom"
+                           HorizontalAlignment="Right"
+                           Content="📥"
+                           Margin="0,0,37,84"
+                           ToolTip="{Binding [ImportNotes], Source={StaticResource Loc}}"
                         Click="ImportButton_Click"/>
                         <Button Style="{StaticResource FabStyle}"
                           IsEnabled="{Binding IsNotMassSelectMode}"
