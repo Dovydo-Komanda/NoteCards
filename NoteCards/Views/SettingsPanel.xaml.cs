@@ -117,6 +117,20 @@ namespace NoteCards.Views
             _isApplyingSettings = true;
             EnableScrollbarCheckBox.IsChecked = settings.EnableScrollbar;
             EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
+
+            // Load auto-save interval
+            if (AutoSaveIntervalSlider is not null)
+            {
+                AutoSaveIntervalSlider.Value = settings.AutoSaveIntervalSeconds;
+            }
+            if (AutoSaveIntervalText is not null)
+            {
+                var intervalSeconds = settings.AutoSaveIntervalSeconds;
+                AutoSaveIntervalText.Text = intervalSeconds >= 60
+                    ? $"{intervalSeconds / 60}m {intervalSeconds % 60}s"
+                    : $"{intervalSeconds}s";
+            }
+
             UpdateAutoSaveCheckboxAvailability();
             if (FindName("FlashcardFlipSpeedSlider") is Slider flipSpeedSlider)
                 flipSpeedSlider.Value = settings.FlashcardFlipDelayMilliseconds;
@@ -141,6 +155,7 @@ namespace NoteCards.Views
                 }
             }
             _isApplyingSettings = false;
+
         }
 
         private void LoadManagedAiTools(AppSettings settings)
@@ -443,6 +458,36 @@ namespace NoteCards.Views
             var settings = AppSettingsService.Load();
             settings.EnableAutoSave = false;
             AppSettingsService.Save(settings);
+        }
+
+        private void AutoSaveIntervalSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_isApplyingSettings)
+                return;
+
+            if (AutoSaveIntervalSlider is not Slider slider)
+                return;
+
+            var intervalSeconds = (int)slider.Value;
+
+            // Update the display text
+            if (AutoSaveIntervalText is not null)
+            {
+                AutoSaveIntervalText.Text = intervalSeconds >= 60
+                    ? $"{intervalSeconds / 60}m {intervalSeconds % 60}s"
+                    : $"{intervalSeconds}s";
+            }
+
+            // Save to settings
+            var settings = AppSettingsService.Load();
+            settings.AutoSaveIntervalSeconds = intervalSeconds;
+            AppSettingsService.Save(settings);
+
+            // Update all open note editor windows
+            foreach (var window in Application.Current.Windows.OfType<NoteEditorWindow>())
+            {
+                window.SetAutoSaveInterval(intervalSeconds);
+            }
         }
 
         private void FlashcardModelBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

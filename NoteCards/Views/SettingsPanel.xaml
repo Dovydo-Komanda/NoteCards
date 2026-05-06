@@ -563,32 +563,82 @@
                 Background="{DynamicResource BorderColor}" 
                 Margin="0,0,0,12"/>
 
-                        <!-- Auto-Save Setting -->
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                        
+                    </StackPanel>
+                </Border>
 
-                            <TextBlock Grid.Column="0"
-                                       Text="{Binding [AutoSave], Source={StaticResource Loc}}"
-                                       VerticalAlignment="Center"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextColor}"/>
+                    <!-- Auto-Save Setting -->
+                    <Border Grid.Row="4"
+        Margin="0,14,0,0"
+        Background="{DynamicResource SidebarBackground}"
+        BorderBrush="{DynamicResource BorderColor}"
+        BorderThickness="1"
+        CornerRadius="12"
+        Padding="16,12">
+                        <StackPanel>
+                            <!-- Auto-Save Enable/Disable -->
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                            <CheckBox Grid.Column="1"
+                                <TextBlock Grid.Column="0"
+                       Text="{Binding [AutoSave], Source={StaticResource Loc}}"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextColor}"/>
+
+                                <CheckBox Grid.Column="1"
                       x:Name="EnableAutoSaveCheckBox"
                       Content="{Binding [EnableAutoSave], Source={StaticResource Loc}}"
-                      Margin="0,0,0,0"
                       HorizontalAlignment="Right"
                       VerticalAlignment="Center"
                       Checked="EnableAutoSaveCheckBox_Checked"
                       Unchecked="EnableAutoSaveCheckBox_Unchecked"/>
-                        </Grid>
-                    </StackPanel>
-                </Border>
+                            </Grid>
 
-                <!-- Activity Summary Settings -->
+                            <!-- Auto-Save Interval Control -->
+                            <Grid Visibility="{Binding IsChecked, ElementName=EnableAutoSaveCheckBox, Converter={StaticResource BoolToVis}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0"
+                       Text="{Binding [AutoSaveInterval], Source={StaticResource Loc}}"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextColor}"/>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Slider x:Name="AutoSaveIntervalSlider"
+                        Width="150"
+                        Minimum="10"
+                        Maximum="300"
+                        TickFrequency="10"
+                        IsSnapToTickEnabled="True"
+                        VerticalAlignment="Center"
+                        Margin="0,0,10,0"
+                        ValueChanged="AutoSaveIntervalSlider_ValueChanged"/>
+                                    <TextBlock x:Name="AutoSaveIntervalText"
+                           Text="30s"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextColorSecondary}"
+                           MinWidth="40"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Grid.Row="1"
+                   FontSize="11"
+                   Foreground="{DynamicResource TextColorSecondary}"
+                   Margin="0,8,0,0"
+                   TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Activity Summary Settings -->
                 <Border Grid.Row="5"
                         Margin="0,14,0,0"
                         Background="{DynamicResource SidebarBackground}"

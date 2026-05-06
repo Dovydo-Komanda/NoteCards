@@ -39,7 +39,7 @@ namespace NoteCards
         private static int _activeAiGenerationCount;
         private System.Threading.Timer? _autoSaveTimer;
         private bool _isAutoSaveEnabled = true;
-        private const int AutoSaveIntervalMs = 30000; // 30 seconds
+        private int _autoSaveIntervalMs = 30000; // 30 seconds (default)
         private DateTime _lastAutoSaveTime = DateTime.MinValue;
         private string _lastSavedContent = string.Empty;
         private string _lastSavedSnapshot = string.Empty;
@@ -1324,6 +1324,7 @@ namespace NoteCards
             // Load auto-save setting from app settings
             var settings = AppSettingsService.Load();
             _isAutoSaveEnabled = settings.EnableAutoSave;
+            _autoSaveIntervalMs = settings.AutoSaveIntervalSeconds * 1000;
 
             // Start the auto-save timer if enabled
             if (_isAutoSaveEnabled)
@@ -1358,12 +1359,13 @@ namespace NoteCards
         {
             if (_isAutoSaveEnabled)
             {
-                // Repeating timer: dueTime=30s (first fire), period=30s (repeat interval)
+                _autoSaveTimer?.Dispose();
+
                 _autoSaveTimer = new System.Threading.Timer(
                     AutoSaveCallback,
                     null,
-                    AutoSaveIntervalMs,  // dueTime: first fire after 30 seconds
-                    AutoSaveIntervalMs); // period: repeat every 30 seconds
+                    _autoSaveIntervalMs,
+                    _autoSaveIntervalMs);
             }
         }
 
@@ -1372,6 +1374,21 @@ namespace NoteCards
         {
             _autoSaveTimer?.Dispose();
             _autoSaveTimer = null;
+        }
+
+        public void SetAutoSaveInterval(int intervalSeconds)
+        {
+            if (intervalSeconds <= 0)
+                return;
+
+            // Update the interval
+            _autoSaveIntervalMs = intervalSeconds * 1000;
+
+            // Restart timer with new interval if auto-save is enabled
+            if (_isAutoSaveEnabled)
+            {
+                StartAutoSaveTimer();
+            }
         }
 
         private static void BeginAiGeneration()
