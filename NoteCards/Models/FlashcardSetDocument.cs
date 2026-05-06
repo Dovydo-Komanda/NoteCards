@@ -7,6 +7,7 @@ public sealed class FlashcardSetDocument
     public List<string> Tags { get; set; } = new();
     public Dictionary<int, string> SetNames { get; set; } = new();
     public List<FlashcardItem> Cards { get; set; } = new();
+    public FlashcardStudySession StudySession { get; set; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastModified { get; set; } = DateTime.Now;
     public string AiModelDisplayName { get; set; } = string.Empty;

@@ -12,10 +12,9 @@
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
-        ShowInTaskbar="False"
-        Topmost="True">
+        ShowInTaskbar="False">
 
-    <Grid Background="#66000000">
+    <Grid Background="Transparent">
         <Border x:Name="DialogCard"
                 Background="{DynamicResource CardBackground}"
                 BorderBrush="{DynamicResource BorderColor}"
@@ -48,13 +47,13 @@
                     <Border Grid.Column="0"
                             Width="48"
                             Height="48"
-                            Background="#EFF6FF"
+                            Background="#ECFDF5"
                             CornerRadius="12"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Top">
-                        <TextBlock Text="ℹ️"
+                        <TextBlock Text="✓"
                                    FontSize="22"
-                                   Foreground="#2563EB"
+                                   Foreground="#10B981"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"/>
                     </Border>
@@ -82,7 +81,7 @@
                         Style="{StaticResource DialogPrimaryButtonStyle}"
                         Padding="20,10"
                         MinWidth="110"
-                        HorizontalAlignment="Right"
+                        HorizontalAlignment="Center"
                         Click="OkButton_Click"/>
             </Grid>
         </Border>

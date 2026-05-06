@@ -545,6 +545,18 @@ public class MainViewModel : ViewModelBase
         return existing;
     }
 
+    public void DeleteFlashcardSet(FlashcardSetViewModel set)
+    {
+        if (set is null)
+            return;
+
+        FlashcardSets.Remove(set);
+        SaveFlashcardSets();
+        RefreshAvailableFlashcardTags();
+        ApplyFlashcardFilters();
+        NotifyFlashcardSetsChanged();
+    }
+
     public void SaveFlashcardSets()
     {
         var path = GetFlashcardSetsFilePath();
@@ -595,15 +607,31 @@ public class MainViewModel : ViewModelBase
             .Where(card => card != null)
             .Select(card => new FlashcardItem
             {
+                Id = card.Id == Guid.Empty ? Guid.NewGuid() : card.Id,
                 Question = card.Question?.Trim() ?? string.Empty,
                 Answer = card.Answer?.Trim() ?? string.Empty,
                 Category = card.Category?.Trim() ?? string.Empty,
-                SetIndex = Math.Max(1, card.SetIndex)
+                SetIndex = Math.Max(1, card.SetIndex),
+                IsKnown = card.IsKnown && !card.IsUnknown,
+                IsUnknown = card.IsUnknown && !card.IsKnown
             })
             .ToList() ?? new List<FlashcardItem>();
         document.CreatedAt = document.CreatedAt == default ? DateTime.UtcNow : document.CreatedAt;
         document.LastModified = document.LastModified == default ? DateTime.Now : document.LastModified;
         document.AiModelDisplayName = document.AiModelDisplayName?.Trim() ?? string.Empty;
+        document.StudySession ??= new FlashcardStudySession();
+
+        var cardIds = document.Cards.Select(card => card.Id).ToHashSet();
+        document.StudySession.CurrentSetIndex = Math.Max(1, document.StudySession.CurrentSetIndex);
+        if (document.StudySession.CurrentCardId.HasValue && !cardIds.Contains(document.StudySession.CurrentCardId.Value))
+            document.StudySession.CurrentCardId = null;
+        document.StudySession.History = document.StudySession.History
+            .Where(id => cardIds.Contains(id))
+            .ToList();
+        if (document.StudySession.HistoryPosition >= document.StudySession.History.Count)
+            document.StudySession.HistoryPosition = document.StudySession.History.Count - 1;
+        if (document.StudySession.HistoryPosition < -1)
+            document.StudySession.HistoryPosition = -1;
     }
 
     private void LoadMindMaps()

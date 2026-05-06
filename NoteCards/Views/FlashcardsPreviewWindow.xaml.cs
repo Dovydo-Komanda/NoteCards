@@ -32,6 +32,7 @@ public partial class FlashcardsPreviewWindow : Window
     private readonly Random _random = new();
     private bool _isStudyMode;
     private bool _isStudyModeCardAnimating;
+    private bool _studyCompletionDialogShown;
     private int _studyModeIndex;
     private int _studyHistoryPosition = -1;
     private int _currentSetIndex = DefaultSetIndex;
@@ -41,17 +42,26 @@ public partial class FlashcardsPreviewWindow : Window
     private string _lastSavedSnapshot = string.Empty;
     private bool _isInitializing = true;
     private bool _allowCloseWithoutPrompt;
+    private FlashcardStudySession? _pendingStudySession;
 
     public FlashcardsPreviewWindow(
         IEnumerable<FlashcardItem> items,
         string? modelDisplayName = null,
         string? title = null,
         IEnumerable<string>? tags = null,
-        IReadOnlyDictionary<int, string>? setNames = null)
+        IReadOnlyDictionary<int, string>? setNames = null,
+        FlashcardStudySession? studySession = null)
     {
         InitializeComponent();
         _allItems = items
-            .Select(i => new FlashcardPreviewItem(i.Question, i.Answer, Math.Max(DefaultSetIndex, i.SetIndex), i.Category))
+            .Select(i => new FlashcardPreviewItem(
+                i.Id,
+                i.Question,
+                i.Answer,
+                Math.Max(DefaultSetIndex, i.SetIndex),
+                i.Category,
+                i.IsKnown,
+                i.IsUnknown))
             .ToList();
         _items = new ObservableCollection<FlashcardPreviewItem>();
         _setOptions = new ObservableCollection<FlashcardSetOption>();
@@ -68,9 +78,17 @@ public partial class FlashcardsPreviewWindow : Window
             : string.Join(", ", tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
         ConfigureAiGeneratedIndicator(modelDisplayName);
 
+        _pendingStudySession = studySession;
         UpdateShuffleButtonState();
         InitializeStatusFilterOptions();
         InitializeSetOptionsFromItems(setNames);
+        if (studySession is not null)
+        {
+            var targetSetIndex = Math.Max(DefaultSetIndex, studySession.CurrentSetIndex);
+            var targetSet = _setOptions.FirstOrDefault(option => option.SetIndex == targetSetIndex);
+            if (targetSet is not null)
+                SetSelectorComboBox.SelectedItem = targetSet;
+        }
         ApplyStudyModeState();
         _isInitializing = false;
         MarkCurrentStateSaved();
@@ -96,6 +114,7 @@ public partial class FlashcardsPreviewWindow : Window
                 .Where(option => !string.IsNullOrWhiteSpace(option.DisplayName))
                 .ToDictionary(option => option.SetIndex, option => option.DisplayName.Trim()),
             Cards = GetFlashcardItems().ToList(),
+            StudySession = BuildStudySession(),
             CreatedAt = existingDocument?.CreatedAt ?? DateTime.UtcNow,
             LastModified = DateTime.Now,
             AiModelDisplayName = string.IsNullOrWhiteSpace(_modelDisplayName)
@@ -109,12 +128,72 @@ public partial class FlashcardsPreviewWindow : Window
         return _allItems
             .Select(item => new FlashcardItem
             {
+                Id = item.Id,
                 Question = item.Question,
                 Answer = item.Answer,
                 Category = item.Category,
-                SetIndex = Math.Max(DefaultSetIndex, item.SetIndex)
+                SetIndex = Math.Max(DefaultSetIndex, item.SetIndex),
+                IsKnown = item.IsKnown,
+                IsUnknown = item.IsUnknown
             })
             .ToList();
+    }
+
+    private FlashcardStudySession BuildStudySession()
+    {
+        return new FlashcardStudySession
+        {
+            IsStudyMode = _isStudyMode,
+            CurrentSetIndex = _currentSetIndex,
+            CurrentCardId = GetCurrentStudyCardId(),
+            History = _studyHistory.Select(item => item.Id).ToList(),
+            HistoryPosition = _studyHistoryPosition
+        };
+    }
+
+    private Guid? GetCurrentStudyCardId()
+    {
+        if (!_isStudyMode || _items.Count == 0)
+            return null;
+
+        if (_studyModeIndex < 0 || _studyModeIndex >= _items.Count)
+            return null;
+
+        return _items[_studyModeIndex].Id;
+    }
+
+    private void RestoreStudySession(FlashcardStudySession session)
+    {
+        _isStudyMode = session.IsStudyMode;
+        _currentSetIndex = Math.Max(DefaultSetIndex, session.CurrentSetIndex);
+
+        _studyHistory.Clear();
+        _studyHistoryPosition = -1;
+
+        var itemsById = _items.ToDictionary(item => item.Id, item => item);
+        foreach (var id in session.History)
+        {
+            if (itemsById.TryGetValue(id, out var item))
+                _studyHistory.Add(item);
+        }
+
+        if (_studyHistory.Count > 0)
+        {
+            _studyHistoryPosition = Math.Clamp(session.HistoryPosition, -1, _studyHistory.Count - 1);
+        }
+
+        if (session.CurrentCardId.HasValue && itemsById.TryGetValue(session.CurrentCardId.Value, out var currentItem))
+        {
+            _studyModeIndex = _items.IndexOf(currentItem);
+        }
+        else if (_studyHistoryPosition >= 0 && _studyHistoryPosition < _studyHistory.Count)
+        {
+            _studyModeIndex = _items.IndexOf(_studyHistory[_studyHistoryPosition]);
+        }
+        else
+        {
+            _studyModeIndex = Math.Max(0, _items.ToList().FindIndex(item => !item.IsKnown));
+        }
     }
 
     private void EditorField_TextChanged(object sender, TextChangedEventArgs e)
@@ -157,14 +236,25 @@ public partial class FlashcardsPreviewWindow : Window
         var cardSnapshot = string.Join(
             '\u001E',
             _allItems.Select(item =>
-                $"{item.SetIndex}\u001D{item.Question}\u001D{item.Answer}\u001D{item.Category}"));
+                $"{item.Id}\u001D{item.SetIndex}\u001D{item.Question}\u001D{item.Answer}\u001D{item.Category}\u001D{item.IsKnown}\u001D{item.IsUnknown}"));
+
+        var studyHistorySnapshot = string.Join('\u001E', _studyHistory.Select(item => item.Id));
+        var studySnapshot = string.Join(
+            '\u001E',
+            _isStudyMode.ToString(),
+            _currentSetIndex.ToString(),
+            _studyModeIndex.ToString(),
+            _studyHistoryPosition.ToString(),
+            (_studyHistory.Count > 0 ? studyHistorySnapshot : string.Empty),
+            GetCurrentStudyCardId()?.ToString() ?? string.Empty);
 
         return string.Join(
             '\u001F',
             TitleTextBox.Text,
             string.Join('\u001E', Tags),
             setSnapshot,
-            cardSnapshot);
+            cardSnapshot,
+            studySnapshot);
     }
 
     private UnsavedCloseDecision GetCloseDecision()
@@ -383,8 +473,17 @@ public partial class FlashcardsPreviewWindow : Window
         foreach (var item in orderedItems)
             _items.Add(item);
 
-        _studyModeIndex = 0;
-        ResetStudyHistory();
+        if (_pendingStudySession is not null)
+        {
+            RestoreStudySession(_pendingStudySession);
+            _pendingStudySession = null;
+        }
+        else
+        {
+            _studyModeIndex = 0;
+            ResetStudyHistory();
+        }
+
         ApplyStudyModeState();
     }
 
@@ -392,6 +491,33 @@ public partial class FlashcardsPreviewWindow : Window
     {
         _studyHistory.Clear();
         _studyHistoryPosition = -1;
+    }
+
+    private bool AreAllStudyItemsKnown()
+    {
+        if (_items.Count == 0)
+            return false;
+
+        return _items.All(item => item.IsKnown);
+    }
+
+    private void ResetStudyStatusesForCurrentSet()
+    {
+        var setIndex = _currentSetIndex;
+        var hasChanges = false;
+
+        foreach (var item in _allItems.Where(item => item.SetIndex == setIndex))
+        {
+            if (!item.IsKnown && !item.IsUnknown)
+                continue;
+
+            item.IsKnown = false;
+            item.IsUnknown = false;
+            hasChanges = true;
+        }
+
+        if (hasChanges)
+            ApplyFilters();
     }
 
     private void MoveToStudyItem(FlashcardPreviewItem item, bool appendToHistory)
@@ -905,7 +1031,7 @@ public partial class FlashcardsPreviewWindow : Window
         if (dialog.ShowDialog() != true)
             return;
 
-        var flashcard = new FlashcardPreviewItem(dialog.Question, dialog.Answer, normalizedSetIndex, dialog.Category);
+        var flashcard = new FlashcardPreviewItem(Guid.NewGuid(), dialog.Question, dialog.Answer, normalizedSetIndex, dialog.Category);
         _allItems.Add(flashcard);
 
         var selectedSetIndex = GetSelectedSetIndex() ?? _currentSetIndex;
@@ -920,8 +1046,12 @@ public partial class FlashcardsPreviewWindow : Window
 
         if (!_isStudyMode)
         {
+            if (AreAllStudyItemsKnown())
+                ResetStudyStatusesForCurrentSet();
+
             _studyModeIndex = Math.Max(0, _items.ToList().FindIndex(item => !item.IsKnown));
             ResetStudyHistory();
+            _studyCompletionDialogShown = false;
         }
 
         _isStudyMode = !_isStudyMode;
@@ -1085,6 +1215,13 @@ public partial class FlashcardsPreviewWindow : Window
             StudyModeNextButton.IsEnabled = false;
             StudyModeMarkKnownButton.IsEnabled = false;
             StudyModeMarkUnknownButton.IsEnabled = false;
+
+            if (!_studyCompletionDialogShown)
+            {
+                _studyCompletionDialogShown = true;
+                ShowStudyCompletionDialog();
+            }
+
             return;
         }
         else
@@ -1131,6 +1268,9 @@ public partial class FlashcardsPreviewWindow : Window
         StudyModeNextButton.IsEnabled = !_isStudyModeCardAnimating && CanMoveToNextStudyItem(fromHistory: true);
         StudyModeMarkKnownButton.IsEnabled = !_isStudyModeCardAnimating;
         StudyModeMarkUnknownButton.IsEnabled = !_isStudyModeCardAnimating;
+
+        if (!_isInitializing)
+            UpdateEditedIndicator();
     }
 
     private void SetStudyModeCardInteractive(bool isInteractive)
@@ -1169,8 +1309,25 @@ public partial class FlashcardsPreviewWindow : Window
         StudyModeProgressFill.Width = StudyModeProgressTrack.ActualWidth * Math.Clamp((double)knownCount / totalCount, 0, 1);
     }
 
+    private void ShowStudyCompletionDialog()
+    {
+        var dialog = new ModernInfoDialog(
+            LocalizationService.GetString("StudyModeCompleteTitle"),
+            LocalizationService.GetString("StudyModeCompleteMessage"))
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            _isStudyMode = false;
+            ApplyStudyModeState();
+        }
+    }
+
     private sealed class FlashcardPreviewItem : INotifyPropertyChanged
     {
+        public Guid Id { get; }
         private bool _isFlipped;
         private bool _isKnown;
         private bool _isUnknown;
@@ -1179,12 +1336,22 @@ public partial class FlashcardsPreviewWindow : Window
         private string _category = string.Empty;
         private int _setIndex;
 
-        public FlashcardPreviewItem(string question, string answer, int setIndex, string? category = null)
+        public FlashcardPreviewItem(
+            Guid id,
+            string question,
+            string answer,
+            int setIndex,
+            string? category = null,
+            bool isKnown = false,
+            bool isUnknown = false)
         {
+            Id = id == Guid.Empty ? Guid.NewGuid() : id;
             Question = question;
             Answer = answer;
             SetIndex = setIndex;
             Category = category ?? string.Empty;
+            _isKnown = isKnown && !isUnknown;
+            _isUnknown = isUnknown && !isKnown;
         }
 
         public string Question

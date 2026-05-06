@@ -40,6 +40,11 @@ public partial class QuizPreviewWindow : Window
         ConfigureAiGeneratedIndicator(modelDisplayName ?? document.AiModelDisplayName);
         UpdateSummary();
 
+        if (_questions.Any())
+        {
+            SetQuestionFocus(0);
+        }
+
         PreviewKeyDown += QuizPreviewWindow_PreviewKeyDown;
     }
 
@@ -103,10 +108,92 @@ public partial class QuizPreviewWindow : Window
         Close();
     }
 
+    private void FullscreenButton_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleFullscreen();
+    }
+
+    private void ToggleFullscreen()
+    {
+        if (WindowStyle == WindowStyle.None)
+        {
+            WindowStyle = WindowStyle.SingleBorderWindow;
+            WindowState = WindowState.Normal;
+            ResizeMode = ResizeMode.CanResize;
+        }
+        else
+        {
+            WindowStyle = WindowStyle.None;
+            WindowState = WindowState.Maximized;
+            ResizeMode = ResizeMode.NoResize;
+        }
+    }
+
     private void QuizPreviewWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape)
-            Close();
+        {
+            if (WindowStyle == WindowStyle.None)
+            {
+                ToggleFullscreen();
+                e.Handled = true;
+            }
+            else
+            {
+                Close();
+            }
+        }
+        else if (e.Key == Key.F11)
+        {
+            ToggleFullscreen();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter)
+        {
+            if (CheckAnswersButton.IsEnabled && CheckAnswersButton.Visibility == Visibility.Visible)
+            {
+                CheckAnswersButton_Click(this, new RoutedEventArgs());
+                e.Handled = true;
+            }
+            else if (ResetAnswersButton.IsEnabled && ResetAnswersButton.Visibility == Visibility.Visible)
+            {
+                ResetAnswersButton_Click(this, new RoutedEventArgs());
+                e.Handled = true;
+            }
+        }
+        else if (e.Key == Key.Up)
+        {
+            int current = GetFocusedQuestionIndex();
+            if (current > 0)
+            {
+                SetQuestionFocus(current - 1);
+                e.Handled = true;
+            }
+        }
+        else if (e.Key == Key.Down)
+        {
+            int current = GetFocusedQuestionIndex();
+            if (current >= 0 && current < _questions.Count - 1)
+            {
+                SetQuestionFocus(current + 1);
+                e.Handled = true;
+            }
+        }
+        else if ((e.Key >= Key.D1 && e.Key <= Key.D9) || (e.Key >= Key.NumPad1 && e.Key <= Key.NumPad9))
+        {
+            int number = e.Key >= Key.NumPad1 ? e.Key - Key.NumPad1 : e.Key - Key.D1;
+            int current = GetFocusedQuestionIndex();
+            if (current >= 0 && current < _questions.Count)
+            {
+                var question = _questions[current];
+                if (number < question.Options.Count)
+                {
+                    question.SelectOption(question.Options[number]);
+                    UpdateSummary();
+                    e.Handled = true;
+                }
+            }
+        }
     }
 
     private void ConfigureAiGeneratedIndicator(string? modelDisplayName)
@@ -152,10 +239,33 @@ public partial class QuizPreviewWindow : Window
         ScoreTextBlock.Text = string.Format(LocalizationService.GetString("QuizScoreFormat"), correctCount, questionCount, percent);
     }
 
+    private void SetQuestionFocus(int index)
+    {
+        if (index < 0 || index >= _questions.Count) return;
+
+        for (int i = 0; i < _questions.Count; i++)
+        {
+            _questions[i].IsFocused = (i == index);
+        }
+
+        var container = QuestionsItemsControl.ItemContainerGenerator.ContainerFromIndex(index) as FrameworkElement;
+        container?.BringIntoView();
+    }
+
+    private int GetFocusedQuestionIndex()
+    {
+        for (int i = 0; i < _questions.Count; i++)
+        {
+            if (_questions[i].IsFocused) return i;
+        }
+        return -1;
+    }
+
     private sealed class QuizPreviewQuestion : INotifyPropertyChanged
     {
         private readonly QuizQuestion _source;
         private bool _isSubmitted;
+        private bool _isFocused;
 
         public QuizPreviewQuestion(int number, QuizQuestion source)
         {
@@ -166,6 +276,19 @@ public partial class QuizPreviewWindow : Window
             Explanation = source.Explanation;
             Options = new ObservableCollection<QuizPreviewOption>(
                 source.Options.Select(option => new QuizPreviewOption(this, option.Text, option.IsCorrect)));
+        }
+
+        public bool IsFocused
+        {
+            get => _isFocused;
+            set
+            {
+                if (_isFocused != value)
+                {
+                    _isFocused = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         public int Number { get; }
