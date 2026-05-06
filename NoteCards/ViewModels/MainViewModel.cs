@@ -96,8 +96,53 @@ public class MainViewModel : ViewModelBase
         Directory.CreateDirectory(dir);
         return Path.Combine(dir, "quizzes.json");
     }
-    
-   
+
+    public void DuplicateQuiz(QuizViewModel sourceQuiz)
+    {
+        if (sourceQuiz is null)
+            return;
+
+        // Create a deep copy of the quiz document
+        var newDocument = CloneQuizDocument(sourceQuiz.Document);
+
+        // Create new view model
+        var newQuiz = new QuizViewModel(newDocument);
+
+        // Add to collection
+        Quizzes.Add(newQuiz);
+
+        // Save to disk
+        SaveQuizzes();
+    }
+
+    private static QuizDocument CloneQuizDocument(QuizDocument source)
+    {
+        return new QuizDocument
+        {
+            Id = Guid.NewGuid(), // New ID for the copy
+            Title = $"{source.Title} (Copy)",
+            Tags = source.Tags.ToList(),
+            Questions = source.Questions.Select(CloneQuizQuestion).ToList(),
+            CreatedAt = DateTime.UtcNow,
+            LastModified = DateTime.Now,
+            AiModelDisplayName = source.AiModelDisplayName
+        };
+    }
+
+    private static QuizQuestion CloneQuizQuestion(QuizQuestion source)
+    {
+        return new QuizQuestion
+        {
+            Type = source.Type,
+            Question = source.Question,
+            Options = source.Options.Select(o => new QuizOption
+            {
+                Text = o.Text,
+                IsCorrect = o.IsCorrect
+            }).ToList(),
+            Explanation = source.Explanation
+        };
+    }
 
     private bool _isCalendarFirst = true;
     public bool IsCalendarFirst

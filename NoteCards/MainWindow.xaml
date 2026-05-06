@@ -2136,9 +2136,11 @@
                                                             BorderThickness="0"
                                                             Cursor="Hand">
                                                         <Button.ContextMenu>
-                                                            <ContextMenu>
+                                                            <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                                 <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}"
                                                                 Click="OpenQuizMenuItem_Click"/>
+                                                                <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
+                                                                Click="DuplicateQuizMenuItem_Click"/>
                                                                 <Separator/>
                                                                 <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
                                                                 Click="DeleteQuizMenuItem_Click"/>

@@ -1096,6 +1096,17 @@ namespace NoteCards
             }
         }
 
+        private void DuplicateQuizMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is QuizViewModel quizVm)
+            {
+                if (DataContext is MainViewModel vm)
+                {
+                    vm.DuplicateQuiz(quizVm);
+                }
+            }
+        }
+
         private FlashcardSetViewModel? GetFlashcardSetFromMenuSender(object sender)
         {
             if (sender is not MenuItem menuItem)
