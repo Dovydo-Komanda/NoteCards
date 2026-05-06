@@ -32,6 +32,7 @@ public partial class FlashcardsPreviewWindow : Window
     private readonly Random _random = new();
     private bool _isStudyMode;
     private bool _isStudyModeCardAnimating;
+    private bool _studyCompletionDialogShown;
     private int _studyModeIndex;
     private int _studyHistoryPosition = -1;
     private int _currentSetIndex = DefaultSetIndex;
@@ -392,6 +393,33 @@ public partial class FlashcardsPreviewWindow : Window
     {
         _studyHistory.Clear();
         _studyHistoryPosition = -1;
+    }
+
+    private bool AreAllStudyItemsKnown()
+    {
+        if (_items.Count == 0)
+            return false;
+
+        return _items.All(item => item.IsKnown);
+    }
+
+    private void ResetStudyStatusesForCurrentSet()
+    {
+        var setIndex = _currentSetIndex;
+        var hasChanges = false;
+
+        foreach (var item in _allItems.Where(item => item.SetIndex == setIndex))
+        {
+            if (!item.IsKnown && !item.IsUnknown)
+                continue;
+
+            item.IsKnown = false;
+            item.IsUnknown = false;
+            hasChanges = true;
+        }
+
+        if (hasChanges)
+            ApplyFilters();
     }
 
     private void MoveToStudyItem(FlashcardPreviewItem item, bool appendToHistory)
@@ -920,8 +948,12 @@ public partial class FlashcardsPreviewWindow : Window
 
         if (!_isStudyMode)
         {
+            if (AreAllStudyItemsKnown())
+                ResetStudyStatusesForCurrentSet();
+
             _studyModeIndex = Math.Max(0, _items.ToList().FindIndex(item => !item.IsKnown));
             ResetStudyHistory();
+            _studyCompletionDialogShown = false;
         }
 
         _isStudyMode = !_isStudyMode;
@@ -1085,6 +1117,13 @@ public partial class FlashcardsPreviewWindow : Window
             StudyModeNextButton.IsEnabled = false;
             StudyModeMarkKnownButton.IsEnabled = false;
             StudyModeMarkUnknownButton.IsEnabled = false;
+
+            if (!_studyCompletionDialogShown)
+            {
+                _studyCompletionDialogShown = true;
+                ShowStudyCompletionDialog();
+            }
+
             return;
         }
         else
@@ -1167,6 +1206,22 @@ public partial class FlashcardsPreviewWindow : Window
         }
 
         StudyModeProgressFill.Width = StudyModeProgressTrack.ActualWidth * Math.Clamp((double)knownCount / totalCount, 0, 1);
+    }
+
+    private void ShowStudyCompletionDialog()
+    {
+        var dialog = new ModernInfoDialog(
+            LocalizationService.GetString("StudyModeCompleteTitle"),
+            LocalizationService.GetString("StudyModeCompleteMessage"))
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            _isStudyMode = false;
+            ApplyStudyModeState();
+        }
     }
 
     private sealed class FlashcardPreviewItem : INotifyPropertyChanged

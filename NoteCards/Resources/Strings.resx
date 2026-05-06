@@ -379,6 +379,8 @@ Right-click to remove</value></data>
   <data name="FlashcardStatusAll" xml:space="preserve"><value>All</value></data>
   <data name="StudyModeStudiedFormat" xml:space="preserve"><value>Studied cards: {0}</value></data>
   <data name="StudyModeComplete" xml:space="preserve"><value>Study session complete</value></data>
+  <data name="StudyModeCompleteTitle" xml:space="preserve"><value>Study session complete</value></data>
+  <data name="StudyModeCompleteMessage" xml:space="preserve"><value>You have marked all cards as known. Returning you to the flashcards list.</value></data>
   <data name="StudyModePrevious" xml:space="preserve"><value>Previous</value></data>
   <data name="StudyModeNext" xml:space="preserve"><value>Next</value></data>
   <data name="StudyModeProgress" xml:space="preserve"><value>Card {0} of {1}</value></data>
