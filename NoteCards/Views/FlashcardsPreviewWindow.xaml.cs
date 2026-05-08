@@ -744,6 +744,21 @@ public partial class FlashcardsPreviewWindow : Window
         if (SetSelectorComboBox.SelectedItem is not FlashcardSetOption selectedSet)
             return;
 
+        RenameSet(selectedSet);
+    }
+
+    private void RenameSetInListButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: FlashcardSetOption selectedSet })
+            return;
+
+        SetSelectorComboBox.SelectedItem = selectedSet;
+        RenameSet(selectedSet);
+        e.Handled = true;
+    }
+
+    private void RenameSet(FlashcardSetOption selectedSet)
+    {
         var dialog = new SimpleInputDialog(
             LocalizationService.GetString("RenameFlashcardSet"),
             LocalizationService.GetString("RenameFlashcardSetPrompt"),
@@ -769,6 +784,20 @@ public partial class FlashcardsPreviewWindow : Window
         if (SetSelectorComboBox.SelectedItem is not FlashcardSetOption selectedSet)
             return;
 
+        DeleteSet(selectedSet);
+    }
+
+    private void DeleteSetInListButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: FlashcardSetOption selectedSet })
+            return;
+
+        DeleteSet(selectedSet);
+        e.Handled = true;
+    }
+
+    private void DeleteSet(FlashcardSetOption selectedSet)
+    {
         var dialog = new DeleteConfirmationDialog(
             LocalizationService.GetString("DeleteFlashcardSet"),
             string.Format(LocalizationService.GetString("DeleteFlashcardSetConfirmationFormat"), selectedSet.DisplayName))

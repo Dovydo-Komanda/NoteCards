@@ -100,6 +100,11 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
+        <Style x:Key="SetSelectorActionComboBoxItemStyle" TargetType="ComboBoxItem" BasedOn="{StaticResource SetSelectorComboBoxItemStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="6,2"/>
+        </Style>
+
         <Style x:Key="CreateSetButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogSecondaryButtonStyle}">
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="MinHeight" Value="32"/>
@@ -164,6 +169,15 @@
         </Style>
 
         <Style x:Key="FlashcardSearchIconButtonStyle" TargetType="Button" BasedOn="{StaticResource FlashcardEditorIconButtonStyle}"/>
+
+        <Style x:Key="SetOptionActionButtonStyle" TargetType="Button" BasedOn="{StaticResource FlashcardEditorIconButtonStyle}">
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="4,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Focusable" Value="False"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -282,14 +296,15 @@
                 CornerRadius="10">
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <WrapPanel Grid.Column="1"
-                           Orientation="Horizontal"
-                           HorizontalAlignment="Right"
-                           VerticalAlignment="Top">
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top">
                     <Button x:Name="FiltersButton"
                             Content="{Binding [FlashcardFilters], Source={StaticResource Loc}}"
                             Style="{StaticResource FlashcardToolbarButtonStyle}"
@@ -354,23 +369,44 @@
                             </StackPanel>
                         </Border>
                     </Popup>
-                    <Button Content="✎"
-                            Style="{StaticResource FlashcardEditorIconButtonStyle}"
-                            Margin="0,0,8,8"
-                            ToolTip="{Binding [RenameFlashcardSet], Source={StaticResource Loc}}"
-                            Click="RenameSetButton_Click"/>
-                    <Button Content="×"
-                            Style="{StaticResource FlashcardEditorIconButtonStyle}"
-                            Margin="0,0,8,8"
-                            ToolTip="{Binding [DeleteFlashcardSet], Source={StaticResource Loc}}"
-                            Click="DeleteSetButton_Click"/>
+                </StackPanel>
+
+                <WrapPanel Grid.Column="2"
+                           Orientation="Horizontal"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Top">
                     <ComboBox x:Name="SetSelectorComboBox"
                               Width="128"
                               Style="{StaticResource SetSelectorComboBoxStyle}"
-                              ItemContainerStyle="{StaticResource SetSelectorComboBoxItemStyle}"
-                              DisplayMemberPath="DisplayName"
+                              ItemContainerStyle="{StaticResource SetSelectorActionComboBoxItemStyle}"
                               Margin="0,0,8,8"
-                              SelectionChanged="SetSelectorComboBox_SelectionChanged"/>
+                              SelectionChanged="SetSelectorComboBox_SelectionChanged">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding DisplayName}"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <Button Grid.Column="1"
+                                            Content="✎"
+                                            Style="{StaticResource SetOptionActionButtonStyle}"
+                                            ToolTip="{Binding [RenameFlashcardSet], Source={StaticResource Loc}}"
+                                            Click="RenameSetInListButton_Click"/>
+                                    <Button Grid.Column="2"
+                                            Content="×"
+                                            Style="{StaticResource SetOptionActionButtonStyle}"
+                                            ToolTip="{Binding [DeleteFlashcardSet], Source={StaticResource Loc}}"
+                                            Click="DeleteSetInListButton_Click"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                     <Button Content="{Binding [CreateFlashcardSet], Source={StaticResource Loc}}"
                             Style="{StaticResource FlashcardToolbarButtonStyle}"
                             Click="CreateSetButton_Click"/>

@@ -135,7 +135,7 @@ Right-click to remove</value></data>
   <data name="NewNoteTitle" xml:space="preserve"><value>New Note</value></data>
   <data name="FontButtonFormat" xml:space="preserve"><value>Font: {0}, {1}</value></data>
   <data name="Groups" xml:space="preserve"><value>Groups</value></data>
-  <data name="UngroupedNotes" xml:space="preserve"><value>Ungrouped Notes</value></data>
+  <data name="UngroupedNotes" xml:space="preserve"><value>Notes</value></data>
   <data name="GroupTitleFormat" xml:space="preserve"><value>Group {0}</value></data>
   <data name="RemoveFromGroup" xml:space="preserve"><value>Remove from Group</value></data>
   <data name="RenameGroup" xml:space="preserve"><value>Rename Group</value></data>
