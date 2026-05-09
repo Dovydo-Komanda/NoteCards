@@ -12,6 +12,7 @@
              AllowDrop="True"
              DataContextChanged="OnDataContextChanged"
              PreviewMouseLeftButtonDown="OnPreviewMouseLeftButtonDown"
+             PreviewMouseRightButtonUp="OnPreviewMouseRightButtonUp"
              MouseMove="OnMouseMove"
              DragEnter="OnDragEnter"
              DragLeave="OnDragLeave"
@@ -148,9 +149,11 @@
                     Background="#00000000"
                     BorderBrush="#4A6EE0"
                     BorderThickness="0"
-                    CornerRadius="10"
+                    CornerRadius="12"
                     Opacity="0"
                     Grid.RowSpan="3"
+                    Margin="-14"
+                    Panel.ZIndex="50"
                     IsHitTestVisible="False"/>
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>

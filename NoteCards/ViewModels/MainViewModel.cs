@@ -53,8 +53,12 @@ public class MainViewModel : ViewModelBase
     private bool _isMassSelectMode;
     private DateTime _calendarSelectedDate = DateTime.Today;
     private AppSettings _settings;
+    private readonly Dictionary<Guid, FlashcardSetGroupData> _flashcardSetGroupMetadata = new();
     private readonly Dictionary<Guid, MindMapGroupData> _mindMapGroupMetadata = new();
+    private readonly Dictionary<Guid, QuizGroupData> _quizGroupMetadata = new();
+    public ObservableCollection<FlashcardSetGroupViewModel> FlashcardSetGroups { get; } = new();
     public ObservableCollection<MindMapGroupViewModel> MindMapGroups { get; } = new();
+    public ObservableCollection<QuizGroupViewModel> QuizGroups { get; } = new();
 
     public bool EnableScrollbar
     {
@@ -112,7 +116,9 @@ public class MainViewModel : ViewModelBase
         Quizzes.Add(newQuiz);
 
         // Save to disk
+        ReorderQuizzes();
         SaveQuizzes();
+        NotifyQuizzesChanged();
     }
 
     private static QuizDocument CloneQuizDocument(QuizDocument source)
@@ -406,18 +412,21 @@ public class MainViewModel : ViewModelBase
             RefreshAvailableFlashcardTags();
             ApplyFlashcardFilters();
             NotifyFlashcardSetsChanged();
+            RefreshCalendarScheduledNotes();
         };
         MindMaps.CollectionChanged += (_, _) =>
         {
             RefreshAvailableMindMapTags();
             ApplyMindMapFilters();
             NotifyMindMapsChanged();
+            RefreshCalendarScheduledNotes();
         };
         Quizzes.CollectionChanged += (_, _) =>
         {
             RefreshAvailableQuizTags();
             ApplyQuizFilters();
             NotifyQuizzesChanged();
+            RefreshCalendarScheduledNotes();
         };
         
         NoteCards.Services.ActivityTracker.ActivityUpdated += RefreshActivityStats;
@@ -545,7 +554,26 @@ public class MainViewModel : ViewModelBase
         if (File.Exists(setsPath))
         {
             var json = File.ReadAllText(setsPath);
-            var sets = JsonSerializer.Deserialize<List<FlashcardSetDocument>>(json) ?? new();
+            List<FlashcardSetDocument> sets;
+            try
+            {
+                var store = JsonSerializer.Deserialize<FlashcardSetStoreData>(json);
+                if (store?.Sets != null)
+                {
+                    sets = store.Sets;
+                    _flashcardSetGroupMetadata.Clear();
+                    foreach (var meta in store.Groups ?? new List<FlashcardSetGroupData>())
+                        _flashcardSetGroupMetadata[meta.GroupId] = meta;
+                }
+                else
+                {
+                    sets = JsonSerializer.Deserialize<List<FlashcardSetDocument>>(json) ?? new();
+                }
+            }
+            catch
+            {
+                sets = JsonSerializer.Deserialize<List<FlashcardSetDocument>>(json) ?? new();
+            }
 
             foreach (var set in sets
                          .Where(set => set != null)
@@ -556,6 +584,8 @@ public class MainViewModel : ViewModelBase
                 FlashcardSets.Add(new FlashcardSetViewModel(set));
             }
 
+            NormalizeFlashcardSetGroups();
+            RebuildFlashcardSetGroups();
             NotifyFlashcardSetsChanged();
             return;
         }
@@ -612,10 +642,13 @@ public class MainViewModel : ViewModelBase
             existing.Document.CreatedAt = document.CreatedAt;
             existing.Document.LastModified = document.LastModified;
             existing.Document.AiModelDisplayName = document.AiModelDisplayName;
+            existing.Document.GroupId = document.GroupId;
             existing.NotifyChanged();
         }
 
         ReorderFlashcardSets();
+        NormalizeFlashcardSetGroups();
+        RebuildFlashcardSetGroups();
         RefreshAvailableFlashcardTags();
         ApplyFlashcardFilters();
         SaveFlashcardSets();
@@ -629,6 +662,8 @@ public class MainViewModel : ViewModelBase
             return;
 
         FlashcardSets.Remove(set);
+        NormalizeFlashcardSetGroups();
+        RebuildFlashcardSetGroups();
         SaveFlashcardSets();
         RefreshAvailableFlashcardTags();
         ApplyFlashcardFilters();
@@ -644,7 +679,16 @@ public class MainViewModel : ViewModelBase
             .ThenBy(set => set.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
-        var json = JsonSerializer.Serialize(documents, new JsonSerializerOptions { WriteIndented = true });
+        var store = new FlashcardSetStoreData
+        {
+            Sets = documents,
+            Groups = _flashcardSetGroupMetadata.Values
+                .OrderBy(g => g.SortOrder ?? int.MaxValue)
+                .ThenBy(g => g.Name)
+                .ToList()
+        };
+
+        var json = JsonSerializer.Serialize(store, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(path, json);
     }
 
@@ -663,8 +707,266 @@ public class MainViewModel : ViewModelBase
     private void NotifyFlashcardSetsChanged()
     {
         OnPropertyChanged(nameof(HasFlashcardSets));
+        OnPropertyChanged(nameof(HasFlashcardSetGroups));
+        OnPropertyChanged(nameof(HasUngroupedFlashcardSets));
         OnPropertyChanged(nameof(FlashcardSetCount));
         OnPropertyChanged(nameof(FlashcardSetCountText));
+    }
+
+    private void NormalizeFlashcardSetGroups()
+    {
+        var grouped = FlashcardSets
+            .Where(set => set.Document.GroupId.HasValue)
+            .GroupBy(set => set.Document.GroupId!.Value)
+            .ToList();
+
+        foreach (var group in grouped.Where(group => group.Count() < 2))
+        {
+            foreach (var set in group)
+            {
+                set.Document.GroupId = null;
+                set.NotifyChanged();
+            }
+
+            _flashcardSetGroupMetadata.Remove(group.Key);
+        }
+    }
+
+    public void RebuildFlashcardSetGroups()
+    {
+        FlashcardSetGroups.Clear();
+
+        var grouped = FlashcardSets
+            .Where(set => set.Document.GroupId.HasValue)
+            .GroupBy(set => set.Document.GroupId!.Value)
+            .OrderBy(group => EnsureFlashcardSetGroupMetadata(group.Key).SortOrder ?? int.MaxValue)
+            .ThenByDescending(group => group.Max(set => set.Document.LastModified))
+            .ToList();
+
+        foreach (var group in grouped)
+        {
+            var visibleSets = group.Where(MatchesFlashcardSetFilters).ToList();
+            if (visibleSets.Count == 0)
+                continue;
+
+            var metadata = EnsureFlashcardSetGroupMetadata(group.Key);
+            FlashcardSetGroups.Add(new FlashcardSetGroupViewModel(group.Key, metadata.Name, metadata.BackgroundColor, visibleSets));
+        }
+
+        OnPropertyChanged(nameof(HasFlashcardSetGroups));
+        OnPropertyChanged(nameof(HasUngroupedFlashcardSets));
+    }
+
+    private FlashcardSetGroupData EnsureFlashcardSetGroupMetadata(Guid groupId)
+    {
+        if (_flashcardSetGroupMetadata.TryGetValue(groupId, out var metadata))
+        {
+            metadata.SortOrder ??= GetNextFlashcardSetGroupSortOrder();
+            return metadata;
+        }
+
+        metadata = new FlashcardSetGroupData
+        {
+            GroupId = groupId,
+            Name = string.Format(LocalizationService.GetString("GroupTitleFormat"), groupId.ToString()[..4].ToUpperInvariant()),
+            BackgroundColor = DefaultGroupBackground,
+            SortOrder = GetNextFlashcardSetGroupSortOrder()
+        };
+        _flashcardSetGroupMetadata[groupId] = metadata;
+        return metadata;
+    }
+
+    private int GetNextFlashcardSetGroupSortOrder()
+    {
+        return _flashcardSetGroupMetadata.Values
+            .Select(group => group.SortOrder ?? -1)
+            .DefaultIfEmpty(-1)
+            .Max() + 1;
+    }
+
+    public bool TryGroupFlashcardSets(FlashcardSetViewModel draggedSet, FlashcardSetViewModel targetSet)
+    {
+        if (draggedSet is null || targetSet is null || ReferenceEquals(draggedSet, targetSet))
+            return false;
+
+        var targetGroupId = targetSet.Document.GroupId ?? draggedSet.Document.GroupId ?? Guid.NewGuid();
+        EnsureFlashcardSetGroupMetadata(targetGroupId);
+
+        var changed = false;
+        foreach (var set in new[] { draggedSet, targetSet })
+        {
+            if (set.Document.GroupId == targetGroupId)
+                continue;
+
+            set.Document.GroupId = targetGroupId;
+            set.NotifyChanged();
+            changed = true;
+        }
+
+        if (!changed)
+            return false;
+
+        NormalizeFlashcardSetGroups();
+        RebuildFlashcardSetGroups();
+        ApplyFlashcardFilters();
+        SaveFlashcardSets();
+        return true;
+    }
+
+    public bool TryReorderFlashcardSetsWithinGroup(FlashcardSetViewModel dragged, FlashcardSetViewModel target, bool placeAfter)
+    {
+        if (ReferenceEquals(dragged, target)) return false;
+        var groupId = dragged.Document.GroupId;
+        if (!groupId.HasValue || target.Document.GroupId != groupId) return false;
+
+        var draggedIdx = FlashcardSets.IndexOf(dragged);
+        var targetIdx = FlashcardSets.IndexOf(target);
+        if (draggedIdx < 0 || targetIdx < 0) return false;
+
+        var newIdx = placeAfter ? targetIdx + 1 : targetIdx;
+        if (draggedIdx < newIdx) newIdx--;
+        if (newIdx == draggedIdx) return false;
+
+        FlashcardSets.Move(draggedIdx, Math.Clamp(newIdx, 0, FlashcardSets.Count - 1));
+        RebuildFlashcardSetGroups();
+        SaveFlashcardSets();
+        return true;
+    }
+
+    public bool TryMoveFlashcardSetToGroup(FlashcardSetViewModel draggedSet, FlashcardSetGroupViewModel targetGroup)
+    {
+        if (draggedSet.Document.GroupId == targetGroup.GroupId)
+            return false;
+
+        draggedSet.Document.GroupId = targetGroup.GroupId;
+        EnsureFlashcardSetGroupMetadata(targetGroup.GroupId);
+        draggedSet.NotifyChanged();
+        NormalizeFlashcardSetGroups();
+        RebuildFlashcardSetGroups();
+        ApplyFlashcardFilters();
+        SaveFlashcardSets();
+        return true;
+    }
+
+    public bool MoveFlashcardSetGroupUp(FlashcardSetGroupViewModel group)
+    {
+        return TryMoveFlashcardSetGroup(group, moveUp: true);
+    }
+
+    public bool MoveFlashcardSetGroupDown(FlashcardSetGroupViewModel group)
+    {
+        return TryMoveFlashcardSetGroup(group, moveUp: false);
+    }
+
+    private bool TryMoveFlashcardSetGroup(FlashcardSetGroupViewModel group, bool moveUp)
+    {
+        var currentIndex = FlashcardSetGroups.IndexOf(group);
+        var targetIndex = moveUp ? currentIndex - 1 : currentIndex + 1;
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= FlashcardSetGroups.Count)
+            return false;
+
+        var target = FlashcardSetGroups[targetIndex];
+        var currentMeta = EnsureFlashcardSetGroupMetadata(group.GroupId);
+        var targetMeta = EnsureFlashcardSetGroupMetadata(target.GroupId);
+        (currentMeta.SortOrder, targetMeta.SortOrder) = (targetMeta.SortOrder, currentMeta.SortOrder);
+        FlashcardSetGroups.Move(currentIndex, targetIndex);
+        SaveFlashcardSets();
+        return true;
+    }
+
+    public bool RenameFlashcardSetGroup(FlashcardSetGroupViewModel group, string newName)
+    {
+        var trimmed = (newName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return false;
+
+        var metadata = EnsureFlashcardSetGroupMetadata(group.GroupId);
+        metadata.Name = trimmed;
+        group.Name = trimmed;
+        SaveFlashcardSets();
+        return true;
+    }
+
+    public bool SetFlashcardSetGroupBackgroundColor(FlashcardSetGroupViewModel group, string backgroundColor)
+    {
+        if (string.IsNullOrWhiteSpace(backgroundColor))
+            return false;
+
+        var metadata = EnsureFlashcardSetGroupMetadata(group.GroupId);
+        metadata.BackgroundColor = backgroundColor;
+        group.SetBackground(backgroundColor);
+        SaveFlashcardSets();
+        return true;
+    }
+
+    public void DisbandFlashcardSetGroup(FlashcardSetGroupViewModel group, bool deleteSets)
+    {
+        var setsInGroup = FlashcardSets.Where(set => set.Document.GroupId == group.GroupId).ToList();
+        if (deleteSets)
+        {
+            foreach (var set in setsInGroup)
+                FlashcardSets.Remove(set);
+        }
+        else
+        {
+            foreach (var set in setsInGroup)
+            {
+                set.Document.GroupId = null;
+                set.NotifyChanged();
+            }
+        }
+
+        _flashcardSetGroupMetadata.Remove(group.GroupId);
+        NormalizeFlashcardSetGroups();
+        RebuildFlashcardSetGroups();
+        ApplyFlashcardFilters();
+        SaveFlashcardSets();
+    }
+
+    public void RemoveFlashcardSetFromGroup(FlashcardSetViewModel set)
+    {
+        if (set?.Document.GroupId is null)
+            return;
+
+        set.Document.GroupId = null;
+        set.NotifyChanged();
+        NormalizeFlashcardSetGroups();
+        RebuildFlashcardSetGroups();
+        ApplyFlashcardFilters();
+        SaveFlashcardSets();
+    }
+
+    public void DuplicateFlashcardSet(FlashcardSetViewModel sourceSet)
+    {
+        if (sourceSet is null)
+            return;
+
+        var source = sourceSet.Document;
+        var document = new FlashcardSetDocument
+        {
+            Id = Guid.NewGuid(),
+            Title = $"{source.Title} (Copy)",
+            Tags = source.Tags.ToList(),
+            SetNames = source.SetNames.ToDictionary(pair => pair.Key, pair => pair.Value),
+            Cards = source.Cards.Select(card => new FlashcardItem
+            {
+                Id = Guid.NewGuid(),
+                Question = card.Question,
+                Answer = card.Answer,
+                Category = card.Category,
+                SetIndex = card.SetIndex,
+                IsKnown = card.IsKnown,
+                IsUnknown = card.IsUnknown
+            }).ToList(),
+            CreatedAt = DateTime.UtcNow,
+            LastModified = DateTime.Now,
+            AiModelDisplayName = source.AiModelDisplayName
+        };
+
+        FlashcardSets.Add(new FlashcardSetViewModel(document));
+        ReorderFlashcardSets();
+        SaveFlashcardSets();
+        NotifyFlashcardSetsChanged();
     }
 
     private static void NormalizeFlashcardSetDocument(FlashcardSetDocument document)
@@ -764,6 +1066,7 @@ public class MainViewModel : ViewModelBase
             MindMaps.Add(new MindMapViewModel(map));
         }
 
+        NormalizeMindMapGroups();
         RebuildMindMapGroups();
         NotifyMindMapsChanged();
     }
@@ -791,6 +1094,8 @@ public class MainViewModel : ViewModelBase
         }
 
         ReorderMindMaps();
+        NormalizeMindMapGroups();
+        RebuildMindMapGroups();
         RefreshAvailableMindMapTags();
         ApplyMindMapFilters();
         SaveMindMaps();
@@ -800,8 +1105,8 @@ public class MainViewModel : ViewModelBase
     public MindMapGroupViewModel CreateMindMapGroup(string name)
     {
         var groupId = Guid.NewGuid();
-        _mindMapGroupMetadata[groupId] = new MindMapGroupData { GroupId = groupId, Name = name };
-        var group = new MindMapGroupViewModel(groupId, name, Enumerable.Empty<MindMapViewModel>());
+        _mindMapGroupMetadata[groupId] = new MindMapGroupData { GroupId = groupId, Name = name, BackgroundColor = DefaultGroupBackground };
+        var group = new MindMapGroupViewModel(groupId, name, DefaultGroupBackground, Enumerable.Empty<MindMapViewModel>());
         MindMapGroups.Add(group);
         SaveMindMaps();
         return group;
@@ -828,11 +1133,185 @@ public class MainViewModel : ViewModelBase
         SaveMindMaps();
     }
 
+    private void NormalizeMindMapGroups()
+    {
+        var grouped = MindMaps
+            .Where(map => map.Document.GroupId.HasValue)
+            .GroupBy(map => map.Document.GroupId!.Value)
+            .ToList();
+
+        foreach (var group in grouped.Where(group => group.Count() < 2))
+        {
+            foreach (var map in group)
+            {
+                map.Document.GroupId = null;
+                map.NotifyChanged();
+            }
+
+            _mindMapGroupMetadata.Remove(group.Key);
+        }
+    }
+
     public void AddMindMapToGroup(MindMapViewModel map, MindMapGroupViewModel group)
     {
         map.Document.GroupId = group.GroupId;
         SaveMindMaps();
-        RebuildMindMapGroups(); // add this line
+        RebuildMindMapGroups();
+    }
+
+    public bool TryGroupMindMaps(MindMapViewModel draggedMap, MindMapViewModel targetMap)
+    {
+        if (draggedMap is null || targetMap is null || ReferenceEquals(draggedMap, targetMap))
+            return false;
+
+        var targetGroupId = targetMap.Document.GroupId ?? draggedMap.Document.GroupId ?? Guid.NewGuid();
+        if (!_mindMapGroupMetadata.ContainsKey(targetGroupId))
+            _mindMapGroupMetadata[targetGroupId] = new MindMapGroupData
+            {
+                GroupId = targetGroupId,
+                Name = string.Format(LocalizationService.GetString("GroupTitleFormat"), targetGroupId.ToString()[..4].ToUpperInvariant()),
+                BackgroundColor = DefaultGroupBackground
+            };
+
+        var changed = false;
+        foreach (var map in new[] { draggedMap, targetMap })
+        {
+            if (map.Document.GroupId == targetGroupId)
+                continue;
+
+            map.Document.GroupId = targetGroupId;
+            map.NotifyChanged();
+            changed = true;
+        }
+
+        if (!changed)
+            return false;
+
+        NormalizeMindMapGroups();
+        RebuildMindMapGroups();
+        ApplyMindMapFilters();
+        SaveMindMaps();
+        return true;
+    }
+
+    public bool TryReorderMindMapsWithinGroup(MindMapViewModel dragged, MindMapViewModel target, bool placeAfter)
+    {
+        if (ReferenceEquals(dragged, target)) return false;
+        var groupId = dragged.Document.GroupId;
+        if (!groupId.HasValue || target.Document.GroupId != groupId) return false;
+
+        var draggedIdx = MindMaps.IndexOf(dragged);
+        var targetIdx = MindMaps.IndexOf(target);
+        if (draggedIdx < 0 || targetIdx < 0) return false;
+
+        var newIdx = placeAfter ? targetIdx + 1 : targetIdx;
+        if (draggedIdx < newIdx) newIdx--;
+        if (newIdx == draggedIdx) return false;
+
+        MindMaps.Move(draggedIdx, Math.Clamp(newIdx, 0, MindMaps.Count - 1));
+        RebuildMindMapGroups();
+        SaveMindMaps();
+        return true;
+    }
+
+    public bool TryMoveMindMapToGroup(MindMapViewModel draggedMap, MindMapGroupViewModel targetGroup)
+    {
+        if (draggedMap.Document.GroupId == targetGroup.GroupId)
+            return false;
+
+        draggedMap.Document.GroupId = targetGroup.GroupId;
+        if (!_mindMapGroupMetadata.ContainsKey(targetGroup.GroupId))
+            _mindMapGroupMetadata[targetGroup.GroupId] = new MindMapGroupData
+            {
+                GroupId = targetGroup.GroupId,
+                Name = targetGroup.Name,
+                BackgroundColor = targetGroup.BackgroundColor
+            };
+        draggedMap.NotifyChanged();
+        NormalizeMindMapGroups();
+        RebuildMindMapGroups();
+        ApplyMindMapFilters();
+        SaveMindMaps();
+        return true;
+    }
+
+    public bool MoveMindMapGroupUp(MindMapGroupViewModel group)
+    {
+        return TryMoveMindMapGroup(group, moveUp: true);
+    }
+
+    public bool MoveMindMapGroupDown(MindMapGroupViewModel group)
+    {
+        return TryMoveMindMapGroup(group, moveUp: false);
+    }
+
+    private bool TryMoveMindMapGroup(MindMapGroupViewModel group, bool moveUp)
+    {
+        var currentIndex = MindMapGroups.IndexOf(group);
+        var targetIndex = moveUp ? currentIndex - 1 : currentIndex + 1;
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= MindMapGroups.Count)
+            return false;
+
+        var target = MindMapGroups[targetIndex];
+        var currentMeta = _mindMapGroupMetadata[group.GroupId];
+        var targetMeta = _mindMapGroupMetadata[target.GroupId];
+        currentMeta.SortOrder ??= currentIndex;
+        targetMeta.SortOrder ??= targetIndex;
+        (currentMeta.SortOrder, targetMeta.SortOrder) = (targetMeta.SortOrder, currentMeta.SortOrder);
+        MindMapGroups.Move(currentIndex, targetIndex);
+        SaveMindMaps();
+        return true;
+    }
+
+    public bool SetMindMapGroupBackgroundColor(MindMapGroupViewModel group, string backgroundColor)
+    {
+        if (string.IsNullOrWhiteSpace(backgroundColor))
+            return false;
+
+        if (!_mindMapGroupMetadata.TryGetValue(group.GroupId, out var metadata))
+            return false;
+
+        metadata.BackgroundColor = backgroundColor;
+        group.SetBackground(backgroundColor);
+        SaveMindMaps();
+        return true;
+    }
+
+    public void DisbandMindMapGroup(MindMapGroupViewModel group, bool deleteMaps)
+    {
+        var mapsInGroup = MindMaps.Where(map => map.Document.GroupId == group.GroupId).ToList();
+        if (deleteMaps)
+        {
+            foreach (var map in mapsInGroup)
+                MindMaps.Remove(map);
+        }
+        else
+        {
+            foreach (var map in mapsInGroup)
+            {
+                map.Document.GroupId = null;
+                map.NotifyChanged();
+            }
+        }
+
+        _mindMapGroupMetadata.Remove(group.GroupId);
+        NormalizeMindMapGroups();
+        RebuildMindMapGroups();
+        ApplyMindMapFilters();
+        SaveMindMaps();
+    }
+
+    public void RemoveMindMapFromGroup(MindMapViewModel map)
+    {
+        if (map?.Document.GroupId is null)
+            return;
+
+        map.Document.GroupId = null;
+        map.NotifyChanged();
+        NormalizeMindMapGroups();
+        RebuildMindMapGroups();
+        ApplyMindMapFilters();
+        SaveMindMaps();
     }
 
     public void SaveMindMaps()
@@ -943,6 +1422,8 @@ public class MainViewModel : ViewModelBase
     private void NotifyMindMapsChanged()
     {
         OnPropertyChanged(nameof(HasMindMaps));
+        OnPropertyChanged(nameof(HasMindMapGroups));
+        OnPropertyChanged(nameof(HasUngroupedMindMaps));
         OnPropertyChanged(nameof(MindMapCount));
         OnPropertyChanged(nameof(MindMapCountText));
     }
@@ -959,7 +1440,26 @@ public class MainViewModel : ViewModelBase
         }
 
         var json = File.ReadAllText(path);
-        var documents = JsonSerializer.Deserialize<List<QuizDocument>>(json) ?? new();
+        List<QuizDocument> documents;
+        try
+        {
+            var store = JsonSerializer.Deserialize<QuizStoreData>(json);
+            if (store?.Quizzes != null)
+            {
+                documents = store.Quizzes;
+                _quizGroupMetadata.Clear();
+                foreach (var meta in store.Groups ?? new List<QuizGroupData>())
+                    _quizGroupMetadata[meta.GroupId] = meta;
+            }
+            else
+            {
+                documents = JsonSerializer.Deserialize<List<QuizDocument>>(json) ?? new();
+            }
+        }
+        catch
+        {
+            documents = JsonSerializer.Deserialize<List<QuizDocument>>(json) ?? new();
+        }
 
         foreach (var quiz in documents
                      .Where(quiz => quiz != null)
@@ -970,6 +1470,8 @@ public class MainViewModel : ViewModelBase
             Quizzes.Add(new QuizViewModel(quiz));
         }
 
+        NormalizeQuizGroups();
+        RebuildQuizGroups();
         NotifyQuizzesChanged();
     }
 
@@ -992,10 +1494,13 @@ public class MainViewModel : ViewModelBase
             existing.Document.LastModified = document.LastModified;
             existing.Document.AiModelDisplayName = document.AiModelDisplayName;
             existing.Document.SourceNoteId = document.SourceNoteId;
+            existing.Document.GroupId = document.GroupId;
             existing.NotifyChanged();
         }
 
         ReorderQuizzes();
+        NormalizeQuizGroups();
+        RebuildQuizGroups();
         RefreshAvailableQuizTags();
         ApplyQuizFilters();
         SaveQuizzes();
@@ -1009,6 +1514,8 @@ public class MainViewModel : ViewModelBase
             return;
 
         Quizzes.Remove(quiz);
+        NormalizeQuizGroups();
+        RebuildQuizGroups();
         SaveQuizzes();
         RefreshAvailableQuizTags();
         ApplyQuizFilters();
@@ -1024,7 +1531,16 @@ public class MainViewModel : ViewModelBase
             .ThenBy(quiz => quiz.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
-        var json = JsonSerializer.Serialize(documents, new JsonSerializerOptions { WriteIndented = true });
+        var store = new QuizStoreData
+        {
+            Quizzes = documents,
+            Groups = _quizGroupMetadata.Values
+                .OrderBy(g => g.SortOrder ?? int.MaxValue)
+                .ThenBy(g => g.Name)
+                .ToList()
+        };
+
+        var json = JsonSerializer.Serialize(store, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(path, json);
     }
 
@@ -1043,8 +1559,233 @@ public class MainViewModel : ViewModelBase
     private void NotifyQuizzesChanged()
     {
         OnPropertyChanged(nameof(HasQuizzes));
+        OnPropertyChanged(nameof(HasQuizGroups));
+        OnPropertyChanged(nameof(HasUngroupedQuizzes));
         OnPropertyChanged(nameof(QuizCount));
         OnPropertyChanged(nameof(QuizCountText));
+    }
+
+    private void NormalizeQuizGroups()
+    {
+        var grouped = Quizzes
+            .Where(quiz => quiz.Document.GroupId.HasValue)
+            .GroupBy(quiz => quiz.Document.GroupId!.Value)
+            .ToList();
+
+        foreach (var group in grouped.Where(group => group.Count() < 2))
+        {
+            foreach (var quiz in group)
+            {
+                quiz.Document.GroupId = null;
+                quiz.NotifyChanged();
+            }
+
+            _quizGroupMetadata.Remove(group.Key);
+        }
+    }
+
+    public void RebuildQuizGroups()
+    {
+        QuizGroups.Clear();
+
+        var grouped = Quizzes
+            .Where(quiz => quiz.Document.GroupId.HasValue)
+            .GroupBy(quiz => quiz.Document.GroupId!.Value)
+            .OrderBy(group => EnsureQuizGroupMetadata(group.Key).SortOrder ?? int.MaxValue)
+            .ThenByDescending(group => group.Max(quiz => quiz.Document.LastModified))
+            .ToList();
+
+        foreach (var group in grouped)
+        {
+            var visibleQuizzes = group.Where(MatchesQuizFilters).ToList();
+            if (visibleQuizzes.Count == 0)
+                continue;
+
+            var metadata = EnsureQuizGroupMetadata(group.Key);
+            QuizGroups.Add(new QuizGroupViewModel(group.Key, metadata.Name, metadata.BackgroundColor, visibleQuizzes));
+        }
+
+        OnPropertyChanged(nameof(HasQuizGroups));
+        OnPropertyChanged(nameof(HasUngroupedQuizzes));
+    }
+
+    private QuizGroupData EnsureQuizGroupMetadata(Guid groupId)
+    {
+        if (_quizGroupMetadata.TryGetValue(groupId, out var metadata))
+        {
+            metadata.SortOrder ??= GetNextQuizGroupSortOrder();
+            return metadata;
+        }
+
+        metadata = new QuizGroupData
+        {
+            GroupId = groupId,
+            Name = string.Format(LocalizationService.GetString("GroupTitleFormat"), groupId.ToString()[..4].ToUpperInvariant()),
+            BackgroundColor = DefaultGroupBackground,
+            SortOrder = GetNextQuizGroupSortOrder()
+        };
+        _quizGroupMetadata[groupId] = metadata;
+        return metadata;
+    }
+
+    private int GetNextQuizGroupSortOrder()
+    {
+        return _quizGroupMetadata.Values
+            .Select(group => group.SortOrder ?? -1)
+            .DefaultIfEmpty(-1)
+            .Max() + 1;
+    }
+
+    public bool TryGroupQuizzes(QuizViewModel draggedQuiz, QuizViewModel targetQuiz)
+    {
+        if (draggedQuiz is null || targetQuiz is null || ReferenceEquals(draggedQuiz, targetQuiz))
+            return false;
+
+        var targetGroupId = targetQuiz.Document.GroupId ?? draggedQuiz.Document.GroupId ?? Guid.NewGuid();
+        EnsureQuizGroupMetadata(targetGroupId);
+
+        var changed = false;
+        foreach (var quiz in new[] { draggedQuiz, targetQuiz })
+        {
+            if (quiz.Document.GroupId == targetGroupId)
+                continue;
+
+            quiz.Document.GroupId = targetGroupId;
+            quiz.NotifyChanged();
+            changed = true;
+        }
+
+        if (!changed)
+            return false;
+
+        NormalizeQuizGroups();
+        RebuildQuizGroups();
+        ApplyQuizFilters();
+        SaveQuizzes();
+        return true;
+    }
+
+    public bool TryReorderQuizzesWithinGroup(QuizViewModel dragged, QuizViewModel target, bool placeAfter)
+    {
+        if (ReferenceEquals(dragged, target)) return false;
+        var groupId = dragged.Document.GroupId;
+        if (!groupId.HasValue || target.Document.GroupId != groupId) return false;
+
+        var draggedIdx = Quizzes.IndexOf(dragged);
+        var targetIdx = Quizzes.IndexOf(target);
+        if (draggedIdx < 0 || targetIdx < 0) return false;
+
+        var newIdx = placeAfter ? targetIdx + 1 : targetIdx;
+        if (draggedIdx < newIdx) newIdx--;
+        if (newIdx == draggedIdx) return false;
+
+        Quizzes.Move(draggedIdx, Math.Clamp(newIdx, 0, Quizzes.Count - 1));
+        RebuildQuizGroups();
+        SaveQuizzes();
+        return true;
+    }
+
+    public bool TryMoveQuizToGroup(QuizViewModel draggedQuiz, QuizGroupViewModel targetGroup)
+    {
+        if (draggedQuiz.Document.GroupId == targetGroup.GroupId)
+            return false;
+
+        draggedQuiz.Document.GroupId = targetGroup.GroupId;
+        EnsureQuizGroupMetadata(targetGroup.GroupId);
+        draggedQuiz.NotifyChanged();
+        NormalizeQuizGroups();
+        RebuildQuizGroups();
+        ApplyQuizFilters();
+        SaveQuizzes();
+        return true;
+    }
+
+    public bool MoveQuizGroupUp(QuizGroupViewModel group)
+    {
+        return TryMoveQuizGroup(group, moveUp: true);
+    }
+
+    public bool MoveQuizGroupDown(QuizGroupViewModel group)
+    {
+        return TryMoveQuizGroup(group, moveUp: false);
+    }
+
+    private bool TryMoveQuizGroup(QuizGroupViewModel group, bool moveUp)
+    {
+        var currentIndex = QuizGroups.IndexOf(group);
+        var targetIndex = moveUp ? currentIndex - 1 : currentIndex + 1;
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= QuizGroups.Count)
+            return false;
+
+        var target = QuizGroups[targetIndex];
+        var currentMeta = EnsureQuizGroupMetadata(group.GroupId);
+        var targetMeta = EnsureQuizGroupMetadata(target.GroupId);
+        (currentMeta.SortOrder, targetMeta.SortOrder) = (targetMeta.SortOrder, currentMeta.SortOrder);
+        QuizGroups.Move(currentIndex, targetIndex);
+        SaveQuizzes();
+        return true;
+    }
+
+    public bool RenameQuizGroup(QuizGroupViewModel group, string newName)
+    {
+        var trimmed = (newName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return false;
+
+        var metadata = EnsureQuizGroupMetadata(group.GroupId);
+        metadata.Name = trimmed;
+        group.Name = trimmed;
+        SaveQuizzes();
+        return true;
+    }
+
+    public bool SetQuizGroupBackgroundColor(QuizGroupViewModel group, string backgroundColor)
+    {
+        if (string.IsNullOrWhiteSpace(backgroundColor))
+            return false;
+
+        var metadata = EnsureQuizGroupMetadata(group.GroupId);
+        metadata.BackgroundColor = backgroundColor;
+        group.SetBackground(backgroundColor);
+        SaveQuizzes();
+        return true;
+    }
+
+    public void DisbandQuizGroup(QuizGroupViewModel group, bool deleteQuizzes)
+    {
+        var quizzesInGroup = Quizzes.Where(quiz => quiz.Document.GroupId == group.GroupId).ToList();
+        if (deleteQuizzes)
+        {
+            foreach (var quiz in quizzesInGroup)
+                Quizzes.Remove(quiz);
+        }
+        else
+        {
+            foreach (var quiz in quizzesInGroup)
+            {
+                quiz.Document.GroupId = null;
+                quiz.NotifyChanged();
+            }
+        }
+
+        _quizGroupMetadata.Remove(group.GroupId);
+        NormalizeQuizGroups();
+        RebuildQuizGroups();
+        ApplyQuizFilters();
+        SaveQuizzes();
+    }
+
+    public void RemoveQuizFromGroup(QuizViewModel quiz)
+    {
+        if (quiz?.Document.GroupId is null)
+            return;
+
+        quiz.Document.GroupId = null;
+        quiz.NotifyChanged();
+        NormalizeQuizGroups();
+        RebuildQuizGroups();
+        ApplyQuizFilters();
+        SaveQuizzes();
     }
 
     private static void NormalizeQuizDocument(QuizDocument document)
@@ -1892,14 +2633,20 @@ public class MainViewModel : ViewModelBase
 
     public ObservableCollection<FlashcardSetViewModel> FlashcardSets { get; } = new();
     public bool HasFlashcardSets => FlashcardSets.Count > 0;
+    public bool HasFlashcardSetGroups => FlashcardSetGroups.Count > 0;
+    public bool HasUngroupedFlashcardSets => FlashcardSets.Any(set => !set.Document.GroupId.HasValue && MatchesFlashcardSetFilters(set));
     public int FlashcardSetCount => FlashcardSets.Count;
     public string FlashcardSetCountText => string.Format(LocalizationService.GetString("FlashcardSetCountFormat"), FlashcardSetCount);
     public ObservableCollection<MindMapViewModel> MindMaps { get; } = new();
     public bool HasMindMaps => MindMaps.Count > 0;
+    public bool HasMindMapGroups => MindMapGroups.Count > 0;
+    public bool HasUngroupedMindMaps => MindMaps.Any(map => !map.Document.GroupId.HasValue && MatchesMindMapFilters(map));
     public int MindMapCount => MindMaps.Count;
     public string MindMapCountText => string.Format(LocalizationService.GetString("MindMapCountFormat"), MindMapCount);
     public ObservableCollection<QuizViewModel> Quizzes { get; } = new();
     public bool HasQuizzes => Quizzes.Count > 0;
+    public bool HasQuizGroups => QuizGroups.Count > 0;
+    public bool HasUngroupedQuizzes => Quizzes.Any(quiz => !quiz.Document.GroupId.HasValue && MatchesQuizFilters(quiz));
     public int QuizCount => Quizzes.Count;
     public string QuizCountText => string.Format(LocalizationService.GetString("QuizCountFormat"), QuizCount);
     public ObservableCollection<FlashcardItem> Flashcards { get; set; } = new();
@@ -2270,18 +3017,21 @@ public class MainViewModel : ViewModelBase
     private void ApplyFlashcardFilters()
     {
         _flashcardSetsView.Refresh();
+        RebuildFlashcardSetGroups();
         NotifyFlashcardSetsChanged();
     }
 
     private void ApplyMindMapFilters()
     {
         _mindMapsView.Refresh();
+        RebuildMindMapGroups();
         NotifyMindMapsChanged();
     }
 
     private void ApplyQuizFilters()
     {
         _quizzesView.Refresh();
+        RebuildQuizGroups();
         NotifyQuizzesChanged();
     }
 
@@ -2290,6 +3040,14 @@ public class MainViewModel : ViewModelBase
         if (obj is not FlashcardSetViewModel set)
             return false;
 
+        if (set.Document.GroupId.HasValue)
+            return false;
+
+        return MatchesFlashcardSetFilters(set);
+    }
+
+    private bool MatchesFlashcardSetFilters(FlashcardSetViewModel set)
+    {
         if (!IsFlashcardGroupsSectionVisible)
             return false;
 
@@ -2317,6 +3075,14 @@ public class MainViewModel : ViewModelBase
         if (obj is not MindMapViewModel map)
             return false;
 
+        if (map.Document.GroupId.HasValue)
+            return false;
+
+        return MatchesMindMapFilters(map);
+    }
+
+    private bool MatchesMindMapFilters(MindMapViewModel map)
+    {
         if (!IsMindMapGroupsSectionVisible)
             return false;
 
@@ -2341,6 +3107,14 @@ public class MainViewModel : ViewModelBase
         if (obj is not QuizViewModel quiz)
             return false;
 
+        if (quiz.Document.GroupId.HasValue)
+            return false;
+
+        return MatchesQuizFilters(quiz);
+    }
+
+    private bool MatchesQuizFilters(QuizViewModel quiz)
+    {
         if (_selectedQuizTags.Count > 0)
         {
             var tags = quiz.Document.Tags ?? new List<string>();
@@ -3041,18 +3815,95 @@ public class MainViewModel : ViewModelBase
         SaveNotes();
     }
 
+    public void SetFlashcardSetSchedules(FlashcardSetViewModel flashcardSet, IEnumerable<NoteScheduleEntry>? schedules)
+    {
+        if (flashcardSet is null)
+            return;
+
+        flashcardSet.Document.Schedules = NormalizeScheduleEntries(schedules);
+        flashcardSet.Document.LastModified = DateTime.Now;
+        flashcardSet.NotifyChanged();
+        RefreshCalendarScheduledNotes();
+        SaveFlashcardSets();
+    }
+
+    public void SetMindMapSchedules(MindMapViewModel mindMap, IEnumerable<NoteScheduleEntry>? schedules)
+    {
+        if (mindMap is null)
+            return;
+
+        mindMap.Document.Schedules = NormalizeScheduleEntries(schedules);
+        mindMap.Document.LastModified = DateTime.Now;
+        mindMap.NotifyChanged();
+        RefreshCalendarScheduledNotes();
+        SaveMindMaps();
+    }
+
+    public void SetQuizSchedules(QuizViewModel quiz, IEnumerable<NoteScheduleEntry>? schedules)
+    {
+        if (quiz is null)
+            return;
+
+        quiz.Document.Schedules = NormalizeScheduleEntries(schedules);
+        quiz.Document.LastModified = DateTime.Now;
+        quiz.NotifyChanged();
+        RefreshCalendarScheduledNotes();
+        SaveQuizzes();
+    }
+
     private void RefreshCalendarScheduledNotes()
     {
         var selected = CalendarSelectedDate.Date;
-        var items = Notes
+
+        var noteItems = Notes
             .Where(MatchesSearch)
             .SelectMany(note => GetEffectiveSchedules(note.Document).Select(entry => new CalendarScheduledItemViewModel
             {
+                ItemType = ScheduledItemType.Note,
                 Note = note,
+                Title = note.Title,
                 ScheduledAt = entry.ScheduledAt,
                 ScheduleNote = entry.Note ?? string.Empty
             }))
-            .Where(item => item.ScheduledAt.Date == selected)
+            .Where(item => item.ScheduledAt.Date == selected);
+
+        var flashcardItems = FlashcardSets
+            .SelectMany(fs => (fs.Document.Schedules ?? Enumerable.Empty<NoteScheduleEntry>()).Select(entry => new CalendarScheduledItemViewModel
+            {
+                ItemType = ScheduledItemType.Flashcard,
+                FlashcardSet = fs,
+                Title = fs.Title,
+                ScheduledAt = entry.ScheduledAt,
+                ScheduleNote = entry.Note ?? string.Empty
+            }))
+            .Where(item => item.ScheduledAt.Date == selected);
+
+        var mindMapItems = MindMaps
+            .SelectMany(mm => (mm.Document.Schedules ?? Enumerable.Empty<NoteScheduleEntry>()).Select(entry => new CalendarScheduledItemViewModel
+            {
+                ItemType = ScheduledItemType.MindMap,
+                MindMap = mm,
+                Title = mm.Title,
+                ScheduledAt = entry.ScheduledAt,
+                ScheduleNote = entry.Note ?? string.Empty
+            }))
+            .Where(item => item.ScheduledAt.Date == selected);
+
+        var quizItems = Quizzes
+            .SelectMany(q => (q.Document.Schedules ?? Enumerable.Empty<NoteScheduleEntry>()).Select(entry => new CalendarScheduledItemViewModel
+            {
+                ItemType = ScheduledItemType.Quiz,
+                Quiz = q,
+                Title = q.Title,
+                ScheduledAt = entry.ScheduledAt,
+                ScheduleNote = entry.Note ?? string.Empty
+            }))
+            .Where(item => item.ScheduledAt.Date == selected);
+
+        var items = noteItems
+            .Concat(flashcardItems)
+            .Concat(mindMapItems)
+            .Concat(quizItems)
             .OrderBy(item => item.ScheduledAt)
             .ThenBy(item => item.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
@@ -3217,14 +4068,20 @@ public class MainViewModel : ViewModelBase
         {
             if (!_mindMapGroupMetadata.TryGetValue(group.Key, out var meta))
             {
-                meta = new MindMapGroupData { GroupId = group.Key, Name = "Set" };
+                meta = new MindMapGroupData { GroupId = group.Key, Name = string.Format(LocalizationService.GetString("GroupTitleFormat"), group.Key.ToString()[..4].ToUpperInvariant()), BackgroundColor = DefaultGroupBackground };
                 _mindMapGroupMetadata[group.Key] = meta;
             }
 
-            MindMapGroups.Add(new MindMapGroupViewModel(group.Key, meta.Name, group));
+            var visibleMaps = group.Where(MatchesMindMapFilters).ToList();
+            if (visibleMaps.Count == 0)
+                continue;
+
+            MindMapGroups.Add(new MindMapGroupViewModel(group.Key, meta.Name, meta.BackgroundColor, visibleMaps));
         }
 
         OnPropertyChanged(nameof(MindMapGroups));
+        OnPropertyChanged(nameof(HasMindMapGroups));
+        OnPropertyChanged(nameof(HasUngroupedMindMaps));
     }
     // Persistence: save/load notes to a local JSON file
     private static string GetNotesFilePath()

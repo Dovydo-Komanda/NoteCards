@@ -82,7 +82,8 @@ public partial class QuizPreviewWindow : Window
             AiModelDisplayName = string.IsNullOrWhiteSpace(_modelDisplayName)
                 ? existingDocument?.AiModelDisplayName ?? _sourceDocument.AiModelDisplayName
                 : _modelDisplayName,
-            SourceNoteId = existingDocument?.SourceNoteId ?? _sourceDocument.SourceNoteId
+            SourceNoteId = existingDocument?.SourceNoteId ?? _sourceDocument.SourceNoteId,
+            GroupId = existingDocument?.GroupId ?? _sourceDocument.GroupId
         };
     }
 

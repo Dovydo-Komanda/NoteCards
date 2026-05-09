@@ -15,6 +15,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using System.Windows.Markup;
 
@@ -24,6 +25,10 @@ namespace NoteCards
     {
         private const double DragScrollEdgeThreshold = 64;
         private const double DragScrollStep = 18;
+        private const double DashboardDragStartThreshold = 3;
+        private const double DashboardDragScrollEdgeThreshold = 96;
+        private const double DashboardDragScrollMinStep = 16;
+        private const double DashboardDragScrollMaxStep = 46;
         private const int SectionAnimationMs = 280;
         private const double TopSearchExpandedWidth = 320;
         private const int TopSearchAnimationMs = 300;
@@ -33,9 +38,19 @@ namespace NoteCards
         private bool _lastKnownGroupsFirst = true;
         private bool _notesLayoutRefreshQueued;
         private NoteEditorTabsWindow? _noteEditorTabsWindow;
+        private Point _dashboardListingDragStart;
+        private bool _suppressDashboardListingOpen;
+        private readonly Dictionary<Border, Brush?> _dashboardDropOriginalBorderBrushes = new();
+        private readonly Dictionary<Border, Thickness> _dashboardDropOriginalBorderThicknesses = new();
+        private DispatcherTimer? _dashboardDragScrollTimer;
+        private ScrollViewer? _dashboardDragScrollViewer;
+        private Point _dashboardDragScrollPosition;
 
         private FrameworkElement? RecentSectionBodyElement => FindName("RecentSectionBody") as FrameworkElement;
         private FrameworkElement? CalendarSectionBodyElement => FindName("CalendarSectionBody") as FrameworkElement;
+        private FrameworkElement? FlashcardCalendarSectionBodyElement => FindName("FlashcardCalendarSectionBody") as FrameworkElement;
+        private FrameworkElement? QuizCalendarSectionBodyElement => FindName("QuizCalendarSectionBody") as FrameworkElement;
+        private FrameworkElement? MindMapCalendarSectionBodyElement => FindName("MindMapCalendarSectionBody") as FrameworkElement;
         private FrameworkElement? GroupsSectionBodyElement => FindName("GroupsSectionBody") as FrameworkElement;
         private ItemsControl? GroupsItemsControlElement => FindName("GroupsItemsControl") as ItemsControl;
         private FrameworkElement? UngroupedSectionBodyElement => FindName("UngroupedSectionBody") as FrameworkElement;
@@ -158,7 +173,12 @@ namespace NoteCards
                 if (e.PropertyName == nameof(MainViewModel.IsRecentSectionExpanded))
                     AnimateSectionVisibility(RecentSectionBodyElement, vm.IsRecentSectionExpanded);
                 else if (e.PropertyName == nameof(MainViewModel.IsCalendarSectionExpanded))
+                {
                     AnimateSectionVisibility(CalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
+                    AnimateSectionVisibility(FlashcardCalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
+                    AnimateSectionVisibility(QuizCalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
+                    AnimateSectionVisibility(MindMapCalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
+                }
                 else if (e.PropertyName == nameof(MainViewModel.IsGroupsSectionExpanded))
                     AnimateSectionVisibility(GroupsSectionBodyElement, vm.IsGroupsSectionExpanded);
                 else if (e.PropertyName == nameof(MainViewModel.IsUngroupedSectionExpanded))
@@ -205,6 +225,9 @@ namespace NoteCards
 
             SetSectionVisibilityImmediately(RecentSectionBodyElement, vm.IsRecentSectionExpanded);
             SetSectionVisibilityImmediately(CalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
+            SetSectionVisibilityImmediately(FlashcardCalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
+            SetSectionVisibilityImmediately(QuizCalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
+            SetSectionVisibilityImmediately(MindMapCalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
             SetSectionVisibilityImmediately(GroupsSectionBodyElement, vm.IsGroupsSectionExpanded);
             SetSectionVisibilityImmediately(UngroupedSectionBodyElement, vm.IsUngroupedSectionExpanded);
             SetSidebarWidthImmediately(vm.SidebarWidth);
@@ -431,6 +454,12 @@ namespace NoteCards
 
             if (vm.IsCalendarSectionExpanded && window.CalendarSectionBodyElement is FrameworkElement calendar)
                 calendar.MaxHeight = double.PositiveInfinity;
+            if (vm.IsCalendarSectionExpanded && window.FlashcardCalendarSectionBodyElement is FrameworkElement fcCalendar)
+                fcCalendar.MaxHeight = double.PositiveInfinity;
+            if (vm.IsCalendarSectionExpanded && window.QuizCalendarSectionBodyElement is FrameworkElement qzCalendar)
+                qzCalendar.MaxHeight = double.PositiveInfinity;
+            if (vm.IsCalendarSectionExpanded && window.MindMapCalendarSectionBodyElement is FrameworkElement mmCalendar)
+                mmCalendar.MaxHeight = double.PositiveInfinity;
 
             if (vm.IsGroupsSectionExpanded && window.GroupsSectionBodyElement is FrameworkElement groups)
                 groups.MaxHeight = double.PositiveInfinity;
@@ -612,6 +641,85 @@ namespace NoteCards
             {
                 scrollViewer.ScrollToVerticalOffset(Math.Min(scrollViewer.ScrollableHeight, scrollViewer.VerticalOffset + DragScrollStep));
             }
+        }
+
+        private void DashboardScrollViewer_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            if (sender is not ScrollViewer scrollViewer || !HasDashboardListingDragData(e))
+                return;
+
+            StartDashboardDragAutoScroll(scrollViewer, e);
+        }
+
+        private void DashboardScrollViewer_PreviewDragLeave(object sender, DragEventArgs e)
+        {
+            if (ReferenceEquals(sender, _dashboardDragScrollViewer))
+                StopDashboardDragAutoScroll();
+        }
+
+        private void DashboardScrollViewer_Drop(object sender, DragEventArgs e)
+        {
+            if (ReferenceEquals(sender, _dashboardDragScrollViewer))
+                StopDashboardDragAutoScroll();
+        }
+
+        private void StartDashboardDragAutoScroll(ScrollViewer scrollViewer, DragEventArgs e)
+        {
+            _dashboardDragScrollViewer = scrollViewer;
+            _dashboardDragScrollPosition = e.GetPosition(scrollViewer);
+
+            _dashboardDragScrollTimer ??= new DispatcherTimer(
+                TimeSpan.FromMilliseconds(16),
+                DispatcherPriority.Render,
+                (_, _) => TickDashboardDragAutoScroll(),
+                Dispatcher);
+
+            if (!_dashboardDragScrollTimer.IsEnabled)
+                _dashboardDragScrollTimer.Start();
+        }
+
+        private void TickDashboardDragAutoScroll()
+        {
+            if (_dashboardDragScrollViewer is null)
+            {
+                StopDashboardDragAutoScroll();
+                return;
+            }
+
+            AutoScrollDuringDrag(_dashboardDragScrollViewer, _dashboardDragScrollPosition);
+        }
+
+        private void StopDashboardDragAutoScroll()
+        {
+            _dashboardDragScrollTimer?.Stop();
+            _dashboardDragScrollViewer = null;
+        }
+
+        private static void AutoScrollDuringDrag(ScrollViewer scrollViewer, Point cursorPosition)
+        {
+            if (cursorPosition.Y < DashboardDragScrollEdgeThreshold)
+            {
+                var step = GetDashboardDragScrollStep(DashboardDragScrollEdgeThreshold - cursorPosition.Y);
+                scrollViewer.ScrollToVerticalOffset(Math.Max(0, scrollViewer.VerticalOffset - step));
+            }
+            else if (cursorPosition.Y > scrollViewer.ViewportHeight - DashboardDragScrollEdgeThreshold)
+            {
+                var step = GetDashboardDragScrollStep(cursorPosition.Y - (scrollViewer.ViewportHeight - DashboardDragScrollEdgeThreshold));
+                scrollViewer.ScrollToVerticalOffset(Math.Min(scrollViewer.ScrollableHeight, scrollViewer.VerticalOffset + step));
+            }
+        }
+
+        private static double GetDashboardDragScrollStep(double edgeDistance)
+        {
+            var factor = Math.Clamp(edgeDistance / DashboardDragScrollEdgeThreshold, 0, 1);
+            return DashboardDragScrollMinStep + ((DashboardDragScrollMaxStep - DashboardDragScrollMinStep) * factor);
+        }
+
+        private static bool HasDashboardListingDragData(DragEventArgs e)
+        {
+            return e.Data.GetDataPresent(typeof(FlashcardSetViewModel))
+                   || e.Data.GetDataPresent(typeof(MindMapViewModel))
+                   || e.Data.GetDataPresent(typeof(QuizViewModel));
         }
 
         private void NotesScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -994,6 +1102,12 @@ namespace NoteCards
 
         private void OpenFlashcardSetButton_Click(object sender, RoutedEventArgs e)
         {
+            if (_suppressDashboardListingOpen)
+            {
+                _suppressDashboardListingOpen = false;
+                return;
+            }
+
             if (DataContext is not MainViewModel vm)
                 return;
 
@@ -1019,8 +1133,20 @@ namespace NoteCards
                 vm.AddOrUpdateFlashcardSet(editor.ToDocument(document));
         }
 
+        private void OpenFlashcardSetMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: FlashcardSetViewModel set })
+                OpenFlashcardSetEditor(vm, set);
+        }
+
         private void OpenQuizButton_Click(object sender, RoutedEventArgs e)
         {
+            if (_suppressDashboardListingOpen)
+            {
+                _suppressDashboardListingOpen = false;
+                return;
+            }
+
             if (DataContext is not MainViewModel vm)
                 return;
 
@@ -1107,6 +1233,12 @@ namespace NoteCards
             }
         }
 
+        private void RemoveQuizFromGroupMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: QuizViewModel quizVm })
+                vm.RemoveQuizFromGroup(quizVm);
+        }
+
         private FlashcardSetViewModel? GetFlashcardSetFromMenuSender(object sender)
         {
             if (sender is not MenuItem menuItem)
@@ -1137,8 +1269,26 @@ namespace NoteCards
                 vm.DeleteFlashcardSet(set);
         }
 
+        private void DuplicateFlashcardSetMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: FlashcardSetViewModel set })
+                vm.DuplicateFlashcardSet(set);
+        }
+
+        private void RemoveFlashcardSetFromGroupMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: FlashcardSetViewModel set })
+                vm.RemoveFlashcardSetFromGroup(set);
+        }
+
         private void OpenMindMapButton_Click(object sender, RoutedEventArgs e)
         {
+            if (_suppressDashboardListingOpen)
+            {
+                _suppressDashboardListingOpen = false;
+                return;
+            }
+
             if (sender is Button btn && btn.Tag is MindMapViewModel mindMapVm)
             {
                 OpenMindMapEditor(mindMapVm);
@@ -1192,6 +1342,12 @@ namespace NoteCards
             {
                 vm.DeleteMindMap(mindMapVm);
             }
+        }
+
+        private void RemoveMindMapFromGroupMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: MindMapViewModel mindMapVm })
+                vm.RemoveMindMapFromGroup(mindMapVm);
         }
 
         private void OpenMindMapEditor(MindMapViewModel mindMapVm)
@@ -1259,16 +1415,106 @@ namespace NoteCards
             if (e.OriginalSource is DependencyObject source && IsWithinCalendarScheduleGearButton(source))
                 return;
 
-            if (sender is Border { Tag: NoteCardViewModel noteVm })
-                OpenNoteEditor(noteVm);
+            if (sender is not Border { Tag: CalendarScheduledItemViewModel item })
+                return;
+
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            switch (item.ItemType)
+            {
+                case ScheduledItemType.Note when item.Note != null:
+                    OpenNoteEditor(item.Note);
+                    break;
+                case ScheduledItemType.Flashcard when item.FlashcardSet != null:
+                    OpenFlashcardSetEditor(vm, item.FlashcardSet);
+                    break;
+                case ScheduledItemType.MindMap when item.MindMap != null:
+                    OpenMindMapEditor(item.MindMap);
+                    break;
+                case ScheduledItemType.Quiz when item.Quiz != null:
+                    OpenQuizEditor(vm, item.Quiz);
+                    break;
+            }
         }
 
         private void CalendarScheduleGearButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button { Tag: NoteCardViewModel noteVm })
-                OpenNoteSchedule(noteVm);
+            if (sender is Button { Tag: CalendarScheduledItemViewModel item })
+            {
+                switch (item.ItemType)
+                {
+                    case ScheduledItemType.Note when item.Note != null:
+                        OpenNoteSchedule(item.Note);
+                        break;
+                    case ScheduledItemType.Flashcard when item.FlashcardSet != null:
+                        OpenFlashcardSetSchedule(item.FlashcardSet);
+                        break;
+                    case ScheduledItemType.MindMap when item.MindMap != null:
+                        OpenMindMapSchedule(item.MindMap);
+                        break;
+                    case ScheduledItemType.Quiz when item.Quiz != null:
+                        OpenQuizSchedule(item.Quiz);
+                        break;
+                }
+            }
 
             e.Handled = true;
+        }
+
+        private void OpenFlashcardSetSchedule(FlashcardSetViewModel flashcardSet)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            var schedulePanel = FindName("NoteSchedulePanelControl") as NoteSchedulePanel;
+            var subtitle = $"{LocalizationService.GetString("FlashcardsDashboard")} · {flashcardSet.Document.Title}";
+            schedulePanel?.ShowAnimated(vm, flashcardSet.Document.Schedules ?? Enumerable.Empty<NoteScheduleEntry>(),
+                entries => vm.SetFlashcardSetSchedules(flashcardSet, entries),
+                LocalizationService.GetString("CalendarAssignMenu"), subtitle);
+        }
+
+        private void OpenMindMapSchedule(MindMapViewModel mindMap)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            var schedulePanel = FindName("NoteSchedulePanelControl") as NoteSchedulePanel;
+            var subtitle = $"{LocalizationService.GetString("MindMapsDashboard")} · {mindMap.Document.Title}";
+            schedulePanel?.ShowAnimated(vm, mindMap.Document.Schedules ?? Enumerable.Empty<NoteScheduleEntry>(),
+                entries => vm.SetMindMapSchedules(mindMap, entries),
+                LocalizationService.GetString("CalendarAssignMenu"), subtitle);
+        }
+
+        private void OpenQuizSchedule(QuizViewModel quiz)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            var schedulePanel = FindName("NoteSchedulePanelControl") as NoteSchedulePanel;
+            var subtitle = $"{LocalizationService.GetString("QuizzesDashboard")} · {quiz.Document.Title}";
+            schedulePanel?.ShowAnimated(vm, quiz.Document.Schedules ?? Enumerable.Empty<NoteScheduleEntry>(),
+                entries => vm.SetQuizSchedules(quiz, entries),
+                LocalizationService.GetString("CalendarAssignMenu"), subtitle);
+        }
+
+        private void ScheduleFlashcardSetMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var set = GetFlashcardSetFromMenuSender(sender);
+            if (set != null)
+                OpenFlashcardSetSchedule(set);
+        }
+
+        private void ScheduleMindMapMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is MindMapViewModel mindMapVm)
+                OpenMindMapSchedule(mindMapVm);
+        }
+
+        private void ScheduleQuizMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is QuizViewModel quizVm)
+                OpenQuizSchedule(quizVm);
         }
 
         private void ToggleRecentSectionButton_Click(object sender, RoutedEventArgs e)
@@ -1376,6 +1622,18 @@ namespace NoteCards
         {
             if (DataContext is MainViewModel vm)
                 vm.IsCalendarFirst = false;
+        }
+
+        private void MoveDashboardContentUpButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.IsCalendarFirst = false;
+        }
+
+        private void MoveDashboardContentDownButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.IsCalendarFirst = true;
         }
 
         private void MoveSingleGroupUpButton_Click(object sender, RoutedEventArgs e)
@@ -1524,6 +1782,662 @@ namespace NoteCards
                 button.ContextMenu.PlacementTarget = button;
                 button.ContextMenu.IsOpen = true;
             }
+        }
+
+        private void ListingContextMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button menuButton)
+                return;
+
+            var cardButton = FindAncestorCardButtonWithContextMenu(menuButton);
+            if (cardButton?.ContextMenu is null)
+                return;
+
+            cardButton.ContextMenu.PlacementTarget = menuButton;
+            cardButton.ContextMenu.Placement = PlacementMode.Bottom;
+            cardButton.ContextMenu.IsOpen = true;
+            e.Handled = true;
+        }
+
+        private void DashboardListing_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _dashboardListingDragStart = e.GetPosition(this);
+        }
+
+        private void DashboardListing_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (sender is not FrameworkElement { Tag: not null } element)
+                return;
+
+            if (e.LeftButton != MouseButtonState.Pressed)
+                return;
+
+            if (IsWithinListingContextMenuButton(e.OriginalSource as DependencyObject))
+                return;
+
+            var current = e.GetPosition(this);
+            var delta = current - _dashboardListingDragStart;
+            if (Math.Abs(delta.X) < DashboardDragStartThreshold
+                && Math.Abs(delta.Y) < DashboardDragStartThreshold)
+                return;
+
+            _suppressDashboardListingOpen = true;
+            try
+            {
+                DragDrop.DoDragDrop(element, CreateDashboardListingDataObject(element.Tag), DragDropEffects.Move);
+                e.Handled = true;
+            }
+            finally
+            {
+                StopDashboardDragAutoScroll();
+            }
+        }
+
+        private void DashboardListing_PreviewDragEnter(object sender, DragEventArgs e)
+        {
+            var canDrop = CanDropDashboardListing(sender, e);
+            SetDashboardListingDropVisual(sender as DependencyObject, canDrop);
+            e.Effects = canDrop ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void DashboardListing_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            var canDrop = CanDropDashboardListing(sender, e);
+            SetDashboardListingDropVisual(sender as DependencyObject, canDrop);
+            e.Effects = canDrop ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void DashboardListing_PreviewDragLeave(object sender, DragEventArgs e)
+        {
+            SetDashboardListingDropVisual(sender as DependencyObject, false);
+            e.Handled = true;
+        }
+
+        private void DashboardListing_PreviewDrop(object sender, DragEventArgs e)
+        {
+            try
+            {
+                if (sender is not FrameworkElement targetElement)
+                    return;
+
+                TryHandleDashboardListingDrop(targetElement.Tag, e, targetElement);
+            }
+            finally
+            {
+                SetDashboardListingDropVisual(sender as DependencyObject, false);
+            }
+        }
+
+        private void DashboardGroupBorder_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            if (FindDashboardListingElementFromDragEvent(e) is FrameworkElement listingElement
+                && CanDropDashboardListing(listingElement, e))
+            {
+                e.Effects = DragDropEffects.Move;
+                return;
+            }
+
+            e.Effects = CanDropDashboardListingOnGroup(sender, e) ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void DashboardGroupBorder_PreviewDrop(object sender, DragEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm || sender is not FrameworkElement targetElement)
+                return;
+
+            if (FindDashboardListingElementFromDragEvent(e) is FrameworkElement listingElement
+                && CanDropDashboardListing(listingElement, e))
+                return;
+
+            var changed = targetElement.Tag switch
+            {
+                FlashcardSetGroupViewModel target when e.Data.GetData(typeof(FlashcardSetViewModel)) is FlashcardSetViewModel dragged
+                    => vm.TryMoveFlashcardSetToGroup(dragged, target),
+                MindMapGroupViewModel target when e.Data.GetData(typeof(MindMapViewModel)) is MindMapViewModel dragged
+                    => vm.TryMoveMindMapToGroup(dragged, target),
+                QuizGroupViewModel target when e.Data.GetData(typeof(QuizViewModel)) is QuizViewModel dragged
+                    => vm.TryMoveQuizToGroup(dragged, target),
+                _ => false
+            };
+
+            if (changed)
+                e.Handled = true;
+        }
+
+        private void DashboardUngroupedDropZone_DragOver(object sender, DragEventArgs e)
+        {
+            if (FindDashboardListingElementFromDragEvent(e) is FrameworkElement listingElement
+                && CanDropDashboardListing(listingElement, e))
+            {
+                e.Effects = DragDropEffects.Move;
+                return;
+            }
+
+            if (!CanDropDashboardListingToUngrouped(e))
+            {
+                e.Effects = DragDropEffects.None;
+                return;
+            }
+
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+        }
+
+        private void DashboardUngroupedDropZone_Drop(object sender, DragEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            if (FindDashboardListingElementFromDragEvent(e) is FrameworkElement listingElement
+                && TryHandleDashboardListingDrop(listingElement.Tag, e, listingElement))
+                return;
+
+            switch (e.Data)
+            {
+                case IDataObject data when data.GetData(typeof(FlashcardSetViewModel)) is FlashcardSetViewModel { Document.GroupId: not null } flashcardSet:
+                    vm.RemoveFlashcardSetFromGroup(flashcardSet);
+                    e.Handled = true;
+                    break;
+                case IDataObject data when data.GetData(typeof(MindMapViewModel)) is MindMapViewModel { Document.GroupId: not null } mindMap:
+                    vm.RemoveMindMapFromGroup(mindMap);
+                    e.Handled = true;
+                    break;
+                case IDataObject data when data.GetData(typeof(QuizViewModel)) is QuizViewModel { Document.GroupId: not null } quiz:
+                    vm.RemoveQuizFromGroup(quiz);
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        private static bool CanDropDashboardListingToUngrouped(DragEventArgs e)
+        {
+            return e.Data.GetData(typeof(FlashcardSetViewModel)) is FlashcardSetViewModel { Document.GroupId: not null }
+                   || e.Data.GetData(typeof(MindMapViewModel)) is MindMapViewModel { Document.GroupId: not null }
+                   || e.Data.GetData(typeof(QuizViewModel)) is QuizViewModel { Document.GroupId: not null };
+        }
+
+        private static DataObject CreateDashboardListingDataObject(object listing)
+        {
+            var data = new DataObject();
+            switch (listing)
+            {
+                case FlashcardSetViewModel flashcardSet:
+                    data.SetData(typeof(FlashcardSetViewModel), flashcardSet);
+                    break;
+                case MindMapViewModel mindMap:
+                    data.SetData(typeof(MindMapViewModel), mindMap);
+                    break;
+                case QuizViewModel quiz:
+                    data.SetData(typeof(QuizViewModel), quiz);
+                    break;
+                default:
+                    data.SetData(listing.GetType(), listing);
+                    break;
+            }
+
+            return data;
+        }
+
+        private bool TryHandleDashboardListingDrop(object? target, DragEventArgs e, FrameworkElement? targetElement = null)
+        {
+            if (DataContext is not MainViewModel vm)
+                return false;
+
+            var placeAfter = targetElement is not null && e.GetPosition(targetElement).X >= targetElement.ActualWidth / 2;
+            var handled = target switch
+            {
+                FlashcardSetViewModel flashcardTarget
+                    when e.Data.GetData(typeof(FlashcardSetViewModel)) is FlashcardSetViewModel dragged
+                         && !ReferenceEquals(dragged, flashcardTarget)
+                    => (dragged.Document.GroupId.HasValue && dragged.Document.GroupId == flashcardTarget.Document.GroupId
+                        ? vm.TryReorderFlashcardSetsWithinGroup(dragged, flashcardTarget, placeAfter)
+                        : vm.TryGroupFlashcardSets(dragged, flashcardTarget)) || true,
+                MindMapViewModel mindMapTarget
+                    when e.Data.GetData(typeof(MindMapViewModel)) is MindMapViewModel dragged
+                         && !ReferenceEquals(dragged, mindMapTarget)
+                    => (dragged.Document.GroupId.HasValue && dragged.Document.GroupId == mindMapTarget.Document.GroupId
+                        ? vm.TryReorderMindMapsWithinGroup(dragged, mindMapTarget, placeAfter)
+                        : vm.TryGroupMindMaps(dragged, mindMapTarget)) || true,
+                QuizViewModel quizTarget
+                    when e.Data.GetData(typeof(QuizViewModel)) is QuizViewModel dragged
+                         && !ReferenceEquals(dragged, quizTarget)
+                    => (dragged.Document.GroupId.HasValue && dragged.Document.GroupId == quizTarget.Document.GroupId
+                        ? vm.TryReorderQuizzesWithinGroup(dragged, quizTarget, placeAfter)
+                        : vm.TryGroupQuizzes(dragged, quizTarget)) || true,
+                _ => false
+            };
+
+            if (handled)
+            {
+                e.Effects = DragDropEffects.Move;
+                e.Handled = true;
+            }
+
+            return handled;
+        }
+
+        private FrameworkElement? FindDashboardListingElementFromDragEvent(DragEventArgs e)
+        {
+            var hit = VisualTreeHelper.HitTest(this, e.GetPosition(this))?.VisualHit;
+            return FindDashboardListingElement(hit)
+                   ?? FindDashboardListingElement(e.OriginalSource as DependencyObject);
+        }
+
+        private static FrameworkElement? FindDashboardListingElement(DependencyObject? source)
+        {
+            while (source != null)
+            {
+                if (source is FrameworkElement { Tag: FlashcardSetViewModel or MindMapViewModel or QuizViewModel } element)
+                    return element;
+
+                source = GetElementParent(source);
+            }
+
+            return null;
+        }
+
+        private static bool CanDropDashboardListingOnGroup(object sender, DragEventArgs e)
+        {
+            return sender switch
+            {
+                FrameworkElement { Tag: FlashcardSetGroupViewModel target }
+                    => e.Data.GetData(typeof(FlashcardSetViewModel)) is FlashcardSetViewModel dragged
+                       && dragged.Document.GroupId != target.GroupId,
+                FrameworkElement { Tag: MindMapGroupViewModel target }
+                    => e.Data.GetData(typeof(MindMapViewModel)) is MindMapViewModel dragged
+                       && dragged.Document.GroupId != target.GroupId,
+                FrameworkElement { Tag: QuizGroupViewModel target }
+                    => e.Data.GetData(typeof(QuizViewModel)) is QuizViewModel dragged
+                       && dragged.Document.GroupId != target.GroupId,
+                _ => false
+            };
+        }
+
+        private void MoveDashboardGroupUpButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm || sender is not Button { Tag: object group })
+                return;
+
+            switch (group)
+            {
+                case FlashcardSetGroupViewModel flashcardGroup:
+                    vm.MoveFlashcardSetGroupUp(flashcardGroup);
+                    break;
+                case MindMapGroupViewModel mindMapGroup:
+                    vm.MoveMindMapGroupUp(mindMapGroup);
+                    break;
+                case QuizGroupViewModel quizGroup:
+                    vm.MoveQuizGroupUp(quizGroup);
+                    break;
+            }
+        }
+
+        private void MoveDashboardGroupDownButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm || sender is not Button { Tag: object group })
+                return;
+
+            switch (group)
+            {
+                case FlashcardSetGroupViewModel flashcardGroup:
+                    vm.MoveFlashcardSetGroupDown(flashcardGroup);
+                    break;
+                case MindMapGroupViewModel mindMapGroup:
+                    vm.MoveMindMapGroupDown(mindMapGroup);
+                    break;
+                case QuizGroupViewModel quizGroup:
+                    vm.MoveQuizGroupDown(quizGroup);
+                    break;
+            }
+        }
+
+        private void DashboardGroupColorButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { ContextMenu: not null } button)
+            {
+                button.ContextMenu.PlacementTarget = button;
+                button.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void DashboardGroupMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { ContextMenu: not null } button)
+            {
+                button.ContextMenu.PlacementTarget = button;
+                button.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void DashboardGroupColorMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem { Tag: string colorHex } menuItem || DataContext is not MainViewModel vm)
+                return;
+
+            var group = ResolveDashboardGroupFromMenuItem(menuItem);
+            switch (group)
+            {
+                case FlashcardSetGroupViewModel flashcardGroup:
+                    vm.SetFlashcardSetGroupBackgroundColor(flashcardGroup, colorHex);
+                    break;
+                case MindMapGroupViewModel mindMapGroup:
+                    vm.SetMindMapGroupBackgroundColor(mindMapGroup, colorHex);
+                    break;
+                case QuizGroupViewModel quizGroup:
+                    vm.SetQuizGroupBackgroundColor(quizGroup, colorHex);
+                    break;
+            }
+        }
+
+        private void RenameDashboardGroupMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem || DataContext is not MainViewModel vm)
+                return;
+
+            var group = ResolveDashboardGroupFromMenuItem(menuItem);
+            var currentName = group switch
+            {
+                FlashcardSetGroupViewModel flashcardGroup => flashcardGroup.Name,
+                MindMapGroupViewModel mindMapGroup => mindMapGroup.Name,
+                QuizGroupViewModel quizGroup => quizGroup.Name,
+                _ => null
+            };
+
+            if (currentName is null)
+                return;
+
+            var dialog = new SimpleInputDialog(
+                LocalizationService.GetString("RenameGroup"),
+                LocalizationService.GetString("RenameGroupPrompt"),
+                currentName)
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            switch (group)
+            {
+                case FlashcardSetGroupViewModel flashcardGroup:
+                    vm.RenameFlashcardSetGroup(flashcardGroup, dialog.InputText);
+                    break;
+                case MindMapGroupViewModel mindMapGroup:
+                    vm.RenameMindMapGroup(mindMapGroup, dialog.InputText);
+                    break;
+                case QuizGroupViewModel quizGroup:
+                    vm.RenameQuizGroup(quizGroup, dialog.InputText);
+                    break;
+            }
+        }
+
+        private void DisbandDashboardGroupMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem || DataContext is not MainViewModel vm)
+                return;
+
+            var group = ResolveDashboardGroupFromMenuItem(menuItem);
+            if (group is null)
+                return;
+
+            var dialog = new GroupDisbandConfirmationDialog(
+                LocalizationService.GetString("DisbandGroup"),
+                LocalizationService.GetString("DisbandGroupPrompt"),
+                LocalizationService.GetString("KeepItemsUngrouped"),
+                LocalizationService.GetString("DeleteGroupItems"))
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() != true || dialog.SelectedChoice == GroupDisbandChoice.Cancel)
+                return;
+
+            var deleteItems = dialog.SelectedChoice == GroupDisbandChoice.DeleteNotes;
+            switch (group)
+            {
+                case FlashcardSetGroupViewModel flashcardGroup:
+                    vm.DisbandFlashcardSetGroup(flashcardGroup, deleteItems);
+                    break;
+                case MindMapGroupViewModel mindMapGroup:
+                    vm.DisbandMindMapGroup(mindMapGroup, deleteItems);
+                    break;
+                case QuizGroupViewModel quizGroup:
+                    vm.DisbandQuizGroup(quizGroup, deleteItems);
+                    break;
+            }
+        }
+
+        private static object? ResolveDashboardGroupFromMenuItem(MenuItem menuItem)
+        {
+            DependencyObject? current = menuItem;
+            ContextMenu? contextMenu = null;
+
+            while (current != null)
+            {
+                if (current is ContextMenu cm)
+                {
+                    contextMenu = cm;
+                    break;
+                }
+
+                current = LogicalTreeHelper.GetParent(current) ?? VisualTreeHelper.GetParent(current);
+            }
+
+            return (contextMenu?.PlacementTarget as FrameworkElement)?.DataContext
+                ?? (contextMenu?.PlacementTarget as Button)?.Tag;
+        }
+
+        private static bool CanDropDashboardListing(object sender, DragEventArgs e)
+        {
+            return sender switch
+            {
+                FrameworkElement { Tag: FlashcardSetViewModel target }
+                    => e.Data.GetData(typeof(FlashcardSetViewModel)) is FlashcardSetViewModel dragged && !ReferenceEquals(dragged, target),
+                FrameworkElement { Tag: MindMapViewModel target }
+                    => e.Data.GetData(typeof(MindMapViewModel)) is MindMapViewModel dragged && !ReferenceEquals(dragged, target),
+                FrameworkElement { Tag: QuizViewModel target }
+                    => e.Data.GetData(typeof(QuizViewModel)) is QuizViewModel dragged && !ReferenceEquals(dragged, target),
+                _ => false
+            };
+        }
+
+        private void SetDashboardListingDropVisual(DependencyObject? source, bool isActive)
+        {
+            if (source is null)
+                return;
+
+            var border = FindDashboardListingCardBorder(source);
+            if (border is null)
+                return;
+
+            if (isActive)
+            {
+                if (!_dashboardDropOriginalBorderBrushes.ContainsKey(border))
+                {
+                    _dashboardDropOriginalBorderBrushes[border] = border.BorderBrush;
+                    _dashboardDropOriginalBorderThicknesses[border] = border.BorderThickness;
+                }
+
+                border.BorderBrush = GetDashboardDropBrush();
+                AnimateBorderThickness(border, new Thickness(2), 150);
+                return;
+            }
+
+            if (!_dashboardDropOriginalBorderBrushes.TryGetValue(border, out var originalBrush)
+                || !_dashboardDropOriginalBorderThicknesses.TryGetValue(border, out var originalThickness))
+                return;
+
+            border.BorderBrush = originalBrush;
+            AnimateBorderThickness(border, originalThickness, 150);
+            _dashboardDropOriginalBorderBrushes.Remove(border);
+            _dashboardDropOriginalBorderThicknesses.Remove(border);
+        }
+
+        private Brush GetDashboardDropBrush()
+        {
+            return TryFindResource("NoteCardSelectionBorder") as Brush
+                ?? TryFindResource("MindMapSelectedBorderBrush") as Brush
+                ?? new SolidColorBrush(Color.FromRgb(74, 110, 224));
+        }
+
+        private static Border? FindDashboardListingCardBorder(DependencyObject source)
+        {
+            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(source); i++)
+            {
+                var child = VisualTreeHelper.GetChild(source, i);
+                if (child is Border border
+                    && border.BorderThickness.Left > 0
+                    && border.CornerRadius.TopLeft >= 10
+                    && border.Padding.Left >= 8)
+                    return border;
+
+                var nested = FindDashboardListingCardBorder(child);
+                if (nested is not null)
+                    return nested;
+            }
+
+            return null;
+        }
+
+        private static void AnimateBorderThickness(Border border, Thickness to, int durationMs)
+        {
+            border.BeginAnimation(Border.BorderThicknessProperty, new ThicknessAnimation
+            {
+                To = to,
+                Duration = TimeSpan.FromMilliseconds(durationMs),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            });
+        }
+
+        private void DashboardGroupedListingCard_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Border border)
+                return;
+
+            var (scale, translate) = EnsureDashboardGroupedListingTransforms(border);
+            var shadow = EnsureDashboardGroupedListingShadow(border);
+            border.Opacity = 0;
+            scale.ScaleX = 0.88;
+            scale.ScaleY = 0.88;
+            translate.Y = 0;
+            shadow.BlurRadius = 8;
+            shadow.Opacity = 0.08;
+
+            var popEasing = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.25 };
+            AnimateDouble(border, UIElement.OpacityProperty, 1, 250);
+            AnimateDouble(scale, ScaleTransform.ScaleXProperty, 1, 320, popEasing);
+            AnimateDouble(scale, ScaleTransform.ScaleYProperty, 1, 320, popEasing);
+        }
+
+        private void DashboardGroupedListingCard_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (sender is not Border border)
+                return;
+
+            var (scale, _) = EnsureDashboardGroupedListingTransforms(border);
+            var shadow = EnsureDashboardGroupedListingShadow(border);
+            AnimateDouble(scale, ScaleTransform.ScaleXProperty, 1.02, 180);
+            AnimateDouble(scale, ScaleTransform.ScaleYProperty, 1.02, 180);
+            AnimateDouble(shadow, DropShadowEffect.BlurRadiusProperty, 14, 180);
+            AnimateDouble(shadow, DropShadowEffect.OpacityProperty, 0.18, 180);
+        }
+
+        private void DashboardGroupedListingCard_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (sender is not Border border)
+                return;
+
+            var (scale, _) = EnsureDashboardGroupedListingTransforms(border);
+            var shadow = EnsureDashboardGroupedListingShadow(border);
+            AnimateDouble(scale, ScaleTransform.ScaleXProperty, 1, 200);
+            AnimateDouble(scale, ScaleTransform.ScaleYProperty, 1, 200);
+            AnimateDouble(shadow, DropShadowEffect.BlurRadiusProperty, 8, 200);
+            AnimateDouble(shadow, DropShadowEffect.OpacityProperty, 0.08, 200);
+        }
+
+        private static (ScaleTransform Scale, TranslateTransform Translate) EnsureDashboardGroupedListingTransforms(Border border)
+        {
+            if (border.RenderTransform is TransformGroup existingGroup)
+            {
+                var existingScale = existingGroup.Children.OfType<ScaleTransform>().FirstOrDefault();
+                var existingTranslate = existingGroup.Children.OfType<TranslateTransform>().FirstOrDefault();
+                if (existingScale is not null && existingTranslate is not null)
+                    return (existingScale, existingTranslate);
+            }
+
+            var scale = new ScaleTransform(1, 1);
+            var translate = new TranslateTransform();
+            var group = new TransformGroup();
+            group.Children.Add(scale);
+            group.Children.Add(translate);
+            border.RenderTransformOrigin = new Point(0.5, 0.5);
+            border.RenderTransform = group;
+            return (scale, translate);
+        }
+
+        private static DropShadowEffect EnsureDashboardGroupedListingShadow(Border border)
+        {
+            if (border.Effect is DropShadowEffect shadow
+                && border.ReadLocalValue(UIElement.EffectProperty) != DependencyProperty.UnsetValue)
+                return shadow;
+
+            shadow = new DropShadowEffect
+            {
+                Color = Colors.Black,
+                Opacity = 0.08,
+                BlurRadius = 8,
+                ShadowDepth = 1,
+                Direction = 270
+            };
+            border.Effect = shadow;
+            return shadow;
+        }
+
+        private static void AnimateDouble(IAnimatable target, DependencyProperty property, double to, int durationMs, IEasingFunction? easingFunction = null)
+        {
+            target.BeginAnimation(property, new DoubleAnimation
+            {
+                To = to,
+                Duration = TimeSpan.FromMilliseconds(durationMs),
+                EasingFunction = easingFunction ?? new CubicEase { EasingMode = EasingMode.EaseOut }
+            });
+        }
+
+        private static bool IsWithinListingContextMenuButton(DependencyObject? source)
+        {
+            while (source != null)
+            {
+                if (source is Button button && string.Equals(button.Name, "ListingContextMenuButton", StringComparison.Ordinal))
+                    return true;
+
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            return false;
+        }
+
+        private static Button? FindAncestorCardButtonWithContextMenu(DependencyObject source)
+        {
+            var current = GetElementParent(source);
+            while (current != null)
+            {
+                if (current is Button { ContextMenu: not null } button)
+                    return button;
+
+                current = GetElementParent(current);
+            }
+
+            return null;
+        }
+
+        private static DependencyObject? GetElementParent(DependencyObject source)
+        {
+            return source is FrameworkElement frameworkElement && frameworkElement.Parent is not null
+                ? frameworkElement.Parent
+                : VisualTreeHelper.GetParent(source);
         }
 
         private void GroupColorButton_Click(object sender, RoutedEventArgs e)
@@ -1731,57 +2645,5 @@ namespace NoteCards
                 vm.DeleteMindMapGroup(group);
         }
 
-        private void AddMindMapToSetMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            var map = GetMindMapFromMenuSender(sender);
-            if (map is null) return;
-            if (DataContext is not MainViewModel vm) return;
-
-            if (!vm.MindMapGroups.Any())
-            {
-                var nameDialog = new SimpleInputDialog("Create set", "Enter a name for the new set:", "") { Owner = this };
-                if (nameDialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(nameDialog.InputText))
-                {
-                    var newGroup = vm.CreateMindMapGroup(nameDialog.InputText!);
-                    vm.AddMindMapToGroup(map, newGroup);
-                    vm.RebuildMindMapGroups();
-                }
-                return;
-            }
-
-            var setNames = string.Join("\n", vm.MindMapGroups.Select((g, i) => $"{i + 1}. {g.Name}"));
-            var pickDialog = new SimpleInputDialog(
-                "Add to set",
-                $"Existing sets:\n{setNames}\n\nType a set name to add to it, or a new name to create one:",
-                "")
-            { Owner = this };
-
-            if (pickDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(pickDialog.InputText))
-                return;
-
-            var input = pickDialog.InputText.Trim();
-            var existing = vm.MindMapGroups.FirstOrDefault(
-                g => g.Name.Equals(input, StringComparison.OrdinalIgnoreCase));
-
-            if (existing is not null)
-                vm.AddMindMapToGroup(map, existing);
-            else
-            {
-                var newGroup = vm.CreateMindMapGroup(input);
-                vm.AddMindMapToGroup(map, newGroup);
-            }
-            vm.RebuildMindMapGroups();
-        }
-
-        private void RemoveMindMapFromSetMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            var map = GetMindMapFromMenuSender(sender);
-            if (map is null) return;
-            if (DataContext is not MainViewModel vm) return;
-
-            map.Document.GroupId = null;
-            vm.SaveMindMaps();
-            vm.RebuildMindMapGroups();
-        }
     }
 }

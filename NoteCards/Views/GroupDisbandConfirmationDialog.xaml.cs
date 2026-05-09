@@ -24,7 +24,7 @@ namespace NoteCards.Views
         public string CancelText { get; }
         public GroupDisbandChoice SelectedChoice { get; private set; } = GroupDisbandChoice.Cancel;
 
-        public GroupDisbandConfirmationDialog(string? title = null, string? message = null)
+        public GroupDisbandConfirmationDialog(string? title = null, string? message = null, string? keepText = null, string? deleteText = null)
         {
             TitleText = string.IsNullOrWhiteSpace(title)
                 ? LocalizationService.GetString("DisbandGroup")
@@ -34,8 +34,12 @@ namespace NoteCards.Views
                 ? LocalizationService.GetString("DisbandGroupPrompt")
                 : message;
 
-            KeepNotesText = LocalizationService.GetString("KeepNotesUngrouped");
-            DeleteNotesText = LocalizationService.GetString("DeleteGroupNotes");
+            KeepNotesText = string.IsNullOrWhiteSpace(keepText)
+                ? LocalizationService.GetString("KeepNotesUngrouped")
+                : keepText;
+            DeleteNotesText = string.IsNullOrWhiteSpace(deleteText)
+                ? LocalizationService.GetString("DeleteGroupNotes")
+                : deleteText;
             CancelText = LocalizationService.GetString("Cancel");
 
             InitializeComponent();

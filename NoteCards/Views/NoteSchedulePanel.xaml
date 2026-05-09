@@ -322,10 +322,16 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="{Binding [CalendarAssignTitle], Source={StaticResource Loc}}"
+                        <TextBlock x:Name="ScheduleTitleText"
+                                   Text="{Binding [CalendarAssignTitle], Source={StaticResource Loc}}"
                                    FontSize="20"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextColor}"/>
+                        <TextBlock x:Name="ScheduleSubtitleText"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextColorSecondary}"
+                                   Margin="1,5,0,0"
+                                   Visibility="Collapsed"/>
                     </StackPanel>
                     <Button Grid.Column="1"
                             Style="{StaticResource ScheduleCloseIconButtonStyle}"

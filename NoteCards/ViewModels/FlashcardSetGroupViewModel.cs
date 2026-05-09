@@ -4,18 +4,18 @@ using System.Windows.Media;
 
 namespace NoteCards.ViewModels;
 
-public class MindMapGroupViewModel : ViewModelBase
+public sealed class FlashcardSetGroupViewModel : ViewModelBase
 {
     private string _name;
     private Brush _backgroundBrush;
 
-    public MindMapGroupViewModel(Guid groupId, string name, string backgroundColor, IEnumerable<MindMapViewModel> maps)
+    public FlashcardSetGroupViewModel(Guid groupId, string name, string backgroundColor, IEnumerable<FlashcardSetViewModel> sets)
     {
         GroupId = groupId;
         _name = name;
         BackgroundColor = backgroundColor;
         _backgroundBrush = CreateBrush(backgroundColor);
-        MindMaps = new ObservableCollection<MindMapViewModel>(maps);
+        Sets = new ObservableCollection<FlashcardSetViewModel>(sets);
     }
 
     public Guid GroupId { get; }
@@ -34,7 +34,7 @@ public class MindMapGroupViewModel : ViewModelBase
         private set => SetProperty(ref _backgroundBrush, value);
     }
 
-    public ObservableCollection<MindMapViewModel> MindMaps { get; }
+    public ObservableCollection<FlashcardSetViewModel> Sets { get; }
 
     public void SetBackground(string backgroundColor)
     {

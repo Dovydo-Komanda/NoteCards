@@ -121,7 +121,8 @@ public partial class FlashcardsPreviewWindow : Window
             LastModified = DateTime.Now,
             AiModelDisplayName = string.IsNullOrWhiteSpace(_modelDisplayName)
                 ? existingDocument?.AiModelDisplayName ?? string.Empty
-                : _modelDisplayName
+                : _modelDisplayName,
+            GroupId = existingDocument?.GroupId
         };
     }
 

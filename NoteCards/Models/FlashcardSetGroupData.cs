@@ -1,6 +1,6 @@
-﻿namespace NoteCards.Models;
+namespace NoteCards.Models;
 
-public class MindMapGroupData
+public sealed class FlashcardSetGroupData
 {
     public Guid GroupId { get; set; }
     public string Name { get; set; } = string.Empty;

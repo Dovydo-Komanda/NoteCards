@@ -11,4 +11,6 @@ public sealed class FlashcardSetDocument
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastModified { get; set; } = DateTime.Now;
     public string AiModelDisplayName { get; set; } = string.Empty;
+    public Guid? GroupId { get; set; }
+    public List<NoteScheduleEntry> Schedules { get; set; } = new();
 }

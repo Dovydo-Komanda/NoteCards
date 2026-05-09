@@ -33,6 +33,8 @@ public sealed class FlashcardSetViewModel : ViewModelBase
         ? string.Join("   ", Document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => $"#{tag.Trim()}"))
         : string.Empty;
 
+    public bool HasSchedule => Document.Schedules?.Any() == true;
+
     public bool IsAiGenerated => !string.IsNullOrWhiteSpace(Document.AiModelDisplayName);
 
     public string AiGeneratedTooltip => IsAiGenerated
@@ -48,6 +50,7 @@ public sealed class FlashcardSetViewModel : ViewModelBase
         OnPropertyChanged(nameof(SetCountText));
         OnPropertyChanged(nameof(HasTags));
         OnPropertyChanged(nameof(TagsDisplay));
+        OnPropertyChanged(nameof(HasSchedule));
         OnPropertyChanged(nameof(IsAiGenerated));
         OnPropertyChanged(nameof(AiGeneratedTooltip));
     }

@@ -10,4 +10,6 @@ public sealed class QuizDocument
     public DateTime LastModified { get; set; } = DateTime.Now;
     public string AiModelDisplayName { get; set; } = string.Empty;
     public Guid? SourceNoteId { get; set; }
+    public Guid? GroupId { get; set; }
+    public List<NoteScheduleEntry> Schedules { get; set; } = new();
 }

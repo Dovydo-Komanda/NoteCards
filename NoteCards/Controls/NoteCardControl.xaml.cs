@@ -4,6 +4,7 @@ using NoteCards.Views;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 
@@ -54,6 +55,18 @@ public partial class NoteCardControl : UserControl
     private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _dragStart = e.GetPosition(this);
+    }
+
+    private void OnPreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (Window.GetWindow(this) is MainWindow { DataContext: MainViewModel { IsMassSelectMode: true } })
+            return;
+
+        if (DataContext is NoteCardViewModel vm)
+            vm.IsMenuVisible = true;
+
+        OpenContextMenu(this, PlacementMode.MousePoint);
+        e.Handled = true;
     }
 
     private void OnMouseMove(object sender, MouseEventArgs e)
@@ -241,11 +254,19 @@ public partial class NoteCardControl : UserControl
 
     private void OnMenuButtonClick(object sender, RoutedEventArgs e)
     {
-        if (sender is Button button && button.ContextMenu != null)
-        {
-            button.ContextMenu.PlacementTarget = button;
-            button.ContextMenu.IsOpen = true;
-        }
+        if (sender is Button button)
+            OpenContextMenu(button, PlacementMode.Bottom);
+    }
+
+    private void OpenContextMenu(UIElement placementTarget, PlacementMode placement)
+    {
+        if (MenuButton.ContextMenu == null)
+            return;
+
+        MenuButton.ContextMenu.DataContext = DataContext;
+        MenuButton.ContextMenu.PlacementTarget = placementTarget;
+        MenuButton.ContextMenu.Placement = placement;
+        MenuButton.ContextMenu.IsOpen = true;
     }
 
     private void OnOpenMenuClick(object sender, RoutedEventArgs e)

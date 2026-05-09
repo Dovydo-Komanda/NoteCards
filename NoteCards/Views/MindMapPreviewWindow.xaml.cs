@@ -630,10 +630,7 @@ public partial class MindMapPreviewWindow : Window
                 : isRoot ? Color.FromRgb(47, 92, 208) : Color.FromRgb(194, 203, 220)),
             Background = nodeBackground,
             Padding = new Thickness(12, 8, 12, 8),
-            Cursor = node.HasChildren ? Cursors.Hand : Cursors.Arrow,
-            ToolTip = node.HasChildren
-            ? LocalizationService.GetString(node.IsExpanded ? "MindMapCollapseNode" : "MindMapExpandNode")
-            : null
+            Cursor = Cursors.Hand
         };
 
         if (_searchMatches.Contains(node))
@@ -714,19 +711,6 @@ public partial class MindMapPreviewWindow : Window
 
         border.Child = mainPanel;
 
-        border.MouseLeftButtonUp += (_, e) =>
-        {
-            if (node.HasChildren)
-            {
-                node.IsExpanded = !node.IsExpanded;
-                RebuildMap();
-            }
-
-            _selectedNode = node;
-            RebuildMap();
-            e.Handled = true;
-        };
-
             border.MouseLeftButtonDown += (_, e) =>
             {
                 if (e.ClickCount == 2)
@@ -772,17 +756,44 @@ public partial class MindMapPreviewWindow : Window
 
             border.MouseLeftButtonUp += (_, e) =>
             {
-                if (!_isDraggingNode || _draggedNode != node)
+                if (_isDraggingNode && _draggedNode == node)
+                {
+                    _isDraggingNode = false;
+                    _draggedNode = null;
+                    _draggedBorder = null;
+                    border.ReleaseMouseCapture();
+                    _selectedNode = node;
+                    RebuildMap();
+                    e.Handled = true;
                     return;
+                }
 
-                _isDraggingNode = false;
-                _draggedNode = null;
-                _draggedBorder = null;
-                border.ReleaseMouseCapture();
+                if (!ReferenceEquals(_selectedNode, node))
+                {
+                    _selectedNode = node;
+                    RebuildMap();
+                }
+
                 e.Handled = true;
             };
 
             border.ContextMenu = new ContextMenu();
+            border.ContextMenuOpening += (_, _) =>
+            {
+                _selectedNode = node;
+            };
+
+        if (node.HasChildren)
+        {
+            var toggleExpansionMenuItem = new MenuItem
+            {
+                Header = LocalizationService.GetString(node.IsExpanded ? "MindMapCollapseNode" : "MindMapExpandNode"),
+                Tag = node
+            };
+            toggleExpansionMenuItem.Click += (s, e) => ToggleNodeExpansion(node);
+            border.ContextMenu.Items.Add(toggleExpansionMenuItem);
+            border.ContextMenu.Items.Add(new Separator());
+        }
 
         var addChildMenuItem = new MenuItem
         {
@@ -837,6 +848,16 @@ public partial class MindMapPreviewWindow : Window
 
         foreach (var child in node.Children)
             DrawNodes(child);
+    }
+
+    private void ToggleNodeExpansion(MindMapNode node)
+    {
+        if (!node.HasChildren)
+            return;
+
+        node.IsExpanded = !node.IsExpanded;
+        _selectedNode = node;
+        RebuildMap();
     }
 
     private static CornerRadius GetCornerRadius(string? nodeShape, bool isRoot)

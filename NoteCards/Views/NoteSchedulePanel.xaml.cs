@@ -18,6 +18,7 @@ public partial class NoteSchedulePanel : UserControl
     private bool _isClosing;
     private MainViewModel? _mainViewModel;
     private NoteCardViewModel? _selectedNote;
+    private Action<IEnumerable<NoteScheduleEntry>>? _saveCallback;
 
     public ObservableCollection<NoteScheduleEntry> ScheduleItems { get; } = new();
 
@@ -31,9 +32,55 @@ public partial class NoteSchedulePanel : UserControl
     {
         _mainViewModel = viewModel;
         _selectedNote = note;
+        _saveCallback = null;
+        ScheduleTitleText.Text = NoteCards.Localization.LocalizationService.GetString("CalendarAssignTitle");
+        ScheduleSubtitleText.Text = note.Document.Title ?? string.Empty;
+        ScheduleSubtitleText.Visibility = string.IsNullOrEmpty(ScheduleSubtitleText.Text) ? Visibility.Collapsed : Visibility.Visible;
 
         ScheduleItems.Clear();
         foreach (var schedule in BuildWorkingSchedules(note))
+            ScheduleItems.Add(schedule);
+
+        PopulateTimeSelectors();
+        SetEntryEditorsFromNow();
+
+        _isClosing = false;
+        Visibility = Visibility.Visible;
+        IsHitTestVisible = true;
+
+        OverlayRoot.BeginAnimation(OpacityProperty, null);
+        PanelCard.BeginAnimation(OpacityProperty, null);
+        var translate = EnsurePanelTranslate();
+        translate.BeginAnimation(TranslateTransform.YProperty, null);
+
+        OverlayRoot.Opacity = 0;
+        PanelCard.Opacity = 0;
+        translate.Y = PanelOffsetY;
+
+        var overlayDuration = TimeSpan.FromMilliseconds(OverlayAnimationMs);
+        var panelDuration = TimeSpan.FromMilliseconds(PanelAnimationMs);
+        var easeOut = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+        OverlayRoot.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, overlayDuration) { EasingFunction = easeOut });
+        PanelCard.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, panelDuration) { EasingFunction = easeOut });
+        translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(PanelOffsetY, 0, panelDuration) { EasingFunction = easeOut });
+    }
+
+    public void ShowAnimated(MainViewModel viewModel, IEnumerable<NoteScheduleEntry> existingSchedules, Action<IEnumerable<NoteScheduleEntry>> onSave, string title, string subtitle = "")
+    {
+        _mainViewModel = viewModel;
+        _selectedNote = null;
+        _saveCallback = onSave;
+        ScheduleTitleText.Text = title;
+        ScheduleSubtitleText.Text = subtitle;
+        ScheduleSubtitleText.Visibility = string.IsNullOrEmpty(subtitle) ? Visibility.Collapsed : Visibility.Visible;
+
+        ScheduleItems.Clear();
+        var sorted = existingSchedules
+            .Select(e => new NoteScheduleEntry { ScheduledAt = e.ScheduledAt, Note = e.Note ?? string.Empty })
+            .OrderBy(e => e.ScheduledAt)
+            .ThenBy(e => e.Note, StringComparer.CurrentCultureIgnoreCase);
+        foreach (var schedule in sorted)
             ScheduleItems.Add(schedule);
 
         PopulateTimeSelectors();
@@ -158,18 +205,24 @@ public partial class NoteSchedulePanel : UserControl
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_mainViewModel != null && _selectedNote != null)
+        if (_saveCallback != null)
+            _saveCallback(ScheduleItems);
+        else if (_mainViewModel != null && _selectedNote != null)
             _mainViewModel.SetNoteSchedules(_selectedNote, ScheduleItems);
 
+        _saveCallback = null;
         HideAnimated();
     }
 
     private void ClearButton_Click(object sender, RoutedEventArgs e)
     {
         ScheduleItems.Clear();
-        if (_mainViewModel != null && _selectedNote != null)
+        if (_saveCallback != null)
+            _saveCallback(ScheduleItems);
+        else if (_mainViewModel != null && _selectedNote != null)
             _mainViewModel.SetNoteSchedules(_selectedNote, ScheduleItems);
 
+        _saveCallback = null;
         HideAnimated();
     }
 

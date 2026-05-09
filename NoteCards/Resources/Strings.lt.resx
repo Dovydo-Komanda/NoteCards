@@ -43,6 +43,8 @@
   <data name="FlashcardsGeneratedWithModel" xml:space="preserve"><value>Sugeneruota su modeliu: {0}</value></data>
   <data name="KeepNotesUngrouped" xml:space="preserve"><value>Palikti užrašus nesugrupuotus</value></data>
   <data name="DeleteGroupNotes" xml:space="preserve"><value>Ištrinti grupės užrašus</value></data>
+  <data name="KeepItemsUngrouped" xml:space="preserve"><value>Palikti elementus nesugrupuotus</value></data>
+  <data name="DeleteGroupItems" xml:space="preserve"><value>Ištrinti grupės elementus</value></data>
   <data name="Theme" xml:space="preserve"><value>Tema:</value></data>
   <data name="ViewMode" xml:space="preserve"><value>Peržiūros režimas</value></data>
   <data name="ViewModeGrid" xml:space="preserve"><value>Tinklelis</value></data>
@@ -65,6 +67,8 @@
   <data name="MoveUngroupedSectionDown" xml:space="preserve"><value>Perkelti nesugrupuotų sekciją žemyn</value></data>
   <data name="MoveCalendarSectionUp" xml:space="preserve"><value>Perkelti kalendoriaus sekciją aukštyn</value></data>
   <data name="MoveCalendarSectionDown" xml:space="preserve"><value>Perkelti kalendoriaus sekciją žemyn</value></data>
+  <data name="MoveSectionUp" xml:space="preserve"><value>Perkelti sekciją aukštyn</value></data>
+  <data name="MoveSectionDown" xml:space="preserve"><value>Perkelti sekciją žemyn</value></data>
   <data name="ToggleUngroupedSection" xml:space="preserve"><value>Rodyti / slėpti nesugrupuotus užrašus</value></data>
   <data name="UserActivitySummaryTitle" xml:space="preserve"><value>Veiklos suvestinė</value></data>
   <data name="StatsTotalNotesFormat" xml:space="preserve"><value>Iš viso užrašų: {0}</value></data>
@@ -136,16 +140,21 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FontButtonFormat" xml:space="preserve"><value>Šriftas: {0}, {1}</value></data>
   <data name="Groups" xml:space="preserve"><value>Grupės</value></data>
   <data name="UngroupedNotes" xml:space="preserve"><value>Nesugrupuoti užrašai</value></data>
+  <data name="UngroupedItems" xml:space="preserve"><value>Nesugrupuoti</value></data>
   <data name="GroupTitleFormat" xml:space="preserve"><value>Grupė {0}</value></data>
   <data name="RemoveFromGroup" xml:space="preserve"><value>Pašalinti iš grupės</value></data>
   <data name="RenameGroup" xml:space="preserve"><value>Pervadinti grupę</value></data>
   <data name="RenameGroupPrompt" xml:space="preserve"><value>Įveskite naują grupės pavadinimą:</value></data>
   <data name="GroupBackgroundColor" xml:space="preserve"><value>Grupės fono spalva</value></data>
   <data name="GroupColorDefault" xml:space="preserve"><value>Numatyta mėlyna</value></data>
+  <data name="GroupColorBlue" xml:space="preserve"><value>Mėlyna</value></data>
   <data name="GroupColorMint" xml:space="preserve"><value>Mėtinė</value></data>
   <data name="GroupColorRose" xml:space="preserve"><value>Rožinė</value></data>
   <data name="GroupColorAmber" xml:space="preserve"><value>Gintarinė</value></data>
   <data name="GroupColorLilac" xml:space="preserve"><value>Alyvinė</value></data>
+  <data name="GroupColorTeal" xml:space="preserve"><value>Žalsvai melsva</value></data>
+  <data name="GroupColorSlate" xml:space="preserve"><value>Pilka</value></data>
+  <data name="GroupColorPeach" xml:space="preserve"><value>Persikinė</value></data>
   <data name="DisbandGroup" xml:space="preserve"><value>Išformuoti grupę</value></data>
   <data name="DisbandGroupPrompt" xml:space="preserve"><value>Pasirinkite, ką daryti su šia grupe.</value></data>
   <data name="DropToUngroup" xml:space="preserve"><value>Numeskite čia, kad pašalintumėte užrašą iš grupės</value></data>
@@ -216,7 +225,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="CalendarAddSchedule" xml:space="preserve"><value>Pridėti priminimą</value></data>
   <data name="CalendarRemoveSchedule" xml:space="preserve"><value>Pašalinti priminimą</value></data>
   <data name="CalendarEditSchedule" xml:space="preserve"><value>Redaguoti planavimą</value></data>
-  <data name="CalendarNoSchedulesForDay" xml:space="preserve"><value>Šiai dienai suplanuotų užrašų nėra.</value></data>
+  <data name="CalendarNoSchedulesForDay" xml:space="preserve"><value>Šiai dienai suplanuotų įrašų nėra.</value></data>
   <data name="CalendarClearSchedule" xml:space="preserve"><value>Išvalyti planavimą</value></data>
   <data name="CalendarDateRequired" xml:space="preserve"><value>Pasirinkite priminimo datą.</value></data>
   <data name="MassSelectModeTitle" xml:space="preserve"><value>Pažymėti užrašą</value></data>
@@ -279,7 +288,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardsEditorTitle" xml:space="preserve"><value>Kortelių redaktorius</value></data>
   <data name="NotesDashboard" xml:space="preserve"><value>Užrašai</value></data>
   <data name="FlashcardsDashboard" xml:space="preserve"><value>Kortelės</value></data>
-  <data name="FlashcardGroupsDashboardTitle" xml:space="preserve"><value>Mokymosi kortelių grupės</value></data>
+  <data name="FlashcardGroupsDashboardTitle" xml:space="preserve"><value>Mokymosi kortelės</value></data>
   <data name="FlashcardsEmptyDashboardPrompt" xml:space="preserve"><value>Pradėkite sukurdami mokymosi korteles</value></data>
   <data name="CreateFlashcards" xml:space="preserve"><value>Sukurti flashcards</value></data>
   <data name="FlashcardSetCountFormat" xml:space="preserve"><value>{0} rinkiniai(-ių)</value></data>
@@ -400,6 +409,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="MindMapAddSibling" xml:space="preserve"><value>Pridėti gretimą šaką</value></data>
   <data name="MindMapAddChildPrompt" xml:space="preserve"><value>Įveskite vaikinės šakos tekstą:</value></data>
   <data name="MindMapAddSiblingPrompt" xml:space="preserve"><value>Įveskite gretimos šakos tekstą:</value></data>
+  <data name="MindMapEditNodePrompt" xml:space="preserve"><value>Įveskite šakos pavadinimą:</value></data>
   <data name="MindMapSelectNodeToAddChild" xml:space="preserve"><value>Pasirinkite mazgą, kuriam pridėti vaikinę šaką.</value></data>
   <data name="MindMapSelectNodeToAddSibling" xml:space="preserve"><value>Pasirinkite mazgą, kuriam pridėti gretimą šaką.</value></data>
   <data name="MindMapCannotAddSiblingToRoot" xml:space="preserve"><value>Šakninis mazgas negali turėti gretimų šakų.</value></data>
