@@ -131,7 +131,14 @@ public class MainViewModel : ViewModelBase
             Questions = source.Questions.Select(CloneQuizQuestion).ToList(),
             CreatedAt = DateTime.UtcNow,
             LastModified = DateTime.Now,
-            AiModelDisplayName = source.AiModelDisplayName
+            AiModelDisplayName = source.AiModelDisplayName,
+            SourceNoteId = source.SourceNoteId,
+            GroupId = source.GroupId,
+            Schedules = source.Schedules?.Select(schedule => new NoteScheduleEntry
+            {
+                ScheduledAt = schedule.ScheduledAt,
+                Note = schedule.Note
+            }).ToList() ?? new List<NoteScheduleEntry>()
         };
     }
 
@@ -1495,6 +1502,7 @@ public class MainViewModel : ViewModelBase
             existing.Document.AiModelDisplayName = document.AiModelDisplayName;
             existing.Document.SourceNoteId = document.SourceNoteId;
             existing.Document.GroupId = document.GroupId;
+            existing.Document.Schedules = document.Schedules;
             existing.NotifyChanged();
         }
 
@@ -1542,6 +1550,11 @@ public class MainViewModel : ViewModelBase
 
         var json = JsonSerializer.Serialize(store, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(path, json);
+    }
+
+    public NoteCardViewModel? FindNoteById(Guid noteId)
+    {
+        return Notes.FirstOrDefault(note => note.Document.Id == noteId);
     }
 
     private void ReorderQuizzes()

@@ -41,6 +41,10 @@
   <data name="FlashcardModelWarningPrompt" xml:space="preserve"><value>Šis kompiuteris gali neturėti pakankamai RAM modeliui {0}. Tęsti vis tiek?</value></data>
   <data name="ContinueAnyway" xml:space="preserve"><value>Tęsti vis tiek</value></data>
   <data name="FlashcardsGeneratedWithModel" xml:space="preserve"><value>Sugeneruota su modeliu: {0}</value></data>
+  <data name="QuizLinkedNoteNone" xml:space="preserve"><value>Nėra susieto užrašo</value></data>
+  <data name="QuizLinkedNoteNoneTooltip" xml:space="preserve"><value>Šis testas nėra susietas su užrašu.</value></data>
+  <data name="QuizLinkedNoteOpenTooltip" xml:space="preserve"><value>Atidaryti susietą užrašą: {0}</value></data>
+  <data name="QuizLinkedNoteSelectorTooltip" xml:space="preserve"><value>Pasirinkite šio testo šaltinio užrašą.</value></data>
   <data name="KeepNotesUngrouped" xml:space="preserve"><value>Palikti užrašus nesugrupuotus</value></data>
   <data name="DeleteGroupNotes" xml:space="preserve"><value>Ištrinti grupės užrašus</value></data>
   <data name="KeepItemsUngrouped" xml:space="preserve"><value>Palikti elementus nesugrupuotus</value></data>

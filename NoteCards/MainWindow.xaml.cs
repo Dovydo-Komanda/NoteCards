@@ -1175,13 +1175,27 @@ namespace NoteCards
                 }
             };
 
-            var editor = new QuizPreviewWindow(document, document.AiModelDisplayName, document.Title)
+            var editor = new QuizPreviewWindow(
+                document,
+                vm.Notes.Select(note => new QuizPreviewWindow.QuizNoteLinkOption(note.Document.Id, note.Document.Title)),
+                document.AiModelDisplayName,
+                document.Title,
+                noteId => OpenNoteById(vm, noteId))
             {
                 Owner = this
             };
 
             if (editor.ShowDialog() == true)
                 vm.AddOrUpdateQuiz(editor.ToDocument(quiz?.Document));
+        }
+
+        private void OpenNoteById(MainViewModel vm, Guid noteId)
+        {
+            var note = vm.FindNoteById(noteId);
+            if (note is null)
+                return;
+
+            OpenNoteEditor(note);
         }
 
         private QuizViewModel? GetQuizFromMenuSender(object sender)

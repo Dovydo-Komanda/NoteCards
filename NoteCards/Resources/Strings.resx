@@ -41,6 +41,10 @@
   <data name="FlashcardModelWarningPrompt" xml:space="preserve"><value>This computer may not have enough RAM for {0}. Continue anyway?</value></data>
   <data name="ContinueAnyway" xml:space="preserve"><value>Continue anyway</value></data>
   <data name="FlashcardsGeneratedWithModel" xml:space="preserve"><value>Generated with model: {0}</value></data>
+  <data name="QuizLinkedNoteNone" xml:space="preserve"><value>No linked note</value></data>
+  <data name="QuizLinkedNoteNoneTooltip" xml:space="preserve"><value>This quiz is not linked to a note.</value></data>
+  <data name="QuizLinkedNoteOpenTooltip" xml:space="preserve"><value>Open linked note: {0}</value></data>
+  <data name="QuizLinkedNoteSelectorTooltip" xml:space="preserve"><value>Select the source note linked to this quiz.</value></data>
   <data name="KeepNotesUngrouped" xml:space="preserve"><value>Keep notes ungrouped</value></data>
   <data name="DeleteGroupNotes" xml:space="preserve"><value>Delete group notes</value></data>
   <data name="KeepItemsUngrouped" xml:space="preserve"><value>Keep items ungrouped</value></data>

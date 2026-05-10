@@ -14,6 +14,7 @@ public sealed class QuizConversionService
     public async Task<QuizDocument?> ConvertToQuizAsync(
         string noteTitle,
         string noteText,
+        Guid? sourceNoteId = null,
         IProgress<BundledModelHostService.FlashcardProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -66,7 +67,8 @@ public sealed class QuizConversionService
             return new QuizDocument
             {
                 Title = ResolveQuizTitle(normalizedNoteTitle, noteText),
-                Questions = parsedQuestions
+                Questions = parsedQuestions,
+                SourceNoteId = sourceNoteId
             };
         }
 
@@ -97,7 +99,8 @@ public sealed class QuizConversionService
             return new QuizDocument
             {
                 Title = ResolveQuizTitle(normalizedNoteTitle, noteText),
-                Questions = repairedOnlyQuestions
+                Questions = repairedOnlyQuestions,
+                SourceNoteId = sourceNoteId
             };
         }
 

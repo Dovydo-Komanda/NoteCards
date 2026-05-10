@@ -770,6 +770,7 @@ namespace NoteCards
                 var quiz = await _quizConversionService.ConvertToQuizAsync(
                     documentTitle,
                     plainText,
+                    _currentDocument?.Id,
                     progress,
                     _testConversionCancellationSource.Token);
                 RestoreAutoSaveAfterAi(ref restoreAutoSave);
@@ -790,7 +791,7 @@ namespace NoteCards
                 quiz.SourceNoteId = _currentDocument?.Id;
                 quiz.Tags = ParseTags(TagsTextBox.Text).ToList();
 
-                var preview = new QuizPreviewWindow(quiz, modelDisplayName, documentTitle)
+                var preview = new QuizPreviewWindow(quiz, null, modelDisplayName, documentTitle)
                 {
                     Owner = GetDialogOwnerWindow()
                 };

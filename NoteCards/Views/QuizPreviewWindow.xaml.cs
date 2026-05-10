@@ -19,7 +19,7 @@ using System.Windows.Xps.Packaging;
 
 namespace NoteCards.Views;
 
-public partial class QuizPreviewWindow : Window
+public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 {
     public static readonly DependencyProperty IsEditModeProperty = DependencyProperty.Register(
         nameof(IsEditMode),
@@ -31,12 +31,51 @@ public partial class QuizPreviewWindow : Window
     private static readonly Brush IncorrectBrush = new SolidColorBrush(Color.FromRgb(220, 38, 38));
     private static readonly Brush UnansweredBrush = new SolidColorBrush(Color.FromRgb(107, 114, 128));
 
+    public sealed class QuizNoteLinkOption
+    {
+        public QuizNoteLinkOption(Guid id, string title)
+        {
+            Id = id;
+            Title = string.IsNullOrWhiteSpace(title) ? LocalizationService.GetString("QuizUntitled") : title.Trim();
+        }
+
+        public Guid Id { get; }
+        public string Title { get; }
+    }
+
     private readonly ObservableCollection<QuizPreviewQuestion> _questions;
     private readonly QuizDocument _sourceDocument;
+    private readonly ObservableCollection<QuizNoteLinkOption> _noteLinkOptions = new();
+    private Action<Guid>? _openNoteAction;
     private string _modelDisplayName = string.Empty;
     private bool _isSubmitted;
+    private QuizNoteLinkOption? _selectedLinkedNote;
 
-    public QuizPreviewWindow(QuizDocument document, string? modelDisplayName = null, string? title = null)
+    public QuizPreviewWindow(
+        QuizDocument document,
+        IEnumerable<QuizNoteLinkOption>? noteOptions = null,
+        string? modelDisplayName = null,
+        string? title = null,
+        Action<Guid>? openNoteAction = null)
+        : this(document, noteOptions, modelDisplayName, title, openNoteAction, initializeOnly: false)
+    {
+    }
+
+    public QuizPreviewWindow(
+        QuizDocument document,
+        string? modelDisplayName = null,
+        string? title = null)
+        : this(document, null, modelDisplayName, title, null, initializeOnly: false)
+    {
+    }
+
+    private QuizPreviewWindow(
+        QuizDocument document,
+        IEnumerable<QuizNoteLinkOption>? noteOptions,
+        string? modelDisplayName,
+        string? title,
+        Action<Guid>? openNoteAction,
+        bool initializeOnly)
     {
         _sourceDocument = document;
         _questions = new ObservableCollection<QuizPreviewQuestion>(
@@ -46,6 +85,15 @@ public partial class QuizPreviewWindow : Window
             _questions.Add(new QuizPreviewQuestion(1, CreateDefaultQuestion()));
 
         InitializeComponent();
+
+        _openNoteAction = openNoteAction;
+        if (noteOptions != null)
+        {
+            foreach (var option in noteOptions)
+                _noteLinkOptions.Add(option);
+        }
+
+        _selectedLinkedNote = _noteLinkOptions.FirstOrDefault(option => option.Id == document.SourceNoteId);
 
         var displayTitle = string.IsNullOrWhiteSpace(title)
             ? document.Title
@@ -63,12 +111,52 @@ public partial class QuizPreviewWindow : Window
             SetQuestionFocus(0);
         }
 
+        OnPropertyChanged(nameof(LinkedNoteVisibility));
+        OnPropertyChanged(nameof(LinkedNoteEditorVisibility));
+        OnPropertyChanged(nameof(LinkedNoteButtonText));
+        OnPropertyChanged(nameof(LinkedNoteButtonToolTip));
+
         PreviewKeyDown += QuizPreviewWindow_PreviewKeyDown;
 
     }
     public string EditorTitle => TitleTextBox.Text.Trim();
 
     public string AiModelDisplayName => _modelDisplayName;
+
+    public string LinkedNoteDisplayText => _selectedLinkedNote?.Title ?? string.Empty;
+
+    public string LinkedNoteButtonText => string.IsNullOrWhiteSpace(LinkedNoteDisplayText)
+        ? LocalizationService.GetString("QuizLinkedNoteNone")
+        : LinkedNoteDisplayText;
+
+    public string LinkedNoteButtonToolTip => string.IsNullOrWhiteSpace(LinkedNoteDisplayText)
+        ? LocalizationService.GetString("QuizLinkedNoteNoneTooltip")
+        : string.Format(LocalizationService.GetString("QuizLinkedNoteOpenTooltip"), LinkedNoteDisplayText);
+
+    public Visibility LinkedNoteVisibility => HasLinkedNote() ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility LinkedNoteEditorVisibility => IsEditMode ? Visibility.Visible : Visibility.Collapsed;
+
+    public ObservableCollection<QuizNoteLinkOption> NoteLinkOptions => _noteLinkOptions;
+
+    public QuizNoteLinkOption? SelectedLinkedNote
+    {
+        get => _selectedLinkedNote;
+        set
+        {
+            if (ReferenceEquals(_selectedLinkedNote, value))
+                return;
+
+            _selectedLinkedNote = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LinkedNoteDisplayText));
+            OnPropertyChanged(nameof(LinkedNoteButtonText));
+            OnPropertyChanged(nameof(LinkedNoteButtonToolTip));
+            OnPropertyChanged(nameof(LinkedNoteVisibility));
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public bool IsEditMode
     {
@@ -91,7 +179,7 @@ public partial class QuizPreviewWindow : Window
             AiModelDisplayName = string.IsNullOrWhiteSpace(_modelDisplayName)
                 ? existingDocument?.AiModelDisplayName ?? _sourceDocument.AiModelDisplayName
                 : _modelDisplayName,
-            SourceNoteId = existingDocument?.SourceNoteId ?? _sourceDocument.SourceNoteId,
+            SourceNoteId = SelectedLinkedNote?.Id ?? existingDocument?.SourceNoteId ?? _sourceDocument.SourceNoteId,
             GroupId = existingDocument?.GroupId ?? _sourceDocument.GroupId
         };
     }
@@ -393,6 +481,14 @@ public partial class QuizPreviewWindow : Window
         ToggleFullscreen();
     }
 
+    private void LinkedNoteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedLinkedNote is null)
+            return;
+
+        _openNoteAction?.Invoke(SelectedLinkedNote.Id);
+    }
+
     private void ToggleFullscreen()
     {
         if (WindowStyle == WindowStyle.None)
@@ -444,6 +540,15 @@ public partial class QuizPreviewWindow : Window
         CheckAnswersButton.Visibility = IsEditMode ? Visibility.Collapsed : Visibility.Visible;
         ResetAnswersButton.Visibility = IsEditMode ? Visibility.Collapsed : Visibility.Visible;
         AddQuestionButton.Visibility = IsEditMode ? Visibility.Visible : Visibility.Collapsed;
+        OnPropertyChanged(nameof(LinkedNoteVisibility));
+        OnPropertyChanged(nameof(LinkedNoteEditorVisibility));
+        OnPropertyChanged(nameof(LinkedNoteButtonText));
+        OnPropertyChanged(nameof(LinkedNoteButtonToolTip));
+    }
+
+    private bool HasLinkedNote()
+    {
+        return SelectedLinkedNote is not null;
     }
 
     private string GetExportFileName()
@@ -660,6 +765,11 @@ public partial class QuizPreviewWindow : Window
         AiGeneratedInfoBadge.ToolTip = string.Format(
             LocalizationService.GetString("QuizGeneratedWithModel"),
             _modelDisplayName);
+    }
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
     private void UpdateSummary()

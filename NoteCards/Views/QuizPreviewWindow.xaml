@@ -18,6 +18,48 @@
             <Setter Property="Margin" Value="0,0,8,8"/>
         </Style>
 
+        <Style x:Key="LinkedNoteButtonStyle" TargetType="Button" BasedOn="{StaticResource QuizToolbarButtonStyle}">
+            <Setter Property="Margin" Value="0,0,0,0"/>
+            <Setter Property="MinWidth" Value="190"/>
+            <Setter Property="MaxWidth" Value="320"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="LinkedNoteBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="LinkedNoteBorder" Property="Background" Value="{DynamicResource HoverBackground}"/>
+                                <Setter TargetName="LinkedNoteBorder" Property="BorderBrush" Value="#3F6FE8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="LinkedNoteBorder" Property="Background" Value="{DynamicResource SelectionBackground}"/>
+                                <Setter TargetName="LinkedNoteBorder" Property="BorderBrush" Value="#3F6FE8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.65"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="QuizToolbarPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogPrimaryButtonStyle}">
             <Setter Property="Padding" Value="14,7"/>
             <Setter Property="MinHeight" Value="32"/>
@@ -260,24 +302,50 @@
                              ToolTip="{Binding [QuizTitleHint], Source={StaticResource Loc}}"/>
                 </Border>
 
-                <Border x:Name="AiGeneratedInfoBadge"
-                        Grid.Column="1"
-                        Width="30"
-                        Height="30"
-                        CornerRadius="15"
-                        Background="{DynamicResource IconButtonBackground}"
-                        BorderBrush="{DynamicResource IconButtonBorder}"
-                        BorderThickness="1"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        ToolTipService.InitialShowDelay="180"
-                        Visibility="Collapsed">
-                    <TextBlock Text="🤖"
-                               FontSize="14"
-                               Foreground="{DynamicResource TextColorSecondary}"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"/>
-                </Border>
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <StackPanel Margin="0,0,8,0">
+                        <ComboBox ItemsSource="{Binding ElementName=QuizWindow, Path=NoteLinkOptions}"
+                                  SelectedItem="{Binding ElementName=QuizWindow, Path=SelectedLinkedNote, Mode=TwoWay}"
+                                  DisplayMemberPath="Title"
+                                  MinWidth="140"
+                                  MaxWidth="170"
+                                  Margin="0,0,0,6"
+                                  Style="{StaticResource QuizEditorComboBoxStyle}"
+                                  Visibility="{Binding ElementName=QuizWindow, Path=LinkedNoteEditorVisibility}"
+                                  SelectedValuePath="Id"
+                                  ToolTip="{Binding [QuizLinkedNoteSelectorTooltip], Source={StaticResource Loc}}"/>
+                        <Button x:Name="LinkedNoteButton"
+                                Content="{Binding ElementName=QuizWindow, Path=LinkedNoteButtonText}"
+                                Style="{StaticResource LinkedNoteButtonStyle}"
+                                MinWidth="140"
+                                MaxWidth="170"
+                                Click="LinkedNoteButton_Click"
+                                Visibility="{Binding ElementName=QuizWindow, Path=LinkedNoteVisibility}"
+                                ToolTip="{Binding ElementName=QuizWindow, Path=LinkedNoteButtonToolTip}"
+                                TextOptions.TextFormattingMode="Display"/>
+                    </StackPanel>
+
+                    <Border x:Name="AiGeneratedInfoBadge"
+                            Width="30"
+                            Height="30"
+                            CornerRadius="15"
+                            Background="{DynamicResource IconButtonBackground}"
+                            BorderBrush="{DynamicResource IconButtonBorder}"
+                            BorderThickness="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            ToolTipService.InitialShowDelay="180"
+                            Visibility="Collapsed">
+                        <TextBlock Text="🤖"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextColorSecondary}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                </StackPanel>
             </Grid>
         </Border>
 
