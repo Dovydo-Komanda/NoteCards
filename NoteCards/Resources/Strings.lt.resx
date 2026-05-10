@@ -369,6 +369,9 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="DeleteFlashcardSetConfirmationFormat" xml:space="preserve"><value>Ar tikrai norite ištrinti „{0}“ ir visas jo korteles? Šio veiksmo negalima atšaukti.</value></data>
   <data name="StudyModeStart" xml:space="preserve"><value>Pradėti mokymosi režimą</value></data>
   <data name="StudyModeExit" xml:space="preserve"><value>Baigti mokymosi režimą</value></data>
+  <data name="StudyModeFullscreen" xml:space="preserve"><value>Visas ekranas</value></data>
+  <data name="StudyModeExitFullscreen" xml:space="preserve"><value>Uždaryti visą ekraną</value></data>
+  <data name="StudyModeFullscreenTooltip" xml:space="preserve"><value>Spustelėkite F11, kad perjungtumėte viso ekrano režimą</value></data>
   <data name="Known" xml:space="preserve"><value>Moku</value></data>
   <data name="Unknown" xml:space="preserve"><value>Nemoku</value></data>
   <data name="FlashcardStatusAll" xml:space="preserve"><value>Visos</value></data>

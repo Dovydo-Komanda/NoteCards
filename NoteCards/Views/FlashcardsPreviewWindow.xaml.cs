@@ -30,6 +30,11 @@ public partial class FlashcardsPreviewWindow : Window
     private readonly List<FlashcardPreviewItem> _studyHistory = new();
     private readonly Random _random = new();
     private bool _isStudyMode;
+    private bool _isFullscreen;
+    private WindowStyle _restoreWindowStyle = WindowStyle.SingleBorderWindow;
+    private ResizeMode _restoreResizeMode = ResizeMode.CanResize;
+    private WindowState _restoreWindowState = WindowState.Normal;
+    private bool _restoreTopmost;
     private bool _isStudyModeCardAnimating;
     private bool _studyCompletionDialogShown;
     private int _studyModeIndex;
@@ -402,6 +407,24 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void FlashcardsPreviewWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.F11)
+        {
+            if (_isStudyMode && _items.Count > 0)
+            {
+                ToggleFullscreenMode();
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        if (e.Key == Key.Escape && _isFullscreen)
+        {
+            ToggleFullscreenMode();
+            e.Handled = true;
+            return;
+        }
+
         if (!_isStudyMode || _items.Count == 0)
             return;
 
@@ -667,6 +690,43 @@ public partial class FlashcardsPreviewWindow : Window
             return;
 
         ShuffleModeButton.Content = LocalizationService.GetString("ShuffleCards");
+    }
+
+    private void UpdateStudyModeFullscreenButton()
+    {
+        if (StudyModeFullscreenButton is null)
+            return;
+
+        StudyModeFullscreenButton.Content = LocalizationService.GetString(_isFullscreen
+            ? "StudyModeExitFullscreen"
+            : "StudyModeFullscreen");
+        StudyModeFullscreenButton.ToolTip = LocalizationService.GetString("StudyModeFullscreenTooltip");
+    }
+
+    private void ToggleFullscreenMode()
+    {
+        if (_isFullscreen)
+        {
+            WindowStyle = _restoreWindowStyle;
+            ResizeMode = _restoreResizeMode;
+            Topmost = _restoreTopmost;
+            WindowState = _restoreWindowState == WindowState.Minimized ? WindowState.Normal : _restoreWindowState;
+            _isFullscreen = false;
+            UpdateStudyModeFullscreenButton();
+            return;
+        }
+
+        _restoreWindowStyle = WindowStyle;
+        _restoreResizeMode = ResizeMode;
+        _restoreWindowState = WindowState;
+        _restoreTopmost = Topmost;
+
+        WindowStyle = WindowStyle.None;
+        ResizeMode = ResizeMode.NoResize;
+        WindowState = WindowState.Maximized;
+        Topmost = true;
+        _isFullscreen = true;
+        UpdateStudyModeFullscreenButton();
     }
 
     private void ShuffleModeButton_Click(object sender, RoutedEventArgs e)
@@ -1109,6 +1169,9 @@ public partial class FlashcardsPreviewWindow : Window
 
     private void FlashcardsPreviewWindow_Closing(object? sender, CancelEventArgs e)
     {
+        if (_isFullscreen)
+            ToggleFullscreenMode();
+
         if (_allowCloseWithoutPrompt)
             return;
 
@@ -1522,6 +1585,11 @@ public partial class FlashcardsPreviewWindow : Window
     private void StudyModeNextButton_Click(object sender, RoutedEventArgs e)
     {
         MoveToNextStudyCardWithAnimation();
+    }
+
+    private void StudyModeFullscreenButton_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleFullscreenMode();
     }
 
     private void MoveToNextStudyCardWithAnimation()

@@ -847,6 +847,12 @@
                         Style="{StaticResource FlashcardToolbarButtonStyle}"
                         MinWidth="140"
                         Click="StartStudyModeButton_Click"/>
+                <Button x:Name="StudyModeFullscreenButton"
+                        Content="{Binding [StudyModeFullscreen], Source={StaticResource Loc}}"
+                        Style="{StaticResource FlashcardToolbarButtonStyle}"
+                        MinWidth="150"
+                        ToolTip="{Binding [StudyModeFullscreenTooltip], Source={StaticResource Loc}}"
+                        Click="StudyModeFullscreenButton_Click"/>
                 <Button Content="{Binding [Save], Source={StaticResource Loc}}"
                         Style="{StaticResource FlashcardToolbarPrimaryButtonStyle}"
                         MinWidth="110"
