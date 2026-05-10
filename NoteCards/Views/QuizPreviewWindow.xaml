@@ -580,6 +580,11 @@
                         Style="{StaticResource QuizToolbarButtonStyle}"
                         Click="FullscreenButton_Click"
                         ToolTip="Toggle Fullscreen (F11)"/>
+                <Button x:Name="ExportButton"
+                        Content="{Binding [Export], Source={StaticResource Loc}}"
+                        Style="{StaticResource QuizToolbarButtonStyle}"
+                        Click="ExportButton_Click"
+                        ToolTip="{Binding [Export], Source={StaticResource Loc}}"/>
                 <Button x:Name="ModeToggleButton"
                         Content="{Binding [EditQuiz], Source={StaticResource Loc}}"
                         Style="{StaticResource QuizToolbarButtonStyle}"

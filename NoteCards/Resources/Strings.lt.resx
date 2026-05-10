@@ -323,6 +323,12 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="QuizExplanationFormat" xml:space="preserve"><value>Paaiškinimas: {0}</value></data>
   <data name="QuizCheckAnswers" xml:space="preserve"><value>Tikrinti atsakymus</value></data>
   <data name="QuizResetAnswers" xml:space="preserve"><value>Iš naujo</value></data>
+  <data name="QuizExport" xml:space="preserve"><value>Eksportuoti</value></data>
+  <data name="QuizExportDialogTitle" xml:space="preserve"><value>Eksportuoti testą</value></data>
+  <data name="QuizExportDialogFilter" xml:space="preserve"><value>Testo failai (*.json)|*.json|CSV failai (*.csv)|*.csv|Spausdinamas failas (*.xps)|*.xps|Visi failai (*.*)|*.*</value></data>
+  <data name="QuizExportComplete" xml:space="preserve"><value>Testas sėkmingai eksportuotas.</value></data>
+  <data name="QuizExportUnsupportedFormat" xml:space="preserve"><value>Nepalaikomas eksporto formatas.</value></data>
+  <data name="QuizExportFailedFormat" xml:space="preserve"><value>Nepavyko eksportuoti testo: {0}</value></data>
   <data name="QuizzesDashboard" xml:space="preserve"><value>Testai</value></data>
   <data name="QuizzesDashboardTitle" xml:space="preserve"><value>Testai</value></data>
   <data name="QuizzesEmptyDashboardPrompt" xml:space="preserve"><value>Sukurkite testą arba paverskite užrašą testu ir jis atsiras čia.</value></data>

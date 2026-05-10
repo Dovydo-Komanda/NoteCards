@@ -1,12 +1,21 @@
 using NoteCards.Localization;
 using NoteCards.Models;
+using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using System.Text.Json;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Documents;
+using System.Windows.Markup;
+using System.Windows.Xps;
+using System.Windows.Xps.Packaging;
 
 namespace NoteCards.Views;
 
@@ -158,6 +167,65 @@ public partial class QuizPreviewWindow : Window
     {
         DialogResult = true;
         Close();
+    }
+
+    private void ExportButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_questions.Count == 0)
+            return;
+
+        var saveDialog = new SaveFileDialog
+        {
+            Title = LocalizationService.GetString("QuizExportDialogTitle"),
+            Filter = LocalizationService.GetString("QuizExportDialogFilter"),
+            FileName = GetExportFileName(),
+            OverwritePrompt = true
+        };
+
+        if (saveDialog.ShowDialog(this) != true)
+            return;
+
+        try
+        {
+            var extension = Path.GetExtension(saveDialog.FileName).ToLowerInvariant();
+            switch (extension)
+            {
+                case ".json":
+                    ExportToJson(saveDialog.FileName);
+                    break;
+                case ".csv":
+                    ExportToCsv(saveDialog.FileName);
+                    break;
+                case ".xps":
+                case ".pdf":
+                    ExportPrintableDocument(saveDialog.FileName);
+                    break;
+                default:
+                    throw new InvalidOperationException(LocalizationService.GetString("QuizExportUnsupportedFormat"));
+            }
+
+            ShowExportDialog(
+                LocalizationService.GetString("Success"),
+                LocalizationService.GetString("QuizExportComplete"));
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                string.Format(CultureInfo.CurrentCulture, LocalizationService.GetString("QuizExportFailedFormat"), ex.Message),
+                LocalizationService.GetString("ExportError"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private void ShowExportDialog(string title, string message)
+    {
+        var dialog = new ModernInfoDialog(title, message)
+        {
+            Owner = this
+        };
+
+        dialog.ShowDialog();
     }
 
     private void ModeToggleButton_Click(object sender, RoutedEventArgs e)
@@ -376,6 +444,119 @@ public partial class QuizPreviewWindow : Window
         CheckAnswersButton.Visibility = IsEditMode ? Visibility.Collapsed : Visibility.Visible;
         ResetAnswersButton.Visibility = IsEditMode ? Visibility.Collapsed : Visibility.Visible;
         AddQuestionButton.Visibility = IsEditMode ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private string GetExportFileName()
+    {
+        var baseName = string.IsNullOrWhiteSpace(EditorTitle)
+            ? LocalizationService.GetString("QuizUntitled")
+            : EditorTitle;
+
+        foreach (var invalid in Path.GetInvalidFileNameChars())
+            baseName = baseName.Replace(invalid, '_');
+
+        return baseName;
+    }
+
+    private void ExportToJson(string path)
+    {
+        var exportDocument = ToDocument();
+        var json = JsonSerializer.Serialize(exportDocument, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(path, json, Encoding.UTF8);
+    }
+
+    private void ExportToCsv(string path)
+    {
+        var exportDocument = ToDocument();
+        var sb = new StringBuilder();
+        sb.AppendLine("QuestionNumber,Type,Question,CorrectAnswers,Explanation");
+
+        foreach (var question in exportDocument.Questions)
+        {
+            var correctAnswers = string.Join(" | ", question.Options.Where(option => option.IsCorrect).Select(option => option.Text));
+            sb.AppendLine(string.Join(",",
+                EscapeCsv(question.SetIndex.ToString(CultureInfo.InvariantCulture)),
+                EscapeCsv(question.Type.ToString()),
+                EscapeCsv(question.Question),
+                EscapeCsv(correctAnswers),
+                EscapeCsv(question.Explanation)));
+        }
+
+        File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+    }
+
+    private void ExportPrintableDocument(string path)
+    {
+        var document = BuildPrintableDocument();
+        using var xpsDocument = new XpsDocument(path, FileAccess.Write);
+        var writer = XpsDocument.CreateXpsDocumentWriter(xpsDocument);
+        writer.Write(((IDocumentPaginatorSource)document).DocumentPaginator);
+    }
+
+    private FlowDocument BuildPrintableDocument()
+    {
+        var document = new FlowDocument
+        {
+            FontFamily = new FontFamily("Segoe UI"),
+            FontSize = 12,
+            PagePadding = new Thickness(48),
+            ColumnWidth = 700,
+            Background = Brushes.White,
+            Foreground = Brushes.Black
+        };
+
+        document.Blocks.Add(new Paragraph(new Run(EditorTitle))
+        {
+            FontSize = 24,
+            FontWeight = FontWeights.Bold,
+            Margin = new Thickness(0, 0, 0, 16)
+        });
+
+        foreach (var question in _questions)
+        {
+            document.Blocks.Add(new Paragraph(new Run(string.Format(CultureInfo.CurrentCulture, LocalizationService.GetString("QuizQuestionHeaderFormat"), question.Number, question.Type switch
+            {
+                QuizQuestionType.TrueFalse => LocalizationService.GetString("QuizTypeTrueFalse"),
+                QuizQuestionType.MultipleChoice => LocalizationService.GetString("QuizTypeMultipleChoice"),
+                _ => LocalizationService.GetString("QuizTypeSingleChoice")
+            })))
+            {
+                FontSize = 16,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 12, 0, 6)
+            });
+
+            document.Blocks.Add(new Paragraph(new Run(question.Question))
+            {
+                Margin = new Thickness(0, 0, 0, 6)
+            });
+
+            foreach (var option in question.Options.Where(option => !string.IsNullOrWhiteSpace(option.Text)))
+            {
+                var marker = option.IsCorrect ? "✓" : "•";
+                document.Blocks.Add(new Paragraph(new Run($"{marker} {option.Text}"))
+                {
+                    Margin = new Thickness(12, 0, 0, 2)
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(question.Explanation))
+            {
+                document.Blocks.Add(new Paragraph(new Run(string.Format(CultureInfo.CurrentCulture, LocalizationService.GetString("QuizExplanationFormat"), question.Explanation)))
+                {
+                    FontStyle = FontStyles.Italic,
+                    Margin = new Thickness(0, 4, 0, 0)
+                });
+            }
+        }
+
+        return document;
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        var escaped = value.Replace("\"", "\"\"", StringComparison.Ordinal);
+        return $"\"{escaped}\"";
     }
 
     private static QuizQuestion CreateDefaultQuestion()

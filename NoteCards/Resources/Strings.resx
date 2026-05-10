@@ -363,6 +363,12 @@ Right-click to remove</value></data>
   <data name="QuizExplanationFormat" xml:space="preserve"><value>Explanation: {0}</value></data>
   <data name="QuizCheckAnswers" xml:space="preserve"><value>Check answers</value></data>
   <data name="QuizResetAnswers" xml:space="preserve"><value>Reset</value></data>
+  <data name="QuizExport" xml:space="preserve"><value>Export</value></data>
+  <data name="QuizExportDialogTitle" xml:space="preserve"><value>Export quiz</value></data>
+  <data name="QuizExportDialogFilter" xml:space="preserve"><value>Quiz Files (*.json)|*.json|CSV Files (*.csv)|*.csv|Printable File (*.xps)|*.xps|All files (*.*)|*.*</value></data>
+  <data name="QuizExportComplete" xml:space="preserve"><value>Quiz exported successfully.</value></data>
+  <data name="QuizExportUnsupportedFormat" xml:space="preserve"><value>Unsupported export format.</value></data>
+  <data name="QuizExportFailedFormat" xml:space="preserve"><value>Failed to export quiz: {0}</value></data>
   <data name="QuizzesDashboard" xml:space="preserve"><value>Tests</value></data>
   <data name="QuizzesDashboardTitle" xml:space="preserve"><value>Tests</value></data>
   <data name="QuizzesEmptyDashboardPrompt" xml:space="preserve"><value>Create a test or convert a note into a test to see it here.</value></data>
