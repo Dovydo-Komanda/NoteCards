@@ -45,6 +45,30 @@
   <data name="QuizLinkedNoteNoneTooltip" xml:space="preserve"><value>This quiz is not linked to a note.</value></data>
   <data name="QuizLinkedNoteOpenTooltip" xml:space="preserve"><value>Open linked note: {0}</value></data>
   <data name="QuizLinkedNoteSelectorTooltip" xml:space="preserve"><value>Select the source note linked to this quiz.</value></data>
+  <data name="QuizModeTitle" xml:space="preserve"><value>Quiz Mode</value></data>
+  <data name="QuizQuestionProgressFormat" xml:space="preserve"><value>Question {0} of {1}</value></data>
+  <data name="QuizMultipleChoiceInstruction" xml:space="preserve"><value>Multiple Choice - Select all that apply</value></data>
+  <data name="QuizResultsTitleGreat" xml:space="preserve"><value>🎉 Great Job!</value></data>
+  <data name="QuizResultsTitleGood" xml:space="preserve"><value>👍 Good Effort!</value></data>
+  <data name="QuizResultsTitleKeepLearning" xml:space="preserve"><value>📚 Keep Learning!</value></data>
+  <data name="QuizResultsLabelFormat" xml:space="preserve"><value>Results: {0}/{1}</value></data>
+  <data name="QuizTimeFormat" xml:space="preserve"><value>Time: {0}</value></data>
+  <data name="QuizQuestionPrefixFormat" xml:space="preserve"><value>Question {0}: {1}</value></data>
+  <data name="QuizYourAnswerFormat" xml:space="preserve"><value>Your answer: {0}</value></data>
+  <data name="QuizNoAnswer" xml:space="preserve"><value>No answer</value></data>
+  <data name="QuizCorrectAnswerFormat" xml:space="preserve"><value>Correct answer: {0}</value></data>
+  <data name="QuizExplanationFormat" xml:space="preserve"><value>Explanation: {0}</value></data>
+  <data name="QuizSubmitButton" xml:space="preserve"><value>Submit Quiz</value></data>
+  <data name="QuizDoneButton" xml:space="preserve"><value>Done</value></data>
+  <data name="QuizPreviousButton" xml:space="preserve"><value>← Previous</value></data>
+  <data name="QuizNextButton" xml:space="preserve"><value>Next →</value></data>
+  <data name="QuizReviewAnswers" xml:space="preserve"><value>Review Answers:</value></data>
+  <data name="QuizStartButton" xml:space="preserve"><value>▶ START</value></data>
+  <data name="QuizStartButtonTooltip" xml:space="preserve"><value>Start Quiz Mode</value></data>
+  <data name="QuizSubmitDialogTitle" xml:space="preserve"><value>Submit Quiz</value></data>
+  <data name="QuizSubmitDialogMessage" xml:space="preserve"><value>Are you sure you want to submit the quiz and view your results?</value></data>
+  <data name="QuizSubmitDialogConfirm" xml:space="preserve"><value>Submit</value></data>
+  <data name="QuizSubmitDialogCancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="KeepNotesUngrouped" xml:space="preserve"><value>Keep notes ungrouped</value></data>
   <data name="DeleteGroupNotes" xml:space="preserve"><value>Delete group notes</value></data>
   <data name="KeepItemsUngrouped" xml:space="preserve"><value>Keep items ungrouped</value></data>

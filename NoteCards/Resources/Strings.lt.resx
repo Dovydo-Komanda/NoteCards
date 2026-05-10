@@ -45,6 +45,30 @@
   <data name="QuizLinkedNoteNoneTooltip" xml:space="preserve"><value>Šis testas nėra susietas su užrašu.</value></data>
   <data name="QuizLinkedNoteOpenTooltip" xml:space="preserve"><value>Atidaryti susietą užrašą: {0}</value></data>
   <data name="QuizLinkedNoteSelectorTooltip" xml:space="preserve"><value>Pasirinkite šio testo šaltinio užrašą.</value></data>
+  <data name="QuizModeTitle" xml:space="preserve"><value>Testo režimas</value></data>
+  <data name="QuizQuestionProgressFormat" xml:space="preserve"><value>Klausimas {0} iš {1}</value></data>
+  <data name="QuizMultipleChoiceInstruction" xml:space="preserve"><value>Daugkartinis pasirinkimas – pažymėkite visus tinkamus variantus</value></data>
+  <data name="QuizResultsTitleGreat" xml:space="preserve"><value>🎉 Puikiai padirbėta!</value></data>
+  <data name="QuizResultsTitleGood" xml:space="preserve"><value>👍 Gerai padirbėta!</value></data>
+  <data name="QuizResultsTitleKeepLearning" xml:space="preserve"><value>📚 Tęskite mokymąsi!</value></data>
+  <data name="QuizResultsLabelFormat" xml:space="preserve"><value>Rezultatai: {0}/{1}</value></data>
+  <data name="QuizTimeFormat" xml:space="preserve"><value>Laikas: {0}</value></data>
+  <data name="QuizQuestionPrefixFormat" xml:space="preserve"><value>Klausimas {0}: {1}</value></data>
+  <data name="QuizYourAnswerFormat" xml:space="preserve"><value>Jūsų atsakymas: {0}</value></data>
+  <data name="QuizNoAnswer" xml:space="preserve"><value>Nėra atsakymo</value></data>
+  <data name="QuizCorrectAnswerFormat" xml:space="preserve"><value>Teisingas atsakymas: {0}</value></data>
+  <data name="QuizExplanationFormat" xml:space="preserve"><value>Paaiškinimas: {0}</value></data>
+  <data name="QuizSubmitButton" xml:space="preserve"><value>Pateikti testą</value></data>
+  <data name="QuizDoneButton" xml:space="preserve"><value>Baigta</value></data>
+  <data name="QuizPreviousButton" xml:space="preserve"><value>← Ankstesnis</value></data>
+  <data name="QuizNextButton" xml:space="preserve"><value>Kitas →</value></data>
+  <data name="QuizReviewAnswers" xml:space="preserve"><value>Peržiūrėti atsakymus:</value></data>
+  <data name="QuizStartButton" xml:space="preserve"><value>▶ PRADĖTI</value></data>
+  <data name="QuizStartButtonTooltip" xml:space="preserve"><value>Pradėti testo režimą</value></data>
+  <data name="QuizSubmitDialogTitle" xml:space="preserve"><value>Pateikti testą</value></data>
+  <data name="QuizSubmitDialogMessage" xml:space="preserve"><value>Ar tikrai norite pateikti testą ir peržiūrėti rezultatus?</value></data>
+  <data name="QuizSubmitDialogConfirm" xml:space="preserve"><value>Pateikti</value></data>
+  <data name="QuizSubmitDialogCancel" xml:space="preserve"><value>Atšaukti</value></data>
   <data name="KeepNotesUngrouped" xml:space="preserve"><value>Palikti užrašus nesugrupuotus</value></data>
   <data name="DeleteGroupNotes" xml:space="preserve"><value>Ištrinti grupės užrašus</value></data>
   <data name="KeepItemsUngrouped" xml:space="preserve"><value>Palikti elementus nesugrupuotus</value></data>

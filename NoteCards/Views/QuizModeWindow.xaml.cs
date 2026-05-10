@@ -13,6 +13,11 @@ namespace NoteCards.Views;
 
 public partial class QuizModeWindow : Window
 {
+    private static readonly Color CorrectAnswerBackgroundColor = Color.FromRgb(240, 253, 244);
+    private static readonly Color CorrectAnswerBorderColor = Color.FromRgb(16, 185, 129);
+    private static readonly Color IncorrectAnswerBackgroundColor = Color.FromRgb(254, 242, 242);
+    private static readonly Color IncorrectAnswerBorderColor = Color.FromRgb(220, 38, 38);
+
     private readonly QuizDocument _quiz;
     private int _currentQuestionIndex;
     private readonly Dictionary<int, List<QuizOption>> _userAnswers;
@@ -31,6 +36,7 @@ public partial class QuizModeWindow : Window
         _isResultsView = false;
 
         Owner = Application.Current.MainWindow;
+        Title = LocalizationService.GetString("QuizModeTitle");
 
         StartTimer();
         LoadQuestion();
@@ -64,7 +70,7 @@ public partial class QuizModeWindow : Window
 
         // Update progress
         if (FindName("ProgressText") is TextBlock progressText)
-            progressText.Text = $"Question {_currentQuestionIndex + 1} of {_quiz.Questions.Count}";
+            progressText.Text = string.Format(LocalizationService.GetString("QuizQuestionProgressFormat"), _currentQuestionIndex + 1, _quiz.Questions.Count);
 
         // Set question text
         if (FindName("QuestionTextBlock") is TextBlock questionTextBlock)
@@ -77,7 +83,7 @@ public partial class QuizModeWindow : Window
             {
                 typeIndicator.Visibility = Visibility.Visible;
                 if (FindName("QuestionTypeText") is TextBlock typeText)
-                    typeText.Text = "Multiple Choice - Select all that apply";
+                    typeText.Text = LocalizationService.GetString("QuizMultipleChoiceInstruction");
             }
             else
             {
@@ -102,9 +108,9 @@ public partial class QuizModeWindow : Window
                         Margin = new Thickness(0, 0, 0, 10),
                         Padding = new Thickness(16, 14, 16, 14),
                         HorizontalContentAlignment = HorizontalAlignment.Left,
-                        Background = Brushes.White,
-                        BorderBrush = Brushes.Gray,
-                        Foreground = Brushes.Black,
+                        Background = (Brush)FindResource("CardBackground"),
+                        BorderBrush = (Brush)FindResource("BorderColor"),
+                        Foreground = (Brush)FindResource("TextColor"),
                         BorderThickness = new Thickness(1),
                         Cursor = Cursors.Hand,
                         Tag = option,
@@ -169,11 +175,11 @@ public partial class QuizModeWindow : Window
                 {
                     bool isSelected = selectedOptions.Contains(opt);
                     btn.Background = isSelected
-                        ? new SolidColorBrush(Color.FromRgb(232, 240, 254))
-                        : Brushes.White;
+                        ? (Brush)FindResource("NoteCardSelection")
+                        : (Brush)FindResource("CardBackground");
                     btn.BorderBrush = isSelected
-                        ? new SolidColorBrush(Color.FromRgb(59, 130, 246))
-                        : Brushes.Gray;
+                        ? (Brush)FindResource("NoteCardSelectionBorder")
+                        : (Brush)FindResource("BorderColor");
                     btn.BorderThickness = isSelected ? new Thickness(2) : new Thickness(1);
                     btn.FontWeight = isSelected ? FontWeights.SemiBold : FontWeights.Normal;
                     btn.IsEnabled = true;
@@ -248,11 +254,11 @@ public partial class QuizModeWindow : Window
                 {
                     bool isSelected = selectedOptions.Contains(opt);
                     optButton.Background = isSelected
-                        ? new SolidColorBrush(Color.FromRgb(232, 240, 254))
-                        : Brushes.White;
+                        ? (Brush)FindResource("NoteCardSelection")
+                        : (Brush)FindResource("CardBackground");
                     optButton.BorderBrush = isSelected
-                        ? new SolidColorBrush(Color.FromRgb(59, 130, 246))
-                        : Brushes.Gray;
+                        ? (Brush)FindResource("NoteCardSelectionBorder")
+                        : (Brush)FindResource("BorderColor");
                     optButton.BorderThickness = isSelected ? new Thickness(2) : new Thickness(1);
                     optButton.FontWeight = isSelected ? FontWeights.SemiBold : FontWeights.Normal;
                 }
@@ -293,13 +299,14 @@ public partial class QuizModeWindow : Window
 
     private void SubmitButton_Click(object sender, RoutedEventArgs e)
     {
-        var result = MessageBox.Show(
-            "Are you sure you want to submit the quiz?",
-            "Submit Quiz",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+        var dialog = new QuizSubmitConfirmationDialog(
+            title: LocalizationService.GetString("QuizSubmitDialogTitle"),
+            message: LocalizationService.GetString("QuizSubmitDialogMessage"),
+            confirmText: LocalizationService.GetString("QuizSubmitDialogConfirm"),
+            cancelText: LocalizationService.GetString("QuizSubmitDialogCancel"));
+        dialog.Owner = this;
 
-        if (result == MessageBoxResult.Yes)
+        if (dialog.ShowDialog() == true)
             ShowResults();
     }
 
@@ -328,14 +335,18 @@ public partial class QuizModeWindow : Window
 
         if (FindName("QuestionView") is Border qv) qv.Visibility = Visibility.Collapsed;
         if (FindName("ResultsView") is Border rv) rv.Visibility = Visibility.Visible;
-        if (FindName("ProgressText") is TextBlock pt) pt.Text = $"Results: {correctCount}/{totalQuestions}";
+        if (FindName("ProgressText") is TextBlock pt) pt.Text = string.Format(LocalizationService.GetString("QuizResultsLabelFormat"), correctCount, totalQuestions);
         if (FindName("TimerText") is TextBlock tt) tt.Text = _elapsedTime.ToString(@"hh\:mm\:ss");
         if (FindName("ResultsTitleText") is TextBlock rt)
-            rt.Text = percentage >= 70 ? "🎉 Great Job!" : percentage >= 50 ? "👍 Good Effort!" : "📚 Keep Learning!";
+            rt.Text = percentage >= 70
+                ? LocalizationService.GetString("QuizResultsTitleGreat")
+                : percentage >= 50
+                    ? LocalizationService.GetString("QuizResultsTitleGood")
+                    : LocalizationService.GetString("QuizResultsTitleKeepLearning");
         if (FindName("ResultsScoreText") is TextBlock rs)
-            rs.Text = $"{correctCount} out of {totalQuestions} correct ({percentage:F1}%)";
+            rs.Text = $"{correctCount} / {totalQuestions} ({percentage:F1}%)";
         if (FindName("ResultsTimeText") is TextBlock rtime)
-            rtime.Text = $"Time: {_elapsedTime.ToString(@"hh\:mm\:ss")}";
+            rtime.Text = string.Format(LocalizationService.GetString("QuizTimeFormat"), _elapsedTime.ToString(@"hh\:mm\:ss"));
         if (FindName("PreviousButton") is Button pb) pb.Visibility = Visibility.Collapsed;
         if (FindName("NextButton") is Button nb) nb.Visibility = Visibility.Collapsed;
         if (FindName("SubmitButton") is Button sb) sb.Visibility = Visibility.Collapsed;
@@ -353,12 +364,10 @@ public partial class QuizModeWindow : Window
 
                 var card = new Border
                 {
-                    Background = isCorrect
-                        ? (Brush)FindResource("SelectionBackground") ?? Brushes.LightGreen
-                        : new SolidColorBrush(Color.FromRgb(254, 242, 242)),
+                    Background = (Brush)FindResource("CardBackground"),
                     BorderBrush = isCorrect
-                        ? new SolidColorBrush(Color.FromRgb(16, 185, 129))
-                        : new SolidColorBrush(Color.FromRgb(220, 38, 38)),
+                        ? new SolidColorBrush(CorrectAnswerBorderColor)
+                        : new SolidColorBrush(IncorrectAnswerBorderColor),
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(10),
                     Padding = new Thickness(16),
@@ -373,10 +382,10 @@ public partial class QuizModeWindow : Window
 
                 var qText = new TextBlock
                 {
-                    Text = $"Question {i + 1}: {q.Question}",
+                    Text = string.Format(LocalizationService.GetString("QuizQuestionPrefixFormat"), i + 1, q.Question),
                     FontSize = 15,
                     FontWeight = FontWeights.SemiBold,
-                    Foreground = Brushes.Black,
+                    Foreground = (Brush)FindResource("TextColor"),
                     TextWrapping = TextWrapping.Wrap,
                     VerticalAlignment = VerticalAlignment.Center
                 };
@@ -401,11 +410,11 @@ public partial class QuizModeWindow : Window
 
                 var userAns = new TextBlock
                 {
-                    Text = $"Your answer: {(userSel.Count > 0 ? string.Join(", ", userSel.Select(o => o.Text)) : "No answer")}",
+                    Text = string.Format(
+                        LocalizationService.GetString("QuizYourAnswerFormat"),
+                        userSel.Count > 0 ? string.Join(", ", userSel.Select(o => o.Text)) : LocalizationService.GetString("QuizNoAnswer")),
                     FontSize = 13,
-                    Foreground = (userSel.Count > 0 && isCorrect)
-                        ? new SolidColorBrush(Color.FromRgb(16, 185, 129))
-                        : new SolidColorBrush(Color.FromRgb(220, 38, 38)),
+                    Foreground = (Brush)FindResource("TextColor"),
                     Margin = new Thickness(0, 8, 0, 4),
                     TextWrapping = TextWrapping.Wrap
                 };
@@ -415,9 +424,9 @@ public partial class QuizModeWindow : Window
                 {
                     var correctAns = new TextBlock
                     {
-                        Text = $"Correct answer: {string.Join(", ", correctOpts.Select(o => o.Text))}",
+                        Text = string.Format(LocalizationService.GetString("QuizCorrectAnswerFormat"), string.Join(", ", correctOpts.Select(o => o.Text))),
                         FontSize = 13,
-                        Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129)),
+                        Foreground = new SolidColorBrush(CorrectAnswerBorderColor),
                         Margin = new Thickness(0, 0, 0, 4),
                         TextWrapping = TextWrapping.Wrap
                     };
@@ -428,9 +437,9 @@ public partial class QuizModeWindow : Window
                 {
                     var expl = new TextBlock
                     {
-                        Text = $"Explanation: {q.Explanation}",
+                        Text = string.Format(LocalizationService.GetString("QuizExplanationFormat"), q.Explanation),
                         FontSize = 12,
-                        Foreground = Brushes.Gray,
+                        Foreground = (Brush)FindResource("TextColorSecondary"),
                         Margin = new Thickness(0, 8, 0, 0),
                         TextWrapping = TextWrapping.Wrap,
                         FontStyle = FontStyles.Italic
