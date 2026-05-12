@@ -19,6 +19,8 @@ public partial class MindMapPreviewWindow : Window
     private const double NodeWidth = 190;
     private const double HorizontalGap = 150;
     private const double VerticalGap = 18;
+    private const double VerticalLayoutLevelGap = 118;
+    private const double VerticalLayoutNodeGap = 34;
     private const double CanvasPadding = 52;
     private readonly MindMapNode _root;
     private readonly Dictionary<MindMapNode, NodeLayout> _layouts = new();
@@ -31,12 +33,14 @@ public partial class MindMapPreviewWindow : Window
     private HashSet<MindMapNode>? _renderOnlyNodes;
     private MindMapLayoutMode _selectedLayoutMode = MindMapLayoutMode.BalancedTree;
     private bool _suppressLayoutModeSelectionChanged;
+    private bool _suppressManualPositioningToggleChanged;
     private bool _isDraggingNode;
     private MindMapNode? _draggedNode;
     private Point _dragStartMousePos;
     private Point _dragStartNodePos;
     private Border? _draggedBorder;
     private bool _isManualPositioningMode;
+    private bool _suppressManualPositionCapture;
     private readonly Dictionary<MindMapNode, Point> _manualPositions = new();
 
     private static readonly Brush[] LightNodeBackgrounds =
@@ -61,9 +65,14 @@ public partial class MindMapPreviewWindow : Window
         MindMapNode root,
         string? modelDisplayName = null,
         string? title = null,
-        IEnumerable<string>? tags = null)
+        IEnumerable<string>? tags = null,
+        string? layoutMode = null,
+        bool useManualPositions = false)
     {
         _root = root;
+        _selectedLayoutMode = ParseLayoutMode(layoutMode);
+        LoadManualPositionsFromNodes(_root);
+        _isManualPositioningMode = useManualPositions || _manualPositions.Count > 0;
         InitializeComponent();
 
         TitleTextBox.Text = string.IsNullOrWhiteSpace(title)
@@ -76,8 +85,12 @@ public partial class MindMapPreviewWindow : Window
         UpdateSearchResultsText();
 
         _suppressLayoutModeSelectionChanged = true;
-        LayoutModeComboBox.SelectedIndex = 0;
+        SelectLayoutComboBoxItem(_selectedLayoutMode);
         _suppressLayoutModeSelectionChanged = false;
+        _suppressManualPositioningToggleChanged = true;
+        ManualPositioningToggle.IsChecked = _isManualPositioningMode;
+        _suppressManualPositioningToggleChanged = false;
+        UpdateManualPositioningVisualState();
 
         Loaded += (_, _) => RebuildMap();
         SizeChanged += (_, _) => RebuildMap();
@@ -89,8 +102,52 @@ public partial class MindMapPreviewWindow : Window
 
     public string AiModelDisplayName => _modelDisplayName;
 
+    private void SelectLayoutComboBoxItem(MindMapLayoutMode mode)
+    {
+        var targetKey = GetLayoutModeKey(mode);
+        foreach (var item in LayoutModeComboBox.Items.OfType<ComboBoxItem>())
+        {
+            if (string.Equals(item.Tag as string, targetKey, StringComparison.OrdinalIgnoreCase))
+            {
+                LayoutModeComboBox.SelectedItem = item;
+                return;
+            }
+        }
+
+        LayoutModeComboBox.SelectedIndex = 0;
+    }
+
+    private static MindMapLayoutMode ParseLayoutMode(string? value)
+    {
+        return value?.Trim() switch
+        {
+            "Radial" => MindMapLayoutMode.Radial,
+            "RightTree" => MindMapLayoutMode.RightTree,
+            "LeftTree" => MindMapLayoutMode.LeftTree,
+            "TopDown" => MindMapLayoutMode.TopDown,
+            _ => MindMapLayoutMode.BalancedTree
+        };
+    }
+
+    private static string GetLayoutModeKey(MindMapLayoutMode mode)
+    {
+        return mode switch
+        {
+            MindMapLayoutMode.Radial => "Radial",
+            MindMapLayoutMode.RightTree => "RightTree",
+            MindMapLayoutMode.LeftTree => "LeftTree",
+            MindMapLayoutMode.TopDown => "TopDown",
+            _ => "BalancedTree"
+        };
+    }
+
     public MindMapDocument ToDocument(MindMapDocument? existingDocument = null)
     {
+        if (_isManualPositioningMode)
+            CaptureVisibleLayoutAsManualPositions();
+        else
+            ClearManualPositions(_root);
+
         return new MindMapDocument
         {
             Id = existingDocument?.Id ?? Guid.NewGuid(),
@@ -99,13 +156,92 @@ public partial class MindMapPreviewWindow : Window
                 : EditorTitle,
             Tags = Tags.ToList(),
             Root = _root,
+            LayoutMode = GetLayoutModeKey(_selectedLayoutMode),
+            UseManualPositions = _isManualPositioningMode,
             CreatedAt = existingDocument?.CreatedAt ?? DateTime.UtcNow,
             LastModified = DateTime.Now,
             AiModelDisplayName = string.IsNullOrWhiteSpace(_modelDisplayName)
                 ? existingDocument?.AiModelDisplayName ?? string.Empty
                 : _modelDisplayName,
-            SourceNoteId = existingDocument?.SourceNoteId
+            SourceNoteId = existingDocument?.SourceNoteId,
+            GroupId = existingDocument?.GroupId,
+            Schedules = existingDocument?.Schedules?.ToList() ?? new List<NoteScheduleEntry>()
         };
+    }
+
+    private void LoadManualPositionsFromNodes(MindMapNode node)
+    {
+        if (node.ManualX is { } x && node.ManualY is { } y && IsFinite(x) && IsFinite(y))
+            _manualPositions[node] = new Point(x, y);
+
+        foreach (var child in node.Children)
+            LoadManualPositionsFromNodes(child);
+    }
+
+    private void ApplyManualPositionsToLayouts()
+    {
+        foreach (var (node, layout) in _layouts.ToList())
+        {
+            if (_manualPositions.TryGetValue(node, out var position))
+                _layouts[node] = layout with { X = position.X, Y = position.Y };
+        }
+    }
+
+    private void CaptureVisibleLayoutAsManualPositions()
+    {
+        foreach (var (node, layout) in _layouts)
+            SetManualPosition(node, new Point(layout.X, layout.Y));
+    }
+
+    private void SetManualPosition(MindMapNode node, Point position)
+    {
+        if (!IsFinite(position.X) || !IsFinite(position.Y))
+            return;
+
+        _manualPositions[node] = position;
+        node.ManualX = position.X;
+        node.ManualY = position.Y;
+    }
+
+    private static void ClearManualPositions(MindMapNode node)
+    {
+        node.ManualX = null;
+        node.ManualY = null;
+
+        foreach (var child in node.Children)
+            ClearManualPositions(child);
+    }
+
+    private static bool IsFinite(double value)
+        => !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private void UpdateManualPositioningVisualState()
+    {
+        if (ManualPositioningToggle is null
+            || ManualPositioningStatusDot is null
+            || ManualPositioningStateBadge is null
+            || ManualPositioningStateText is null)
+        {
+            return;
+        }
+
+        if (_isManualPositioningMode)
+        {
+            ManualPositioningStateText.Text = LocalizationService.GetString("MindMapManualPositioningOn");
+            ManualPositioningStatusDot.Fill = Brushes.White;
+            ManualPositioningStateBadge.Background = Brushes.White;
+            ManualPositioningStateBadge.BorderBrush = Brushes.Transparent;
+            ManualPositioningStateText.Foreground = GetThemeBrush("MindMapSelectedBorderBrush", Color.FromRgb(63, 111, 232));
+            ManualPositioningToggle.ToolTip = LocalizationService.GetString("MindMapManualPositioningOnHint");
+            return;
+        }
+
+        ManualPositioningStateText.Text = LocalizationService.GetString("MindMapManualPositioningOff");
+        ManualPositioningStatusDot.Fill = GetThemeBrush("TextColorSecondary", Color.FromRgb(92, 92, 92));
+        ManualPositioningStateBadge.Background = GetThemeBrush("IconButtonBackground", Color.FromRgb(245, 247, 251));
+        ManualPositioningStateBadge.BorderBrush = GetThemeBrush("IconButtonBorder", Color.FromRgb(221, 228, 243));
+        ManualPositioningStateText.Foreground = GetThemeBrush("TextColorSecondary", Color.FromRgb(92, 92, 92));
+        ManualPositioningToggle.ToolTip = LocalizationService.GetString("MindMapManualPositioningOffHint");
     }
 
     private void ConfigureAiGeneratedIndicator(string? modelDisplayName)
@@ -132,12 +268,32 @@ public partial class MindMapPreviewWindow : Window
         _layouts.Clear();
         MapCanvas.Children.Clear();
 
-        if (_selectedLayoutMode == MindMapLayoutMode.Radial)
-            BuildRadialLayout();
-        else
-            BuildBalancedTreeLayout();
+        switch (_selectedLayoutMode)
+        {
+            case MindMapLayoutMode.Radial:
+                BuildRadialLayout();
+                break;
+            case MindMapLayoutMode.RightTree:
+                BuildDirectionalTreeLayout(direction: 1);
+                break;
+            case MindMapLayoutMode.LeftTree:
+                BuildDirectionalTreeLayout(direction: -1);
+                break;
+            case MindMapLayoutMode.TopDown:
+                BuildTopDownLayout();
+                break;
+            default:
+                BuildBalancedTreeLayout();
+                break;
+        }
+
+        if (_isManualPositioningMode)
+            ApplyManualPositionsToLayouts();
 
         NormalizeLayoutOffset();
+
+        if (_isManualPositioningMode && !_suppressManualPositionCapture)
+            CaptureVisibleLayoutAsManualPositions();
 
         UpdateMapCanvasSize();
 
@@ -185,6 +341,49 @@ public partial class MindMapPreviewWindow : Window
             direction: 1,
             depth: 1,
             top: CanvasPadding + Math.Max(0, (totalHeight - rightHeight) / 2));
+    }
+
+    private void BuildDirectionalTreeLayout(int direction)
+    {
+        direction = direction < 0 ? -1 : 1;
+
+        var step = NodeWidth + HorizontalGap;
+        var rootHeight = MeasureNodeHeight(_root);
+        IReadOnlyList<MindMapNode> visibleRootChildren = _root.IsExpanded
+            ? _root.Children
+            : Array.Empty<MindMapNode>();
+
+        var childDepth = visibleRootChildren.Count == 0 ? 0 : visibleRootChildren.Max(GetMaxVisibleDepth);
+        var rootX = direction > 0
+            ? CanvasPadding
+            : CanvasPadding + childDepth * step;
+        var childrenHeight = MeasureChildrenHeight(visibleRootChildren);
+        var totalHeight = Math.Max(rootHeight, childrenHeight);
+        var rootY = CanvasPadding + (totalHeight - rootHeight) / 2;
+
+        _layouts[_root] = new NodeLayout(rootX, rootY, NodeWidth, rootHeight, Direction: 0, Depth: 0);
+
+        AssignChildrenLayout(
+            visibleRootChildren,
+            rootX,
+            direction,
+            depth: 1,
+            top: CanvasPadding + Math.Max(0, (totalHeight - childrenHeight) / 2));
+    }
+
+    private void BuildTopDownLayout()
+    {
+        var totalWidth = MeasureVerticalSubtree(_root);
+        var rootHeight = MeasureNodeHeight(_root);
+        var rootX = CanvasPadding + (totalWidth - NodeWidth) / 2;
+        var rootY = CanvasPadding;
+
+        _layouts[_root] = new NodeLayout(rootX, rootY, NodeWidth, rootHeight, Direction: 2, Depth: 0);
+
+        if (!_root.IsExpanded || _root.Children.Count == 0)
+            return;
+
+        AssignVerticalChildrenLayout(_root.Children, CanvasPadding, rootY + rootHeight + VerticalLayoutLevelGap, totalWidth, depth: 1);
     }
 
     private void BuildRadialLayout()
@@ -479,6 +678,17 @@ public partial class MindMapPreviewWindow : Window
         return Math.Max(ownHeight, childrenHeight);
     }
 
+    private static double MeasureVerticalSubtree(MindMapNode node)
+    {
+        if (!node.IsExpanded || node.Children.Count == 0)
+            return NodeWidth;
+
+        var childrenWidth = node.Children.Sum(MeasureVerticalSubtree)
+            + VerticalLayoutNodeGap * Math.Max(0, node.Children.Count - 1);
+
+        return Math.Max(NodeWidth, childrenWidth);
+    }
+
     private static double MeasureNodeHeight(MindMapNode node)
     {
         var lineCount = Math.Max(1, (int)Math.Ceiling(node.Text.Length / 24.0));
@@ -511,17 +721,8 @@ public partial class MindMapPreviewWindow : Window
     private void AssignLayout(MindMapNode node, double rootX, int direction, int depth, double top, double subtreeHeight)
     {
         var ownHeight = MeasureNodeHeight(node);
-        double x, y;
-        if (_isManualPositioningMode && _manualPositions.TryGetValue(node, out var manualPos))
-        {
-            x = manualPos.X;
-            y = manualPos.Y;
-        }
-        else
-        {
-            x = rootX + direction * depth * (NodeWidth + HorizontalGap);
-            y = top + (subtreeHeight - ownHeight) / 2;
-        }
+        var x = rootX + direction * depth * (NodeWidth + HorizontalGap);
+        var y = top + (subtreeHeight - ownHeight) / 2;
         _layouts[node] = new NodeLayout(x, y, NodeWidth, ownHeight, direction, depth);
 
         if (!node.IsExpanded || node.Children.Count == 0)
@@ -536,6 +737,47 @@ public partial class MindMapPreviewWindow : Window
             AssignLayout(child, rootX, direction, depth + 1, childTop, childHeight);
             childTop += childHeight + VerticalGap;
         }
+    }
+
+    private void AssignVerticalChildrenLayout(
+        IReadOnlyList<MindMapNode> children,
+        double left,
+        double top,
+        double availableWidth,
+        int depth)
+    {
+        if (children.Count == 0)
+            return;
+
+        var childrenWidth = children.Sum(MeasureVerticalSubtree)
+            + VerticalLayoutNodeGap * Math.Max(0, children.Count - 1);
+        var childLeft = left + Math.Max(0, (availableWidth - childrenWidth) / 2);
+
+        foreach (var child in children)
+        {
+            var childWidth = MeasureVerticalSubtree(child);
+            AssignVerticalLayout(child, childLeft, top, childWidth, depth);
+            childLeft += childWidth + VerticalLayoutNodeGap;
+        }
+    }
+
+    private void AssignVerticalLayout(MindMapNode node, double left, double top, double subtreeWidth, int depth)
+    {
+        var ownHeight = MeasureNodeHeight(node);
+        var x = left + (subtreeWidth - NodeWidth) / 2;
+        var y = top;
+
+        _layouts[node] = new NodeLayout(x, y, NodeWidth, ownHeight, Direction: 2, Depth: depth);
+
+        if (!node.IsExpanded || node.Children.Count == 0)
+            return;
+
+        AssignVerticalChildrenLayout(
+            node.Children,
+            left,
+            top + ownHeight + VerticalLayoutLevelGap,
+            subtreeWidth,
+            depth + 1);
     }
 
     private void NormalizeLayoutOffset()
@@ -566,28 +808,9 @@ public partial class MindMapPreviewWindow : Window
 
             if (includeNode && includeChild && hasParentLayout && parentLayout is not null && _layouts.TryGetValue(child, out var childLayout) && childLayout is not null)
             {
-                var direction = childLayout.Direction < 0 ? -1 : 1;
-                var start = direction < 0
-                    ? new Point(parentLayout.X, parentLayout.Y + parentLayout.Height / 2)
-                    : new Point(parentLayout.X + parentLayout.Width, parentLayout.Y + parentLayout.Height / 2);
-                var end = direction < 0
-                    ? new Point(childLayout.X + childLayout.Width, childLayout.Y + childLayout.Height / 2)
-                    : new Point(childLayout.X, childLayout.Y + childLayout.Height / 2);
-                var horizontalDistance = Math.Abs(end.X - start.X);
-                var midOffset = Math.Max(42, horizontalDistance * 0.45);
-
-                var figure = new PathFigure { StartPoint = start };
-                figure.Segments.Add(direction < 0
-                    ? new BezierSegment(
-                        new Point(start.X - midOffset, start.Y),
-                        new Point(end.X + midOffset, end.Y),
-                        end,
-                        isStroked: true)
-                    : new BezierSegment(
-                        new Point(start.X + midOffset, start.Y),
-                        new Point(end.X - midOffset, end.Y),
-                        end,
-                        isStroked: true));
+                var figure = childLayout.Direction == 2
+                    ? CreateVerticalConnectionFigure(parentLayout, childLayout)
+                    : CreateHorizontalConnectionFigure(parentLayout, childLayout);
 
                 var geometry = new PathGeometry();
                 geometry.Figures.Add(figure);
@@ -605,6 +828,51 @@ public partial class MindMapPreviewWindow : Window
 
             DrawConnections(child);
         }
+    }
+
+    private static PathFigure CreateHorizontalConnectionFigure(NodeLayout parentLayout, NodeLayout childLayout)
+    {
+        var direction = childLayout.Direction < 0 ? -1 : 1;
+        var start = direction < 0
+            ? new Point(parentLayout.X, parentLayout.Y + parentLayout.Height / 2)
+            : new Point(parentLayout.X + parentLayout.Width, parentLayout.Y + parentLayout.Height / 2);
+        var end = direction < 0
+            ? new Point(childLayout.X + childLayout.Width, childLayout.Y + childLayout.Height / 2)
+            : new Point(childLayout.X, childLayout.Y + childLayout.Height / 2);
+        var horizontalDistance = Math.Abs(end.X - start.X);
+        var midOffset = Math.Max(42, horizontalDistance * 0.45);
+
+        var figure = new PathFigure { StartPoint = start };
+        figure.Segments.Add(direction < 0
+            ? new BezierSegment(
+                new Point(start.X - midOffset, start.Y),
+                new Point(end.X + midOffset, end.Y),
+                end,
+                isStroked: true)
+            : new BezierSegment(
+                new Point(start.X + midOffset, start.Y),
+                new Point(end.X - midOffset, end.Y),
+                end,
+                isStroked: true));
+
+        return figure;
+    }
+
+    private static PathFigure CreateVerticalConnectionFigure(NodeLayout parentLayout, NodeLayout childLayout)
+    {
+        var start = new Point(parentLayout.X + parentLayout.Width / 2, parentLayout.Y + parentLayout.Height);
+        var end = new Point(childLayout.X + childLayout.Width / 2, childLayout.Y);
+        var verticalDistance = Math.Abs(end.Y - start.Y);
+        var midOffset = Math.Max(42, verticalDistance * 0.45);
+
+        var figure = new PathFigure { StartPoint = start };
+        figure.Segments.Add(new BezierSegment(
+            new Point(start.X, start.Y + midOffset),
+            new Point(end.X, end.Y - midOffset),
+            end,
+            isStroked: true));
+
+        return figure;
     }
 
     private void DrawNodes(MindMapNode node)
@@ -740,10 +1008,10 @@ public partial class MindMapPreviewWindow : Window
                 var currentPos = e.GetPosition(MapCanvas);
                 var dx = currentPos.X - _dragStartMousePos.X;
                 var dy = currentPos.Y - _dragStartMousePos.Y;
-                var newX = Math.Max(0, _dragStartNodePos.X + dx);
-                var newY = Math.Max(0, _dragStartNodePos.Y + dy);
+                var newX = Math.Max(CanvasPadding, _dragStartNodePos.X + dx);
+                var newY = Math.Max(CanvasPadding, _dragStartNodePos.Y + dy);
 
-                _manualPositions[node] = new Point(newX, newY);
+                SetManualPosition(node, new Point(newX, newY));
                 _layouts[node] = _layouts[node] with { X = newX, Y = newY };
 
                 Canvas.SetLeft(border, newX);
@@ -1156,29 +1424,45 @@ public partial class MindMapPreviewWindow : Window
         if (LayoutModeComboBox.SelectedItem is not ComboBoxItem selectedItem)
             return;
 
-        _selectedLayoutMode = selectedItem.Tag as string == "Radial"
-            ? MindMapLayoutMode.Radial
-            : MindMapLayoutMode.BalancedTree;
+        _selectedLayoutMode = ParseLayoutMode(selectedItem.Tag as string);
+        _hasCenteredOnRootInitially = false;
+        RebuildMap();
+        Dispatcher.BeginInvoke(new Action(CenterViewOnRoot), DispatcherPriority.Loaded);
     }
 
     private void AutoLayoutButton_Click(object sender, RoutedEventArgs e)
     {
+        _isManualPositioningMode = false;
+        _manualPositions.Clear();
+        ClearManualPositions(_root);
+        _suppressManualPositioningToggleChanged = true;
+        ManualPositioningToggle.IsChecked = false;
+        _suppressManualPositioningToggleChanged = false;
+        UpdateManualPositioningVisualState();
+
         RebuildMap();
         Dispatcher.BeginInvoke(new Action(CenterViewOnRoot), DispatcherPriority.Loaded);
     }
     private void ManualPositioningToggle_Checked(object sender, RoutedEventArgs e)
     {
+        if (_suppressManualPositioningToggleChanged)
+            return;
+
         _isManualPositioningMode = true;
-        // Snapshot current auto-layout positions as starting manual positions
-        foreach (var (node, layout) in _layouts)
-            _manualPositions[node] = new Point(layout.X, layout.Y);
+        CaptureVisibleLayoutAsManualPositions();
+        UpdateManualPositioningVisualState();
         RebuildMap();
     }
 
     private void ManualPositioningToggle_Unchecked(object sender, RoutedEventArgs e)
     {
+        if (_suppressManualPositioningToggleChanged)
+            return;
+
         _isManualPositioningMode = false;
         _manualPositions.Clear();
+        ClearManualPositions(_root);
+        UpdateManualPositioningVisualState();
         RebuildMap();
     }
 
@@ -1379,7 +1663,9 @@ public partial class MindMapPreviewWindow : Window
             BorderThickness = source.BorderThickness,
             NodeShape = source.NodeShape,
             Icon = source.Icon,
-            IconBadgeColor = source.IconBadgeColor
+            IconBadgeColor = source.IconBadgeColor,
+            ManualX = source.ManualX,
+            ManualY = source.ManualY
         };
 
         foreach (var child in source.Children)
@@ -1396,12 +1682,14 @@ public partial class MindMapPreviewWindow : Window
         var previousSearchQuery = _searchQuery;
         var previousZoom = ZoomSlider.Value;
         var previousRenderFilter = _renderOnlyNodes;
+        var previousSuppressManualPositionCapture = _suppressManualPositionCapture;
         _searchQuery = string.Empty;
         RefreshSearchMatches(resetIndex: true);
 
         var expansionState = SnapshotExpansionState(_root);
         try
         {
+            _suppressManualPositionCapture = true;
             ZoomSlider.Value = 1;
             SetExpanded(exportRoot, true);
             SetExpanded(_root, true);
@@ -1463,6 +1751,7 @@ public partial class MindMapPreviewWindow : Window
             RestoreExpansionState(expansionState);
             ZoomSlider.Value = previousZoom;
             _renderOnlyNodes = previousRenderFilter;
+            _suppressManualPositionCapture = previousSuppressManualPositionCapture;
             _searchQuery = previousSearchQuery;
             RefreshSearchMatches(resetIndex: true);
             RebuildMap();
@@ -1644,6 +1933,9 @@ public partial class MindMapPreviewWindow : Window
     private enum MindMapLayoutMode
     {
         BalancedTree,
+        RightTree,
+        LeftTree,
+        TopDown,
         Radial
     }
 

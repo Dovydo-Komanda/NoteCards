@@ -6,6 +6,8 @@ public sealed class MindMapDocument
     public string Title { get; set; } = string.Empty;
     public List<string> Tags { get; set; } = new();
     public MindMapNode Root { get; set; } = new();
+    public string LayoutMode { get; set; } = "BalancedTree";
+    public bool UseManualPositions { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastModified { get; set; } = DateTime.Now;
     public string AiModelDisplayName { get; set; } = string.Empty;

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace NoteCards.Models;
 
 public sealed class MindMapNode
@@ -13,6 +15,10 @@ public sealed class MindMapNode
     public string? NodeShape { get; set; } = "Rectangle"; // Rectangle, Rounded, Circle, Ellipse
     public string? Icon { get; set; } // Emoji or icon identifier
     public string? IconBadgeColor { get; set; } = "#F59E0B"; // Default amber
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? ManualX { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? ManualY { get; set; }
 
     public bool HasChildren => Children.Count > 0;
 }

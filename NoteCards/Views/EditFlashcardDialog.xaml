@@ -43,6 +43,130 @@
                 </Setter>
             </Style>
 
+            <Style x:Key="FlashcardCategoryComboBoxItemStyle" TargetType="ComboBoxItem">
+                <Setter Property="MinHeight" Value="30"/>
+                <Setter Property="Padding" Value="10,6"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBoxItem">
+                            <Border x:Name="ItemBorder"
+                                    Background="Transparent"
+                                    CornerRadius="7"
+                                    Padding="{TemplateBinding Padding}"
+                                    Margin="2">
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource HoverBackground}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SelectionBackground}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <ControlTemplate x:Key="FlashcardCategoryComboToggleTemplate" TargetType="ToggleButton">
+                <Border Background="Transparent">
+                    <TextBlock Text="▾"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextColorSecondary}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+            </ControlTemplate>
+
+            <Style x:Key="FlashcardCategoryComboBoxStyle" TargetType="ComboBox">
+                <Setter Property="Height" Value="38"/>
+                <Setter Property="Padding" Value="12,0"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+                <Setter Property="Background" Value="{DynamicResource WindowBackground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBox">
+                            <Grid>
+                                <Border x:Name="ComboBorder"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="10"
+                                        SnapsToDevicePixels="True"/>
+
+                                <TextBox x:Name="PART_EditableTextBox"
+                                         Margin="12,0,38,0"
+                                         Padding="0"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         Foreground="{TemplateBinding Foreground}"
+                                         CaretBrush="{DynamicResource TextColor}"
+                                         FontSize="{TemplateBinding FontSize}"
+                                         VerticalContentAlignment="Center"
+                                         HorizontalContentAlignment="Left"
+                                         IsReadOnly="{TemplateBinding IsReadOnly}"/>
+
+                                <ToggleButton Grid.Column="1"
+                                              Width="34"
+                                              HorizontalAlignment="Right"
+                                              Focusable="False"
+                                              Background="Transparent"
+                                              BorderThickness="0"
+                                              Template="{StaticResource FlashcardCategoryComboToggleTemplate}"
+                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                              ClickMode="Press"/>
+
+                                <Popup x:Name="PART_Popup"
+                                       Placement="Bottom"
+                                       IsOpen="{TemplateBinding IsDropDownOpen}"
+                                       AllowsTransparency="True"
+                                       Focusable="False"
+                                       PopupAnimation="Fade">
+                                    <Border Margin="0,6,0,0"
+                                            MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                            MaxHeight="180"
+                                            Background="{DynamicResource CardBackground}"
+                                            BorderBrush="{DynamicResource BorderColor}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="4">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#000000" Opacity="0.18" BlurRadius="18" ShadowDepth="3" Direction="270"/>
+                                        </Border.Effect>
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                      HorizontalScrollBarVisibility="Disabled">
+                                            <ItemsPresenter/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="ComboBorder" Property="Background" Value="{DynamicResource HoverBackground}"/>
+                                    <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Setter TargetName="ComboBorder" Property="BorderBrush" Value="#4A6EE0"/>
+                                </Trigger>
+                                <Trigger Property="IsDropDownOpen" Value="True">
+                                    <Setter TargetName="ComboBorder" Property="BorderBrush" Value="#4A6EE0"/>
+                                </Trigger>
+                                <Trigger Property="HasItems" Value="False">
+                                    <Setter TargetName="PART_Popup" Property="MinHeight" Value="0"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style x:Key="FlashcardDialogSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogSecondaryButtonStyle}">
                 <Setter Property="Padding" Value="20,10"/>
                 <Setter Property="MinWidth" Value="110"/>
@@ -151,11 +275,15 @@
                                FontSize="13"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextColor}"/>
-                    <TextBox Grid.Row="2"
-                             x:Name="CategoryTextBox"
-                             Height="36"
-                             Padding="12,8"
-                             Style="{StaticResource FlashcardEditorInputStyle}"/>
+                    <ComboBox Grid.Row="2"
+                              x:Name="CategoryComboBox"
+                              ItemsSource="{Binding CategoryOptions}"
+                              ItemContainerStyle="{StaticResource FlashcardCategoryComboBoxItemStyle}"
+                              Style="{StaticResource FlashcardCategoryComboBoxStyle}"
+                              IsEditable="True"
+                              IsTextSearchEnabled="True"
+                              StaysOpenOnEdit="True"
+                              VerticalContentAlignment="Center"/>
                 </Grid>
 
                 <!-- Buttons -->

@@ -8,6 +8,42 @@
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{DynamicResource WindowBackground}">
+    <Window.Resources>
+        <Style x:Key="SimpleInputTextBoxStyle" TargetType="TextBox">
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Background" Value="{DynamicResource WindowBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextColor}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource SelectionBackground}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="InputBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="InputBorder" Property="Background" Value="{DynamicResource HoverBackground}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="InputBorder" Property="BorderBrush" Value="#4A6EE0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Border Margin="10"
             Padding="14"
             Background="{DynamicResource CardBackground}"
@@ -32,15 +68,7 @@
             <TextBox x:Name="InputBox"
                      Grid.Row="1"
                      Margin="0,0,0,12"
-                     MinHeight="34"
-                     Padding="8,6"
-                     FontSize="13"
-                     Background="{DynamicResource WindowBackground}"
-                     BorderBrush="{DynamicResource BorderColor}"
-                     BorderThickness="1"
-                     Foreground="{DynamicResource TextColor}"
-                     CaretBrush="{DynamicResource TextColor}"
-                     SelectionBrush="{DynamicResource SelectionBackground}"/>
+                     Style="{StaticResource SimpleInputTextBoxStyle}"/>
 
             <StackPanel Grid.Row="2"
                         Orientation="Horizontal"

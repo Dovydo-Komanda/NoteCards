@@ -1087,7 +1087,9 @@ namespace NoteCards
                 rootNode,
                 modelDisplayName: null,
                 title: null,
-                tags: null)
+                tags: null,
+                layoutMode: null,
+                useManualPositions: false)
             {
                 Owner = this
             };
@@ -1370,7 +1372,9 @@ namespace NoteCards
                 mindMapVm.Document.Root,
                 mindMapVm.Document.AiModelDisplayName,
                 mindMapVm.Document.Title,
-                mindMapVm.Document.Tags)
+                mindMapVm.Document.Tags,
+                mindMapVm.Document.LayoutMode,
+                mindMapVm.Document.UseManualPositions)
             {
                 Owner = this
             };
@@ -1382,6 +1386,8 @@ namespace NoteCards
                 mindMapVm.Document.Title = updatedDocument.Title;
                 mindMapVm.Document.Tags = updatedDocument.Tags;
                 mindMapVm.Document.Root = updatedDocument.Root;
+                mindMapVm.Document.LayoutMode = updatedDocument.LayoutMode;
+                mindMapVm.Document.UseManualPositions = updatedDocument.UseManualPositions;
                 mindMapVm.Document.LastModified = updatedDocument.LastModified;
 
                 // Notify UI of changes

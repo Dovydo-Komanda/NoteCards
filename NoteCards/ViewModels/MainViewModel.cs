@@ -1093,6 +1093,8 @@ public class MainViewModel : ViewModelBase
             existing.Document.Title = document.Title;
             existing.Document.Tags = document.Tags;
             existing.Document.Root = document.Root;
+            existing.Document.LayoutMode = document.LayoutMode;
+            existing.Document.UseManualPositions = document.UseManualPositions;
             existing.Document.CreatedAt = document.CreatedAt;
             existing.Document.LastModified = document.LastModified;
             existing.Document.AiModelDisplayName = document.AiModelDisplayName;
@@ -1395,6 +1397,8 @@ public class MainViewModel : ViewModelBase
             Title = $"{source.Title} (Copy)",
             Tags = source.Tags.ToList(),
             Root = CloneMindMapNode(source.Root),
+            LayoutMode = source.LayoutMode,
+            UseManualPositions = source.UseManualPositions,
             CreatedAt = DateTime.UtcNow,
             LastModified = DateTime.Now,
             AiModelDisplayName = source.AiModelDisplayName,
@@ -1414,6 +1418,8 @@ public class MainViewModel : ViewModelBase
             NodeShape = source.NodeShape,
             Icon = source.Icon,
             IconBadgeColor = source.IconBadgeColor,
+            ManualX = source.ManualX,
+            ManualY = source.ManualY,
             Children = new List<MindMapNode>()
         };
 
@@ -1853,14 +1859,34 @@ public class MainViewModel : ViewModelBase
         NormalizeMindMapNode(document.Root);
         if (string.IsNullOrWhiteSpace(document.Root.Text))
             document.Root.Text = document.Title;
+        document.LayoutMode = NormalizeMindMapLayoutMode(document.LayoutMode);
+        document.UseManualPositions = document.UseManualPositions && HasAnyManualMindMapPosition(document.Root);
         document.CreatedAt = document.CreatedAt == default ? DateTime.UtcNow : document.CreatedAt;
         document.LastModified = document.LastModified == default ? DateTime.Now : document.LastModified;
         document.AiModelDisplayName = document.AiModelDisplayName?.Trim() ?? string.Empty;
     }
 
+    private static string NormalizeMindMapLayoutMode(string? layoutMode)
+    {
+        return layoutMode?.Trim() switch
+        {
+            "Radial" => "Radial",
+            "RightTree" => "RightTree",
+            "LeftTree" => "LeftTree",
+            "TopDown" => "TopDown",
+            _ => "BalancedTree"
+        };
+    }
+
     private static void NormalizeMindMapNode(MindMapNode node)
     {
         node.Text = node.Text?.Trim() ?? string.Empty;
+        if (node.ManualX is not { } x || node.ManualY is not { } y || !IsFinite(x) || !IsFinite(y))
+        {
+            node.ManualX = null;
+            node.ManualY = null;
+        }
+
         node.Children = node.Children?
             .Where(child => child != null)
             .ToList() ?? new List<MindMapNode>();
@@ -1868,6 +1894,17 @@ public class MainViewModel : ViewModelBase
         foreach (var child in node.Children)
             NormalizeMindMapNode(child);
     }
+
+    private static bool HasAnyManualMindMapPosition(MindMapNode node)
+    {
+        if (node.ManualX.HasValue && node.ManualY.HasValue)
+            return true;
+
+        return node.Children.Any(HasAnyManualMindMapPosition);
+    }
+
+    private static bool IsFinite(double value)
+        => !double.IsNaN(value) && !double.IsInfinity(value);
 
 
     public ObservableCollection<NoteCardViewModel> Notes { get; }

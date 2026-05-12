@@ -247,8 +247,19 @@ Right-click to remove</value></data>
   <data name="FindReplaceTitle" xml:space="preserve"><value>Find / Replace</value></data>
   <data name="FindLabel" xml:space="preserve"><value>Find:</value></data>
   <data name="ReplaceLabel" xml:space="preserve"><value>Replace:</value></data>
+  <data name="FindPrevious" xml:space="preserve"><value>Find Previous</value></data>
   <data name="FindNext" xml:space="preserve"><value>Find Next</value></data>
   <data name="ReplaceNext" xml:space="preserve"><value>Replace Next</value></data>
+  <data name="ReplaceAll" xml:space="preserve"><value>Replace All</value></data>
+  <data name="FindReplaceMatchCase" xml:space="preserve"><value>Match case</value></data>
+  <data name="FindReplaceWholeWord" xml:space="preserve"><value>Whole word</value></data>
+  <data name="FindReplaceWrapAround" xml:space="preserve"><value>Wrap around</value></data>
+  <data name="FindReplaceEnterSearch" xml:space="preserve"><value>Enter text to find.</value></data>
+  <data name="FindReplaceNoMatches" xml:space="preserve"><value>No matches</value></data>
+  <data name="FindReplaceMatchesFormat" xml:space="preserve"><value>{0} matches</value></data>
+  <data name="FindReplaceResultFormat" xml:space="preserve"><value>{0} of {1}</value></data>
+  <data name="FindReplaceWrappedResultFormat" xml:space="preserve"><value>{0} of {1} (wrapped)</value></data>
+  <data name="FindReplaceReplacedCountFormat" xml:space="preserve"><value>Replaced: {0}</value></data>
   <data name="ClearContent" xml:space="preserve"><value>Clear Content</value></data>
   <data name="ClearContentTitle" xml:space="preserve"><value>Clear Content</value></data>
   <data name="ClearContentPrompt" xml:space="preserve"><value>Are you sure you want to clear all content from this note? This action cannot be undone.</value></data>
@@ -443,11 +454,17 @@ Right-click to remove</value></data>
   <data name="DeleteFlashcardSetConfirmationFormat" xml:space="preserve"><value>Are you sure you want to delete "{0}" and all cards in it? This action cannot be undone.</value></data>
   <data name="StudyModeStart" xml:space="preserve"><value>Start study mode</value></data>
   <data name="StudyModeExit" xml:space="preserve"><value>Exit study mode</value></data>
+  <data name="StudyModeContinue" xml:space="preserve"><value>Continue</value></data>
+  <data name="StudyModeRestart" xml:space="preserve"><value>Start over</value></data>
+  <data name="StudyModeResumeTitle" xml:space="preserve"><value>Study progress</value></data>
+  <data name="StudyModeResumeMessage" xml:space="preserve"><value>This set has saved study progress. Continue where you left off or start over?</value></data>
+  <data name="StudyModeCompletedRestartMessage" xml:space="preserve"><value>This set is already complete. You can start over, but there is no unfinished session to continue.</value></data>
   <data name="StudyModeFullscreen" xml:space="preserve"><value>Fullscreen</value></data>
   <data name="StudyModeExitFullscreen" xml:space="preserve"><value>Exit fullscreen</value></data>
   <data name="StudyModeFullscreenTooltip" xml:space="preserve"><value>Press F11 to toggle fullscreen</value></data>
   <data name="Known" xml:space="preserve"><value>Known</value></data>
   <data name="Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="FlashcardStatusNew" xml:space="preserve"><value>Not studied</value></data>
   <data name="FlashcardStatusAll" xml:space="preserve"><value>All</value></data>
   <data name="FlashcardCategoryAll" xml:space="preserve"><value>All categories</value></data>
   <data name="FlashcardFilters" xml:space="preserve"><value>Filters</value></data>
@@ -491,8 +508,20 @@ Right-click to remove</value></data>
   <data name="MindMapSelectNodeToAddSibling" xml:space="preserve"><value>Select a node to add a sibling branch.</value></data>
   <data name="MindMapCannotAddSiblingToRoot" xml:space="preserve"><value>The root node cannot have siblings.</value></data>
   <data name="MindMapAutoLayout" xml:space="preserve"><value>Auto layout</value></data>
+  <data name="MindMapManualPositioning" xml:space="preserve"><value>Manual</value></data>
+  <data name="MindMapManualPositioningOn" xml:space="preserve"><value>ON</value></data>
+  <data name="MindMapManualPositioningOff" xml:space="preserve"><value>OFF</value></data>
+  <data name="MindMapManualPositioningOnHint" xml:space="preserve"><value>Manual positioning is on. Drag nodes to arrange them.</value></data>
+  <data name="MindMapManualPositioningOffHint" xml:space="preserve"><value>Manual positioning is off. Turn it on to drag nodes.</value></data>
+  <data name="MindMapToolbarNodes" xml:space="preserve"><value>Nodes</value></data>
+  <data name="MindMapToolbarArrange" xml:space="preserve"><value>Arrange</value></data>
+  <data name="MindMapToolbarView" xml:space="preserve"><value>View</value></data>
+  <data name="MindMapToolbarSearch" xml:space="preserve"><value>Search</value></data>
   <data name="MindMapLayoutMode" xml:space="preserve"><value>Layout:</value></data>
   <data name="MindMapLayoutBalancedTree" xml:space="preserve"><value>Balanced tree</value></data>
+  <data name="MindMapLayoutRightTree" xml:space="preserve"><value>Right tree</value></data>
+  <data name="MindMapLayoutLeftTree" xml:space="preserve"><value>Left tree</value></data>
+  <data name="MindMapLayoutTopDown" xml:space="preserve"><value>Top-down</value></data>
   <data name="MindMapLayoutRadial" xml:space="preserve"><value>Radial</value></data>
   <data name="MindMapStyleOrganize" xml:space="preserve"><value>Style &amp; organize</value></data>
   <data name="MindMapStyleOrganizeTitle" xml:space="preserve"><value>Mind map style</value></data>

@@ -31,6 +31,9 @@ namespace NoteCards
         // Last search/replace state for Find Next / Replace Next functionality
         private string? _lastSearchQuery = null;
         private string? _lastReplacementText = null;
+        private bool _lastFindMatchCase;
+        private bool _lastFindWholeWord;
+        private bool _lastFindWrapAround = true;
 
         // Auto-save fields
         public event Action<NoteDocument>? DocumentAutoSaved;
@@ -103,6 +106,7 @@ namespace NoteCards
             ContentTextBox.PreviewMouseDown += ContentTextBox_PreviewMouseDown;
             ContentTextBox.SizeChanged += (_, _) => ScheduleFloatingImageOverlayLayoutUpdate();
             EditorSurface.SizeChanged += (_, _) => ScheduleFloatingImageOverlayLayoutUpdate();
+            PreviewKeyDown += NoteEditorWindow_PreviewKeyDown;
             Loaded += NoteEditorWindow_Loaded;
             RootGrid.Loaded += NoteEditorWindow_Loaded;
 
@@ -445,15 +449,74 @@ namespace NoteCards
 
         private void SearchButton_Click(object sender, RoutedEventArgs e)
         {
-            // Open combined Find/Replace dialog
-            var dlg = new Views.SearchReplaceDialogLocalized(_lastSearchQuery, _lastReplacementText);
-            dlg.Owner = GetDialogOwnerWindow();
-            var res = dlg.ShowDialog();
-            if (res == true)
+            OpenFindReplaceDialog(focusReplace: false);
+        }
+
+        private void OpenFindReplaceDialog(bool focusReplace)
+        {
+            var initialSearch = ResolveInitialFindText();
+            var dlg = new Views.SearchReplaceDialogLocalized(
+                this,
+                initialSearch,
+                _lastReplacementText,
+                _lastFindMatchCase,
+                _lastFindWholeWord,
+                _lastFindWrapAround,
+                focusReplace)
             {
-                // save last used values
-                _lastSearchQuery = dlg.SearchText;
-                _lastReplacementText = dlg.ReplacementText;
+                Owner = GetDialogOwnerWindow()
+            };
+
+            dlg.ShowDialog();
+
+            _lastSearchQuery = dlg.SearchText;
+            _lastReplacementText = dlg.ReplacementText;
+            _lastFindMatchCase = dlg.MatchCase;
+            _lastFindWholeWord = dlg.WholeWord;
+            _lastFindWrapAround = dlg.WrapAround;
+        }
+
+        private string? ResolveInitialFindText()
+        {
+            var selectedText = ContentTextBox.Selection?.Text?.Trim();
+            if (!string.IsNullOrWhiteSpace(selectedText)
+                && !selectedText.Contains('\r')
+                && !selectedText.Contains('\n')
+                && selectedText.Length <= 160)
+            {
+                return selectedText;
+            }
+
+            return _lastSearchQuery;
+        }
+
+        private void NoteEditorWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            var isCtrlOnly = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control
+                && (Keyboard.Modifiers & ModifierKeys.Alt) != ModifierKeys.Alt;
+
+            if (isCtrlOnly && e.Key == Key.F)
+            {
+                OpenFindReplaceDialog(focusReplace: false);
+                e.Handled = true;
+                return;
+            }
+
+            if (isCtrlOnly && e.Key == Key.H)
+            {
+                OpenFindReplaceDialog(focusReplace: true);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.F3 && !string.IsNullOrWhiteSpace(_lastSearchQuery))
+            {
+                if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+                    PerformFindPrevious(_lastSearchQuery, _lastFindMatchCase, _lastFindWholeWord, _lastFindWrapAround);
+                else
+                    PerformFindNext(_lastSearchQuery, _lastFindMatchCase, _lastFindWholeWord, _lastFindWrapAround);
+
+                e.Handled = true;
             }
         }
 
@@ -975,130 +1038,300 @@ namespace NoteCards
             StatusIndicatorRow.BeginAnimation(RowDefinition.HeightProperty, animation);
         }
 
-        private void PerformFind(string query)
+        internal FindReplaceResult PerformFindNext(
+            string query,
+            bool matchCase = false,
+            bool wholeWord = false,
+            bool wrapAround = true)
+        {
+            return PerformFind(query, FindDirection.Next, matchCase, wholeWord, wrapAround);
+        }
+
+        internal FindReplaceResult PerformFindPrevious(
+            string query,
+            bool matchCase = false,
+            bool wholeWord = false,
+            bool wrapAround = true)
+        {
+            return PerformFind(query, FindDirection.Previous, matchCase, wholeWord, wrapAround);
+        }
+
+        internal FindReplaceResult PerformReplaceNext(
+            string query,
+            string replacement,
+            bool matchCase = false,
+            bool wholeWord = false,
+            bool wrapAround = true)
         {
             if (string.IsNullOrEmpty(query))
-                return;
+                return FindReplaceResult.Empty;
 
-            // Clear previous selection
-            var doc = ContentTextBox.Document;
+            var matches = FindTextMatches(query, matchCase, wholeWord);
+            if (matches.Count == 0)
+            {
+                ClearAllHighlights();
+                return new FindReplaceResult(false, 0, -1, false, 0);
+            }
+
+            var currentMatch = GetCurrentSelectionMatch(matches);
+            if (currentMatch is null)
+                return PerformFindNext(query, matchCase, wholeWord, wrapAround);
+
+            var start = GetTextPointerAtTextOffset(currentMatch.Start);
+            var end = GetTextPointerAtTextOffset(currentMatch.End);
+            if (start is null || end is null)
+                return PerformFindNext(query, matchCase, wholeWord, wrapAround);
+
+            new TextRange(start, end).Text = replacement ?? string.Empty;
+            MarkEditorContentChanged();
+
+            var result = PerformFindNext(query, matchCase, wholeWord, wrapAround);
+            return result with { ReplacedCount = 1 };
+        }
+
+        internal FindReplaceResult PerformReplaceAll(
+            string query,
+            string replacement,
+            bool matchCase = false,
+            bool wholeWord = false)
+        {
+            if (string.IsNullOrEmpty(query))
+                return FindReplaceResult.Empty;
+
+            var matches = FindTextMatches(query, matchCase, wholeWord);
+            if (matches.Count == 0)
+            {
+                ClearAllHighlights();
+                return new FindReplaceResult(false, 0, -1, false, 0);
+            }
+
+            ClearAllHighlights();
+            for (var i = matches.Count - 1; i >= 0; i--)
+            {
+                var match = matches[i];
+                var start = GetTextPointerAtTextOffset(match.Start);
+                var end = GetTextPointerAtTextOffset(match.End);
+                if (start is null || end is null)
+                    continue;
+
+                new TextRange(start, end).Text = replacement ?? string.Empty;
+            }
+
+            MarkEditorContentChanged();
+            ContentTextBox.Focus();
+            return new FindReplaceResult(false, 0, -1, false, matches.Count);
+        }
+
+        internal int CountFindMatches(string query, bool matchCase = false, bool wholeWord = false)
+        {
+            if (string.IsNullOrEmpty(query))
+                return 0;
+
+            return FindTextMatches(query, matchCase, wholeWord).Count;
+        }
+
+        internal void ClearFindHighlights()
+        {
+            ClearAllHighlights();
+        }
+
+        private FindReplaceResult PerformFind(
+            string query,
+            FindDirection direction,
+            bool matchCase,
+            bool wholeWord,
+            bool wrapAround)
+        {
+            if (string.IsNullOrEmpty(query))
+                return FindReplaceResult.Empty;
+
+            var matches = FindTextMatches(query, matchCase, wholeWord);
+            if (matches.Count == 0)
+            {
+                ClearAllHighlights();
+                return new FindReplaceResult(false, 0, -1, false, 0);
+            }
+
+            var selection = ContentTextBox.Selection;
+            var selectionStart = GetTextOffsetForPointer(selection?.Start ?? ContentTextBox.Document.ContentStart);
+            var selectionEnd = GetTextOffsetForPointer(selection?.End ?? ContentTextBox.Document.ContentStart);
+
+            var activeIndex = direction == FindDirection.Next
+                ? matches.FindIndex(match => match.Start >= selectionEnd)
+                : FindLastMatchIndexBefore(matches, selection?.IsEmpty == false ? selectionStart : selectionEnd);
+
+            var wrapped = false;
+            if (activeIndex < 0 && wrapAround)
+            {
+                activeIndex = direction == FindDirection.Next ? 0 : matches.Count - 1;
+                wrapped = true;
+            }
+
+            if (activeIndex < 0)
+            {
+                HighlightMatches(matches, activeIndex: -1);
+                return new FindReplaceResult(false, matches.Count, -1, false, 0);
+            }
+
+            HighlightMatches(matches, activeIndex);
+            SelectMatch(matches[activeIndex]);
+            return new FindReplaceResult(true, matches.Count, activeIndex, wrapped, 0);
+        }
+
+        private static int FindLastMatchIndexBefore(IReadOnlyList<FindMatch> matches, int offset)
+        {
+            for (var i = matches.Count - 1; i >= 0; i--)
+            {
+                if (matches[i].Start < offset)
+                    return i;
+            }
+
+            return -1;
+        }
+
+        private FindMatch? GetCurrentSelectionMatch(IReadOnlyList<FindMatch> matches)
+        {
+            var selection = ContentTextBox.Selection;
+            if (selection is null || selection.IsEmpty)
+                return null;
+
+            var startOffset = GetTextOffsetForPointer(selection.Start);
+            var endOffset = GetTextOffsetForPointer(selection.End);
+            return matches.FirstOrDefault(match => match.Start == startOffset && match.End == endOffset);
+        }
+
+        private List<FindMatch> FindTextMatches(string query, bool matchCase, bool wholeWord)
+        {
+            var documentText = GetDocumentSearchText();
+            var matches = new List<FindMatch>();
+            if (string.IsNullOrEmpty(query) || string.IsNullOrEmpty(documentText))
+                return matches;
+
+            var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            var searchStart = 0;
+            while (searchStart <= documentText.Length - query.Length)
+            {
+                var index = documentText.IndexOf(query, searchStart, comparison);
+                if (index < 0)
+                    break;
+
+                if (!wholeWord || IsWholeWordMatch(documentText, index, query.Length))
+                    matches.Add(new FindMatch(index, query.Length));
+
+                searchStart = index + Math.Max(1, query.Length);
+            }
+
+            return matches;
+        }
+
+        private string GetDocumentSearchText()
+        {
+            var sb = new StringBuilder();
+            var navigator = ContentTextBox.Document.ContentStart;
+            while (navigator is not null && navigator.CompareTo(ContentTextBox.Document.ContentEnd) < 0)
+            {
+                if (navigator.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
+                    sb.Append(navigator.GetTextInRun(LogicalDirection.Forward));
+
+                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+            }
+
+            return sb.ToString();
+        }
+
+        private TextPointer? GetTextPointerAtTextOffset(int targetOffset)
+        {
+            targetOffset = Math.Max(0, targetOffset);
+            var traversed = 0;
+            var navigator = ContentTextBox.Document.ContentStart;
+
+            while (navigator is not null && navigator.CompareTo(ContentTextBox.Document.ContentEnd) < 0)
+            {
+                if (navigator.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
+                {
+                    var text = navigator.GetTextInRun(LogicalDirection.Forward);
+                    if (targetOffset <= traversed + text.Length)
+                        return navigator.GetPositionAtOffset(targetOffset - traversed, LogicalDirection.Forward);
+
+                    traversed += text.Length;
+                }
+
+                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+            }
+
+            return ContentTextBox.Document.ContentEnd;
+        }
+
+        private int GetTextOffsetForPointer(TextPointer pointer)
+        {
+            var traversed = 0;
+            var navigator = ContentTextBox.Document.ContentStart;
+
+            while (navigator is not null && navigator.CompareTo(ContentTextBox.Document.ContentEnd) < 0)
+            {
+                if (navigator.CompareTo(pointer) >= 0)
+                    return traversed;
+
+                if (navigator.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
+                {
+                    var text = navigator.GetTextInRun(LogicalDirection.Forward);
+                    var runEnd = navigator.GetPositionAtOffset(text.Length, LogicalDirection.Forward);
+                    if (runEnd is not null && runEnd.CompareTo(pointer) >= 0)
+                        return traversed + Math.Max(0, navigator.GetOffsetToPosition(pointer));
+
+                    traversed += text.Length;
+                }
+
+                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+            }
+
+            return traversed;
+        }
+
+        private void HighlightMatches(IReadOnlyList<FindMatch> matches, int activeIndex)
+        {
             ClearAllHighlights();
 
-            // Search for the query in the text
-            var navigator = doc.ContentStart;
-            while (navigator.CompareTo(doc.ContentEnd) < 0)
+            var matchBrush = TryFindResource("EditorFindMatchBackground") as Brush
+                ?? new SolidColorBrush(Color.FromRgb(254, 243, 199));
+            var activeBrush = TryFindResource("EditorFindActiveMatchBackground") as Brush
+                ?? new SolidColorBrush(Color.FromRgb(251, 191, 36));
+
+            for (var i = 0; i < matches.Count; i++)
             {
-                var text = navigator.GetTextInRun(LogicalDirection.Forward);
-                if (!string.IsNullOrEmpty(text))
-                {
-                    var idx = text.IndexOf(query, System.StringComparison.OrdinalIgnoreCase);
-                    if (idx >= 0)
-                    {
-                        var start = navigator.GetPositionAtOffset(idx);
-                        var end = start.GetPositionAtOffset(query.Length);
-                        if (start != null && end != null)
-                        {
-                            var foundRange = new TextRange(start, end);
-                            foundRange.ApplyPropertyValue(TextElement.BackgroundProperty, System.Windows.Media.Brushes.Yellow);
-                            // Scroll to selection
-                            ContentTextBox.Selection.Select(start, end);
-                            ContentTextBox.Focus();
-                            return; // highlight first occurrence
-                        }
-                    }
-                }
-                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+                var match = matches[i];
+                var start = GetTextPointerAtTextOffset(match.Start);
+                var end = GetTextPointerAtTextOffset(match.End);
+                if (start is null || end is null)
+                    continue;
+
+                new TextRange(start, end).ApplyPropertyValue(
+                    TextElement.BackgroundProperty,
+                    i == activeIndex ? activeBrush : matchBrush);
             }
         }
 
-        // Find next occurrence after current selection. Wraps to start if needed.
-        internal bool PerformFindNext(string query)
+        private void SelectMatch(FindMatch match)
         {
-            if (string.IsNullOrEmpty(query))
-                return false;
-
-            var doc = ContentTextBox.Document;
-            ClearAllHighlights();
-
-            TextPointer? startPos = null;
-            var sel = ContentTextBox.Selection;
-            if (sel != null && !sel.IsEmpty)
-            {
-                startPos = sel.End;
-            }
-            else
-            {
-                startPos = doc.ContentStart;
-            }
-
-            // Search from startPos to end
-            var navigator = startPos;
-            while (navigator != null && navigator.CompareTo(doc.ContentEnd) < 0)
-            {
-                var text = navigator.GetTextInRun(LogicalDirection.Forward);
-                if (!string.IsNullOrEmpty(text))
-                {
-                    var idx = text.IndexOf(query, System.StringComparison.OrdinalIgnoreCase);
-                    if (idx >= 0)
-                    {
-                        var start = navigator.GetPositionAtOffset(idx);
-                        var end = start.GetPositionAtOffset(query.Length);
-                        if (start != null && end != null)
-                        {
-                            var foundRange = new TextRange(start, end);
-                            foundRange.ApplyPropertyValue(TextElement.BackgroundProperty, System.Windows.Media.Brushes.Yellow);
-                            ContentTextBox.Selection.Select(start, end);
-                            ContentTextBox.Focus();
-                            return true;
-                        }
-                    }
-                }
-                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
-            }
-
-            // Not found after current position - try from document start (wrap)
-            navigator = doc.ContentStart;
-            while (navigator != null && navigator.CompareTo(startPos) < 0)
-            {
-                var text = navigator.GetTextInRun(LogicalDirection.Forward);
-                if (!string.IsNullOrEmpty(text))
-                {
-                    var idx = text.IndexOf(query, System.StringComparison.OrdinalIgnoreCase);
-                    if (idx >= 0)
-                    {
-                        var start = navigator.GetPositionAtOffset(idx);
-                        var end = start.GetPositionAtOffset(query.Length);
-                        if (start != null && end != null)
-                        {
-                            var foundRange = new TextRange(start, end);
-                            foundRange.ApplyPropertyValue(TextElement.BackgroundProperty, System.Windows.Media.Brushes.Yellow);
-                            ContentTextBox.Selection.Select(start, end);
-                            ContentTextBox.Focus();
-                            return true;
-                        }
-                    }
-                }
-                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
-            }
-
-            return false;
-        }
-
-        internal void PerformReplaceNext(string query, string replacement)
-        {
-            if (string.IsNullOrEmpty(query))
+            var start = GetTextPointerAtTextOffset(match.Start);
+            var end = GetTextPointerAtTextOffset(match.End);
+            if (start is null || end is null)
                 return;
 
-            // If current selection matches the search, replace it
-            var sel = ContentTextBox.Selection;
-            if (sel != null && !sel.IsEmpty && string.Equals(sel.Text, query, StringComparison.OrdinalIgnoreCase))
-            {
-                sel.Text = replacement ?? string.Empty;
-            }
-
-            // then find next
-            PerformFindNext(query);
+            ContentTextBox.Selection.Select(start, end);
+            ContentTextBox.Focus();
         }
+
+        private static bool IsWholeWordMatch(string text, int index, int length)
+        {
+            var beforeIsBoundary = index == 0 || !IsWordCharacter(text[index - 1]);
+            var afterIndex = index + length;
+            var afterIsBoundary = afterIndex >= text.Length || !IsWordCharacter(text[afterIndex]);
+            return beforeIsBoundary && afterIsBoundary;
+        }
+
+        private static bool IsWordCharacter(char value)
+            => char.IsLetterOrDigit(value) || value == '_';
 
         // Load data FROM a NoteDocument
         public void LoadFromDocument(NoteDocument document)
@@ -1254,6 +1487,7 @@ namespace NoteCards
                 var newFontFamily = ContentTextBox.FontFamily.Source;
                 var newFontSize = ContentTextBox.FontSize;
                 var newImages = BuildImageAttachments();
+                ClearAllHighlights();
                 var newContent = SerializeEditorContentWithImageMarkers();
 
                 var imagesChanged = !AreImageListsEqual(previousImages, newImages);
@@ -4307,6 +4541,27 @@ namespace NoteCards
                 
                 ContentTextBox.Document.PageWidth = 1000;
             }
+        }
+
+        private enum FindDirection
+        {
+            Next,
+            Previous
+        }
+
+        private sealed record FindMatch(int Start, int Length)
+        {
+            public int End => Start + Length;
+        }
+
+        internal sealed record FindReplaceResult(
+            bool Found,
+            int MatchCount,
+            int ActiveIndex,
+            bool Wrapped,
+            int ReplacedCount)
+        {
+            public static FindReplaceResult Empty { get; } = new(false, 0, -1, false, 0);
         }
 
     }

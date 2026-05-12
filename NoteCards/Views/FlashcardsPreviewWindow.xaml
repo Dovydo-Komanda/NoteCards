@@ -170,6 +170,109 @@
 
         <Style x:Key="FlashcardSearchIconButtonStyle" TargetType="Button" BasedOn="{StaticResource FlashcardEditorIconButtonStyle}"/>
 
+        <Style x:Key="FlashcardGridCardStyle" TargetType="Border">
+            <Setter Property="Width" Value="316"/>
+            <Setter Property="Height" Value="224"/>
+            <Setter Property="Margin" Value="0,0,16,16"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Background" Value="{DynamicResource FlashcardCardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource FlashcardCardBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#000000" Opacity="0.08" BlurRadius="10" ShadowDepth="1" Direction="270"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource FlashcardCardHoverBackground}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource FlashcardCardHoverBorder}"/>
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect Color="#000000" Opacity="0.16" BlurRadius="15" ShadowDepth="2" Direction="270"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource FlashcardCardSelectedBackground}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource FlashcardCardSelectedBorder}"/>
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect Color="#000000" Opacity="0.18" BlurRadius="18" ShadowDepth="2" Direction="270"/>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsSelected}" Value="True"/>
+                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="{DynamicResource FlashcardCardSelectedHoverBackground}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource FlashcardCardSelectedBorder}"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="FlashcardStudyCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource FlashcardCardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource FlashcardCardBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#000000" Opacity="0.14" BlurRadius="16" ShadowDepth="2" Direction="270"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource FlashcardCardHoverBackground}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource FlashcardCardHoverBorder}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="FlashcardMetaChipStyle" TargetType="Border">
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="FlashcardSideChipStyle" TargetType="Border" BasedOn="{StaticResource FlashcardMetaChipStyle}">
+            <Setter Property="Background" Value="{DynamicResource FlashcardSideChipBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource FlashcardSideChipBorder}"/>
+        </Style>
+
+        <Style x:Key="FlashcardCategoryChipStyle" TargetType="Border" BasedOn="{StaticResource FlashcardMetaChipStyle}">
+            <Setter Property="Background" Value="{DynamicResource FlashcardCategoryChipBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource FlashcardCategoryChipBorder}"/>
+        </Style>
+
+        <Style x:Key="FlashcardKnownChipStyle" TargetType="Border" BasedOn="{StaticResource FlashcardMetaChipStyle}">
+            <Setter Property="Background" Value="{DynamicResource FlashcardKnownChipBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource FlashcardKnownChipBorder}"/>
+        </Style>
+
+        <Style x:Key="FlashcardUnknownChipStyle" TargetType="Border" BasedOn="{StaticResource FlashcardMetaChipStyle}">
+            <Setter Property="Background" Value="{DynamicResource FlashcardUnknownChipBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource FlashcardUnknownChipBorder}"/>
+        </Style>
+
+        <Style x:Key="FlashcardNewChipStyle" TargetType="Border" BasedOn="{StaticResource FlashcardMetaChipStyle}">
+            <Setter Property="Background" Value="{DynamicResource FlashcardNewChipBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource FlashcardNewChipBorder}"/>
+        </Style>
+
+        <Style x:Key="FlashcardChipTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
         <Style x:Key="SetOptionActionButtonStyle" TargetType="Button" BasedOn="{StaticResource FlashcardEditorIconButtonStyle}">
             <Setter Property="Width" Value="22"/>
             <Setter Property="Height" Value="22"/>
@@ -435,16 +538,8 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Width="300"
-                                        Height="210"
-                                        Margin="0,0,14,14"
-                                        Padding="16"
-                                        Background="{DynamicResource WindowBackground}"
-                                        BorderBrush="{DynamicResource BorderColor}"
-                                        BorderThickness="1"
-                                        CornerRadius="12"
-                                        MouseLeftButtonUp="FlashcardCard_MouseLeftButtonUp"
-                                        Cursor="Hand">
+                                <Border Style="{StaticResource FlashcardGridCardStyle}"
+                                        MouseLeftButtonUp="FlashcardCard_MouseLeftButtonUp">
                                     <Border.ContextMenu>
                                         <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                             <MenuItem Header="{Binding [MoveToSet], Source={StaticResource Loc}}"
@@ -459,9 +554,6 @@
                                             Click="DeleteFlashcardMenuItem_Click"/>
                                         </ContextMenu>
                                     </Border.ContextMenu>
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.15"/>
-                                    </Border.Effect>
 
                                     <Grid>
                                         <Grid.RowDefinitions>
@@ -469,45 +561,38 @@
                                             <RowDefinition Height="*"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
-                                        
-                                        <Grid>
+
+                                        <Grid Grid.Row="0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0"
-                                                       FontSize="12"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextColorSecondary}">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Text" Value="{Binding [FlashcardSideQuestion], Source={StaticResource Loc}}"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsFlipped}" Value="True">
-                                                                <Setter Property="Text" Value="{Binding [FlashcardSideAnswer], Source={StaticResource Loc}}"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+
+                                            <Border Grid.Column="0"
+                                                    Style="{StaticResource FlashcardSideChipStyle}"
+                                                    HorizontalAlignment="Left"
+                                                    MaxWidth="132">
+                                                <TextBlock Foreground="{DynamicResource FlashcardSideChipForeground}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource FlashcardChipTextStyle}">
+                                                            <Setter Property="Text" Value="{Binding [FlashcardSideQuestion], Source={StaticResource Loc}}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsFlipped}" Value="True">
+                                                                    <Setter Property="Text" Value="{Binding [FlashcardSideAnswer], Source={StaticResource Loc}}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+
                                             <StackPanel Grid.Column="1"
                                                         Orientation="Horizontal"
                                                         HorizontalAlignment="Right">
-                                                <Border Padding="8,3"
-                                                        Background="{DynamicResource SelectionBackground}"
-                                                        CornerRadius="6"
-                                                        MaxWidth="160"
-                                                        Visibility="{Binding HasCategory, Converter={StaticResource BoolToVis}}">
-                                                    <TextBlock Text="{Binding Category}"
-                                                               FontSize="10"
-                                                               FontWeight="SemiBold"
-                                                               TextTrimming="CharacterEllipsis"
-                                                               Foreground="{DynamicResource TextColorSecondary}"/>
-                                                </Border>
                                                 <Button Content="✎"
                                                         Width="26"
                                                         Height="24"
-                                                        Margin="6,0,0,0"
+                                                        Margin="0,0,0,0"
                                                         Padding="0"
                                                         Style="{StaticResource FlashcardSearchIconButtonStyle}"
                                                         ToolTip="{Binding [Edit], Source={StaticResource Loc}}"
@@ -523,29 +608,65 @@
                                             </StackPanel>
                                         </Grid>
 
-                                        <TextBlock Grid.Row="1"
-                                                   TextWrapping="Wrap"
-                                                   VerticalAlignment="Center"
-                                                   FontSize="16"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TextColor}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="{Binding Question}"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsFlipped}" Value="True">
-                                                            <Setter Property="Text" Value="{Binding Answer}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+                                        <Border Grid.Row="1"
+                                                Margin="0,14,0,12"
+                                                Padding="0,2">
+                                            <TextBlock TextWrapping="Wrap"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="17"
+                                                       FontWeight="SemiBold"
+                                                       LineHeight="23"
+                                                       MaxHeight="116"
+                                                       Foreground="{DynamicResource TextColor}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="{Binding Question}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsFlipped}" Value="True">
+                                                                <Setter Property="Text" Value="{Binding Answer}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
 
-                                        <TextBlock Grid.Row="2"
-                                                   Text="{Binding [FlashcardsTapHint], Source={StaticResource Loc}}"
-                                                   FontSize="11"
-                                                   Foreground="{DynamicResource TextColorSecondary}"
-                                                   HorizontalAlignment="Right"/>
+                                        <WrapPanel Grid.Row="2"
+                                                   Orientation="Horizontal"
+                                                   VerticalAlignment="Center">
+                                            <Border Style="{StaticResource FlashcardCategoryChipStyle}"
+                                                    MaxWidth="176"
+                                                    Margin="0,0,8,0"
+                                                    Visibility="{Binding HasCategory, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding Category}"
+                                                           Style="{StaticResource FlashcardChipTextStyle}"
+                                                           Foreground="{DynamicResource FlashcardCategoryChipForeground}"/>
+                                            </Border>
+
+                                            <Grid>
+                                                <Border Style="{StaticResource FlashcardKnownChipStyle}"
+                                                        Visibility="{Binding IsKnown, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="{Binding [Known], Source={StaticResource Loc}}"
+                                                               Style="{StaticResource FlashcardChipTextStyle}"
+                                                               Foreground="{DynamicResource FlashcardKnownChipForeground}"/>
+                                                </Border>
+
+                                                <Border Style="{StaticResource FlashcardUnknownChipStyle}"
+                                                        Visibility="{Binding IsUnknown, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="{Binding [Unknown], Source={StaticResource Loc}}"
+                                                               Style="{StaticResource FlashcardChipTextStyle}"
+                                                               Foreground="{DynamicResource FlashcardUnknownChipForeground}"/>
+                                                </Border>
+
+                                                <Border Style="{StaticResource FlashcardNewChipStyle}"
+                                                        Visibility="{Binding IsUnreviewed, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="{Binding [FlashcardStatusNew], Source={StaticResource Loc}}"
+                                                               Style="{StaticResource FlashcardChipTextStyle}"
+                                                               Foreground="{DynamicResource FlashcardNewChipForeground}"/>
+                                                </Border>
+                                            </Grid>
+                                        </WrapPanel>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -601,6 +722,7 @@
                         </StackPanel>
 
                     <Border x:Name="StudyModeCard"
+                            Style="{StaticResource FlashcardStudyCardStyle}"
                             Grid.Row="1"
                             MinWidth="320"
                             Height="230"
@@ -609,12 +731,7 @@
                             VerticalAlignment="Top"
                             Margin="0,4,0,14"
                             Padding="18"
-                            Background="{DynamicResource WindowBackground}"
-                            BorderBrush="{DynamicResource BorderColor}"
-                            BorderThickness="1"
-                            CornerRadius="12"
-                            MouseLeftButtonUp="StudyModeCard_MouseLeftButtonUp"
-                            Cursor="Hand">
+                            MouseLeftButtonUp="StudyModeCard_MouseLeftButtonUp">
                         <Border.RenderTransform>
                             <TranslateTransform/>
                         </Border.RenderTransform>
@@ -634,10 +751,6 @@
                             </ContextMenu>
                         </Border.ContextMenu>
 
-                        <Border.Effect>
-                            <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.18"/>
-                        </Border.Effect>
-
                         <Grid MaxWidth="570">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -655,32 +768,28 @@
                                             Orientation="Horizontal"
                                             VerticalAlignment="Top"
                                             Margin="0,0,12,0">
-                                    <TextBlock FontSize="12"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextColorSecondary}"
-                                               VerticalAlignment="Center">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text" Value="{Binding [FlashcardSideQuestion], Source={StaticResource Loc}}"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsFlipped}" Value="True">
-                                                        <Setter Property="Text" Value="{Binding [FlashcardSideAnswer], Source={StaticResource Loc}}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <Border Padding="8,3"
+                                    <Border Style="{StaticResource FlashcardSideChipStyle}"
+                                            MaxWidth="132">
+                                        <TextBlock Foreground="{DynamicResource FlashcardSideChipForeground}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource FlashcardChipTextStyle}">
+                                                    <Setter Property="Text" Value="{Binding [FlashcardSideQuestion], Source={StaticResource Loc}}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFlipped}" Value="True">
+                                                            <Setter Property="Text" Value="{Binding [FlashcardSideAnswer], Source={StaticResource Loc}}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                    <Border Style="{StaticResource FlashcardCategoryChipStyle}"
                                             Margin="10,0,0,0"
-                                            Background="{DynamicResource SelectionBackground}"
-                                            CornerRadius="6"
                                             MaxWidth="210"
                                             Visibility="{Binding HasCategory, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="{Binding Category}"
-                                                   FontSize="10"
-                                                   FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource TextColorSecondary}"/>
+                                                   Style="{StaticResource FlashcardChipTextStyle}"
+                                                   Foreground="{DynamicResource FlashcardCategoryChipForeground}"/>
                                     </Border>
                                 </StackPanel>
 
@@ -697,25 +806,26 @@
                                             ToolTip="{Binding [MoveToSet], Source={StaticResource Loc}}"
                                             Click="MoveStudyModeFlashcardButton_Click"/>
                                     <Grid>
-                                    <Border Padding="8,4"
-                                            Background="#10B981"
-                                            CornerRadius="6"
-                                            Visibility="{Binding IsKnown, Converter={StaticResource BoolToVis}}">
-                                        <TextBlock Text="{Binding [Known], Source={StaticResource Loc}}"
-                                                   FontSize="11"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="White"/>
-                                    </Border>
+                                        <Border Style="{StaticResource FlashcardKnownChipStyle}"
+                                                Visibility="{Binding IsKnown, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding [Known], Source={StaticResource Loc}}"
+                                                       Style="{StaticResource FlashcardChipTextStyle}"
+                                                       Foreground="{DynamicResource FlashcardKnownChipForeground}"/>
+                                        </Border>
 
-                                    <Border Padding="8,4"
-                                            Background="#F59E0B"
-                                            CornerRadius="6"
-                                            Visibility="{Binding IsUnknown, Converter={StaticResource BoolToVis}}">
-                                        <TextBlock Text="{Binding [Unknown], Source={StaticResource Loc}}"
-                                                   FontSize="11"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="White"/>
-                                    </Border>
+                                        <Border Style="{StaticResource FlashcardUnknownChipStyle}"
+                                                Visibility="{Binding IsUnknown, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding [Unknown], Source={StaticResource Loc}}"
+                                                       Style="{StaticResource FlashcardChipTextStyle}"
+                                                       Foreground="{DynamicResource FlashcardUnknownChipForeground}"/>
+                                        </Border>
+
+                                        <Border Style="{StaticResource FlashcardNewChipStyle}"
+                                                Visibility="{Binding IsUnreviewed, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding [FlashcardStatusNew], Source={StaticResource Loc}}"
+                                                       Style="{StaticResource FlashcardChipTextStyle}"
+                                                       Foreground="{DynamicResource FlashcardNewChipForeground}"/>
+                                        </Border>
                                     </Grid>
                                 </StackPanel>
                             </Grid>
@@ -727,8 +837,9 @@
                                 <TextBlock TextWrapping="Wrap"
                                            VerticalAlignment="Center"
                                            TextAlignment="Center"
-                                           FontSize="18"
+                                           FontSize="19"
                                            FontWeight="SemiBold"
+                                           LineHeight="26"
                                            Foreground="{DynamicResource TextColor}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -830,14 +941,11 @@
                         <Run Text="ms"/>
                     </TextBlock>
                 </StackPanel>
-                <Button Content="{Binding [FlashcardsShowQuestions], Source={StaticResource Loc}}"
+                <Button x:Name="QuestionAnswerToggleButton"
+                        Content="{Binding [FlashcardsShowAnswers], Source={StaticResource Loc}}"
                         Style="{StaticResource FlashcardToolbarButtonStyle}"
                         MinWidth="150"
-                        Click="ShowQuestionsButton_Click"/>
-                <Button Content="{Binding [FlashcardsShowAnswers], Source={StaticResource Loc}}"
-                        Style="{StaticResource FlashcardToolbarButtonStyle}"
-                        MinWidth="150"
-                        Click="ShowAnswersButton_Click"/>
+                        Click="QuestionAnswerToggleButton_Click"/>
                 <Button x:Name="ShuffleModeButton"
                         Style="{StaticResource FlashcardToolbarButtonStyle}"
                         MinWidth="110"

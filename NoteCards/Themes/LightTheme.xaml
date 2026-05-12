@@ -18,6 +18,30 @@
     <SolidColorBrush x:Key="NoteCardSelection" Color="#F2F6FF"/>
     <SolidColorBrush x:Key="NoteCardSelectionBorder" Color="#3E5FC3"/>
 
+    <!-- Flashcard Colors -->
+    <SolidColorBrush x:Key="FlashcardCardBackground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="FlashcardCardHoverBackground" Color="#F8FAFF"/>
+    <SolidColorBrush x:Key="FlashcardCardSelectedBackground" Color="#F2F6FF"/>
+    <SolidColorBrush x:Key="FlashcardCardSelectedHoverBackground" Color="#EEF4FF"/>
+    <SolidColorBrush x:Key="FlashcardCardBorder" Color="#E1E5EC"/>
+    <SolidColorBrush x:Key="FlashcardCardHoverBorder" Color="#AFC1EA"/>
+    <SolidColorBrush x:Key="FlashcardCardSelectedBorder" Color="#3F6FE8"/>
+    <SolidColorBrush x:Key="FlashcardSideChipBackground" Color="#F5F7FB"/>
+    <SolidColorBrush x:Key="FlashcardSideChipBorder" Color="#DDE4F3"/>
+    <SolidColorBrush x:Key="FlashcardSideChipForeground" Color="#4B5568"/>
+    <SolidColorBrush x:Key="FlashcardCategoryChipBackground" Color="#EEF4FF"/>
+    <SolidColorBrush x:Key="FlashcardCategoryChipBorder" Color="#C9D8FF"/>
+    <SolidColorBrush x:Key="FlashcardCategoryChipForeground" Color="#2D4F9C"/>
+    <SolidColorBrush x:Key="FlashcardKnownChipBackground" Color="#E8F8F0"/>
+    <SolidColorBrush x:Key="FlashcardKnownChipBorder" Color="#B7E6CC"/>
+    <SolidColorBrush x:Key="FlashcardKnownChipForeground" Color="#096B3F"/>
+    <SolidColorBrush x:Key="FlashcardUnknownChipBackground" Color="#FFF4E0"/>
+    <SolidColorBrush x:Key="FlashcardUnknownChipBorder" Color="#F6D28B"/>
+    <SolidColorBrush x:Key="FlashcardUnknownChipForeground" Color="#8A5200"/>
+    <SolidColorBrush x:Key="FlashcardNewChipBackground" Color="#F2F4F7"/>
+    <SolidColorBrush x:Key="FlashcardNewChipBorder" Color="#D8DEE8"/>
+    <SolidColorBrush x:Key="FlashcardNewChipForeground" Color="#485365"/>
+
     <!-- Button Colors -->
     <SolidColorBrush x:Key="ButtonBackground" Color="#F5F7FB"/>
     <SolidColorBrush x:Key="ButtonBorder" Color="#DDE4F3"/>
@@ -52,5 +76,7 @@
     <!-- RichTextBox Colors -->
     <SolidColorBrush x:Key="RichTextBoxBackground" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="RichTextBoxForeground" Color="#1C1C1C"/>
+    <SolidColorBrush x:Key="EditorFindMatchBackground" Color="#FEF3C7"/>
+    <SolidColorBrush x:Key="EditorFindActiveMatchBackground" Color="#FBBF24"/>
 
 </ResourceDictionary>

@@ -207,8 +207,19 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FindReplaceTitle" xml:space="preserve"><value>Rasti / Pakeisti</value></data>
   <data name="FindLabel" xml:space="preserve"><value>Rasti:</value></data>
   <data name="ReplaceLabel" xml:space="preserve"><value>Pakeisti:</value></data>
+  <data name="FindPrevious" xml:space="preserve"><value>Rasti ankstesnį</value></data>
   <data name="FindNext" xml:space="preserve"><value>Rasti kitą</value></data>
   <data name="ReplaceNext" xml:space="preserve"><value>Pakeisti kitą</value></data>
+  <data name="ReplaceAll" xml:space="preserve"><value>Pakeisti visus</value></data>
+  <data name="FindReplaceMatchCase" xml:space="preserve"><value>Skirti raides</value></data>
+  <data name="FindReplaceWholeWord" xml:space="preserve"><value>Visas žodis</value></data>
+  <data name="FindReplaceWrapAround" xml:space="preserve"><value>Ieškoti nuo pradžios</value></data>
+  <data name="FindReplaceEnterSearch" xml:space="preserve"><value>Įveskite ieškomą tekstą.</value></data>
+  <data name="FindReplaceNoMatches" xml:space="preserve"><value>Atitikimų nėra</value></data>
+  <data name="FindReplaceMatchesFormat" xml:space="preserve"><value>Atitikimų: {0}</value></data>
+  <data name="FindReplaceResultFormat" xml:space="preserve"><value>{0} iš {1}</value></data>
+  <data name="FindReplaceWrappedResultFormat" xml:space="preserve"><value>{0} iš {1} (nuo pradžios)</value></data>
+  <data name="FindReplaceReplacedCountFormat" xml:space="preserve"><value>Pakeista: {0}</value></data>
   <data name="ClearContent" xml:space="preserve"><value>Išvalyti turinį</value></data>
   <data name="ClearContentTitle" xml:space="preserve"><value>Išvalyti turinį</value></data>
   <data name="ClearContentPrompt" xml:space="preserve"><value>Ar tikrai norite išvalyti visą šio užrašo turinį? Šis veiksmas negali būti atšauktas.</value></data>
@@ -403,11 +414,17 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="DeleteFlashcardSetConfirmationFormat" xml:space="preserve"><value>Ar tikrai norite ištrinti „{0}“ ir visas jo korteles? Šio veiksmo negalima atšaukti.</value></data>
   <data name="StudyModeStart" xml:space="preserve"><value>Pradėti mokymosi režimą</value></data>
   <data name="StudyModeExit" xml:space="preserve"><value>Baigti mokymosi režimą</value></data>
+  <data name="StudyModeContinue" xml:space="preserve"><value>Tęsti</value></data>
+  <data name="StudyModeRestart" xml:space="preserve"><value>Pradėti iš naujo</value></data>
+  <data name="StudyModeResumeTitle" xml:space="preserve"><value>Mokymosi progresas</value></data>
+  <data name="StudyModeResumeMessage" xml:space="preserve"><value>Šis rinkinys turi išsaugotą mokymosi progresą. Tęsti nuo ankstesnės vietos ar pradėti iš naujo?</value></data>
+  <data name="StudyModeCompletedRestartMessage" xml:space="preserve"><value>Šis rinkinys jau užbaigtas. Galite pradėti iš naujo, bet nėra nebaigtos sesijos, kurią būtų galima tęsti.</value></data>
   <data name="StudyModeFullscreen" xml:space="preserve"><value>Visas ekranas</value></data>
   <data name="StudyModeExitFullscreen" xml:space="preserve"><value>Uždaryti visą ekraną</value></data>
   <data name="StudyModeFullscreenTooltip" xml:space="preserve"><value>Spustelėkite F11, kad perjungtumėte viso ekrano režimą</value></data>
   <data name="Known" xml:space="preserve"><value>Moku</value></data>
   <data name="Unknown" xml:space="preserve"><value>Nemoku</value></data>
+  <data name="FlashcardStatusNew" xml:space="preserve"><value>Nestudijuota</value></data>
   <data name="FlashcardStatusAll" xml:space="preserve"><value>Visos</value></data>
   <data name="FlashcardCategoryAll" xml:space="preserve"><value>Visos kategorijos</value></data>
   <data name="FlashcardFilters" xml:space="preserve"><value>Filtrai</value></data>
@@ -451,8 +468,20 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="MindMapSelectNodeToAddSibling" xml:space="preserve"><value>Pasirinkite mazgą, kuriam pridėti gretimą šaką.</value></data>
   <data name="MindMapCannotAddSiblingToRoot" xml:space="preserve"><value>Šakninis mazgas negali turėti gretimų šakų.</value></data>
   <data name="MindMapAutoLayout" xml:space="preserve"><value>Automatinis išdėstymas</value></data>
+  <data name="MindMapManualPositioning" xml:space="preserve"><value>Rankinis</value></data>
+  <data name="MindMapManualPositioningOn" xml:space="preserve"><value>ĮJUNGTA</value></data>
+  <data name="MindMapManualPositioningOff" xml:space="preserve"><value>IŠJUNGTA</value></data>
+  <data name="MindMapManualPositioningOnHint" xml:space="preserve"><value>Rankinis pozicionavimas įjungtas. Tempkite mazgus norėdami juos perkelti.</value></data>
+  <data name="MindMapManualPositioningOffHint" xml:space="preserve"><value>Rankinis pozicionavimas išjungtas. Įjunkite, kad galėtumėte tempti mazgus.</value></data>
+  <data name="MindMapToolbarNodes" xml:space="preserve"><value>Mazgai</value></data>
+  <data name="MindMapToolbarArrange" xml:space="preserve"><value>Išdėstymas</value></data>
+  <data name="MindMapToolbarView" xml:space="preserve"><value>Vaizdas</value></data>
+  <data name="MindMapToolbarSearch" xml:space="preserve"><value>Paieška</value></data>
   <data name="MindMapLayoutMode" xml:space="preserve"><value>Išdėstymas:</value></data>
   <data name="MindMapLayoutBalancedTree" xml:space="preserve"><value>Subalansuotas medis</value></data>
+  <data name="MindMapLayoutRightTree" xml:space="preserve"><value>Medis į dešinę</value></data>
+  <data name="MindMapLayoutLeftTree" xml:space="preserve"><value>Medis į kairę</value></data>
+  <data name="MindMapLayoutTopDown" xml:space="preserve"><value>Iš viršaus žemyn</value></data>
   <data name="MindMapLayoutRadial" xml:space="preserve"><value>Radialinis</value></data>
   <data name="MindMapStyleOrganize" xml:space="preserve"><value>Stilius ir tvarka</value></data>
   <data name="MindMapStyleOrganizeTitle" xml:space="preserve"><value>Minčių žemėlapio stilius</value></data>
