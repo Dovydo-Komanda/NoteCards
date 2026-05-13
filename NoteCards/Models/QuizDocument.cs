@@ -12,4 +12,5 @@ public sealed class QuizDocument
     public Guid? SourceNoteId { get; set; }
     public Guid? GroupId { get; set; }
     public List<NoteScheduleEntry> Schedules { get; set; } = new();
+    public int? TimeLimitSeconds { get; set; } // null = be limito
 }

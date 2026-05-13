@@ -695,6 +695,18 @@
                 CornerRadius="10">
             <WrapPanel Orientation="Horizontal"
                        HorizontalAlignment="Right">
+                <!-- Rasti šią vietą (WrapPanel su mygtukais) ir PRIEŠ StartQuizButton pridėti: -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,8">
+                    <TextBlock Text="Time limit:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <ComboBox x:Name="TimeLimitComboBox" Width="120">
+                        <ComboBoxItem Content="No limit" Tag="0"/>
+                        <ComboBoxItem Content="1 min" Tag="60"/>
+                        <ComboBoxItem Content="5 min" Tag="300"/>
+                        <ComboBoxItem Content="10 min" Tag="600"/>
+                        <ComboBoxItem Content="15 min" Tag="900"/>
+                        <ComboBoxItem Content="30 min" Tag="1800"/>
+                    </ComboBox>
+                </StackPanel>
                 <Button x:Name="StartQuizButton"
                 Content="{Binding [QuizStartButton], Source={StaticResource Loc}}"
                 Style="{StaticResource QuizToolbarPrimaryButtonStyle}"

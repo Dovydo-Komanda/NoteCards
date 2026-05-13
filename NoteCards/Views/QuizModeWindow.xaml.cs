@@ -24,12 +24,16 @@ public partial class QuizModeWindow : Window
     private DispatcherTimer? _timer;
     private TimeSpan _elapsedTime;
     private bool _isResultsView;
+    private readonly int _timeLimitSeconds; // 0 = be limito
+    private bool _isCountdown;
+    private TimeSpan _remainingTime;
 
-    public QuizModeWindow(QuizDocument quiz)
+    public QuizModeWindow(QuizDocument quiz, int timeLimitSeconds = 0)
     {
         InitializeComponent();
 
         _quiz = quiz ?? throw new System.ArgumentNullException(nameof(quiz));
+        _timeLimitSeconds = timeLimitSeconds;
         _currentQuestionIndex = 0;
         _userAnswers = new Dictionary<int, List<QuizOption>>();
         _elapsedTime = TimeSpan.Zero;
@@ -44,14 +48,47 @@ public partial class QuizModeWindow : Window
 
     private void StartTimer()
     {
+        _isCountdown = _timeLimitSeconds > 0;
+        if (_isCountdown)
+            _remainingTime = TimeSpan.FromSeconds(_timeLimitSeconds);
+
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += (s, e) =>
         {
-            _elapsedTime = _elapsedTime.Add(TimeSpan.FromSeconds(1));
-            if (FindName("TimerText") is TextBlock timerText)
-                timerText.Text = _elapsedTime.ToString(@"hh\:mm\:ss");
+            if (_isCountdown)
+            {
+                _remainingTime -= TimeSpan.FromSeconds(1);
+                UpdateTimerDisplay(_remainingTime);
+
+                // ⚠️ Įspėjimas kai lieka mažai laiko (pvz. 30 sek)
+                if (_remainingTime.TotalSeconds <= 30)
+                    HighlightTimerWarning();
+
+                // ⏱️ Kai laikas baigiasi — automatiškai pateikti
+                if (_remainingTime <= TimeSpan.Zero)
+                {
+                    _timer.Stop();
+                    ShowResults(); // arba pereiti prie kito klausimo
+                }
+            }
+            else
+            {
+                _elapsedTime += TimeSpan.FromSeconds(1);
+                UpdateTimerDisplay(_elapsedTime);
+            }
         };
         _timer.Start();
+    }
+
+    private void HighlightTimerWarning()
+    {
+        if (FindName("TimerText") is TextBlock timerText)
+            timerText.Foreground = new SolidColorBrush(Colors.OrangeRed);
+    }
+    private void UpdateTimerDisplay(TimeSpan time)
+    {
+        if (FindName("TimerText") is TextBlock timerText)
+            timerText.Text = time.ToString(@"hh\:mm\:ss");
     }
 
     private void LoadQuestion()
@@ -336,7 +373,8 @@ public partial class QuizModeWindow : Window
         if (FindName("QuestionView") is Border qv) qv.Visibility = Visibility.Collapsed;
         if (FindName("ResultsView") is Border rv) rv.Visibility = Visibility.Visible;
         if (FindName("ProgressText") is TextBlock pt) pt.Text = string.Format(LocalizationService.GetString("QuizResultsLabelFormat"), correctCount, totalQuestions);
-        if (FindName("TimerText") is TextBlock tt) tt.Text = _elapsedTime.ToString(@"hh\:mm\:ss");
+        var displayTime = _isCountdown ? TimeSpan.FromSeconds(_timeLimitSeconds) - _remainingTime : _elapsedTime;
+        if (FindName("TimerText") is TextBlock tt) tt.Text = displayTime.ToString(@"hh\:mm\:ss");
         if (FindName("ResultsTitleText") is TextBlock rt)
             rt.Text = percentage >= 70
                 ? LocalizationService.GetString("QuizResultsTitleGreat")
@@ -346,7 +384,7 @@ public partial class QuizModeWindow : Window
         if (FindName("ResultsScoreText") is TextBlock rs)
             rs.Text = $"{correctCount} / {totalQuestions} ({percentage:F1}%)";
         if (FindName("ResultsTimeText") is TextBlock rtime)
-            rtime.Text = string.Format(LocalizationService.GetString("QuizTimeFormat"), _elapsedTime.ToString(@"hh\:mm\:ss"));
+            rtime.Text = string.Format(LocalizationService.GetString("QuizTimeFormat"), displayTime.ToString(@"hh\:mm\:ss"));
         if (FindName("PreviousButton") is Button pb) pb.Visibility = Visibility.Collapsed;
         if (FindName("NextButton") is Button nb) nb.Visibility = Visibility.Collapsed;
         if (FindName("SubmitButton") is Button sb) sb.Visibility = Visibility.Collapsed;
