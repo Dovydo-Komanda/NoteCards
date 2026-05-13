@@ -96,6 +96,8 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             _questions.Add(new QuizPreviewQuestion(1, CreateDefaultQuestion()));
 
         InitializeComponent();
+        // Užkrauti esamą progresą
+        RefreshProgressPanel();
 
         _openNoteAction = openNoteAction;
         if (noteOptions != null)
@@ -478,6 +480,13 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             int timeLimitSeconds = selectedItem?.Tag is string tag ? int.Parse(tag) : 0;
             var quizModeWindow = new QuizModeWindow(_sourceDocument, timeLimitSeconds);
             quizModeWindow.ShowDialog();
+            // Išsaugoti attempt į dokumento istoriją
+            if (quizModeWindow.LastAttempt != null)
+            {
+                _sourceDocument.Attempts.Add(quizModeWindow.LastAttempt);
+                SaveQuizProgress();
+                RefreshProgressPanel();
+            }
         }
         catch (Exception ex)
         {
@@ -486,6 +495,59 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 "Error",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
+        }
+    }
+    private void SaveQuizProgress()
+    {
+        // Naudojam tą patį save mechanizmą kaip ir visur kitur projekte
+        DialogResult = true;
+        _allowCloseWithoutPrompt = true;
+    }
+
+    private void RefreshProgressPanel()
+    {
+        if (_sourceDocument.Attempts.Count == 0) return;
+
+        var avg = _sourceDocument.Attempts.Average(a => a.Percentage);
+        var count = _sourceDocument.Attempts.Count;
+        var best = _sourceDocument.Attempts.Max(a => a.Percentage);
+
+        // Atnaujinti UI – HistoryPanel turi būti QuizPreviewWindow.xaml
+        if (FindName("StatsAvgText") is System.Windows.Controls.TextBlock avgTb)
+            avgTb.Text = $"{avg:F1}%";
+        if (FindName("StatsTotalText") is System.Windows.Controls.TextBlock totalTb)
+            totalTb.Text = count.ToString();
+        if (FindName("StatsBestText") is System.Windows.Controls.TextBlock bestTb)
+            bestTb.Text = $"{best:F1}%";
+
+        if (FindName("AttemptsListPanel") is System.Windows.Controls.StackPanel panel)
+        {
+            panel.Children.Clear();
+            foreach (var attempt in _sourceDocument.Attempts.OrderByDescending(a => a.Date))
+            {
+                var row = new System.Windows.Controls.TextBlock
+                {
+                    Text = $"{attempt.Date:yyyy-MM-dd HH:mm}  —  {attempt.CorrectCount}/{attempt.TotalQuestions} ({attempt.Percentage:F1}%)  ⏱ {attempt.TimeTaken:hh\\:mm\\:ss}",
+                    Margin = new System.Windows.Thickness(0, 4, 0, 4),
+                    Foreground = (System.Windows.Media.Brush)FindResource("TextColor")
+                };
+                panel.Children.Add(row);
+            }
+        }
+    }
+
+    private void ResetProgressButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        var result = MessageBox.Show(
+            "Ar tikrai norite ištrinti visą šio kvizo progreso istoriją?",
+            "Resetuoti progresą",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            _sourceDocument.Attempts.Clear();
+            RefreshProgressPanel();
         }
     }
 
@@ -1116,7 +1178,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         private QuizQuestionType _type;
         private string _question = string.Empty;
         private string _explanation = string.Empty;
-
+        private string _hint = string.Empty;  
         public QuizPreviewQuestion(int number, QuizQuestion source)
         {
             _source = source;
@@ -1124,6 +1186,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             _type = source.Type;
             Question = source.Question;
             Explanation = source.Explanation;
+            Hint = source.Hint; 
             foreach (var option in source.Options)
                 Options.Add(new QuizPreviewOption(this, option.Text, option.IsCorrect));
             EnsureValidOptions();
@@ -1200,6 +1263,16 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasVisibleExplanation));
                 OnPropertyChanged(nameof(ExplanationText));
+            }
+        }
+        public string Hint
+        {
+            get => _hint;
+            set
+            {
+                if (_hint == (value ?? string.Empty)) return;
+                _hint = value ?? string.Empty;
+                OnPropertyChanged();
             }
         }
 
@@ -1356,6 +1429,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 Type = Type,
                 Question = Question.Trim(),
                 Explanation = Explanation.Trim(),
+                Hint = Hint.Trim(),
                 SetIndex = Math.Max(1, _source.SetIndex),
                 Options = options
             };

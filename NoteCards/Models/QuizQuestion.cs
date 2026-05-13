@@ -13,5 +13,6 @@ public sealed class QuizQuestion
     public string Question { get; set; } = string.Empty;
     public List<QuizOption> Options { get; set; } = new();
     public string Explanation { get; set; } = string.Empty;
+    public string Hint { get; set; } = string.Empty;  
     public int SetIndex { get; set; } = 1;
 }

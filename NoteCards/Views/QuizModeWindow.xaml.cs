@@ -27,6 +27,8 @@ public partial class QuizModeWindow : Window
     private readonly int _timeLimitSeconds; // 0 = be limito
     private bool _isCountdown;
     private TimeSpan _remainingTime;
+    private readonly HashSet<int> _hintUsedQuestions = new();
+    public QuizAttempt? LastAttempt { get; private set; }
 
     public QuizModeWindow(QuizDocument quiz, int timeLimitSeconds = 0)
     {
@@ -170,6 +172,7 @@ public partial class QuizModeWindow : Window
 
         // Restore previously selected answer(s)
         RestoreSelectedAnswer();
+        LoadHintSection();
         UpdateNavigationButtons();
     }
 
@@ -302,6 +305,34 @@ public partial class QuizModeWindow : Window
             }
         }
     }
+    private void LoadHintSection()
+    {
+        var question = _quiz.Questions[_currentQuestionIndex];
+        var hasHint = !string.IsNullOrWhiteSpace(question.Hint);
+
+        if (FindName("HintSection") is StackPanel hintSection)
+            hintSection.Visibility = hasHint ? Visibility.Visible : Visibility.Collapsed;
+
+        if (FindName("HintTextBorder") is Border hintBorder)
+            hintBorder.Visibility = Visibility.Collapsed;
+
+        if (FindName("ShowHintButton") is Button showHintBtn)
+            showHintBtn.Visibility = Visibility.Visible;
+
+        if (FindName("HintTextBlock") is TextBlock hintText)
+            hintText.Text = question.Hint ?? string.Empty;
+    }
+
+    private void ShowHintButton_Click(object sender, RoutedEventArgs e)
+    {
+        _hintUsedQuestions.Add(_currentQuestionIndex);
+
+        if (FindName("HintTextBorder") is Border hintBorder)
+            hintBorder.Visibility = Visibility.Visible;
+
+        if (FindName("ShowHintButton") is Button showHintBtn)
+            showHintBtn.Visibility = Visibility.Collapsed;
+    }
 
     private void PreviousButton_Click(object sender, RoutedEventArgs e)
     {
@@ -369,6 +400,15 @@ public partial class QuizModeWindow : Window
         }
 
         var percentage = totalQuestions == 0 ? 0 : (double)correctCount / totalQuestions * 100;
+
+        var displayTime2 = _isCountdown ? TimeSpan.FromSeconds(_timeLimitSeconds) - _remainingTime : _elapsedTime;
+        LastAttempt = new QuizAttempt
+        {
+            Date = DateTime.Now,
+            CorrectCount = correctCount,
+            TotalQuestions = totalQuestions,
+            TimeTaken = displayTime2
+        };
 
         if (FindName("QuestionView") is Border qv) qv.Visibility = Visibility.Collapsed;
         if (FindName("ResultsView") is Border rv) rv.Visibility = Visibility.Visible;
