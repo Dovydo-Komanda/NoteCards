@@ -174,9 +174,12 @@
                 Padding="20,16">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <Button Grid.Column="0"
@@ -221,6 +224,34 @@
                         Foreground="{DynamicResource ButtonForeground}"
                         Visibility="Collapsed"
                         Click="DoneButton_Click"/>
+				<Button Grid.Column="2"
+                        x:Name="RetryAllButton"
+                        Content="🔁 Retry All"
+                        Style="{StaticResource DialogSecondaryButtonStyle}"
+                        MinWidth="130"
+                        Padding="16,10"
+                        Visibility="Collapsed"
+                        Click="RetryAllButton_Click"/>
+
+				<Button Grid.Column="3"
+						x:Name="RetryWrongButton"
+						Content="⚠️ Retry Wrong"
+						Style="{StaticResource DialogSecondaryButtonStyle}"
+						MinWidth="130"
+						Padding="16,10"
+						Margin="8,0,0,0"
+						Visibility="Collapsed"
+						Click="RetryWrongButton_Click"/>
+
+				<Button Grid.Column="4"
+						x:Name="SaveAttemptButton"
+						Content="💾 Save Attempt"
+						Style="{StaticResource DialogPrimaryButtonStyle}"
+						MinWidth="130"
+						Padding="16,10"
+						Margin="8,0,0,0"
+						Visibility="Collapsed"
+						Click="SaveAttemptButton_Click"/>
             </Grid>
         </Border>
     </Grid>

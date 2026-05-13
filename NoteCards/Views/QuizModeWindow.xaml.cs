@@ -29,6 +29,8 @@ public partial class QuizModeWindow : Window
     private TimeSpan _remainingTime;
     private readonly HashSet<int> _hintUsedQuestions = new();
     public QuizAttempt? LastAttempt { get; private set; }
+    private List<int> _wrongQuestionIndices = new();
+    private bool _attemptSaved = false;
 
     public QuizModeWindow(QuizDocument quiz, int timeLimitSeconds = 0)
     {
@@ -399,19 +401,38 @@ public partial class QuizModeWindow : Window
             if (isCorrect) correctCount++;
         }
 
+        _wrongQuestionIndices.Clear();
+        for (int i = 0; i < totalQuestions; i++)
+        {
+            var question = _quiz.Questions[i];
+            if (!_userAnswers.TryGetValue(i, out var userSelected))
+            {
+                _wrongQuestionIndices.Add(i);
+                continue;
+            }
+            var correctOptions = question.Options?.Where(o => o.IsCorrect).ToList() ?? new List<QuizOption>();
+            bool isCorrect = userSelected.Count == correctOptions.Count &&
+                             userSelected.All(opt => correctOptions.Contains(opt));
+            if (!isCorrect) _wrongQuestionIndices.Add(i);
+        }
+
         var percentage = totalQuestions == 0 ? 0 : (double)correctCount / totalQuestions * 100;
 
         var displayTime2 = _isCountdown ? TimeSpan.FromSeconds(_timeLimitSeconds) - _remainingTime : _elapsedTime;
+
+        var passingScore = Math.Clamp(_quiz.PassingScorePercent, 0, 100);
+        var passed = percentage >= passingScore;
+
         LastAttempt = new QuizAttempt
         {
             Date = DateTime.Now,
             CorrectCount = correctCount,
             TotalQuestions = totalQuestions,
-            TimeTaken = displayTime2
+            TimeTaken = displayTime2,
+            QuizTitle = _quiz.Title ?? string.Empty,
+            PassingScorePercent = passingScore,
         };
 
-        var passingScore = Math.Clamp(_quiz.PassingScorePercent, 0, 100);
-        var passed = percentage >= passingScore;
 
         if (FindName("QuestionView") is Border qv) qv.Visibility = Visibility.Collapsed;
         if (FindName("ResultsView") is Border rv) rv.Visibility = Visibility.Visible;
@@ -428,6 +449,13 @@ public partial class QuizModeWindow : Window
         if (FindName("NextButton") is Button nb) nb.Visibility = Visibility.Collapsed;
         if (FindName("SubmitButton") is Button sb) sb.Visibility = Visibility.Collapsed;
         if (FindName("DoneButton") is Button db) db.Visibility = Visibility.Visible;
+        if (FindName("RetryAllButton") is Button rab) rab.Visibility = Visibility.Visible;
+        if (FindName("RetryWrongButton") is Button rwb)
+        {
+            rwb.Visibility = _wrongQuestionIndices.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        if (FindName("SaveAttemptButton") is Button sab) sab.Visibility = Visibility.Visible;
+
 
         if (FindName("ResultsQuestionsPanel") is StackPanel rp)
         {
@@ -529,4 +557,63 @@ public partial class QuizModeWindow : Window
             }
         }
     }
+    private void RetryAllButton_Click(object sender, RoutedEventArgs e)
+    {
+        _timer?.Stop();
+        var retryWindow = new QuizModeWindow(_quiz, _timeLimitSeconds)
+        {
+            Owner = this.Owner
+        };
+        retryWindow.ShowDialog();
+        // Propagate any saved attempt back
+        if (retryWindow.LastAttempt != null)
+            LastAttempt = retryWindow.LastAttempt;
+        Close();
+    }
+
+    private void RetryWrongButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_wrongQuestionIndices.Count == 0) return;
+        _timer?.Stop();
+
+        var wrongQuestions = _wrongQuestionIndices
+            .Select(i => _quiz.Questions[i])
+            .ToList();
+
+        var wrongOnlyQuiz = new QuizDocument
+        {
+            Id = _quiz.Id,
+            Title = _quiz.Title + " (Wrong Only)",
+            Questions = wrongQuestions,
+            PassingScorePercent = _quiz.PassingScorePercent,
+            AiModelDisplayName = _quiz.AiModelDisplayName,
+            Tags = _quiz.Tags
+        };
+
+        var retryWindow = new QuizModeWindow(wrongOnlyQuiz, _timeLimitSeconds)
+        {
+            Owner = this.Owner
+        };
+        retryWindow.ShowDialog();
+        if (retryWindow.LastAttempt != null)
+            LastAttempt = retryWindow.LastAttempt;
+        Close();
+    }
+
+    private void SaveAttemptButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (LastAttempt == null) return;
+        if (_attemptSaved) return;
+
+        LastAttempt.IsSaved = true;
+        LastAttempt.PassingScorePercent = Math.Clamp(_quiz.PassingScorePercent, 0, 100);
+        QuizDocument.SavedAttempts.Add(LastAttempt);
+        _attemptSaved = true;
+        if (FindName("SaveAttemptButton") is Button sab)
+        {
+            sab.Content = "✅ Saved";
+            sab.IsEnabled = false;
+        }
+    }
+
 }

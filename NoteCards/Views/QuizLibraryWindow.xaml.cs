@@ -18,8 +18,21 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
     private readonly ObservableCollection<global::NoteCards.Views.QuizLibraryItemViewModel> _quizzes = new();
     private readonly ObservableCollection<TagFilterItemViewModel> _categoryFilters = new();
     private readonly HashSet<string> _selectedTags = new(StringComparer.OrdinalIgnoreCase);
-    private string _searchText = string.Empty;
     private string _statusText = string.Empty;
+    private string _searchText = string.Empty;
+
+    public string QuizSearchQuery
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText == value) return;
+            _searchText = value ?? string.Empty;
+            UpdateFilteredVisibility();
+            UpdateStatusText();
+            OnPropertyChanged(nameof(QuizSearchQuery));
+        }
+    }
 
     public QuizLibraryWindow(MainViewModel mainViewModel)
     {
@@ -50,21 +63,6 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
 
             _statusText = value;
             OnPropertyChanged(nameof(StatusText));
-        }
-    }
-
-    public string QuizSearchQuery
-    {
-        get => _searchText;
-        set
-        {
-            if (_searchText == value)
-                return;
-
-            _searchText = value ?? string.Empty;
-            OnPropertyChanged(nameof(QuizSearchQuery));
-            UpdateFilteredVisibility();
-            UpdateStatusText();
         }
     }
 
@@ -161,7 +159,8 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
 
     private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
-        QuizSearchQuery = SearchTextBox.Text;
+        if (sender is TextBox tb)
+            QuizSearchQuery = tb.Text;
     }
 
     private void CategoriesButton_Click(object sender, RoutedEventArgs e)
@@ -213,10 +212,8 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
     {
         var editor = new QuizPreviewWindow(
             quiz.Document,
-            _mainViewModel.Notes.Select(note => new QuizPreviewWindow.QuizNoteLinkOption(note.Document.Id, note.Document.Title)),
             quiz.Document.AiModelDisplayName,
-            quiz.Document.Title,
-            null)
+            quiz.Document.Title)
         {
             Owner = this
         };
@@ -237,10 +234,8 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
         var combined = BuildCombinedQuiz(selectedQuizzes);
         var editor = new QuizPreviewWindow(
             combined,
-            _mainViewModel.Notes.Select(note => new QuizPreviewWindow.QuizNoteLinkOption(note.Document.Id, note.Document.Title)),
             combined.AiModelDisplayName,
-            combined.Title,
-            null)
+            combined.Title)
         {
             Owner = this
         };

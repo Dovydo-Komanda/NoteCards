@@ -1174,6 +1174,16 @@ namespace NoteCards
             window.ShowDialog();
         }
 
+        private void OpenAttemptHistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            var savedAttempts = NoteCards.Models.QuizDocument.SavedAttempts;
+            var window = new NoteCards.Views.QuizAttemptHistoryWindow()
+            {
+                Owner = this
+            };
+            window.ShowDialog();
+        }
+
         private void OpenNoteById(MainViewModel vm, Guid noteId)
         {
             var note = vm.FindNoteById(noteId);

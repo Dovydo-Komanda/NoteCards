@@ -669,6 +669,21 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         _sourceDocument.PassingScorePercent = Math.Clamp(percent, 0, 100);
     }
 
+    private void ShuffleQuestionsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_questions.Count < 2) return;
+
+        var rng = new Random();
+        var shuffled = _questions.OrderBy(_ => rng.Next()).ToList();
+
+        _questions.Clear();
+        foreach (var q in shuffled)
+            _questions.Add(q);
+
+        RenumberQuestions();
+        UpdateEditedIndicator();
+    }
+
     private void AddOptionButton_Click(object sender, RoutedEventArgs e)
     {
         if (!IsEditMode)
