@@ -13,6 +13,7 @@ public sealed class QuizDocument
     public Guid? GroupId { get; set; }
     public List<NoteScheduleEntry> Schedules { get; set; } = new();
     public int? TimeLimitSeconds { get; set; } // null = be limito
+    public int PassingScorePercent { get; set; } = 70;
 
     public List<QuizAttempt> Attempts { get; set; } = new();
 }

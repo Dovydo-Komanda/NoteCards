@@ -407,7 +407,8 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 ? existingDocument?.AiModelDisplayName ?? _sourceDocument.AiModelDisplayName
                 : _modelDisplayName,
             SourceNoteId = SelectedLinkedNote?.Id ?? existingDocument?.SourceNoteId ?? _sourceDocument.SourceNoteId,
-            GroupId = existingDocument?.GroupId ?? _sourceDocument.GroupId
+            GroupId = existingDocument?.GroupId ?? _sourceDocument.GroupId,
+            PassingScorePercent = existingDocument?.PassingScorePercent ?? _sourceDocument.PassingScorePercent
         };
     }
 
@@ -653,6 +654,19 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         RenumberQuestions();
         SetQuestionFocus(_questions.Count - 1);
         UpdateSummary();
+    }
+
+    private void PassingScoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        var input = Microsoft.VisualBasic.Interaction.InputBox(
+            "Enter the minimum percentage required to pass:",
+            "Passing Score",
+            _sourceDocument.PassingScorePercent.ToString(CultureInfo.InvariantCulture));
+
+        if (!int.TryParse(input, out var percent))
+            return;
+
+        _sourceDocument.PassingScorePercent = Math.Clamp(percent, 0, 100);
     }
 
     private void AddOptionButton_Click(object sender, RoutedEventArgs e)

@@ -745,6 +745,10 @@
                         Content="{Binding [AddQuestion], Source={StaticResource Loc}}"
                         Style="{StaticResource QuizToolbarButtonStyle}"
                         Click="AddQuestionButton_Click"/>
+                <Button Content="Passing Score"
+                        Style="{StaticResource QuizToolbarButtonStyle}"
+                        Click="PassingScoreButton_Click"
+                        ToolTip="Set minimum percentage needed to pass"/>
                 <Button Content="{Binding [Save], Source={StaticResource Loc}}"
                         Style="{StaticResource QuizToolbarPrimaryButtonStyle}"
                         Click="SaveButton_Click"/>

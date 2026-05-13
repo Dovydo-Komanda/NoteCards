@@ -410,19 +410,18 @@ public partial class QuizModeWindow : Window
             TimeTaken = displayTime2
         };
 
+        var passingScore = Math.Clamp(_quiz.PassingScorePercent, 0, 100);
+        var passed = percentage >= passingScore;
+
         if (FindName("QuestionView") is Border qv) qv.Visibility = Visibility.Collapsed;
         if (FindName("ResultsView") is Border rv) rv.Visibility = Visibility.Visible;
         if (FindName("ProgressText") is TextBlock pt) pt.Text = string.Format(LocalizationService.GetString("QuizResultsLabelFormat"), correctCount, totalQuestions);
         var displayTime = _isCountdown ? TimeSpan.FromSeconds(_timeLimitSeconds) - _remainingTime : _elapsedTime;
         if (FindName("TimerText") is TextBlock tt) tt.Text = displayTime.ToString(@"hh\:mm\:ss");
         if (FindName("ResultsTitleText") is TextBlock rt)
-            rt.Text = percentage >= 70
-                ? LocalizationService.GetString("QuizResultsTitleGreat")
-                : percentage >= 50
-                    ? LocalizationService.GetString("QuizResultsTitleGood")
-                    : LocalizationService.GetString("QuizResultsTitleKeepLearning");
+            rt.Text = passed ? "You pass" : "You failed";
         if (FindName("ResultsScoreText") is TextBlock rs)
-            rs.Text = $"{correctCount} / {totalQuestions} ({percentage:F1}%)";
+            rs.Text = $"{correctCount} / {totalQuestions} ({percentage:F1}%) - percent needed to pass {passingScore}%";
         if (FindName("ResultsTimeText") is TextBlock rtime)
             rtime.Text = string.Format(LocalizationService.GetString("QuizTimeFormat"), displayTime.ToString(@"hh\:mm\:ss"));
         if (FindName("PreviousButton") is Button pb) pb.Visibility = Visibility.Collapsed;
