@@ -79,6 +79,41 @@
                 <!-- Options -->
                 <StackPanel x:Name="OptionsPanel"
                             Margin="0,0,0,20"/>
+                <!-- Hint Section -->
+                <StackPanel x:Name="HintSection" Margin="0,0,0,8" Visibility="Collapsed">
+                    <Button x:Name="ShowHintButton"
+            Content="💡 Show Hint"
+            HorizontalAlignment="Left"
+            Padding="12,7"
+            Margin="0,0,0,8"
+            Cursor="Hand"
+            Click="ShowHintButton_Click">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource DialogSecondaryButtonStyle}">
+                                <Setter Property="FontSize" Value="13"/>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Border x:Name="HintTextBorder"
+            Background="#FFF9E6"
+            BorderBrush="#F59E0B"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="12,10"
+            Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="💡 "
+                       FontSize="14"
+                       VerticalAlignment="Top"
+                       Margin="0,0,6,0"/>
+                            <TextBlock x:Name="HintTextBlock"
+                       FontSize="13"
+                       Foreground="#92400E"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
             </StackPanel>
         </Border>
 

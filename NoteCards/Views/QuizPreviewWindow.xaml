@@ -677,6 +677,20 @@
                                                  VerticalAlignment="Center"
                                                  ToolTip="{Binding [QuizExplanationHint], Source={StaticResource Loc}}"
                                                  Style="{StaticResource QuizEditorTextBoxStyle}"/>
+                                        
+                                        <TextBlock Text="Hint (optional)"
+           FontSize="12"
+           FontWeight="SemiBold"
+           Foreground="{DynamicResource TextColorSecondary}"
+           Margin="0,8,0,6"/>
+                                        <TextBox Text="{Binding Hint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+         MinHeight="38"
+         MaxHeight="72"
+         TextWrapping="Wrap"
+         AcceptsReturn="True"
+         VerticalAlignment="Center"
+         ToolTip="Optional hint shown during quiz"
+         Style="{StaticResource QuizEditorTextBoxStyle}"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>

@@ -1086,7 +1086,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         private QuizQuestionType _type;
         private string _question = string.Empty;
         private string _explanation = string.Empty;
-
+        private string _hint = string.Empty;  
         public QuizPreviewQuestion(int number, QuizQuestion source)
         {
             _source = source;
@@ -1094,6 +1094,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             _type = source.Type;
             Question = source.Question;
             Explanation = source.Explanation;
+            Hint = source.Hint; 
             foreach (var option in source.Options)
                 Options.Add(new QuizPreviewOption(this, option.Text, option.IsCorrect));
             EnsureValidOptions();
@@ -1170,6 +1171,16 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasVisibleExplanation));
                 OnPropertyChanged(nameof(ExplanationText));
+            }
+        }
+        public string Hint
+        {
+            get => _hint;
+            set
+            {
+                if (_hint == (value ?? string.Empty)) return;
+                _hint = value ?? string.Empty;
+                OnPropertyChanged();
             }
         }
 
@@ -1326,6 +1337,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 Type = Type,
                 Question = Question.Trim(),
                 Explanation = Explanation.Trim(),
+                Hint = Hint.Trim(),
                 SetIndex = Math.Max(1, _source.SetIndex),
                 Options = options
             };
