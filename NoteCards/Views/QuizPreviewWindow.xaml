@@ -729,6 +729,54 @@
                 Foreground="White"
                 Click="StartQuizButton_Click"
                 ToolTip="{Binding [QuizStartButtonTooltip], Source={StaticResource Loc}}"/>
+                <!-- Progress & History Section -->
+                <Border Margin="0,16,0,0"
+        Background="{DynamicResource CardBackground}"
+        BorderBrush="{DynamicResource BorderColor}"
+        BorderThickness="1"
+        CornerRadius="10"
+        Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="📊 Progreso statistika"
+                   FontWeight="SemiBold"
+                   FontSize="14"
+                   Foreground="{DynamicResource TextColor}"
+                   Margin="0,0,0,10"/>
+
+                        <!-- Statistikos eilutė -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="Vidutinis rezultatas: "
+                       Foreground="{DynamicResource TextColorSecondary}"/>
+                            <TextBlock x:Name="StatsAvgText" Text="—"
+                       Foreground="{DynamicResource TextColor}" FontWeight="SemiBold"/>
+                            <TextBlock Text="   Bandymų: "
+                       Foreground="{DynamicResource TextColorSecondary}" Margin="16,0,0,0"/>
+                            <TextBlock x:Name="StatsTotalText" Text="0"
+                       Foreground="{DynamicResource TextColor}" FontWeight="SemiBold"/>
+                            <TextBlock Text="   Geriausias: "
+                       Foreground="{DynamicResource TextColorSecondary}" Margin="16,0,0,0"/>
+                            <TextBlock x:Name="StatsBestText" Text="—"
+                       Foreground="{DynamicResource TextColor}" FontWeight="SemiBold"/>
+                        </StackPanel>
+
+                        <!-- Istorijos sąrašas -->
+                        <TextBlock Text="Bandymų istorija:"
+                   Foreground="{DynamicResource TextColorSecondary}"
+                   FontSize="12"
+                   Margin="0,8,0,4"/>
+                        <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="AttemptsListPanel"/>
+                        </ScrollViewer>
+
+                        <!-- Reset mygtukas -->
+                        <Button Content="🗑 Resetuoti progresą"
+                Click="ResetProgressButton_Click"
+                HorizontalAlignment="Right"
+                Margin="0,10,0,0"
+                Padding="12,6"
+                Style="{StaticResource DialogSecondaryButtonStyle}"/>
+                    </StackPanel>
+                </Border>
                 <Button x:Name="FullscreenButton"
                         Content="⛶ Fullscreen"
                         Style="{StaticResource QuizToolbarButtonStyle}"

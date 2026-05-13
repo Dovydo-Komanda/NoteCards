@@ -13,4 +13,17 @@ public sealed class QuizDocument
     public Guid? GroupId { get; set; }
     public List<NoteScheduleEntry> Schedules { get; set; } = new();
     public int? TimeLimitSeconds { get; set; } // null = be limito
+
+    public List<QuizAttempt> Attempts { get; set; } = new();
 }
+
+public sealed class QuizAttempt
+{
+    public DateTime Date { get; set; } = DateTime.Now;
+    public int CorrectCount { get; set; }
+    public int TotalQuestions { get; set; }
+    public double Percentage => TotalQuestions == 0 ? 0 : (double)CorrectCount / TotalQuestions * 100;
+    public TimeSpan TimeTaken { get; set; }
+}
+
+

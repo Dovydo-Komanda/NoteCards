@@ -28,6 +28,7 @@ public partial class QuizModeWindow : Window
     private bool _isCountdown;
     private TimeSpan _remainingTime;
     private readonly HashSet<int> _hintUsedQuestions = new();
+    public QuizAttempt? LastAttempt { get; private set; }
 
     public QuizModeWindow(QuizDocument quiz, int timeLimitSeconds = 0)
     {
@@ -399,6 +400,15 @@ public partial class QuizModeWindow : Window
         }
 
         var percentage = totalQuestions == 0 ? 0 : (double)correctCount / totalQuestions * 100;
+
+        var displayTime2 = _isCountdown ? TimeSpan.FromSeconds(_timeLimitSeconds) - _remainingTime : _elapsedTime;
+        LastAttempt = new QuizAttempt
+        {
+            Date = DateTime.Now,
+            CorrectCount = correctCount,
+            TotalQuestions = totalQuestions,
+            TimeTaken = displayTime2
+        };
 
         if (FindName("QuestionView") is Border qv) qv.Visibility = Visibility.Collapsed;
         if (FindName("ResultsView") is Border rv) rv.Visibility = Visibility.Visible;
