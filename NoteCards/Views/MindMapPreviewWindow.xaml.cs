@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
+using System.IO;
 using System.Windows.Media.Imaging;
 using System.Windows;
 using System.Windows.Controls;
@@ -1813,6 +1814,104 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
                 CreateFreeMindNode(exportRoot, isRoot: true, sourceDocument.Title, isBranch)));
 
         document.Save(path);
+    }
+
+    private void ImportButton_Click(object sender, RoutedEventArgs e)
+    {
+        var openDialog = new OpenFileDialog
+        {
+            Title = LocalizationService.GetString("MindMapImportDialogTitle") ?? "Import Mind Map",
+            Filter = "Mind map files (*.mm;*.mmap)|*.mm;*.mmap|All files (*.*)|*.*"
+        };
+
+        if (openDialog.ShowDialog(this) != true)
+            return;
+
+try
+        {
+            var imported = ImportMindMapFile(openDialog.FileName);
+            if (imported is null)
+                throw new InvalidOperationException(LocalizationService.GetString("MindMapImportFailed") ?? "The selected file does not contain a valid mind map.");
+
+            _root.Text = imported.Text ?? string.Empty;
+            _root.Children.Clear();
+            foreach (var child in imported.Children)
+                _root.Children.Add(CloneNode(child));
+
+            _selectedNode = null;
+            RebuildMap();
+
+            ShowExportDialog(
+                LocalizationService.GetString("Success"),
+                LocalizationService.GetString("MindMapImportSuccess") ?? "Mind map imported successfully.");
+        }
+        catch (Exception ex)
+        {
+            ShowExportDialog(
+                LocalizationService.GetString("ImportError") ?? LocalizationService.GetString("ExportError") ?? "Import Error",
+                ex.Message);
+        }
+    }
+
+    private MindMapNode? ImportMindMapFile(string path)
+    {
+        if (!System.IO.File.Exists(path))
+            throw new FileNotFoundException("File not found.", path);
+
+        var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+        if (ext != ".mm" && ext != ".mmap")
+            throw new InvalidOperationException("Unsupported file format.");
+
+        XDocument doc;
+        try
+        {
+            doc = XDocument.Load(path);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Unable to read XML file.", ex);
+        }
+
+        var map = doc.Root;
+        if (map == null || !string.Equals(map.Name.LocalName, "map", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("File is not a valid mind map (root <map> missing).");
+
+        var firstNode = map.Elements("node").FirstOrDefault();
+        if (firstNode == null)
+            return null;
+
+        return ParseFreeMindNode(firstNode);
+    }
+
+    private MindMapNode ParseFreeMindNode(XElement element)
+    {
+        var node = new MindMapNode();
+        var textAttr = element.Attribute("TEXT")?.Value;
+        node.Text = string.IsNullOrWhiteSpace(textAttr) ? string.Empty : textAttr.Trim();
+        var bg = element.Attribute("BACKGROUND_COLOR")?.Value;
+        if (!string.IsNullOrWhiteSpace(bg)) node.BackgroundColor = bg;
+        var color = element.Attribute("COLOR")?.Value;
+        if (!string.IsNullOrWhiteSpace(color)) node.BorderColor = color;
+
+        var rich = element.Elements("richcontent").FirstOrDefault(rc => string.Equals(rc.Attribute("TYPE")?.Value, "NOTE", StringComparison.OrdinalIgnoreCase));
+        if (rich != null)
+        {
+            var body = rich.Descendants("body").FirstOrDefault();
+            if (body != null)
+            {
+                var content = body.Value;
+                if (!string.IsNullOrWhiteSpace(content))
+                    node.Icon = content.Trim();
+            }
+        }
+
+        foreach (var childEl in element.Elements("node"))
+        {
+            var childNode = ParseFreeMindNode(childEl);
+            node.Children.Add(childNode);
+        }
+
+        return node;
     }
 
     private static XElement CreateFreeMindNode(MindMapNode node, bool isRoot, string documentTitle, bool isBranch)

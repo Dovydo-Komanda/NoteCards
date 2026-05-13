@@ -696,6 +696,10 @@
                             Style="{StaticResource MindMapToolbarButtonStyle}"
                             MinWidth="150"
                             Click="ExportAllButton_Click"/>
+                    <Button Content="{Binding [MindMapImport], Source={StaticResource Loc}}"
+                            Style="{StaticResource MindMapToolbarButtonStyle}"
+                            MinWidth="120"
+                            Click="ImportButton_Click"/>
                     <Button Content="{Binding [MindMapExportSelectedBranch], Source={StaticResource Loc}}"
                             Style="{StaticResource MindMapToolbarButtonStyle}"
                             MinWidth="170"
