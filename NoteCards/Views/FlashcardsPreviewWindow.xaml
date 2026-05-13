@@ -605,6 +605,15 @@
                                                         Style="{StaticResource FlashcardSearchIconButtonStyle}"
                                                         ToolTip="{Binding [MoveToSet], Source={StaticResource Loc}}"
                                                         Click="MoveFlashcardButton_Click"/>
+                                                <Button x:Name="LinkNoteButton"
+                                                        Content="🔗"
+                                                        Width="26"
+                                                        Height="24"
+                                                        Margin="6,0,0,0"
+                                                        Padding="0"
+                                                        Style="{StaticResource FlashcardSearchIconButtonStyle}"
+                                                        ToolTip="Link to note"
+                                                        Click="LinkNoteButton_Click"/>
                                             </StackPanel>
                                         </Grid>
 

@@ -1110,7 +1110,8 @@ namespace NoteCards
                 document?.Title,
                 document?.Tags,
                 document?.SetNames,
-                document?.StudySession)
+                document?.StudySession,
+                mainWindow: this)
             {
                 Owner = this
             };

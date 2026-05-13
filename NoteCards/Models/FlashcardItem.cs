@@ -9,4 +9,5 @@ public sealed class FlashcardItem
     public int SetIndex { get; init; } = 1;
     public bool IsKnown { get; set; }
     public bool IsUnknown { get; set; }
+    public Guid? LinkedNoteId { get; set; } = null;
 }
