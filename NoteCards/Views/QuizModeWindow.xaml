@@ -24,11 +24,14 @@
                 <TextBlock x:Name="ProgressText"
                            FontSize="14"
                            Foreground="{DynamicResource TextColorSecondary}"/>
-                <TextBlock x:Name="TimerText"
-                           HorizontalAlignment="Right"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextColor}"/>
+                <!-- Pakeisti esamą TimerText į Border su TextBlock viduje: -->
+                <Border x:Name="TimerBorder" CornerRadius="6" Padding="8,4" Background="Transparent">
+                    <TextBlock x:Name="TimerText"
+               HorizontalAlignment="Right"
+               FontSize="14"
+               FontWeight="SemiBold"
+               Foreground="{DynamicResource TextColor}"/>
+                </Border>
             </Grid>
         </Border>
 

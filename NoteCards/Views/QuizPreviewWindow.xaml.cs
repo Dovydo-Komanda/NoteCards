@@ -472,7 +472,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         try
         {
-            var quizModeWindow = new QuizModeWindow(_sourceDocument);
+            var selectedItem = TimeLimitComboBox.SelectedItem as ComboBoxItem;
+            int timeLimitSeconds = selectedItem?.Tag is string tag ? int.Parse(tag) : 0;
+            var quizModeWindow = new QuizModeWindow(_sourceDocument, timeLimitSeconds);
             quizModeWindow.ShowDialog();
         }
         catch (Exception ex)
