@@ -1,6 +1,7 @@
 using NoteCards.Localization;
 using NoteCards.Models;
 using Microsoft.Win32;
+using System.ComponentModel;
 using System.Globalization;
 using System.Xml.Linq;
 using System.Windows.Media.Imaging;
@@ -16,6 +17,13 @@ namespace NoteCards.Views;
 
 public partial class MindMapPreviewWindow : Window
 {
+    private enum UnsavedCloseDecision
+    {
+        Cancel,
+        LeaveWithoutSaving,
+        SaveAndClose
+    }
+
     private const double NodeWidth = 190;
     private const double HorizontalGap = 150;
     private const double VerticalGap = 18;
@@ -42,6 +50,9 @@ public partial class MindMapPreviewWindow : Window
     private bool _isManualPositioningMode;
     private bool _suppressManualPositionCapture;
     private readonly Dictionary<MindMapNode, Point> _manualPositions = new();
+    private string _lastSavedSnapshot = string.Empty;
+    private bool _isInitializing = true;
+    private bool _allowCloseWithoutPrompt;
 
     private static readonly Brush[] LightNodeBackgrounds =
     [
@@ -92,7 +103,13 @@ public partial class MindMapPreviewWindow : Window
         _suppressManualPositioningToggleChanged = false;
         UpdateManualPositioningVisualState();
 
-        Loaded += (_, _) => RebuildMap();
+        Loaded += (_, _) =>
+        {
+            RebuildMap();
+            MarkCurrentStateSaved();
+            _isInitializing = false;
+            UpdateEditedIndicator();
+        };
         SizeChanged += (_, _) => RebuildMap();
     }
 
@@ -101,6 +118,113 @@ public partial class MindMapPreviewWindow : Window
     public IReadOnlyList<string> Tags => ParseTags(TagsTextBox.Text);
 
     public string AiModelDisplayName => _modelDisplayName;
+
+    private void EditorField_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateEditedIndicator();
+    }
+
+    private void MarkCurrentStateSaved()
+    {
+        _lastSavedSnapshot = GetEditorSnapshot();
+        UpdateEditedIndicator();
+    }
+
+    private bool HasUnsavedChanges()
+    {
+        if (_isInitializing)
+            return false;
+
+        return !string.Equals(GetEditorSnapshot(), _lastSavedSnapshot, StringComparison.Ordinal);
+    }
+
+    private void UpdateEditedIndicator()
+    {
+        if (_isInitializing || EditedIndicatorText is null)
+            return;
+
+        EditedIndicatorText.Visibility = HasUnsavedChanges()
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private string GetEditorSnapshot()
+    {
+        return string.Join(
+            '\u001F',
+            TitleTextBox.Text,
+            string.Join('\u001E', Tags),
+            GetLayoutModeKey(_selectedLayoutMode),
+            _isManualPositioningMode.ToString(),
+            SerializeNodeSnapshot(_root));
+    }
+
+    private static string SerializeNodeSnapshot(MindMapNode node)
+    {
+        var childrenSnapshot = string.Join('\u001C', node.Children.Select(SerializeNodeSnapshot));
+
+        return string.Join(
+            '\u001D',
+            node.Text ?? string.Empty,
+            node.IsExpanded.ToString(),
+            node.BackgroundColor ?? string.Empty,
+            node.BorderColor ?? string.Empty,
+            node.BorderThickness.ToString(CultureInfo.InvariantCulture),
+            node.NodeShape ?? string.Empty,
+            node.Icon ?? string.Empty,
+            node.IconBadgeColor ?? string.Empty,
+            FormatNullableDouble(node.ManualX),
+            FormatNullableDouble(node.ManualY),
+            childrenSnapshot);
+    }
+
+    private static string FormatNullableDouble(double? value)
+        => value.HasValue && IsFinite(value.Value)
+            ? value.Value.ToString("R", CultureInfo.InvariantCulture)
+            : string.Empty;
+
+    private UnsavedCloseDecision GetCloseDecision()
+    {
+        if (!HasUnsavedChanges())
+            return UnsavedCloseDecision.LeaveWithoutSaving;
+
+        var documentTitle = ResolveEditorTitleForPrompt();
+        var dialog = new DeleteConfirmationDialog(
+            LocalizationService.GetString("UnsavedChanges"),
+            string.Format(LocalizationService.GetString("UnsavedChangesConfirmationFormat"), documentTitle),
+            LocalizationService.GetString("LeaveWithoutSaving"),
+            LocalizationService.GetString("Cancel"),
+            LocalizationService.GetString("SaveAndExit"))
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() != true)
+            return UnsavedCloseDecision.Cancel;
+
+        return dialog.SelectedAction switch
+        {
+            DeleteConfirmationDialog.ConfirmationAction.Confirm => UnsavedCloseDecision.LeaveWithoutSaving,
+            DeleteConfirmationDialog.ConfirmationAction.Secondary => UnsavedCloseDecision.SaveAndClose,
+            _ => UnsavedCloseDecision.Cancel
+        };
+    }
+
+    private string ResolveEditorTitleForPrompt()
+    {
+        var title = EditorTitle;
+        return string.IsNullOrWhiteSpace(title)
+            ? LocalizationService.GetString("MindMapUntitled")
+            : title;
+    }
+
+    private void SaveAndClose()
+    {
+        MarkCurrentStateSaved();
+        _allowCloseWithoutPrompt = true;
+        DialogResult = true;
+        Close();
+    }
 
     private void SelectLayoutComboBoxItem(MindMapLayoutMode mode)
     {
@@ -304,6 +428,7 @@ public partial class MindMapPreviewWindow : Window
             CenterViewOnCurrentSearchMatch();
 
         QueueInitialCenterOnRoot();
+        UpdateEditedIndicator();
     }
 
     private void BuildBalancedTreeLayout()
@@ -1519,8 +1644,7 @@ public partial class MindMapPreviewWindow : Window
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = true;
-        Close();
+        SaveAndClose();
     }
 
     private void ExportAllButton_Click(object sender, RoutedEventArgs e)
@@ -1881,7 +2005,40 @@ public partial class MindMapPreviewWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
-        Close();
+        switch (GetCloseDecision())
+        {
+            case UnsavedCloseDecision.Cancel:
+                return;
+            case UnsavedCloseDecision.SaveAndClose:
+                SaveAndClose();
+                return;
+            case UnsavedCloseDecision.LeaveWithoutSaving:
+                _allowCloseWithoutPrompt = true;
+                Close();
+                return;
+        }
+    }
+
+    private void MindMapPreviewWindow_Closing(object? sender, CancelEventArgs e)
+    {
+        if (_allowCloseWithoutPrompt)
+            return;
+
+        switch (GetCloseDecision())
+        {
+            case UnsavedCloseDecision.Cancel:
+                e.Cancel = true;
+                return;
+            case UnsavedCloseDecision.SaveAndClose:
+                _allowCloseWithoutPrompt = true;
+                MarkCurrentStateSaved();
+                DialogResult = true;
+                e.Cancel = false;
+                return;
+            case UnsavedCloseDecision.LeaveWithoutSaving:
+                _allowCloseWithoutPrompt = true;
+                return;
+        }
     }
 
     private Brush GetThemeBrush(string resourceKey, Color fallbackColor)

@@ -25,7 +25,6 @@ namespace NoteCards
     {
         private const double DragScrollEdgeThreshold = 64;
         private const double DragScrollStep = 18;
-        private const double DashboardDragStartThreshold = 3;
         private const double DashboardDragScrollEdgeThreshold = 96;
         private const double DashboardDragScrollMinStep = 16;
         private const double DashboardDragScrollMaxStep = 46;
@@ -1102,21 +1101,6 @@ namespace NoteCards
             }
         }
 
-        private void OpenFlashcardSetButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_suppressDashboardListingOpen)
-            {
-                _suppressDashboardListingOpen = false;
-                return;
-            }
-
-            if (DataContext is not MainViewModel vm)
-                return;
-
-            if ((sender as FrameworkElement)?.Tag is FlashcardSetViewModel set)
-                OpenFlashcardSetEditor(vm, set);
-        }
-
         private void OpenFlashcardSetEditor(MainViewModel vm, FlashcardSetViewModel? set)
         {
             var document = set?.Document;
@@ -1139,21 +1123,6 @@ namespace NoteCards
         {
             if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: FlashcardSetViewModel set })
                 OpenFlashcardSetEditor(vm, set);
-        }
-
-        private void OpenQuizButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_suppressDashboardListingOpen)
-            {
-                _suppressDashboardListingOpen = false;
-                return;
-            }
-
-            if (DataContext is not MainViewModel vm)
-                return;
-
-            if ((sender as FrameworkElement)?.Tag is QuizViewModel quiz)
-                OpenQuizEditor(vm, quiz);
         }
 
         private void OpenQuizEditor(MainViewModel vm, QuizViewModel? quiz)
@@ -1232,9 +1201,11 @@ namespace NoteCards
 
         private void OpenQuizMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuItem menuItem && menuItem.DataContext is QuizViewModel quizVm)
+            if (DataContext is MainViewModel vm
+                && sender is MenuItem menuItem
+                && menuItem.DataContext is QuizViewModel quizVm)
             {
-                OpenQuizEditor(DataContext as MainViewModel, quizVm);
+                OpenQuizEditor(vm, quizVm);
             }
         }
 
@@ -1295,20 +1266,6 @@ namespace NoteCards
         {
             if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: FlashcardSetViewModel set })
                 vm.RemoveFlashcardSetFromGroup(set);
-        }
-
-        private void OpenMindMapButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_suppressDashboardListingOpen)
-            {
-                _suppressDashboardListingOpen = false;
-                return;
-            }
-
-            if (sender is Button btn && btn.Tag is MindMapViewModel mindMapVm)
-            {
-                OpenMindMapEditor(mindMapVm);
-            }
         }
 
         private void OpenMindMapMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1809,24 +1766,26 @@ namespace NoteCards
             if (sender is not Button menuButton)
                 return;
 
-            var cardButton = FindAncestorCardButtonWithContextMenu(menuButton);
-            if (cardButton?.ContextMenu is null)
+            var cardElement = FindAncestorDashboardListingWithContextMenu(menuButton);
+            if (cardElement?.ContextMenu is null)
                 return;
 
-            cardButton.ContextMenu.PlacementTarget = menuButton;
-            cardButton.ContextMenu.Placement = PlacementMode.Bottom;
-            cardButton.ContextMenu.IsOpen = true;
+            cardElement.ContextMenu.PlacementTarget = menuButton;
+            cardElement.ContextMenu.Placement = PlacementMode.Bottom;
+            cardElement.ContextMenu.IsOpen = true;
             e.Handled = true;
         }
 
         private void DashboardListing_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            _dashboardListingDragStart = e.GetPosition(this);
+            _dashboardListingDragStart = sender is IInputElement inputElement
+                ? e.GetPosition(inputElement)
+                : e.GetPosition(this);
         }
 
         private void DashboardListing_PreviewMouseMove(object sender, MouseEventArgs e)
         {
-            if (sender is not FrameworkElement { Tag: not null } element)
+            if (sender is not FrameworkElement element)
                 return;
 
             if (e.LeftButton != MouseButtonState.Pressed)
@@ -1835,21 +1794,55 @@ namespace NoteCards
             if (IsWithinListingContextMenuButton(e.OriginalSource as DependencyObject))
                 return;
 
-            var current = e.GetPosition(this);
+            var listing = ResolveDashboardListingFromElement(element);
+            if (listing is null)
+                return;
+
+            var current = e.GetPosition(element);
             var delta = current - _dashboardListingDragStart;
-            if (Math.Abs(delta.X) < DashboardDragStartThreshold
-                && Math.Abs(delta.Y) < DashboardDragStartThreshold)
+            if (Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance
+                && Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance)
                 return;
 
             _suppressDashboardListingOpen = true;
             try
             {
-                DragDrop.DoDragDrop(element, CreateDashboardListingDataObject(element.Tag), DragDropEffects.Move);
+                DragDrop.DoDragDrop(element, CreateDashboardListingDataObject(listing), DragDropEffects.Move);
                 e.Handled = true;
             }
             finally
             {
                 StopDashboardDragAutoScroll();
+            }
+        }
+
+        private void DashboardListing_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_suppressDashboardListingOpen)
+            {
+                _suppressDashboardListingOpen = false;
+                e.Handled = true;
+                return;
+            }
+
+            if (IsWithinListingContextMenuButton(e.OriginalSource as DependencyObject))
+                return;
+
+            var listing = ResolveDashboardListingFromElement(sender as FrameworkElement);
+            switch (listing)
+            {
+                case FlashcardSetViewModel flashcardSet when DataContext is MainViewModel vm:
+                    OpenFlashcardSetEditor(vm, flashcardSet);
+                    e.Handled = true;
+                    break;
+                case MindMapViewModel mindMap:
+                    OpenMindMapEditor(mindMap);
+                    e.Handled = true;
+                    break;
+                case QuizViewModel quiz when DataContext is MainViewModel vm:
+                    OpenQuizEditor(vm, quiz);
+                    e.Handled = true;
+                    break;
             }
         }
 
@@ -2001,34 +1994,25 @@ namespace NoteCards
             return data;
         }
 
+        private static object? ResolveDashboardListingFromElement(FrameworkElement? element)
+        {
+            if (element?.Tag is FlashcardSetViewModel or MindMapViewModel or QuizViewModel)
+                return element.Tag;
+
+            return element?.DataContext switch
+            {
+                FlashcardSetViewModel flashcardSet => flashcardSet,
+                MindMapViewModel mindMap => mindMap,
+                QuizViewModel quiz => quiz,
+                _ => null
+            };
+        }
+
         private bool TryHandleDashboardListingDrop(object? target, DragEventArgs e, FrameworkElement? targetElement = null)
         {
-            if (DataContext is not MainViewModel vm)
-                return false;
-
+            var draggedListing = ResolveDashboardDraggedListing(e.Data);
             var placeAfter = targetElement is not null && e.GetPosition(targetElement).X >= targetElement.ActualWidth / 2;
-            var handled = target switch
-            {
-                FlashcardSetViewModel flashcardTarget
-                    when e.Data.GetData(typeof(FlashcardSetViewModel)) is FlashcardSetViewModel dragged
-                         && !ReferenceEquals(dragged, flashcardTarget)
-                    => (dragged.Document.GroupId.HasValue && dragged.Document.GroupId == flashcardTarget.Document.GroupId
-                        ? vm.TryReorderFlashcardSetsWithinGroup(dragged, flashcardTarget, placeAfter)
-                        : vm.TryGroupFlashcardSets(dragged, flashcardTarget)) || true,
-                MindMapViewModel mindMapTarget
-                    when e.Data.GetData(typeof(MindMapViewModel)) is MindMapViewModel dragged
-                         && !ReferenceEquals(dragged, mindMapTarget)
-                    => (dragged.Document.GroupId.HasValue && dragged.Document.GroupId == mindMapTarget.Document.GroupId
-                        ? vm.TryReorderMindMapsWithinGroup(dragged, mindMapTarget, placeAfter)
-                        : vm.TryGroupMindMaps(dragged, mindMapTarget)) || true,
-                QuizViewModel quizTarget
-                    when e.Data.GetData(typeof(QuizViewModel)) is QuizViewModel dragged
-                         && !ReferenceEquals(dragged, quizTarget)
-                    => (dragged.Document.GroupId.HasValue && dragged.Document.GroupId == quizTarget.Document.GroupId
-                        ? vm.TryReorderQuizzesWithinGroup(dragged, quizTarget, placeAfter)
-                        : vm.TryGroupQuizzes(dragged, quizTarget)) || true,
-                _ => false
-            };
+            var handled = TryApplyDashboardListingDrop(draggedListing, target, placeAfter);
 
             if (handled)
             {
@@ -2037,6 +2021,42 @@ namespace NoteCards
             }
 
             return handled;
+        }
+
+        private bool TryApplyDashboardListingDrop(object? draggedListing, object? target, bool placeAfter)
+        {
+            if (DataContext is not MainViewModel vm)
+                return false;
+
+            return target switch
+            {
+                FlashcardSetViewModel flashcardTarget
+                    when draggedListing is FlashcardSetViewModel dragged
+                         && !ReferenceEquals(dragged, flashcardTarget)
+                    => (dragged.Document.GroupId.HasValue && dragged.Document.GroupId == flashcardTarget.Document.GroupId
+                        ? vm.TryReorderFlashcardSetsWithinGroup(dragged, flashcardTarget, placeAfter)
+                        : vm.TryGroupFlashcardSets(dragged, flashcardTarget)) || true,
+                MindMapViewModel mindMapTarget
+                    when draggedListing is MindMapViewModel dragged
+                         && !ReferenceEquals(dragged, mindMapTarget)
+                    => (dragged.Document.GroupId.HasValue && dragged.Document.GroupId == mindMapTarget.Document.GroupId
+                        ? vm.TryReorderMindMapsWithinGroup(dragged, mindMapTarget, placeAfter)
+                        : vm.TryGroupMindMaps(dragged, mindMapTarget)) || true,
+                QuizViewModel quizTarget
+                    when draggedListing is QuizViewModel dragged
+                         && !ReferenceEquals(dragged, quizTarget)
+                    => (dragged.Document.GroupId.HasValue && dragged.Document.GroupId == quizTarget.Document.GroupId
+                        ? vm.TryReorderQuizzesWithinGroup(dragged, quizTarget, placeAfter)
+                        : vm.TryGroupQuizzes(dragged, quizTarget)) || true,
+                _ => false
+            };
+        }
+
+        private static object? ResolveDashboardDraggedListing(IDataObject data)
+        {
+            return data.GetData(typeof(FlashcardSetViewModel))
+                   ?? data.GetData(typeof(MindMapViewModel))
+                   ?? data.GetData(typeof(QuizViewModel));
         }
 
         private FrameworkElement? FindDashboardListingElementFromDragEvent(DragEventArgs e)
@@ -2439,13 +2459,13 @@ namespace NoteCards
             return false;
         }
 
-        private static Button? FindAncestorCardButtonWithContextMenu(DependencyObject source)
+        private static FrameworkElement? FindAncestorDashboardListingWithContextMenu(DependencyObject source)
         {
             var current = GetElementParent(source);
             while (current != null)
             {
-                if (current is Button { ContextMenu: not null } button)
-                    return button;
+                if (current is FrameworkElement { ContextMenu: not null, Tag: FlashcardSetViewModel or MindMapViewModel or QuizViewModel } element)
+                    return element;
 
                 current = GetElementParent(current);
             }

@@ -1,5 +1,6 @@
 using NoteCards.Localization;
 using NoteCards.Models;
+using System.Collections.Specialized;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -21,6 +22,13 @@ namespace NoteCards.Views;
 
 public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 {
+    private enum UnsavedCloseDecision
+    {
+        Cancel,
+        LeaveWithoutSaving,
+        SaveAndClose
+    }
+
     public static readonly DependencyProperty IsEditModeProperty = DependencyProperty.Register(
         nameof(IsEditMode),
         typeof(bool),
@@ -50,6 +58,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
     private string _modelDisplayName = string.Empty;
     private bool _isSubmitted;
     private QuizNoteLinkOption? _selectedLinkedNote;
+    private string _lastSavedSnapshot = string.Empty;
+    private bool _isInitializing = true;
+    private bool _allowCloseWithoutPrompt;
 
     public QuizPreviewWindow(
         QuizDocument document,
@@ -117,6 +128,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         OnPropertyChanged(nameof(LinkedNoteButtonToolTip));
 
         PreviewKeyDown += QuizPreviewWindow_PreviewKeyDown;
+        TrackQuestionChanges();
+        _isInitializing = false;
+        MarkCurrentStateSaved();
 
     }
     public string EditorTitle => TitleTextBox.Text.Trim();
@@ -153,6 +167,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             OnPropertyChanged(nameof(LinkedNoteButtonText));
             OnPropertyChanged(nameof(LinkedNoteButtonToolTip));
             OnPropertyChanged(nameof(LinkedNoteVisibility));
+            UpdateEditedIndicator();
         }
     }
 
@@ -162,6 +177,214 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
     {
         get => (bool)GetValue(IsEditModeProperty);
         set => SetValue(IsEditModeProperty, value);
+    }
+
+    private void EditorField_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateEditedIndicator();
+    }
+
+    private void TrackQuestionChanges()
+    {
+        _questions.CollectionChanged += Questions_CollectionChanged;
+        foreach (var question in _questions)
+            AttachQuestionChangeTracking(question);
+    }
+
+    private void Questions_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (QuizPreviewQuestion question in e.OldItems)
+                DetachQuestionChangeTracking(question);
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (QuizPreviewQuestion question in e.NewItems)
+                AttachQuestionChangeTracking(question);
+        }
+
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            foreach (var question in _questions)
+                AttachQuestionChangeTracking(question);
+        }
+
+        UpdateEditedIndicator();
+    }
+
+    private void AttachQuestionChangeTracking(QuizPreviewQuestion question)
+    {
+        question.PropertyChanged -= QuizQuestion_PropertyChanged;
+        question.PropertyChanged += QuizQuestion_PropertyChanged;
+        question.Options.CollectionChanged -= QuizOptions_CollectionChanged;
+        question.Options.CollectionChanged += QuizOptions_CollectionChanged;
+
+        foreach (var option in question.Options)
+        {
+            option.PropertyChanged -= QuizOption_PropertyChanged;
+            option.PropertyChanged += QuizOption_PropertyChanged;
+        }
+    }
+
+    private void DetachQuestionChangeTracking(QuizPreviewQuestion question)
+    {
+        question.PropertyChanged -= QuizQuestion_PropertyChanged;
+        question.Options.CollectionChanged -= QuizOptions_CollectionChanged;
+
+        foreach (var option in question.Options)
+            option.PropertyChanged -= QuizOption_PropertyChanged;
+    }
+
+    private void QuizQuestion_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (IsSavedQuestionProperty(e.PropertyName))
+            UpdateEditedIndicator();
+    }
+
+    private void QuizOptions_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (QuizPreviewOption option in e.OldItems)
+                option.PropertyChanged -= QuizOption_PropertyChanged;
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (QuizPreviewOption option in e.NewItems)
+            {
+                option.PropertyChanged -= QuizOption_PropertyChanged;
+                option.PropertyChanged += QuizOption_PropertyChanged;
+            }
+        }
+
+        if (e.Action == NotifyCollectionChangedAction.Reset && sender is ObservableCollection<QuizPreviewOption> options)
+        {
+            foreach (var option in options)
+            {
+                option.PropertyChanged -= QuizOption_PropertyChanged;
+                option.PropertyChanged += QuizOption_PropertyChanged;
+            }
+        }
+
+        UpdateEditedIndicator();
+    }
+
+    private void QuizOption_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (IsSavedOptionProperty(e.PropertyName))
+            UpdateEditedIndicator();
+    }
+
+    private static bool IsSavedQuestionProperty(string? propertyName)
+    {
+        return propertyName is null
+            || propertyName == nameof(QuizPreviewQuestion.Number)
+            || propertyName == nameof(QuizPreviewQuestion.Type)
+            || propertyName == nameof(QuizPreviewQuestion.Question)
+            || propertyName == nameof(QuizPreviewQuestion.Explanation);
+    }
+
+    private static bool IsSavedOptionProperty(string? propertyName)
+    {
+        return propertyName is null
+            || propertyName == nameof(QuizPreviewOption.Text)
+            || propertyName == nameof(QuizPreviewOption.IsCorrect);
+    }
+
+    private void MarkCurrentStateSaved()
+    {
+        _lastSavedSnapshot = GetEditorSnapshot();
+        UpdateEditedIndicator();
+    }
+
+    private bool HasUnsavedChanges()
+    {
+        if (_isInitializing)
+            return false;
+
+        return !string.Equals(GetEditorSnapshot(), _lastSavedSnapshot, StringComparison.Ordinal);
+    }
+
+    private void UpdateEditedIndicator()
+    {
+        if (_isInitializing || EditedIndicatorText is null)
+            return;
+
+        EditedIndicatorText.Visibility = HasUnsavedChanges()
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private string GetEditorSnapshot()
+    {
+        var questionsSnapshot = string.Join('\u001E', _questions.Select(question =>
+        {
+            var optionsSnapshot = string.Join('\u001C', question.Options.Select(option =>
+                string.Join('\u001B', option.Text, option.IsCorrect.ToString())));
+
+            return string.Join(
+                '\u001D',
+                question.Number.ToString(CultureInfo.InvariantCulture),
+                question.Type.ToString(),
+                question.Question,
+                question.Explanation,
+                optionsSnapshot);
+        }));
+
+        return string.Join(
+            '\u001F',
+            TitleTextBox.Text,
+            GetSourceNoteIdForSnapshot(),
+            questionsSnapshot);
+    }
+
+    private string GetSourceNoteIdForSnapshot()
+        => (SelectedLinkedNote?.Id ?? _sourceDocument.SourceNoteId)?.ToString() ?? string.Empty;
+
+    private UnsavedCloseDecision GetCloseDecision()
+    {
+        if (!HasUnsavedChanges())
+            return UnsavedCloseDecision.LeaveWithoutSaving;
+
+        var documentTitle = ResolveEditorTitleForPrompt();
+        var dialog = new DeleteConfirmationDialog(
+            LocalizationService.GetString("UnsavedChanges"),
+            string.Format(LocalizationService.GetString("UnsavedChangesConfirmationFormat"), documentTitle),
+            LocalizationService.GetString("LeaveWithoutSaving"),
+            LocalizationService.GetString("Cancel"),
+            LocalizationService.GetString("SaveAndExit"))
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() != true)
+            return UnsavedCloseDecision.Cancel;
+
+        return dialog.SelectedAction switch
+        {
+            DeleteConfirmationDialog.ConfirmationAction.Confirm => UnsavedCloseDecision.LeaveWithoutSaving,
+            DeleteConfirmationDialog.ConfirmationAction.Secondary => UnsavedCloseDecision.SaveAndClose,
+            _ => UnsavedCloseDecision.Cancel
+        };
+    }
+
+    private string ResolveEditorTitleForPrompt()
+    {
+        var title = EditorTitle;
+        return string.IsNullOrWhiteSpace(title)
+            ? LocalizationService.GetString("QuizUntitled")
+            : title;
+    }
+
+    private void SaveAndClose()
+    {
+        MarkCurrentStateSaved();
+        _allowCloseWithoutPrompt = true;
+        DialogResult = true;
+        Close();
     }
 
     public QuizDocument ToDocument(QuizDocument? existingDocument = null)
@@ -221,7 +444,18 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
-        Close();
+        switch (GetCloseDecision())
+        {
+            case UnsavedCloseDecision.Cancel:
+                return;
+            case UnsavedCloseDecision.SaveAndClose:
+                SaveAndClose();
+                return;
+            case UnsavedCloseDecision.LeaveWithoutSaving:
+                _allowCloseWithoutPrompt = true;
+                Close();
+                return;
+        }
     }
 
     private void StartQuizButton_Click(object sender, RoutedEventArgs e)
@@ -253,8 +487,29 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = true;
-        Close();
+        SaveAndClose();
+    }
+
+    private void QuizPreviewWindow_Closing(object? sender, CancelEventArgs e)
+    {
+        if (_allowCloseWithoutPrompt)
+            return;
+
+        switch (GetCloseDecision())
+        {
+            case UnsavedCloseDecision.Cancel:
+                e.Cancel = true;
+                return;
+            case UnsavedCloseDecision.SaveAndClose:
+                _allowCloseWithoutPrompt = true;
+                MarkCurrentStateSaved();
+                DialogResult = true;
+                e.Cancel = false;
+                return;
+            case UnsavedCloseDecision.LeaveWithoutSaving:
+                _allowCloseWithoutPrompt = true;
+                return;
+        }
     }
 
     private void ExportButton_Click(object sender, RoutedEventArgs e)

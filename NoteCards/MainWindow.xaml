@@ -651,28 +651,6 @@
 			</Setter>
 		</Style>
 
-		<Style x:Key="DashboardListingButtonStyle" TargetType="Button">
-			<Setter Property="OverridesDefaultStyle" Value="True"/>
-			<Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-			<Setter Property="Background" Value="Transparent"/>
-			<Setter Property="BorderBrush" Value="Transparent"/>
-			<Setter Property="BorderThickness" Value="0"/>
-			<Setter Property="Padding" Value="0"/>
-			<Setter Property="Cursor" Value="Hand"/>
-			<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-			<Setter Property="VerticalContentAlignment" Value="Stretch"/>
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate TargetType="Button">
-						<ContentPresenter Margin="{TemplateBinding Padding}"
-										  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-										  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-										  RecognizesAccessKey="True"/>
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
-
 		<Style x:Key="DashboardListingMenuButtonStyle" TargetType="Button">
 			<Setter Property="Background" Value="Transparent"/>
 			<Setter Property="BorderBrush" Value="Transparent"/>
@@ -710,7 +688,7 @@
 				</Setter.Value>
 			</Setter>
 			<Style.Triggers>
-				<DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+				<DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
 					<Setter Property="Visibility" Value="Visible"/>
 				</DataTrigger>
 			</Style.Triggers>
@@ -2287,26 +2265,21 @@
                                                                 </ItemsControl.ItemsPanel>
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate DataType="{x:Type vm:FlashcardSetViewModel}">
-                                                                        <Button Tag="{Binding}"
-                                                                                Style="{StaticResource DashboardListingButtonStyle}"
-                                                                                Click="OpenFlashcardSetButton_Click"
+                                                                        <Border Tag="{Binding}"
                                                                                 Width="220"
                                                                                 MinHeight="96"
                                                                                 Margin="0,0,10,10"
-                                                                                Padding="0"
-                                                                                HorizontalContentAlignment="Stretch"
-                                                                                VerticalContentAlignment="Stretch"
                                                                                 Background="Transparent"
-                                                                                BorderThickness="0"
                                                                                 Cursor="Hand"
                                                                                 AllowDrop="True"
                                                                                 PreviewMouseLeftButtonDown="DashboardListing_PreviewMouseLeftButtonDown"
-                                                                                PreviewMouseMove="DashboardListing_PreviewMouseMove"
+                                                                                MouseMove="DashboardListing_PreviewMouseMove"
+                                                                                MouseLeftButtonUp="DashboardListing_MouseLeftButtonUp"
                                                                                 DragEnter="DashboardListing_PreviewDragEnter"
                                                                                 DragOver="DashboardListing_PreviewDragOver"
                                                                                 DragLeave="DashboardListing_PreviewDragLeave"
                                                                                 Drop="DashboardListing_PreviewDrop">
-                                                                            <Button.ContextMenu>
+                                                                            <Border.ContextMenu>
                                                                                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                                                     <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}" Click="OpenFlashcardSetMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}" Click="DuplicateFlashcardSetMenuItem_Click"/>
@@ -2315,7 +2288,7 @@
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [DeleteFlashcardSet], Source={StaticResource Loc}}" Click="DeleteFlashcardSetMenuItem_Click"/>
                                                                                 </ContextMenu>
-                                                                            </Button.ContextMenu>
+                                                                            </Border.ContextMenu>
                                                                             <Border Style="{StaticResource DashboardGroupedListingCardStyle}">
                                                                                 <Grid>
                                                                                     <Grid.RowDefinitions>
@@ -2366,7 +2339,7 @@
                                                                                                Margin="0,6,0,0"/>
                                                                                 </Grid>
                                                                             </Border>
-                                                                        </Button>
+                                                                        </Border>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
@@ -2407,26 +2380,21 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type vm:FlashcardSetViewModel}">
-                                                    <Button Tag="{Binding}"
-                                                            Style="{StaticResource DashboardListingButtonStyle}"
-                                                            Click="OpenFlashcardSetButton_Click"
+                                                    <Border Tag="{Binding}"
                                                             Width="300"
                                                             MinHeight="164"
                                                             Margin="0,0,14,14"
-                                                            Padding="0"
-                                                            HorizontalContentAlignment="Stretch"
-                                                            VerticalContentAlignment="Stretch"
                                                             Background="Transparent"
-                                                            BorderThickness="0"
                                                             Cursor="Hand"
                                                             AllowDrop="True"
                                                             PreviewMouseLeftButtonDown="DashboardListing_PreviewMouseLeftButtonDown"
-                                                            PreviewMouseMove="DashboardListing_PreviewMouseMove"
+                                                            MouseMove="DashboardListing_PreviewMouseMove"
+                                                            MouseLeftButtonUp="DashboardListing_MouseLeftButtonUp"
                                                             DragEnter="DashboardListing_PreviewDragEnter"
                                                             DragOver="DashboardListing_PreviewDragOver"
                                                             DragLeave="DashboardListing_PreviewDragLeave"
                                                             Drop="DashboardListing_PreviewDrop">
-														<Button.ContextMenu>
+														<Border.ContextMenu>
 															<ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                                 <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}"
                                                                           Click="OpenFlashcardSetMenuItem_Click"/>
@@ -2441,7 +2409,7 @@
 																<MenuItem Header="{Binding [DeleteFlashcardSet], Source={StaticResource Loc}}"
 																		  Click="DeleteFlashcardSetMenuItem_Click"/>
 															</ContextMenu>
-														</Button.ContextMenu>
+														</Border.ContextMenu>
                                                         <Border x:Name="FlashcardSetCardBorder"
                                                                 Background="{DynamicResource CardBackground}"
                                                                 BorderBrush="{DynamicResource BorderColor}"
@@ -2638,7 +2606,7 @@
                                                                            Visibility="{Binding HasTags, Converter={StaticResource BoolToVis}}"/>
                                                             </Grid>
                                                         </Border>
-                                                    </Button>
+                                                    </Border>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -3056,26 +3024,21 @@
                                                                 </ItemsControl.ItemsPanel>
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate DataType="{x:Type vm:QuizViewModel}">
-                                                                        <Button Tag="{Binding}"
-                                                                                Style="{StaticResource DashboardListingButtonStyle}"
-                                                                                Click="OpenQuizButton_Click"
+                                                                        <Border Tag="{Binding}"
                                                                                 Width="220"
                                                                                 MinHeight="96"
                                                                                 Margin="0,0,10,10"
-                                                                                Padding="0"
-                                                                                HorizontalContentAlignment="Stretch"
-                                                                                VerticalContentAlignment="Stretch"
                                                                                 Background="Transparent"
-                                                                                BorderThickness="0"
                                                                                 Cursor="Hand"
                                                                                 AllowDrop="True"
                                                                                 PreviewMouseLeftButtonDown="DashboardListing_PreviewMouseLeftButtonDown"
-                                                                                PreviewMouseMove="DashboardListing_PreviewMouseMove"
+                                                                                MouseMove="DashboardListing_PreviewMouseMove"
+                                                                                MouseLeftButtonUp="DashboardListing_MouseLeftButtonUp"
                                                                                 DragEnter="DashboardListing_PreviewDragEnter"
                                                                                 DragOver="DashboardListing_PreviewDragOver"
                                                                                 DragLeave="DashboardListing_PreviewDragLeave"
                                                                                 Drop="DashboardListing_PreviewDrop">
-                                                                            <Button.ContextMenu>
+                                                                            <Border.ContextMenu>
                                                                                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                                                     <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}" Click="OpenQuizMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}" Click="DuplicateQuizMenuItem_Click"/>
@@ -3084,7 +3047,7 @@
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}" Click="DeleteQuizMenuItem_Click"/>
                                                                                 </ContextMenu>
-                                                                            </Button.ContextMenu>
+                                                                            </Border.ContextMenu>
                                                                             <Border Style="{StaticResource DashboardGroupedListingCardStyle}">
                                                                                 <Grid>
                                                                                     <Grid.RowDefinitions>
@@ -3135,7 +3098,7 @@
                                                                                                Margin="0,6,0,0"/>
                                                                                 </Grid>
                                                                             </Border>
-                                                                        </Button>
+                                                                        </Border>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
@@ -3176,26 +3139,21 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type vm:QuizViewModel}">
-                                                    <Button Tag="{Binding}"
-                                                            Style="{StaticResource DashboardListingButtonStyle}"
-                                                            Click="OpenQuizButton_Click"
+                                                    <Border Tag="{Binding}"
                                                             Width="300"
                                                             MinHeight="154"
                                                             Margin="0,0,14,14"
-                                                            Padding="0"
-                                                            HorizontalContentAlignment="Stretch"
-                                                            VerticalContentAlignment="Stretch"
                                                             Background="Transparent"
-                                                            BorderThickness="0"
                                                             Cursor="Hand"
                                                             AllowDrop="True"
                                                             PreviewMouseLeftButtonDown="DashboardListing_PreviewMouseLeftButtonDown"
-                                                            PreviewMouseMove="DashboardListing_PreviewMouseMove"
+                                                            MouseMove="DashboardListing_PreviewMouseMove"
+                                                            MouseLeftButtonUp="DashboardListing_MouseLeftButtonUp"
                                                             DragEnter="DashboardListing_PreviewDragEnter"
                                                             DragOver="DashboardListing_PreviewDragOver"
                                                             DragLeave="DashboardListing_PreviewDragLeave"
                                                             Drop="DashboardListing_PreviewDrop">
-                                                        <Button.ContextMenu>
+                                                        <Border.ContextMenu>
                                                             <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                                 <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}"
                                                                 Click="OpenQuizMenuItem_Click"/>
@@ -3210,7 +3168,7 @@
                                                                 <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
                                                                 Click="DeleteQuizMenuItem_Click"/>
                                                             </ContextMenu>
-                                                        </Button.ContextMenu>
+                                                        </Border.ContextMenu>
                                                         <Border x:Name="QuizCardBorder"
                                                                 Background="{DynamicResource CardBackground}"
                                                                 BorderBrush="{DynamicResource BorderColor}"
@@ -3362,7 +3320,7 @@
                                                                            Visibility="{Binding HasTags, Converter={StaticResource BoolToVis}}"/>
                                                             </Grid>
                                                         </Border>
-                                                    </Button>
+                                                    </Border>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -3790,25 +3748,20 @@
                                                                 </ItemsControl.ItemsPanel>
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate DataType="{x:Type vm:MindMapViewModel}">
-                                                                        <Button Tag="{Binding}"
-        Style="{StaticResource DashboardListingButtonStyle}"
-        Click="OpenMindMapButton_Click"
+                                                                        <Border Tag="{Binding}"
         Width="220" MinHeight="120"
         Margin="0,0,10,10"
-        Padding="0"
-        HorizontalContentAlignment="Stretch"
-        VerticalContentAlignment="Stretch"
         Background="Transparent"
-        BorderThickness="0"
         Cursor="Hand"
         AllowDrop="True"
         PreviewMouseLeftButtonDown="DashboardListing_PreviewMouseLeftButtonDown"
-        PreviewMouseMove="DashboardListing_PreviewMouseMove"
+        MouseMove="DashboardListing_PreviewMouseMove"
+        MouseLeftButtonUp="DashboardListing_MouseLeftButtonUp"
         DragEnter="DashboardListing_PreviewDragEnter"
         DragOver="DashboardListing_PreviewDragOver"
         DragLeave="DashboardListing_PreviewDragLeave"
         Drop="DashboardListing_PreviewDrop">
-                                                                            <Button.ContextMenu>
+                                                                            <Border.ContextMenu>
                                                                                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                                                     <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}"
                   Click="OpenMindMapMenuItem_Click"/>
@@ -3822,7 +3775,7 @@
                                                                                     <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
                   Click="DeleteMindMapMenuItem_Click"/>
                                                                                 </ContextMenu>
-                                                                            </Button.ContextMenu>
+                                                                            </Border.ContextMenu>
                                                                             <Border Style="{StaticResource DashboardGroupedListingCardStyle}">
                                                                                 <Grid>
                                                                                     <Grid.RowDefinitions>
@@ -3873,7 +3826,7 @@
                        Margin="0,6,0,0"/>
                                                                                 </Grid>
                                                                             </Border>
-                                                                        </Button>
+                                                                        </Border>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
@@ -3914,27 +3867,22 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type vm:MindMapViewModel}">
-													<Button x:Name="MindMapCardButton"
+													<Border x:Name="MindMapCardButton"
 															Tag="{Binding}"
-                                                            Style="{StaticResource DashboardListingButtonStyle}"
-                                                            Click="OpenMindMapButton_Click"
 															Width="330"
 															MinHeight="184"
                                                             Margin="0,0,14,14"
-                                                            Padding="0"
-                                                            HorizontalContentAlignment="Stretch"
-                                                            VerticalContentAlignment="Stretch"
                                                             Background="Transparent"
-                                                            BorderThickness="0"
 																																								Cursor="Hand"
                                                             AllowDrop="True"
                                                             PreviewMouseLeftButtonDown="DashboardListing_PreviewMouseLeftButtonDown"
-                                                            PreviewMouseMove="DashboardListing_PreviewMouseMove"
+                                                            MouseMove="DashboardListing_PreviewMouseMove"
+                                                            MouseLeftButtonUp="DashboardListing_MouseLeftButtonUp"
                                                             DragEnter="DashboardListing_PreviewDragEnter"
                                                             DragOver="DashboardListing_PreviewDragOver"
                                                             DragLeave="DashboardListing_PreviewDragLeave"
                                                             Drop="DashboardListing_PreviewDrop">
-                                                        <Button.ContextMenu>
+                                                        <Border.ContextMenu>
                                                             <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                                 <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}"
                   Click="OpenMindMapMenuItem_Click"/>
@@ -3948,7 +3896,7 @@
                                                                 <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
                   Click="DeleteMindMapMenuItem_Click"/>
                                                             </ContextMenu>
-                                                        </Button.ContextMenu>
+                                                        </Border.ContextMenu>
                                                         <Border x:Name="MindMapCardBorder"
                                                                 Background="{DynamicResource CardBackground}"
                                                                 BorderBrush="{DynamicResource BorderColor}"
@@ -4208,7 +4156,7 @@
                                                                            Visibility="{Binding HasTags, Converter={StaticResource BoolToVis}}"/>
                                                             </Grid>
                                                         </Border>
-                                                    </Button>
+                                                    </Border>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>

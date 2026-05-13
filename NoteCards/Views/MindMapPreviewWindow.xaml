@@ -7,7 +7,8 @@
         MinHeight="650"
         MinWidth="860"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource WindowBackground}">
+        Background="{DynamicResource WindowBackground}"
+        Closing="MindMapPreviewWindow_Closing">
     <Window.Resources>
         <Style x:Key="MindMapToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogSecondaryButtonStyle}">
             <Setter Property="Padding" Value="14,7"/>
@@ -284,15 +285,32 @@
                         BorderThickness="1"
                         CornerRadius="10"
                         Padding="12,4">
-                    <TextBox x:Name="TitleTextBox"
-                             FontSize="20"
-                             FontWeight="SemiBold"
-                             BorderThickness="0"
-                             Background="Transparent"
-                             Foreground="{DynamicResource TextColor}"
-                             CaretBrush="{DynamicResource TextColor}"
-                             VerticalAlignment="Center"
-                             ToolTip="{Binding [MindMapTitleHint], Source={StaticResource Loc}}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="TitleTextBox"
+                                 Grid.Column="0"
+                                 FontSize="20"
+                                 FontWeight="SemiBold"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Foreground="{DynamicResource TextColor}"
+                                 CaretBrush="{DynamicResource TextColor}"
+                                 VerticalAlignment="Center"
+                                 TextChanged="EditorField_TextChanged"
+                                 ToolTip="{Binding [MindMapTitleHint], Source={StaticResource Loc}}"/>
+                        <TextBlock x:Name="EditedIndicatorText"
+                                   Grid.Column="1"
+                                   Text="{Binding [EditedIndicator], Source={StaticResource Loc}}"
+                                   Margin="12,0,0,0"
+                                   FontSize="12"
+                                   FontStyle="Italic"
+                                   Foreground="{DynamicResource TextColorSecondary}"
+                                   VerticalAlignment="Center"
+                                   Visibility="Collapsed"/>
+                    </Grid>
                 </Border>
 
                 <Border x:Name="AiGeneratedInfoBadge"
@@ -340,6 +358,7 @@
                          VerticalContentAlignment="Center"
                          Foreground="{DynamicResource TextColor}"
                          CaretBrush="{DynamicResource TextColor}"
+                         TextChanged="EditorField_TextChanged"
                          ToolTip="{Binding [TagsHint], Source={StaticResource Loc}}"/>
             </Grid>
         </Border>
