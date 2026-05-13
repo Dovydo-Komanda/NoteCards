@@ -195,6 +195,48 @@
             </Setter>
         </Style>
 
+        <Style x:Key="LinkedNoteComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource QuizEditorComboBoxStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Focusable="False"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press"
+                                          Template="{StaticResource QuizEditorComboBoxToggleButtonTemplate}"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          Padding="{TemplateBinding Padding}"/>
+                            <TextBlock IsHitTestVisible="False"
+                                       Text="{Binding ElementName=QuizWindow, Path=LinkedNoteButtonText}"
+                                       Margin="10,0,30,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{TemplateBinding Foreground}"/>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border Background="{DynamicResource CardBackground}"
+                                        BorderBrush="{DynamicResource BorderColor}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        MinWidth="{TemplateBinding ActualWidth}">
+                                    <ScrollViewer MaxHeight="180">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="QuizEditorComboBoxItemStyle" TargetType="ComboBoxItem">
             <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
             <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
@@ -331,8 +373,8 @@
                                   MinWidth="140"
                                   MaxWidth="170"
                                   Margin="0,0,0,6"
-                                  Style="{StaticResource QuizEditorComboBoxStyle}"
-                                  Visibility="{Binding ElementName=QuizWindow, Path=LinkedNoteEditorVisibility}"
+                                  Style="{StaticResource LinkedNoteComboBoxStyle}"
+                                  Visibility="{Binding ElementName=QuizWindow, Path=IsEditMode, Converter={StaticResource BoolToVis}}"
                                   SelectedValuePath="Id"
                                   ToolTip="{Binding [QuizLinkedNoteSelectorTooltip], Source={StaticResource Loc}}"/>
                         <Button x:Name="LinkedNoteButton"
@@ -341,7 +383,7 @@
                                 MinWidth="140"
                                 MaxWidth="170"
                                 Click="LinkedNoteButton_Click"
-                                Visibility="{Binding ElementName=QuizWindow, Path=LinkedNoteVisibility}"
+                                Visibility="{Binding ElementName=QuizWindow, Path=IsEditMode, Converter={StaticResource InverseBoolToVis}}"
                                 ToolTip="{Binding ElementName=QuizWindow, Path=LinkedNoteButtonToolTip}"
                                 TextOptions.TextFormattingMode="Display"/>
                     </StackPanel>
