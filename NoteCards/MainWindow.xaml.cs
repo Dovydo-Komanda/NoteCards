@@ -1161,6 +1161,19 @@ namespace NoteCards
                 vm.AddOrUpdateQuiz(editor.ToDocument(quiz?.Document));
         }
 
+        private void OpenQuizLibraryButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            var window = new QuizLibraryWindow(vm)
+            {
+                Owner = this
+            };
+
+            window.ShowDialog();
+        }
+
         private void OpenNoteById(MainViewModel vm, Guid noteId)
         {
             var note = vm.FindNoteById(noteId);

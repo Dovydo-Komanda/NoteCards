@@ -695,7 +695,6 @@
                 CornerRadius="10">
             <WrapPanel Orientation="Horizontal"
                        HorizontalAlignment="Right">
-                <!-- Rasti šią vietą (WrapPanel su mygtukais) ir PRIEŠ StartQuizButton pridėti: -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,8">
                     <TextBlock Text="Time limit:" VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <ComboBox x:Name="TimeLimitComboBox" Width="120">
@@ -708,13 +707,13 @@
                     </ComboBox>
                 </StackPanel>
                 <Button x:Name="StartQuizButton"
-                Content="{Binding [QuizStartButton], Source={StaticResource Loc}}"
-                Style="{StaticResource QuizToolbarPrimaryButtonStyle}"
-                Background="#10B981"
-                BorderBrush="#10B981"
-                Foreground="White"
-                Click="StartQuizButton_Click"
-                ToolTip="{Binding [QuizStartButtonTooltip], Source={StaticResource Loc}}"/>
+                        Content="{Binding [QuizStartButton], Source={StaticResource Loc}}"
+                        Style="{StaticResource QuizToolbarPrimaryButtonStyle}"
+                        Background="#10B981"
+                        BorderBrush="#10B981"
+                        Foreground="White"
+                        Click="StartQuizButton_Click"
+                        ToolTip="{Binding [QuizStartButtonTooltip], Source={StaticResource Loc}}"/>
                 <Button x:Name="FullscreenButton"
                         Content="⛶ Fullscreen"
                         Style="{StaticResource QuizToolbarButtonStyle}"
@@ -725,6 +724,11 @@
                         Style="{StaticResource QuizToolbarButtonStyle}"
                         Click="ExportButton_Click"
                         ToolTip="{Binding [Export], Source={StaticResource Loc}}"/>
+                <Button x:Name="CategoriesButton"
+                        Content="Categories"
+                        Style="{StaticResource QuizToolbarButtonStyle}"
+                        Click="CategoriesAndSetsButton_Click"
+                        ToolTip="Edit quiz tags"/>
                 <Button x:Name="ModeToggleButton"
                         Content="{Binding [EditQuiz], Source={StaticResource Loc}}"
                         Style="{StaticResource QuizToolbarButtonStyle}"

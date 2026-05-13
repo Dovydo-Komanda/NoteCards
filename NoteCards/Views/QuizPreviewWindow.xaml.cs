@@ -338,6 +338,8 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             '\u001F',
             TitleTextBox.Text,
             GetSourceNoteIdForSnapshot(),
+            string.Join('\u001E', _sourceDocument.Tags ?? []),
+            (_sourceDocument.GroupId?.ToString() ?? string.Empty),
             questionsSnapshot);
     }
 
@@ -738,6 +740,11 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         ToggleFullscreen();
     }
 
+    private void CategoriesAndSetsButton_Click(object sender, RoutedEventArgs e)
+    {
+        EditQuizTags();
+    }
+
     private void LinkedNoteButton_Click(object sender, RoutedEventArgs e)
     {
         if (SelectedLinkedNote is null)
@@ -801,6 +808,29 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         OnPropertyChanged(nameof(LinkedNoteEditorVisibility));
         OnPropertyChanged(nameof(LinkedNoteButtonText));
         OnPropertyChanged(nameof(LinkedNoteButtonToolTip));
+    }
+
+    private void EditQuizTags()
+    {
+        var currentTags = string.Join(", ", _sourceDocument.Tags ?? []);
+        var tagsDialog = new SimpleInputDialog(
+            "Quiz categories",
+            "Enter quiz categories/tags separated by commas, semicolons, or pipes:",
+            currentTags)
+        {
+            Owner = this
+        };
+
+        if (tagsDialog.ShowDialog() != true)
+            return;
+
+        _sourceDocument.Tags = tagsDialog.InputText
+            .Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        UpdateEditedIndicator();
     }
 
     private bool HasLinkedNote()

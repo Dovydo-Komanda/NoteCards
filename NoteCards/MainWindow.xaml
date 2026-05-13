@@ -2912,13 +2912,19 @@
                                                     ToolTip="{Binding [MoveSectionDown], Source={StaticResource Loc}}"
                                                     Click="MoveDashboardContentDownButton_Click"/>
                                             <TextBlock Grid.Column="2"
-                                                       Grid.ColumnSpan="2"
                                                        Text="{Binding [QuizzesDashboardTitle], Source={StaticResource Loc}}"
                                                        FontSize="16"
                                                        FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextColor}"
                                                        Margin="8,0,0,0"
                                                        VerticalAlignment="Center"/>
+                                            <Button Grid.Column="3"
+                                                    Style="{StaticResource GroupHeaderIconButtonStyle}"
+                                                    FontSize="14"
+                                                    Content="▤"
+                                                    Margin="6,0,0,0"
+                                                    ToolTip="Open quiz library"
+                                                    Click="OpenQuizLibraryButton_Click"/>
                                         </Grid>
 
                                         <Grid Margin="8,2,8,8"

@@ -56,6 +56,7 @@ public class MainViewModel : ViewModelBase
     private readonly Dictionary<Guid, FlashcardSetGroupData> _flashcardSetGroupMetadata = new();
     private readonly Dictionary<Guid, MindMapGroupData> _mindMapGroupMetadata = new();
     private readonly Dictionary<Guid, QuizGroupData> _quizGroupMetadata = new();
+    private readonly ObservableCollection<QuizViewModel> _quizzes = new();
     public ObservableCollection<FlashcardSetGroupViewModel> FlashcardSetGroups { get; } = new();
     public ObservableCollection<MindMapGroupViewModel> MindMapGroups { get; } = new();
     public ObservableCollection<QuizGroupViewModel> QuizGroups { get; } = new();
@@ -1770,6 +1771,44 @@ public class MainViewModel : ViewModelBase
         return true;
     }
 
+    public Guid CreateQuizGroup(string groupName)
+    {
+        var trimmed = (groupName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return Guid.Empty;
+
+        var groupId = Guid.NewGuid();
+        var metadata = EnsureQuizGroupMetadata(groupId);
+        metadata.Name = trimmed;
+        NormalizeQuizGroups();
+        RebuildQuizGroups();
+        ApplyQuizFilters();
+        SaveQuizzes();
+        return groupId;
+    }
+
+    public bool CreateQuizGroupForQuiz(QuizViewModel quiz, string groupName)
+    {
+        if (quiz is null)
+            return false;
+
+        var trimmed = (groupName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return false;
+
+        var groupId = quiz.Document.GroupId ?? Guid.NewGuid();
+        var metadata = EnsureQuizGroupMetadata(groupId);
+        metadata.Name = trimmed;
+        quiz.Document.GroupId = groupId;
+        quiz.NotifyChanged();
+
+        NormalizeQuizGroups();
+        RebuildQuizGroups();
+        ApplyQuizFilters();
+        SaveQuizzes();
+        return true;
+    }
+
     public void DisbandQuizGroup(QuizGroupViewModel group, bool deleteQuizzes)
     {
         var quizzesInGroup = Quizzes.Where(quiz => quiz.Document.GroupId == group.GroupId).ToList();
@@ -2693,7 +2732,7 @@ public class MainViewModel : ViewModelBase
     public bool HasUngroupedMindMaps => MindMaps.Any(map => !map.Document.GroupId.HasValue && MatchesMindMapFilters(map));
     public int MindMapCount => MindMaps.Count;
     public string MindMapCountText => string.Format(LocalizationService.GetString("MindMapCountFormat"), MindMapCount);
-    public ObservableCollection<QuizViewModel> Quizzes { get; } = new();
+    public ObservableCollection<QuizViewModel> Quizzes => _quizzes;
     public bool HasQuizzes => Quizzes.Count > 0;
     public bool HasQuizGroups => QuizGroups.Count > 0;
     public bool HasUngroupedQuizzes => Quizzes.Any(quiz => !quiz.Document.GroupId.HasValue && MatchesQuizFilters(quiz));
