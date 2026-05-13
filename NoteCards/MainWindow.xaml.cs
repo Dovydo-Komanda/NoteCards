@@ -1326,13 +1326,19 @@ namespace NoteCards
 
         private void OpenMindMapEditor(MindMapViewModel mindMapVm)
         {
+            if (DataContext is not MainViewModel vm)
+                return;
+
             var editor = new MindMapPreviewWindow(
                 mindMapVm.Document.Root,
+                vm.Notes.Select(note => new MindMapPreviewWindow.MindMapNoteLinkOption(note.Document.Id, note.Document.Title)),
                 mindMapVm.Document.AiModelDisplayName,
                 mindMapVm.Document.Title,
                 mindMapVm.Document.Tags,
                 mindMapVm.Document.LayoutMode,
-                mindMapVm.Document.UseManualPositions)
+                mindMapVm.Document.UseManualPositions,
+                mindMapVm.Document.SourceNoteId,
+                noteId => OpenNoteById(vm, noteId))
             {
                 Owner = this
             };
@@ -1347,15 +1353,13 @@ namespace NoteCards
                 mindMapVm.Document.LayoutMode = updatedDocument.LayoutMode;
                 mindMapVm.Document.UseManualPositions = updatedDocument.UseManualPositions;
                 mindMapVm.Document.LastModified = updatedDocument.LastModified;
+                mindMapVm.Document.SourceNoteId = updatedDocument.SourceNoteId;
 
                 // Notify UI of changes
                 mindMapVm.NotifyChanged();
 
                 // Save to disk
-                if (DataContext is MainViewModel vm)
-                {
-                    vm.SaveMindMaps();
-                }
+                vm.SaveMindMaps();
             }
         }
 

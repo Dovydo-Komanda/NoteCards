@@ -720,9 +720,10 @@ namespace NoteCards
                 var modelDisplayName = BundledModelHostService.Instance.GetSelectedModelDisplayName();
                 var preview = new MindMapPreviewWindow(
                     mindMap,
-                    modelDisplayName,
-                    documentTitle,
-                    ParseTags(TagsTextBox.Text))
+                    noteOptions: null,
+                    modelDisplayName: modelDisplayName,
+                    title: documentTitle,
+                    tags: ParseTags(TagsTextBox.Text))
                 {
                     Owner = GetDialogOwnerWindow()
                 };

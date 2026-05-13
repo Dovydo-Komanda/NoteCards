@@ -1,8 +1,10 @@
 using NoteCards.Localization;
 using NoteCards.Models;
 using Microsoft.Win32;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using System.Windows.Media.Imaging;
 using System.Windows;
@@ -15,7 +17,7 @@ using ShapePath = System.Windows.Shapes.Path;
 
 namespace NoteCards.Views;
 
-public partial class MindMapPreviewWindow : Window
+public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
 {
     private enum UnsavedCloseDecision
     {
@@ -32,6 +34,8 @@ public partial class MindMapPreviewWindow : Window
     private const double CanvasPadding = 52;
     private readonly MindMapNode _root;
     private readonly Dictionary<MindMapNode, NodeLayout> _layouts = new();
+    private readonly ObservableCollection<MindMapNoteLinkOption> _noteLinkOptions = new();
+    private Action<Guid>? _openNoteAction;
     private string _modelDisplayName = string.Empty;
     private bool _hasCenteredOnRootInitially;
     private MindMapNode? _selectedNode;
@@ -53,6 +57,19 @@ public partial class MindMapPreviewWindow : Window
     private string _lastSavedSnapshot = string.Empty;
     private bool _isInitializing = true;
     private bool _allowCloseWithoutPrompt;
+    private MindMapNoteLinkOption? _selectedLinkedNote;
+
+    public sealed class MindMapNoteLinkOption
+    {
+        public MindMapNoteLinkOption(Guid id, string title)
+        {
+            Id = id;
+            Title = string.IsNullOrWhiteSpace(title) ? LocalizationService.GetString("QuizLinkedNoteNone") : title.Trim();
+        }
+
+        public Guid Id { get; }
+        public string Title { get; }
+    }
 
     private static readonly Brush[] LightNodeBackgrounds =
     [
@@ -74,13 +91,23 @@ public partial class MindMapPreviewWindow : Window
 
     public MindMapPreviewWindow(
         MindMapNode root,
+        IEnumerable<MindMapNoteLinkOption>? noteOptions = null,
         string? modelDisplayName = null,
         string? title = null,
         IEnumerable<string>? tags = null,
         string? layoutMode = null,
-        bool useManualPositions = false)
+        bool useManualPositions = false,
+        Guid? sourceNoteId = null,
+        Action<Guid>? openNoteAction = null)
     {
         _root = root;
+        _openNoteAction = openNoteAction;
+        if (noteOptions != null)
+        {
+            foreach (var option in noteOptions)
+                _noteLinkOptions.Add(option);
+        }
+        _selectedLinkedNote = _noteLinkOptions.FirstOrDefault(option => option.Id == sourceNoteId);
         _selectedLayoutMode = ParseLayoutMode(layoutMode);
         LoadManualPositionsFromNodes(_root);
         _isManualPositioningMode = useManualPositions || _manualPositions.Count > 0;
@@ -102,6 +129,9 @@ public partial class MindMapPreviewWindow : Window
         ManualPositioningToggle.IsChecked = _isManualPositioningMode;
         _suppressManualPositioningToggleChanged = false;
         UpdateManualPositioningVisualState();
+        OnPropertyChanged(nameof(NoteLinkOptions));
+        OnPropertyChanged(nameof(LinkedNoteButtonText));
+        OnPropertyChanged(nameof(LinkedNoteButtonToolTip));
 
         Loaded += (_, _) =>
         {
@@ -119,9 +149,48 @@ public partial class MindMapPreviewWindow : Window
 
     public string AiModelDisplayName => _modelDisplayName;
 
+    public ObservableCollection<MindMapNoteLinkOption> NoteLinkOptions => _noteLinkOptions;
+
+    public string LinkedNoteButtonText => _selectedLinkedNote?.Title ?? LocalizationService.GetString("QuizLinkedNoteNone");
+
+    public string LinkedNoteButtonToolTip => _selectedLinkedNote is null
+        ? LocalizationService.GetString("QuizLinkedNoteNoneTooltip")
+        : string.Format(LocalizationService.GetString("QuizLinkedNoteOpenTooltip"), _selectedLinkedNote.Title);
+
+    public MindMapNoteLinkOption? SelectedLinkedNote
+    {
+        get => _selectedLinkedNote;
+        set
+        {
+            if (ReferenceEquals(_selectedLinkedNote, value))
+                return;
+
+            _selectedLinkedNote = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LinkedNoteButtonText));
+            OnPropertyChanged(nameof(LinkedNoteButtonToolTip));
+            UpdateEditedIndicator();
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     private void EditorField_TextChanged(object sender, TextChangedEventArgs e)
     {
         UpdateEditedIndicator();
+    }
+
+    private void LinkedNoteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedLinkedNote is null)
+            return;
+
+        _openNoteAction?.Invoke(_selectedLinkedNote.Id);
+    }
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
     private void MarkCurrentStateSaved()
@@ -287,7 +356,7 @@ public partial class MindMapPreviewWindow : Window
             AiModelDisplayName = string.IsNullOrWhiteSpace(_modelDisplayName)
                 ? existingDocument?.AiModelDisplayName ?? string.Empty
                 : _modelDisplayName,
-            SourceNoteId = existingDocument?.SourceNoteId,
+            SourceNoteId = _selectedLinkedNote?.Id ?? existingDocument?.SourceNoteId,
             GroupId = existingDocument?.GroupId,
             Schedules = existingDocument?.Schedules?.ToList() ?? new List<NoteScheduleEntry>()
         };
