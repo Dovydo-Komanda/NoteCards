@@ -30,6 +30,8 @@ namespace NoteCards.Views
         private const int OverlayAnimationMs = 180;
         private const int PanelAnimationMs = 220;
         private const double PanelOffsetY = 14;
+        private const int MinAutoSaveIntervalSeconds = 5;
+        private const int MaxAutoSaveIntervalSeconds = 86400;
 
         private bool _isClosing;
         private bool _isApplyingSettings;
@@ -118,18 +120,7 @@ namespace NoteCards.Views
             EnableScrollbarCheckBox.IsChecked = settings.EnableScrollbar;
             EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
 
-            // Load auto-save interval
-            if (AutoSaveIntervalSlider is not null)
-            {
-                AutoSaveIntervalSlider.Value = settings.AutoSaveIntervalSeconds;
-            }
-            if (AutoSaveIntervalText is not null)
-            {
-                var intervalSeconds = settings.AutoSaveIntervalSeconds;
-                AutoSaveIntervalText.Text = intervalSeconds >= 60
-                    ? $"{intervalSeconds / 60}m {intervalSeconds % 60}s"
-                    : $"{intervalSeconds}s";
-            }
+            UpdateAutoSaveIntervalControls(settings.AutoSaveIntervalSeconds);
 
             UpdateAutoSaveCheckboxAvailability();
             if (FindName("FlashcardFlipSpeedSlider") is Slider flipSpeedSlider)
@@ -441,6 +432,7 @@ namespace NoteCards.Views
             var settings = AppSettingsService.Load();
             settings.EnableAutoSave = true;
             AppSettingsService.Save(settings);
+            RefreshMainAutoSaveSettings();
         }
 
         private void EnableAutoSaveCheckBox_Unchecked(object sender, RoutedEventArgs e)
@@ -458,36 +450,140 @@ namespace NoteCards.Views
             var settings = AppSettingsService.Load();
             settings.EnableAutoSave = false;
             AppSettingsService.Save(settings);
+            RefreshMainAutoSaveSettings();
         }
 
-        private void AutoSaveIntervalSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void AutoSaveIntervalTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isApplyingSettings || sender is not TextBox textBox)
+                return;
+
+            var digitsOnly = new string(textBox.Text.Where(char.IsDigit).ToArray());
+            if (textBox.Text != digitsOnly)
+            {
+                var caretIndex = Math.Min(textBox.CaretIndex, digitsOnly.Length);
+                textBox.Text = digitsOnly;
+                textBox.CaretIndex = caretIndex;
+                return;
+            }
+        }
+
+        private void AutoSaveIntervalTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitAutoSaveIntervalTextBox();
+        }
+
+        private void AutoSaveIntervalUnitBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_isApplyingSettings)
                 return;
 
-            if (AutoSaveIntervalSlider is not Slider slider)
+            CommitAutoSaveIntervalTextBox();
+        }
+
+        private void AutoSaveIntervalTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
                 return;
 
-            var intervalSeconds = (int)slider.Value;
+            CommitAutoSaveIntervalTextBox();
+            e.Handled = true;
+        }
 
-            // Update the display text
-            if (AutoSaveIntervalText is not null)
+        private void CommitAutoSaveIntervalTextBox()
+        {
+            if (_isApplyingSettings || AutoSaveIntervalTextBox is null)
+                return;
+
+            if (!int.TryParse(AutoSaveIntervalTextBox.Text, out var intervalSeconds))
             {
-                AutoSaveIntervalText.Text = intervalSeconds >= 60
-                    ? $"{intervalSeconds / 60}m {intervalSeconds % 60}s"
-                    : $"{intervalSeconds}s";
+                intervalSeconds = AppSettingsService.Load().AutoSaveIntervalSeconds;
+            }
+            else
+            {
+                intervalSeconds *= GetSelectedAutoSaveIntervalMultiplier();
             }
 
-            // Save to settings
+            ApplyAutoSaveInterval(intervalSeconds);
+        }
+
+        private void ApplyAutoSaveInterval(int intervalSeconds)
+        {
+            intervalSeconds = Math.Clamp(intervalSeconds, MinAutoSaveIntervalSeconds, MaxAutoSaveIntervalSeconds);
+            UpdateAutoSaveIntervalControls(intervalSeconds);
+
             var settings = AppSettingsService.Load();
             settings.AutoSaveIntervalSeconds = intervalSeconds;
             AppSettingsService.Save(settings);
 
-            // Update all open note editor windows
             foreach (var window in Application.Current.Windows.OfType<NoteEditorWindow>())
             {
                 window.SetAutoSaveInterval(intervalSeconds);
             }
+
+            RefreshMainAutoSaveSettings();
+        }
+
+        private static void RefreshMainAutoSaveSettings()
+        {
+            if (Application.Current?.MainWindow?.DataContext is MainViewModel mainVm)
+                mainVm.RefreshAutoSaveSettings();
+        }
+
+        private void UpdateAutoSaveIntervalControls(int intervalSeconds)
+        {
+            intervalSeconds = Math.Clamp(intervalSeconds, MinAutoSaveIntervalSeconds, MaxAutoSaveIntervalSeconds);
+
+            var wasApplyingSettings = _isApplyingSettings;
+            _isApplyingSettings = true;
+
+            if (AutoSaveIntervalTextBox is not null)
+            {
+                var unit = GetBestAutoSaveIntervalUnit(intervalSeconds);
+                SelectAutoSaveIntervalUnit(unit);
+                AutoSaveIntervalTextBox.Text = (intervalSeconds / GetAutoSaveIntervalMultiplier(unit))
+                    .ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            _isApplyingSettings = wasApplyingSettings;
+        }
+
+        private static string GetBestAutoSaveIntervalUnit(int intervalSeconds)
+        {
+            if (intervalSeconds >= 3600 && intervalSeconds % 3600 == 0)
+                return "Hours";
+
+            if (intervalSeconds >= 60 && intervalSeconds % 60 == 0)
+                return "Minutes";
+
+            return "Seconds";
+        }
+
+        private int GetSelectedAutoSaveIntervalMultiplier()
+        {
+            return AutoSaveIntervalUnitBox?.SelectedItem is ComboBoxItem item
+                ? GetAutoSaveIntervalMultiplier(item.Tag?.ToString())
+                : 1;
+        }
+
+        private static int GetAutoSaveIntervalMultiplier(string? unit)
+        {
+            return unit switch
+            {
+                "Hours" => 3600,
+                "Minutes" => 60,
+                _ => 1
+            };
+        }
+
+        private void SelectAutoSaveIntervalUnit(string unit)
+        {
+            if (AutoSaveIntervalUnitBox is null)
+                return;
+
+            AutoSaveIntervalUnitBox.SelectedItem = AutoSaveIntervalUnitBox.Items
+                .OfType<ComboBoxItem>()
+                .FirstOrDefault(item => string.Equals(item.Tag?.ToString(), unit, StringComparison.OrdinalIgnoreCase));
         }
 
         private void FlashcardModelBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

@@ -358,4 +358,15 @@ public partial class NoteCardControl : UserControl
 
         mainWindow.OpenNoteSchedule(noteVm);
     }
+
+    private void OnInfoMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not NoteCardViewModel noteVm)
+            return;
+
+        if (Window.GetWindow(this) is not MainWindow mainWindow)
+            return;
+
+        mainWindow.ShowNoteInfo(noteVm);
+    }
 }

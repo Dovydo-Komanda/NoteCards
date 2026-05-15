@@ -7,6 +7,7 @@ namespace NoteCards.Views
         public SearchReplaceDialog(string? initialSearch = null, string? initialReplace = null)
         {
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
             SearchBox.Text = initialSearch ?? string.Empty;
             ReplaceBox.Text = initialReplace ?? string.Empty;
             SearchBox.SelectAll();

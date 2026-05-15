@@ -43,6 +43,7 @@ namespace NoteCards.Views
             CancelText = LocalizationService.GetString("Cancel");
 
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
             DataContext = this;
             Loaded += GroupDisbandConfirmationDialog_Loaded;
         }

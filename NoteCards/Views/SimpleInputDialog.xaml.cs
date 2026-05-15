@@ -7,6 +7,7 @@ namespace NoteCards.Views
         public SimpleInputDialog(string title, string prompt)
         {
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
             this.Title = title;
             PromptText.Text = prompt;
         }

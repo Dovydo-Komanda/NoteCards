@@ -192,7 +192,9 @@
                         HorizontalAlignment="Right" VerticalAlignment="Top"
                         Width="28" Height="28" Padding="0"
                         FontSize="16" FontWeight="Bold"
-                        Background="Transparent" BorderThickness="0"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        BorderThickness="1"
                         Cursor="Hand"
                         Click="OnMenuButtonClick">
                     <Button.Style>
@@ -266,6 +268,7 @@
                             <MenuItem Header="{Binding [ReplaceFromFile], Source={StaticResource Loc}}" Click="OnOpenFromFileClick"/>
                             <MenuItem Header="{Binding [SelectMultiple], Source={StaticResource Loc}}" Click="OnStartMassSelectMenuClick"/>
                             <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="OnAssignScheduleMenuClick"/>
+                            <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}" Click="OnInfoMenuClick"/>
                             <Separator/>
                             <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
                                       Command="{Binding TogglePinCommand}"

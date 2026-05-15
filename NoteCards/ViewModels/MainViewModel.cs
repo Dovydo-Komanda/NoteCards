@@ -17,6 +17,7 @@ public class MainViewModel : ViewModelBase
 {
     private const string DefaultGroupBackground = "#F8FAFF";
     private const int RecentNotesLimit = 20;
+    private const int RecentDashboardItemsLimit = 20;
     private const string SortLastModifiedDesc = "last-modified-desc";
     private const string SortLastModifiedAsc = "last-modified-asc";
     private const string SortCreatedAtDesc = "created-at-desc";
@@ -36,6 +37,7 @@ public class MainViewModel : ViewModelBase
 
     private bool _isLoadingSettings;
     private bool _saveNotesQueued;
+    private DispatcherTimer? _autoSaveTimer;
     private bool _enableScrollbar = true;
     private string _selectedLanguage = LocalizationService.English;
     private string _selectedTheme = "Light";
@@ -421,6 +423,7 @@ public class MainViewModel : ViewModelBase
             ApplyFlashcardFilters();
             NotifyFlashcardSetsChanged();
             RefreshCalendarScheduledNotes();
+            RefreshRecentFlashcardSets();
         };
         MindMaps.CollectionChanged += (_, _) =>
         {
@@ -428,6 +431,7 @@ public class MainViewModel : ViewModelBase
             ApplyMindMapFilters();
             NotifyMindMapsChanged();
             RefreshCalendarScheduledNotes();
+            RefreshRecentMindMaps();
         };
         Quizzes.CollectionChanged += (_, _) =>
         {
@@ -435,6 +439,7 @@ public class MainViewModel : ViewModelBase
             ApplyQuizFilters();
             NotifyQuizzesChanged();
             RefreshCalendarScheduledNotes();
+            RefreshRecentQuizzes();
         };
         
         NoteCards.Services.ActivityTracker.ActivityUpdated += RefreshActivityStats;
@@ -448,6 +453,9 @@ public class MainViewModel : ViewModelBase
         RefreshAvailableMindMapTags();
         RefreshAvailableQuizTags();
         RefreshRecentNotes();
+        RefreshRecentFlashcardSets();
+        RefreshRecentMindMaps();
+        RefreshRecentQuizzes();
         RefreshCalendarScheduledNotes();
         LoadFlashcards();
         LoadMindMaps();
@@ -539,6 +547,7 @@ public class MainViewModel : ViewModelBase
         }
 
         RebuildGroups();
+        ApplyAutoSaveSettings(AppSettingsService.Load());
     }
     private void AddFlashcard()
     {
@@ -664,6 +673,7 @@ public class MainViewModel : ViewModelBase
         ApplyFlashcardFilters();
         SaveFlashcardSets();
         NotifyFlashcardSetsChanged();
+        RefreshRecentFlashcardSets();
         return existing;
     }
 
@@ -679,6 +689,7 @@ public class MainViewModel : ViewModelBase
         RefreshAvailableFlashcardTags();
         ApplyFlashcardFilters();
         NotifyFlashcardSetsChanged();
+        RefreshRecentFlashcardSets();
     }
 
     public void SaveFlashcardSets()
@@ -724,6 +735,7 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasUngroupedFlashcardSets));
         OnPropertyChanged(nameof(FlashcardSetCount));
         OnPropertyChanged(nameof(FlashcardSetCountText));
+        OnPropertyChanged(nameof(HasRecentFlashcardSets));
     }
 
     private void NormalizeFlashcardSetGroups()
@@ -1124,6 +1136,7 @@ public class MainViewModel : ViewModelBase
         ApplyMindMapFilters();
         SaveMindMaps();
         NotifyMindMapsChanged();
+        RefreshRecentMindMaps();
         return existing;
     }
     public MindMapGroupViewModel CreateMindMapGroup(string name)
@@ -1456,6 +1469,7 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasUngroupedMindMaps));
         OnPropertyChanged(nameof(MindMapCount));
         OnPropertyChanged(nameof(MindMapCountText));
+        OnPropertyChanged(nameof(HasRecentMindMaps));
     }
 
     private void LoadQuizzes()
@@ -1528,6 +1542,9 @@ public class MainViewModel : ViewModelBase
             existing.Document.GroupId = document.GroupId;
             existing.Document.Schedules = document.Schedules;
             existing.Document.IsPinned = document.IsPinned;
+            existing.Document.TimeLimitSeconds = document.TimeLimitSeconds;
+            existing.Document.PassingScorePercent = document.PassingScorePercent;
+            existing.Document.Attempts = document.Attempts;
             existing.NotifyChanged();
         }
 
@@ -1538,6 +1555,7 @@ public class MainViewModel : ViewModelBase
         ApplyQuizFilters();
         SaveQuizzes();
         NotifyQuizzesChanged();
+        RefreshRecentQuizzes();
         return existing;
     }
 
@@ -1553,6 +1571,7 @@ public class MainViewModel : ViewModelBase
         RefreshAvailableQuizTags();
         ApplyQuizFilters();
         NotifyQuizzesChanged();
+        RefreshRecentQuizzes();
     }
 
     public void SaveQuizzes()
@@ -1603,6 +1622,7 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasUngroupedQuizzes));
         OnPropertyChanged(nameof(QuizCount));
         OnPropertyChanged(nameof(QuizCountText));
+        OnPropertyChanged(nameof(HasRecentQuizzes));
     }
 
     private void NormalizeQuizGroups()
@@ -2730,6 +2750,13 @@ public class MainViewModel : ViewModelBase
     }
 
     public ObservableCollection<NoteCardViewModel> RecentNotes { get; } = new();
+    public ObservableCollection<FlashcardSetViewModel> RecentFlashcardSets { get; } = new();
+    public ObservableCollection<MindMapViewModel> RecentMindMaps { get; } = new();
+    public ObservableCollection<QuizViewModel> RecentQuizzes { get; } = new();
+    public bool HasRecentFlashcardSets => RecentFlashcardSets.Count > 0;
+    public bool HasRecentMindMaps => RecentMindMaps.Count > 0;
+    public bool HasRecentQuizzes => RecentQuizzes.Count > 0;
+
     public void RefreshRecentNotes()
     {
         var recent = Notes
@@ -2740,6 +2767,51 @@ public class MainViewModel : ViewModelBase
         RecentNotes.Clear();
         foreach (var note in recent)
             RecentNotes.Add(note);
+    }
+
+    public void RefreshRecentFlashcardSets()
+    {
+        var recent = FlashcardSets
+            .Where(MatchesFlashcardSetFilters)
+            .OrderByDescending(set => set.Document.LastModified)
+            .Take(RecentDashboardItemsLimit)
+            .ToList();
+
+        RecentFlashcardSets.Clear();
+        foreach (var set in recent)
+            RecentFlashcardSets.Add(set);
+
+        OnPropertyChanged(nameof(HasRecentFlashcardSets));
+    }
+
+    public void RefreshRecentMindMaps()
+    {
+        var recent = MindMaps
+            .Where(MatchesMindMapFilters)
+            .OrderByDescending(map => map.Document.LastModified)
+            .Take(RecentDashboardItemsLimit)
+            .ToList();
+
+        RecentMindMaps.Clear();
+        foreach (var map in recent)
+            RecentMindMaps.Add(map);
+
+        OnPropertyChanged(nameof(HasRecentMindMaps));
+    }
+
+    public void RefreshRecentQuizzes()
+    {
+        var recent = Quizzes
+            .Where(MatchesQuizFilters)
+            .OrderByDescending(quiz => quiz.Document.LastModified)
+            .Take(RecentDashboardItemsLimit)
+            .ToList();
+
+        RecentQuizzes.Clear();
+        foreach (var quiz in recent)
+            RecentQuizzes.Add(quiz);
+
+        OnPropertyChanged(nameof(HasRecentQuizzes));
     }
 
     public string SelectedFlashcardSortOptionKey
@@ -3177,6 +3249,7 @@ public class MainViewModel : ViewModelBase
     {
         _flashcardSetsView.Refresh();
         RebuildFlashcardSetGroups();
+        RefreshRecentFlashcardSets();
         NotifyFlashcardSetsChanged();
     }
 
@@ -3184,6 +3257,7 @@ public class MainViewModel : ViewModelBase
     {
         _mindMapsView.Refresh();
         RebuildMindMapGroups();
+        RefreshRecentMindMaps();
         NotifyMindMapsChanged();
     }
 
@@ -3191,6 +3265,7 @@ public class MainViewModel : ViewModelBase
     {
         _quizzesView.Refresh();
         RebuildQuizGroups();
+        RefreshRecentQuizzes();
         NotifyQuizzesChanged();
     }
 
@@ -3986,6 +4061,7 @@ public class MainViewModel : ViewModelBase
         flashcardSet.Document.LastModified = DateTime.Now;
         flashcardSet.NotifyChanged();
         RefreshCalendarScheduledNotes();
+        RefreshRecentFlashcardSets();
         SaveFlashcardSets();
     }
 
@@ -3998,6 +4074,7 @@ public class MainViewModel : ViewModelBase
         mindMap.Document.LastModified = DateTime.Now;
         mindMap.NotifyChanged();
         RefreshCalendarScheduledNotes();
+        RefreshRecentMindMaps();
         SaveMindMaps();
     }
 
@@ -4010,6 +4087,7 @@ public class MainViewModel : ViewModelBase
         quiz.Document.LastModified = DateTime.Now;
         quiz.NotifyChanged();
         RefreshCalendarScheduledNotes();
+        RefreshRecentQuizzes();
         SaveQuizzes();
     }
 
@@ -4347,6 +4425,52 @@ public class MainViewModel : ViewModelBase
         settings.LastView = _activeDashboard;
 
         AppSettingsService.Save(settings);
+    }
+
+    public void RefreshAutoSaveSettings()
+    {
+        ApplyAutoSaveSettings(AppSettingsService.Load());
+    }
+
+    private void ApplyAutoSaveSettings(AppSettings settings)
+    {
+        if (!settings.EnableAutoSave)
+        {
+            StopAutoSaveTimer();
+            return;
+        }
+
+        var intervalSeconds = Math.Clamp(settings.AutoSaveIntervalSeconds, 5, 86400);
+        _autoSaveTimer ??= new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(intervalSeconds)
+        };
+        _autoSaveTimer.Tick -= AutoSaveTimer_Tick;
+        _autoSaveTimer.Tick += AutoSaveTimer_Tick;
+        _autoSaveTimer.Interval = TimeSpan.FromSeconds(intervalSeconds);
+        _autoSaveTimer.Start();
+    }
+
+    private void StopAutoSaveTimer()
+    {
+        if (_autoSaveTimer is null)
+            return;
+
+        _autoSaveTimer.Stop();
+        _autoSaveTimer.Tick -= AutoSaveTimer_Tick;
+    }
+
+    private void AutoSaveTimer_Tick(object? sender, EventArgs e)
+    {
+        SaveAllDashboardContent();
+    }
+
+    public void SaveAllDashboardContent()
+    {
+        SaveNotes();
+        SaveFlashcardSets();
+        SaveMindMaps();
+        SaveQuizzes();
     }
 
     private bool LoadNotes()

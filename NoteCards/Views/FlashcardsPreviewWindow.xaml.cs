@@ -69,6 +69,7 @@ public partial class FlashcardsPreviewWindow : Window
         MainWindow? mainWindow = null)
     {
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
         _mainWindow = mainWindow;
         _allItems = items
             .Select(i => new FlashcardPreviewItem(
@@ -230,6 +231,10 @@ public partial class FlashcardsPreviewWindow : Window
         _lastSavedSnapshot = GetEditorSnapshot();
         UpdateEditedIndicator();
     }
+
+    public bool HasPendingAutoSaveChanges() => HasUnsavedChanges();
+
+    public void MarkCurrentStateAutoSaved() => MarkCurrentStateSaved();
 
     private bool HasUnsavedChanges()
     {

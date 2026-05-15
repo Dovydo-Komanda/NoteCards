@@ -35,6 +35,7 @@ public partial class QuizModeWindow : Window
     public QuizModeWindow(QuizDocument quiz, int timeLimitSeconds = 0)
     {
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
 
         _quiz = quiz ?? throw new System.ArgumentNullException(nameof(quiz));
         _timeLimitSeconds = timeLimitSeconds;

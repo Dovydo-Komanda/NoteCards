@@ -21,6 +21,7 @@ namespace NoteCards.Views
             _editor = editor;
 
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
 
             SearchBox.Text = initialSearch ?? string.Empty;
             ReplaceBox.Text = initialReplace ?? string.Empty;

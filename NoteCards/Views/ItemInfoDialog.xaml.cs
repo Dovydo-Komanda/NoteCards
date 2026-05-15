@@ -1,34 +1,42 @@
-using System;
 using NoteCards.Localization;
+using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace NoteCards.Views
 {
-    public partial class ModernInfoDialog : Window
+    public partial class ItemInfoDialog : Window
     {
         private bool _isClosingAnimationRunning;
         private Window? _ownerWindow;
 
         public string TitleText { get; }
-        public string MessageText { get; }
+        public string AdvancedHeaderText { get; }
         public string OkText { get; }
+        public IReadOnlyList<InfoRow> PrimaryRows { get; }
+        public IReadOnlyList<InfoRow> AdvancedRows { get; }
 
-        public ModernInfoDialog(string? title = null, string? message = null)
+        public ItemInfoDialog(
+            string title,
+            IEnumerable<(string Label, string Value)> primaryRows,
+            IEnumerable<(string Label, string Value)> advancedRows)
         {
-            TitleText = title ?? LocalizationService.GetString("AppUpdate");
-
-            MessageText = message ?? LocalizationService.GetString("LatestVersion");
-
+            TitleText = title;
+            AdvancedHeaderText = LocalizationService.GetString("InfoAdvanced");
             OkText = LocalizationService.GetString("Ok");
+            PrimaryRows = primaryRows.Select(row => new InfoRow(row.Label, row.Value)).ToList();
+            AdvancedRows = advancedRows.Select(row => new InfoRow(row.Label, row.Value)).ToList();
 
             InitializeComponent();
             NoteCards.Services.WindowThemeService.Register(this);
             DataContext = this;
-            Loaded += ModernInfoDialog_Loaded;
-            Closed += ModernInfoDialog_Closed;
+            Loaded += ItemInfoDialog_Loaded;
+            Closed += ItemInfoDialog_Closed;
         }
+
+        public sealed record InfoRow(string Label, string Value);
 
         protected override void OnSourceInitialized(EventArgs e)
         {
@@ -73,14 +81,14 @@ namespace NoteCards.Views
             ApplyOwnerBounds();
         }
 
-        private void ModernInfoDialog_Loaded(object sender, RoutedEventArgs e)
+        private void ItemInfoDialog_Loaded(object sender, RoutedEventArgs e)
         {
             AttachOwnerHandlers();
             ApplyOwnerBounds();
             BeginOpenAnimation();
         }
 
-        private void ModernInfoDialog_Closed(object? sender, EventArgs e)
+        private void ItemInfoDialog_Closed(object? sender, EventArgs e)
         {
             DetachOwnerHandlers();
         }
@@ -88,6 +96,16 @@ namespace NoteCards.Views
         private void OkButton_Click(object sender, RoutedEventArgs e)
         {
             BeginCloseAnimation();
+        }
+
+        private void TrimmedTextBlock_Loaded(object sender, RoutedEventArgs e)
+        {
+            UpdateTrimmedTextBlockToolTip(sender as TextBlock);
+        }
+
+        private void TrimmedTextBlock_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateTrimmedTextBlockToolTip(sender as TextBlock);
         }
 
         protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
@@ -144,6 +162,37 @@ namespace NoteCards.Views
 
             BeginAnimation(OpacityProperty, fadeOut);
             translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(translate.Y, 8, duration) { EasingFunction = ease });
+        }
+
+        private static void UpdateTrimmedTextBlockToolTip(TextBlock? textBlock)
+        {
+            if (textBlock is null)
+                return;
+
+            textBlock.ToolTip = IsTextTrimmed(textBlock) ? textBlock.Text : null;
+        }
+
+        private static bool IsTextTrimmed(TextBlock textBlock)
+        {
+            if (string.IsNullOrEmpty(textBlock.Text) || textBlock.ActualWidth <= 0)
+                return false;
+
+            var typeface = new Typeface(
+                textBlock.FontFamily,
+                textBlock.FontStyle,
+                textBlock.FontWeight,
+                textBlock.FontStretch);
+            var dpi = VisualTreeHelper.GetDpi(textBlock);
+            var formatted = new FormattedText(
+                textBlock.Text,
+                CultureInfo.CurrentUICulture,
+                textBlock.FlowDirection,
+                typeface,
+                textBlock.FontSize,
+                Brushes.Black,
+                dpi.PixelsPerDip);
+
+            return formatted.WidthIncludingTrailingWhitespace > textBlock.ActualWidth + 0.5;
         }
     }
 }

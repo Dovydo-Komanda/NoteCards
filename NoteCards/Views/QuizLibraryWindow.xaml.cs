@@ -38,6 +38,7 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
     {
         _mainViewModel = mainViewModel;
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
         DataContext = this;
 
         LoadQuizzes();

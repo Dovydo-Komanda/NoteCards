@@ -29,6 +29,7 @@ namespace NoteCards
         private const double DashboardDragScrollMinStep = 16;
         private const double DashboardDragScrollMaxStep = 46;
         private const int SectionAnimationMs = 280;
+        private const int DashboardViewAnimationMs = 420;
         private const double TopSearchExpandedWidth = 320;
         private const int TopSearchAnimationMs = 300;
         private const int SidebarAnimationMs = 240;
@@ -46,6 +47,9 @@ namespace NoteCards
         private Point _dashboardDragScrollPosition;
 
         private FrameworkElement? RecentSectionBodyElement => FindName("RecentSectionBody") as FrameworkElement;
+        private FrameworkElement? FlashcardRecentSectionBodyElement => FindName("FlashcardRecentSectionBody") as FrameworkElement;
+        private FrameworkElement? QuizRecentSectionBodyElement => FindName("QuizRecentSectionBody") as FrameworkElement;
+        private FrameworkElement? MindMapRecentSectionBodyElement => FindName("MindMapRecentSectionBody") as FrameworkElement;
         private FrameworkElement? CalendarSectionBodyElement => FindName("CalendarSectionBody") as FrameworkElement;
         private FrameworkElement? FlashcardCalendarSectionBodyElement => FindName("FlashcardCalendarSectionBody") as FrameworkElement;
         private FrameworkElement? QuizCalendarSectionBodyElement => FindName("QuizCalendarSectionBody") as FrameworkElement;
@@ -74,6 +78,7 @@ namespace NoteCards
         public MainWindow()
         {
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
             NoteCards.Services.ActivityTracker.Initialize();
             ApplyCurrentLanguage();
             LocalizationService.CultureChanged += LocalizationService_CultureChanged;
@@ -170,7 +175,12 @@ namespace NoteCards
             Dispatcher.Invoke(() =>
             {
                 if (e.PropertyName == nameof(MainViewModel.IsRecentSectionExpanded))
+                {
                     AnimateSectionVisibility(RecentSectionBodyElement, vm.IsRecentSectionExpanded);
+                    AnimateSectionVisibility(FlashcardRecentSectionBodyElement, vm.IsRecentSectionExpanded);
+                    AnimateSectionVisibility(QuizRecentSectionBodyElement, vm.IsRecentSectionExpanded);
+                    AnimateSectionVisibility(MindMapRecentSectionBodyElement, vm.IsRecentSectionExpanded);
+                }
                 else if (e.PropertyName == nameof(MainViewModel.IsCalendarSectionExpanded))
                 {
                     AnimateSectionVisibility(CalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
@@ -223,6 +233,9 @@ namespace NoteCards
                 return;
 
             SetSectionVisibilityImmediately(RecentSectionBodyElement, vm.IsRecentSectionExpanded);
+            SetSectionVisibilityImmediately(FlashcardRecentSectionBodyElement, vm.IsRecentSectionExpanded);
+            SetSectionVisibilityImmediately(QuizRecentSectionBodyElement, vm.IsRecentSectionExpanded);
+            SetSectionVisibilityImmediately(MindMapRecentSectionBodyElement, vm.IsRecentSectionExpanded);
             SetSectionVisibilityImmediately(CalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
             SetSectionVisibilityImmediately(FlashcardCalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
             SetSectionVisibilityImmediately(QuizCalendarSectionBodyElement, vm.IsCalendarSectionExpanded);
@@ -450,6 +463,12 @@ namespace NoteCards
 
             if (vm.IsRecentSectionExpanded && window.RecentSectionBodyElement is FrameworkElement recent)
                 recent.MaxHeight = double.PositiveInfinity;
+            if (vm.IsRecentSectionExpanded && window.FlashcardRecentSectionBodyElement is FrameworkElement fcRecent)
+                fcRecent.MaxHeight = double.PositiveInfinity;
+            if (vm.IsRecentSectionExpanded && window.QuizRecentSectionBodyElement is FrameworkElement qzRecent)
+                qzRecent.MaxHeight = double.PositiveInfinity;
+            if (vm.IsRecentSectionExpanded && window.MindMapRecentSectionBodyElement is FrameworkElement mmRecent)
+                mmRecent.MaxHeight = double.PositiveInfinity;
 
             if (vm.IsCalendarSectionExpanded && window.CalendarSectionBodyElement is FrameworkElement calendar)
                 calendar.MaxHeight = double.PositiveInfinity;
@@ -739,6 +758,62 @@ namespace NoteCards
             var nextOffset = Math.Clamp(scrollViewer.HorizontalOffset - (e.Delta / 3d), 0, scrollViewer.ScrollableWidth);
             scrollViewer.ScrollToHorizontalOffset(nextOffset);
             e.Handled = true;
+        }
+
+        private void DashboardView_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is not true || sender is not FrameworkElement dashboard)
+                return;
+
+            if (!IsLoaded)
+            {
+                dashboard.Opacity = 1;
+                var initialScale = EnsureDashboardViewScaleTransform(dashboard);
+                initialScale.ScaleX = 1;
+                initialScale.ScaleY = 1;
+                return;
+            }
+
+            AnimateDashboardViewEnter(dashboard);
+        }
+
+        private static void AnimateDashboardViewEnter(FrameworkElement dashboard)
+        {
+            dashboard.BeginAnimation(OpacityProperty, null);
+            var scale = EnsureDashboardViewScaleTransform(dashboard);
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+
+            dashboard.Opacity = 0;
+            const double startScale = 0.995;
+            scale.ScaleX = startScale;
+            scale.ScaleY = startScale;
+
+            var duration = TimeSpan.FromMilliseconds(DashboardViewAnimationMs);
+            var ease = new QuinticEase { EasingMode = EasingMode.EaseOut };
+
+            dashboard.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration)
+            {
+                EasingFunction = ease
+            });
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(startScale, 1, duration)
+            {
+                EasingFunction = ease
+            });
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(startScale, 1, duration)
+            {
+                EasingFunction = ease
+            });
+        }
+
+        private static ScaleTransform EnsureDashboardViewScaleTransform(FrameworkElement dashboard)
+        {
+            if (dashboard.RenderTransform is ScaleTransform scale)
+                return scale;
+
+            scale = new ScaleTransform(1, 1);
+            dashboard.RenderTransform = scale;
+            return scale;
         }
 
         private void OpenFromFileMenuButton_Click(object sender, RoutedEventArgs e)
@@ -1093,11 +1168,28 @@ namespace NoteCards
                 Owner = this
             };
 
-            if (editor.ShowDialog() == true)
+            MindMapDocument? savedDocument = null;
+            var autoSaveTimer = StartEditorAutoSave(
+                editor.HasPendingAutoSaveChanges,
+                () =>
+                {
+                    var updatedDocument = editor.ToDocument(savedDocument);
+                    savedDocument = vm.AddOrUpdateMindMap(updatedDocument).Document;
+                    editor.MarkCurrentStateAutoSaved();
+                });
+
+            try
             {
-                var newDocument = editor.ToDocument(existingDocument: null);
-                vm.AddOrUpdateMindMap(newDocument);
-                vm.SaveMindMaps();
+                if (editor.ShowDialog() == true)
+                {
+                    var newDocument = editor.ToDocument(savedDocument);
+                    vm.AddOrUpdateMindMap(newDocument);
+                    vm.SaveMindMaps();
+                }
+            }
+            finally
+            {
+                StopEditorAutoSave(autoSaveTimer);
             }
         }
 
@@ -1116,8 +1208,25 @@ namespace NoteCards
                 Owner = this
             };
 
-            if (editor.ShowDialog() == true)
-                vm.AddOrUpdateFlashcardSet(editor.ToDocument(document));
+            FlashcardSetDocument? savedDocument = document;
+            var autoSaveTimer = StartEditorAutoSave(
+                editor.HasPendingAutoSaveChanges,
+                () =>
+                {
+                    var updatedDocument = editor.ToDocument(savedDocument);
+                    savedDocument = vm.AddOrUpdateFlashcardSet(updatedDocument).Document;
+                    editor.MarkCurrentStateAutoSaved();
+                });
+
+            try
+            {
+                if (editor.ShowDialog() == true)
+                    vm.AddOrUpdateFlashcardSet(editor.ToDocument(savedDocument));
+            }
+            finally
+            {
+                StopEditorAutoSave(autoSaveTimer);
+            }
         }
 
         private void OpenFlashcardSetMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1157,8 +1266,25 @@ namespace NoteCards
                 Owner = this
             };
 
-            if (editor.ShowDialog() == true)
-                vm.AddOrUpdateQuiz(editor.ToDocument(quiz?.Document));
+            QuizDocument? savedDocument = quiz?.Document;
+            var autoSaveTimer = StartEditorAutoSave(
+                editor.HasPendingAutoSaveChanges,
+                () =>
+                {
+                    var updatedDocument = editor.ToDocument(savedDocument);
+                    savedDocument = vm.AddOrUpdateQuiz(updatedDocument).Document;
+                    editor.MarkCurrentStateAutoSaved();
+                });
+
+            try
+            {
+                if (editor.ShowDialog() == true)
+                    vm.AddOrUpdateQuiz(editor.ToDocument(savedDocument));
+            }
+            finally
+            {
+                StopEditorAutoSave(autoSaveTimer);
+            }
         }
 
         private void OpenQuizLibraryButton_Click(object sender, RoutedEventArgs e)
@@ -1256,6 +1382,15 @@ namespace NoteCards
                 vm.RemoveQuizFromGroup(quizVm);
         }
 
+        private void QuizInfoMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var quiz = GetQuizFromMenuSender(sender)
+                ?? (sender as MenuItem)?.DataContext as QuizViewModel;
+
+            if (quiz != null)
+                ShowQuizInfo(quiz);
+        }
+
         private FlashcardSetViewModel? GetFlashcardSetFromMenuSender(object sender)
         {
             if (sender is not MenuItem menuItem)
@@ -1302,6 +1437,15 @@ namespace NoteCards
         {
             if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: FlashcardSetViewModel set })
                 vm.RemoveFlashcardSetFromGroup(set);
+        }
+
+        private void FlashcardSetInfoMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var set = GetFlashcardSetFromMenuSender(sender)
+                ?? (sender as MenuItem)?.DataContext as FlashcardSetViewModel;
+
+            if (set != null)
+                ShowFlashcardSetInfo(set);
         }
 
         private void OpenMindMapMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1365,6 +1509,12 @@ namespace NoteCards
                 vm.RemoveMindMapFromGroup(mindMapVm);
         }
 
+        private void MindMapInfoMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem { DataContext: MindMapViewModel mindMapVm })
+                ShowMindMapInfo(mindMapVm);
+        }
+
         private void OpenMindMapEditor(MindMapViewModel mindMapVm)
         {
             if (DataContext is not MainViewModel vm)
@@ -1384,24 +1534,66 @@ namespace NoteCards
                 Owner = this
             };
 
-            if (editor.ShowDialog() == true)
+            MindMapDocument? savedDocument = mindMapVm.Document;
+            var autoSaveTimer = StartEditorAutoSave(
+                editor.HasPendingAutoSaveChanges,
+                () =>
+                {
+                    var updatedDocument = editor.ToDocument(savedDocument);
+                    savedDocument = vm.AddOrUpdateMindMap(updatedDocument).Document;
+                    editor.MarkCurrentStateAutoSaved();
+                });
+
+            try
             {
-                // Save changes
-                var updatedDocument = editor.ToDocument(mindMapVm.Document);
-                mindMapVm.Document.Title = updatedDocument.Title;
-                mindMapVm.Document.Tags = updatedDocument.Tags;
-                mindMapVm.Document.Root = updatedDocument.Root;
-                mindMapVm.Document.LayoutMode = updatedDocument.LayoutMode;
-                mindMapVm.Document.UseManualPositions = updatedDocument.UseManualPositions;
-                mindMapVm.Document.LastModified = updatedDocument.LastModified;
-                mindMapVm.Document.SourceNoteId = updatedDocument.SourceNoteId;
-
-                // Notify UI of changes
-                mindMapVm.NotifyChanged();
-
-                // Save to disk
-                vm.SaveMindMaps();
+                if (editor.ShowDialog() == true)
+                    vm.AddOrUpdateMindMap(editor.ToDocument(savedDocument));
             }
+            finally
+            {
+                StopEditorAutoSave(autoSaveTimer);
+            }
+        }
+
+        private DispatcherTimer? StartEditorAutoSave(Func<bool> hasChanges, Action saveAction)
+        {
+            var settings = AppSettingsService.Load();
+            if (!settings.EnableAutoSave)
+                return null;
+
+            var intervalSeconds = Math.Clamp(settings.AutoSaveIntervalSeconds, 5, 86400);
+            var timer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher)
+            {
+                Interval = TimeSpan.FromSeconds(intervalSeconds)
+            };
+
+            timer.Tick += (_, _) =>
+            {
+                if (!AppSettingsService.Load().EnableAutoSave)
+                {
+                    timer.Stop();
+                    return;
+                }
+
+                if (!hasChanges())
+                    return;
+
+                try
+                {
+                    saveAction();
+                }
+                catch
+                {
+                    // Auto-save should never interrupt editing.
+                }
+            };
+            timer.Start();
+            return timer;
+        }
+
+        private static void StopEditorAutoSave(DispatcherTimer? timer)
+        {
+            timer?.Stop();
         }
 
         private static bool IsWithinCalendarScheduleGearButton(DependencyObject? source)
@@ -1431,6 +1623,24 @@ namespace NoteCards
         {
             if (sender is Button btn && btn.Tag is NoteCardViewModel noteVm)
                 OpenNoteEditor(noteVm);
+        }
+
+        private void RecentFlashcardSetButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is Button { Tag: FlashcardSetViewModel set })
+                OpenFlashcardSetEditor(vm, set);
+        }
+
+        private void RecentMindMapButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: MindMapViewModel mindMap })
+                OpenMindMapEditor(mindMap);
+        }
+
+        private void RecentQuizButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is Button { Tag: QuizViewModel quiz })
+                OpenQuizEditor(vm, quiz);
         }
 
         private void CalendarScheduledItemCard_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -1539,6 +1749,310 @@ namespace NoteCards
             if (sender is MenuItem menuItem && menuItem.DataContext is QuizViewModel quizVm)
                 OpenQuizSchedule(quizVm);
         }
+
+        public void ShowNoteInfo(NoteCardViewModel note)
+        {
+            var schedules = GetNoteSchedules(note.Document);
+            var content = note.Content ?? string.Empty;
+            var rows = new List<(string Label, string Value)>
+            {
+                (InfoText("InfoLabelType"), InfoText("InfoTypeNote")),
+                (InfoText("InfoLabelTitle"), string.IsNullOrWhiteSpace(note.Title) ? LocalizationService.GetString("NewNoteTitle") : note.Title),
+                (InfoText("InfoLabelCreated"), FormatInfoDate(note.Document.CreatedAt)),
+                (InfoText("InfoLabelModified"), FormatInfoDate(note.Document.LastModified)),
+                (InfoText("InfoLabelGroup"), GetNoteInfoGroupName(note.Document.GroupId)),
+                (InfoText("InfoLabelPinned"), FormatInfoBool(note.Document.IsPinned)),
+                (InfoText("InfoLabelScheduled"), FormatScheduleInfo(schedules)),
+                (InfoText("InfoLabelTags"), FormatInfoTags(note.Document.Tags)),
+                (InfoText("InfoLabelWords"), CountWords(content).ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelCharacters"), content.Length.ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelImages"), (note.Document.Images?.Count ?? 0).ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelEditHistory"), (note.Document.EditHistory?.Count ?? 0).ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelFont"), $"{note.Document.FontFamily}, {note.Document.FontSize.ToString("0.#", CultureInfo.CurrentCulture)}"),
+                (InfoText("InfoLabelId"), note.Document.Id.ToString())
+            };
+
+            ShowItemInfoDialog(note.Title, rows.Take(8), rows.Skip(8));
+        }
+
+        private void ShowFlashcardSetInfo(FlashcardSetViewModel set)
+        {
+            var cards = set.Document.Cards ?? new List<FlashcardItem>();
+            var rows = new List<(string Label, string Value)>
+            {
+                (InfoText("InfoLabelType"), InfoText("InfoTypeFlashcards")),
+                (InfoText("InfoLabelTitle"), set.Title),
+                (InfoText("InfoLabelCreated"), FormatInfoDate(set.Document.CreatedAt)),
+                (InfoText("InfoLabelModified"), FormatInfoDate(set.Document.LastModified)),
+                (InfoText("InfoLabelGroup"), GetFlashcardSetInfoGroupName(set.Document.GroupId)),
+                (InfoText("InfoLabelPinned"), FormatInfoBool(set.Document.IsPinned)),
+                (InfoText("InfoLabelScheduled"), FormatScheduleInfo(set.Document.Schedules)),
+                (InfoText("InfoLabelTags"), FormatInfoTags(set.Document.Tags)),
+                (InfoText("InfoLabelCards"), set.CardCount.ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelSets"), set.SetCount.ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelKnownCards"), cards.Count(card => card.IsKnown).ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelUnknownCards"), cards.Count(card => card.IsUnknown).ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelCategories"), cards.Select(card => card.Category?.Trim()).Where(category => !string.IsNullOrWhiteSpace(category)).Distinct(StringComparer.CurrentCultureIgnoreCase).Count().ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelGeneratedWith"), FormatOptional(set.Document.AiModelDisplayName)),
+                (InfoText("InfoLabelId"), set.Document.Id.ToString())
+            };
+
+            ShowItemInfoDialog(set.Title, rows.Take(8), rows.Skip(8));
+        }
+
+        private void ShowMindMapInfo(MindMapViewModel mindMap)
+        {
+            var rows = new List<(string Label, string Value)>
+            {
+                (InfoText("InfoLabelType"), InfoText("InfoTypeMindMap")),
+                (InfoText("InfoLabelTitle"), mindMap.Title),
+                (InfoText("InfoLabelCreated"), FormatInfoDate(mindMap.Document.CreatedAt)),
+                (InfoText("InfoLabelModified"), FormatInfoDate(mindMap.Document.LastModified)),
+                (InfoText("InfoLabelGroup"), GetMindMapInfoGroupName(mindMap.Document.GroupId)),
+                (InfoText("InfoLabelPinned"), FormatInfoBool(mindMap.Document.IsPinned)),
+                (InfoText("InfoLabelScheduled"), FormatScheduleInfo(mindMap.Document.Schedules)),
+                (InfoText("InfoLabelTags"), FormatInfoTags(mindMap.Document.Tags)),
+                (InfoText("InfoLabelNodes"), mindMap.NodeCount.ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelBranches"), mindMap.BranchCount.ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelLayout"), FormatMindMapLayout(mindMap.Document.LayoutMode)),
+                (InfoText("InfoLabelManualPositioning"), FormatInfoBool(mindMap.Document.UseManualPositions)),
+                (InfoText("InfoLabelSourceNote"), GetSourceNoteInfoTitle(mindMap.Document.SourceNoteId)),
+                (InfoText("InfoLabelGeneratedWith"), FormatOptional(mindMap.Document.AiModelDisplayName)),
+                (InfoText("InfoLabelId"), mindMap.Document.Id.ToString())
+            };
+
+            ShowItemInfoDialog(mindMap.Title, rows.Take(8), rows.Skip(8));
+        }
+
+        private void ShowQuizInfo(QuizViewModel quiz)
+        {
+            var attempts = quiz.Document.Attempts ?? new List<QuizAttempt>();
+            var rows = new List<(string Label, string Value)>
+            {
+                (InfoText("InfoLabelType"), InfoText("InfoTypeQuiz")),
+                (InfoText("InfoLabelTitle"), quiz.Title),
+                (InfoText("InfoLabelCreated"), FormatInfoDate(quiz.Document.CreatedAt)),
+                (InfoText("InfoLabelModified"), FormatInfoDate(quiz.Document.LastModified)),
+                (InfoText("InfoLabelGroup"), GetQuizInfoGroupName(quiz.Document.GroupId)),
+                (InfoText("InfoLabelPinned"), FormatInfoBool(quiz.Document.IsPinned)),
+                (InfoText("InfoLabelScheduled"), FormatScheduleInfo(quiz.Document.Schedules)),
+                (InfoText("InfoLabelTags"), FormatInfoTags(quiz.Document.Tags)),
+                (InfoText("InfoLabelQuestions"), quiz.QuestionCount.ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelPassingScore"), $"{quiz.Document.PassingScorePercent.ToString(CultureInfo.CurrentCulture)}%"),
+                (InfoText("InfoLabelTimeLimit"), FormatTimeLimit(quiz.Document.TimeLimitSeconds)),
+                (InfoText("InfoLabelAttempts"), attempts.Count.ToString(CultureInfo.CurrentCulture)),
+                (InfoText("InfoLabelBestScore"), FormatBestQuizScore(attempts)),
+                (InfoText("InfoLabelSourceNote"), GetSourceNoteInfoTitle(quiz.Document.SourceNoteId)),
+                (InfoText("InfoLabelGeneratedWith"), FormatOptional(quiz.Document.AiModelDisplayName)),
+                (InfoText("InfoLabelId"), quiz.Document.Id.ToString())
+            };
+
+            ShowItemInfoDialog(quiz.Title, rows.Take(8), rows.Skip(8));
+        }
+
+        private void ShowItemInfoDialog(
+            string itemTitle,
+            IEnumerable<(string Label, string Value)> primaryRows,
+            IEnumerable<(string Label, string Value)> advancedRows)
+        {
+            var title = string.IsNullOrWhiteSpace(itemTitle)
+                ? LocalizationService.GetString("Info")
+                : $"{itemTitle.Trim()} - {LocalizationService.GetString("Info")}";
+
+            var dialog = new ItemInfoDialog(title, primaryRows, advancedRows)
+            {
+                Owner = this
+            };
+            dialog.ShowDialog();
+        }
+
+        private static string FormatInfoDate(DateTime value)
+        {
+            if (value == default)
+                return InfoText("InfoUnknown");
+
+            var local = value.Kind == DateTimeKind.Utc ? value.ToLocalTime() : value;
+            return local.ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture);
+        }
+
+        private static string FormatInfoBool(bool value) => value ? InfoText("InfoYes") : InfoText("InfoNo");
+
+        private static string FormatOptional(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? InfoText("InfoNone") : value.Trim();
+        }
+
+        private static string FormatInfoTags(IEnumerable<string>? tags)
+        {
+            var cleaned = tags?
+                .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                .Select(tag => tag.Trim())
+                .Distinct(StringComparer.CurrentCultureIgnoreCase)
+                .ToList() ?? new List<string>();
+
+            return cleaned.Count == 0 ? InfoText("InfoNone") : string.Join(", ", cleaned);
+        }
+
+        private static string FormatScheduleInfo(IEnumerable<NoteScheduleEntry>? schedules)
+        {
+            var ordered = schedules?
+                .OrderBy(schedule => schedule.ScheduledAt)
+                .ToList() ?? new List<NoteScheduleEntry>();
+
+            if (ordered.Count == 0)
+                return InfoText("InfoNo");
+
+            var now = DateTime.Now;
+            var upcoming = ordered.FirstOrDefault(schedule => schedule.ScheduledAt >= now);
+            var selected = upcoming ?? ordered[^1];
+            var formatKey = upcoming is null ? "InfoScheduleLatestFormat" : "InfoScheduleNextFormat";
+            return string.Format(
+                CultureInfo.CurrentCulture,
+                InfoText(formatKey),
+                ordered.Count.ToString(CultureInfo.CurrentCulture),
+                FormatInfoDate(selected.ScheduledAt));
+        }
+
+        private static IReadOnlyList<NoteScheduleEntry> GetNoteSchedules(NoteDocument document)
+        {
+            var schedules = document.Schedules?.ToList() ?? new List<NoteScheduleEntry>();
+            if (document.ScheduledAt.HasValue
+                && !schedules.Any(schedule => schedule.ScheduledAt == document.ScheduledAt.Value))
+            {
+                schedules.Add(new NoteScheduleEntry
+                {
+                    ScheduledAt = document.ScheduledAt.Value,
+                    Note = document.ScheduleNote
+                });
+            }
+
+            return schedules.OrderBy(schedule => schedule.ScheduledAt).ToList();
+        }
+
+        private string GetNoteInfoGroupName(Guid? groupId)
+        {
+            if (!groupId.HasValue)
+                return InfoText("InfoUngrouped");
+
+            if (DataContext is MainViewModel vm)
+            {
+                var group = vm.NoteGroups.FirstOrDefault(candidate => candidate.GroupId == groupId.Value);
+                if (group != null && !string.IsNullOrWhiteSpace(group.Name))
+                    return group.Name;
+            }
+
+            return FormatGroupFallback(groupId.Value);
+        }
+
+        private string GetFlashcardSetInfoGroupName(Guid? groupId)
+        {
+            if (!groupId.HasValue)
+                return InfoText("InfoUngrouped");
+
+            if (DataContext is MainViewModel vm)
+            {
+                var group = vm.FlashcardSetGroups.FirstOrDefault(candidate => candidate.GroupId == groupId.Value);
+                if (group != null && !string.IsNullOrWhiteSpace(group.Name))
+                    return group.Name;
+            }
+
+            return FormatGroupFallback(groupId.Value);
+        }
+
+        private string GetMindMapInfoGroupName(Guid? groupId)
+        {
+            if (!groupId.HasValue)
+                return InfoText("InfoUngrouped");
+
+            if (DataContext is MainViewModel vm)
+            {
+                var group = vm.MindMapGroups.FirstOrDefault(candidate => candidate.GroupId == groupId.Value);
+                if (group != null && !string.IsNullOrWhiteSpace(group.Name))
+                    return group.Name;
+            }
+
+            return FormatGroupFallback(groupId.Value);
+        }
+
+        private string GetQuizInfoGroupName(Guid? groupId)
+        {
+            if (!groupId.HasValue)
+                return InfoText("InfoUngrouped");
+
+            if (DataContext is MainViewModel vm)
+            {
+                var group = vm.QuizGroups.FirstOrDefault(candidate => candidate.GroupId == groupId.Value);
+                if (group != null && !string.IsNullOrWhiteSpace(group.Name))
+                    return group.Name;
+            }
+
+            return FormatGroupFallback(groupId.Value);
+        }
+
+        private string GetSourceNoteInfoTitle(Guid? sourceNoteId)
+        {
+            if (!sourceNoteId.HasValue)
+                return InfoText("InfoNone");
+
+            if (DataContext is MainViewModel vm)
+            {
+                var note = vm.FindNoteById(sourceNoteId.Value);
+                if (note != null && !string.IsNullOrWhiteSpace(note.Title))
+                    return note.Title;
+            }
+
+            return sourceNoteId.Value.ToString();
+        }
+
+        private static string FormatGroupFallback(Guid groupId)
+        {
+            return string.Format(
+                CultureInfo.CurrentCulture,
+                InfoText("InfoGroupFallbackFormat"),
+                groupId.ToString()[..4].ToUpperInvariant());
+        }
+
+        private static string FormatMindMapLayout(string? layoutMode)
+        {
+            return layoutMode switch
+            {
+                "BalancedTree" => LocalizationService.GetString("MindMapLayoutBalancedTree"),
+                "RightTree" => LocalizationService.GetString("MindMapLayoutRightTree"),
+                "LeftTree" => LocalizationService.GetString("MindMapLayoutLeftTree"),
+                "TopDown" => LocalizationService.GetString("MindMapLayoutTopDown"),
+                "Radial" => LocalizationService.GetString("MindMapLayoutRadial"),
+                _ => FormatOptional(layoutMode)
+            };
+        }
+
+        private static string FormatTimeLimit(int? seconds)
+        {
+            if (!seconds.HasValue || seconds.Value <= 0)
+                return InfoText("InfoNoLimit");
+
+            var duration = TimeSpan.FromSeconds(seconds.Value);
+            return duration.TotalHours >= 1
+                ? duration.ToString(@"h\:mm\:ss", CultureInfo.CurrentCulture)
+                : duration.ToString(@"m\:ss", CultureInfo.CurrentCulture);
+        }
+
+        private static string FormatBestQuizScore(IReadOnlyCollection<QuizAttempt> attempts)
+        {
+            if (attempts.Count == 0)
+                return InfoText("InfoNone");
+
+            var best = attempts.Max(attempt => attempt.Percentage);
+            return $"{best.ToString("0.#", CultureInfo.CurrentCulture)}%";
+        }
+
+        private static int CountWords(string text)
+        {
+            return string.IsNullOrWhiteSpace(text)
+                ? 0
+                : text.Split(new[] { ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries).Length;
+        }
+
+        private static string InfoText(string key) => LocalizationService.GetString(key);
 
         private void ToggleRecentSectionButton_Click(object sender, RoutedEventArgs e)
         {

@@ -25,6 +25,7 @@ namespace NoteCards.Views
     public StyleNodeDialog()
     {
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
         Loaded += StyleNodeDialog_Loaded;
 
         if (FindName("BorderThicknessSlider") is Slider slider)

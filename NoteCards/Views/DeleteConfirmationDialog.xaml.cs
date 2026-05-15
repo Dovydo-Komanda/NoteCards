@@ -53,6 +53,7 @@ namespace NoteCards.Views
                 : Visibility.Visible;
 
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
             DataContext = this;
             Loaded += DeleteConfirmationDialog_Loaded;
         }

@@ -17,6 +17,9 @@
   <data name="About" xml:space="preserve"><value>Apie</value></data>
   <data name="Settings" xml:space="preserve"><value>Nustatymai</value></data>
   <data name="RecentNotes" xml:space="preserve"><value>Naujausi užrašai</value></data>
+  <data name="RecentFlashcards" xml:space="preserve"><value>Naujausios kortelės</value></data>
+  <data name="RecentMindMaps" xml:space="preserve"><value>Naujausi minčių žemėlapiai</value></data>
+  <data name="RecentQuizzes" xml:space="preserve"><value>Naujausi testai</value></data>
   <data name="Open" xml:space="preserve"><value>Atidaryti</value></data>
   <data name="Delete" xml:space="preserve"><value>Ištrinti</value></data>
   <data name="Close" xml:space="preserve"><value>Uždaryti</value></data>
@@ -27,8 +30,12 @@
   <data name="LanguageLithuanian" xml:space="preserve"><value>Lietuvių</value></data>
   <data name="Scrollbar" xml:space="preserve"><value>Slinkties juosta:</value></data>
   <data name="EnableScrollbar" xml:space="preserve"><value>Rodyti slinkties juostą</value></data>
-  <data name="AutoSave" xml:space="preserve"><value>Automatinis išsaugojimas:</value></data>
+  <data name="AutoSave" xml:space="preserve"><value>Automatinis išsaugojimas</value></data>
   <data name="EnableAutoSave" xml:space="preserve"><value>Įjungti automatinį išsaugojimą</value></data>
+  <data name="AutoSaveFrequency" xml:space="preserve"><value>Išsaugoti kas:</value></data>
+  <data name="AutoSaveUnitSeconds" xml:space="preserve"><value>sek.</value></data>
+  <data name="AutoSaveUnitMinutes" xml:space="preserve"><value>min.</value></data>
+  <data name="AutoSaveUnitHours" xml:space="preserve"><value>val.</value></data>
   <data name="FlashcardModel" xml:space="preserve"><value>DI modelis:</value></data>
   <data name="FlashcardModel08BDescription" xml:space="preserve"><value>greitesnis, lengvas</value></data>
   <data name="FlashcardModel2BDescription" xml:space="preserve"><value>subalansuotas, geresnė kokybė</value></data>
@@ -86,6 +93,9 @@
   <data name="CalendarSection" xml:space="preserve"><value>Kalendorius</value></data>
   <data name="ToggleCalendarSection" xml:space="preserve"><value>Rodyti / slėpti kalendorių</value></data>
   <data name="ToggleRecentNotesSection" xml:space="preserve"><value>Rodyti / slėpti naujausius užrašus</value></data>
+  <data name="ToggleRecentFlashcardsSection" xml:space="preserve"><value>Rodyti / slėpti naujausias korteles</value></data>
+  <data name="ToggleRecentMindMapsSection" xml:space="preserve"><value>Rodyti / slėpti naujausius minčių žemėlapius</value></data>
+  <data name="ToggleRecentQuizzesSection" xml:space="preserve"><value>Rodyti / slėpti naujausius testus</value></data>
   <data name="MoveGroupsSectionUp" xml:space="preserve"><value>Perkelti grupių sekciją aukštyn</value></data>
   <data name="MoveGroupsSectionDown" xml:space="preserve"><value>Perkelti grupių sekciją žemyn</value></data>
   <data name="ToggleGroupsSection" xml:space="preserve"><value>Rodyti / slėpti grupes</value></data>
@@ -186,6 +196,51 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="DisbandGroup" xml:space="preserve"><value>Išformuoti grupę</value></data>
   <data name="DisbandGroupPrompt" xml:space="preserve"><value>Pasirinkite, ką daryti su šia grupe.</value></data>
   <data name="DropToUngroup" xml:space="preserve"><value>Numeskite čia, kad pašalintumėte užrašą iš grupės</value></data>
+  <data name="Info" xml:space="preserve"><value>Informacija</value></data>
+  <data name="InfoAdvanced" xml:space="preserve"><value>Išsamesnė informacija</value></data>
+  <data name="InfoTypeNote" xml:space="preserve"><value>Užrašas</value></data>
+  <data name="InfoTypeFlashcards" xml:space="preserve"><value>Kortelės</value></data>
+  <data name="InfoTypeMindMap" xml:space="preserve"><value>Minčių žemėlapis</value></data>
+  <data name="InfoTypeQuiz" xml:space="preserve"><value>Testas</value></data>
+  <data name="InfoLabelType" xml:space="preserve"><value>Tipas</value></data>
+  <data name="InfoLabelTitle" xml:space="preserve"><value>Pavadinimas</value></data>
+  <data name="InfoLabelCreated" xml:space="preserve"><value>Sukurta</value></data>
+  <data name="InfoLabelModified" xml:space="preserve"><value>Keista</value></data>
+  <data name="InfoLabelGroup" xml:space="preserve"><value>Grupė</value></data>
+  <data name="InfoLabelPinned" xml:space="preserve"><value>Prisegta</value></data>
+  <data name="InfoLabelScheduled" xml:space="preserve"><value>Suplanuota</value></data>
+  <data name="InfoLabelTags" xml:space="preserve"><value>Žymės</value></data>
+  <data name="InfoLabelWords" xml:space="preserve"><value>Žodžiai</value></data>
+  <data name="InfoLabelCharacters" xml:space="preserve"><value>Simboliai</value></data>
+  <data name="InfoLabelImages" xml:space="preserve"><value>Paveikslėliai</value></data>
+  <data name="InfoLabelEditHistory" xml:space="preserve"><value>Redagavimo istorija</value></data>
+  <data name="InfoLabelFont" xml:space="preserve"><value>Šriftas</value></data>
+  <data name="InfoLabelId" xml:space="preserve"><value>ID</value></data>
+  <data name="InfoLabelCards" xml:space="preserve"><value>Kortelės</value></data>
+  <data name="InfoLabelSets" xml:space="preserve"><value>Rinkiniai</value></data>
+  <data name="InfoLabelKnownCards" xml:space="preserve"><value>Žinomos kortelės</value></data>
+  <data name="InfoLabelUnknownCards" xml:space="preserve"><value>Nežinomos kortelės</value></data>
+  <data name="InfoLabelCategories" xml:space="preserve"><value>Kategorijos</value></data>
+  <data name="InfoLabelGeneratedWith" xml:space="preserve"><value>Sugeneruota su</value></data>
+  <data name="InfoLabelNodes" xml:space="preserve"><value>Mazgai</value></data>
+  <data name="InfoLabelBranches" xml:space="preserve"><value>Šakos</value></data>
+  <data name="InfoLabelLayout" xml:space="preserve"><value>Išdėstymas</value></data>
+  <data name="InfoLabelManualPositioning" xml:space="preserve"><value>Rankinis pozicionavimas</value></data>
+  <data name="InfoLabelSourceNote" xml:space="preserve"><value>Šaltinio užrašas</value></data>
+  <data name="InfoLabelQuestions" xml:space="preserve"><value>Klausimai</value></data>
+  <data name="InfoLabelPassingScore" xml:space="preserve"><value>Išlaikymo balas</value></data>
+  <data name="InfoLabelTimeLimit" xml:space="preserve"><value>Laiko limitas</value></data>
+  <data name="InfoLabelAttempts" xml:space="preserve"><value>Bandymai</value></data>
+  <data name="InfoLabelBestScore" xml:space="preserve"><value>Geriausias rezultatas</value></data>
+  <data name="InfoYes" xml:space="preserve"><value>Taip</value></data>
+  <data name="InfoNo" xml:space="preserve"><value>Ne</value></data>
+  <data name="InfoNone" xml:space="preserve"><value>Nėra</value></data>
+  <data name="InfoUnknown" xml:space="preserve"><value>Nežinoma</value></data>
+  <data name="InfoUngrouped" xml:space="preserve"><value>Nesugrupuota</value></data>
+  <data name="InfoNoLimit" xml:space="preserve"><value>Be limito</value></data>
+  <data name="InfoScheduleNextFormat" xml:space="preserve"><value>{0} (kitas: {1})</value></data>
+  <data name="InfoScheduleLatestFormat" xml:space="preserve"><value>{0} (paskutinis: {1})</value></data>
+  <data name="InfoGroupFallbackFormat" xml:space="preserve"><value>Grupė {0}</value></data>
   <data name="Tags" xml:space="preserve"><value>Žymės:</value></data>
   <data name="TagsHint" xml:space="preserve"><value>Pavyzdys: darbas, skubu, idėja</value></data>
   <data name="FilterTags" xml:space="preserve"><value>Filtruoti žymes</value></data>

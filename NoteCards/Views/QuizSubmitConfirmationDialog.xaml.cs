@@ -28,6 +28,7 @@ public partial class QuizSubmitConfirmationDialog : Window
         CancelText = string.IsNullOrWhiteSpace(cancelText) ? LocalizationService.GetString("QuizSubmitDialogCancel") : cancelText;
 
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
         DataContext = this;
         Loaded += QuizSubmitConfirmationDialog_Loaded;
     }

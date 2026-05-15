@@ -13,6 +13,7 @@ namespace NoteCards.Views
         public ResetFactorySettingsDialog()
         {
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
             Loaded += ResetFactorySettingsDialog_Loaded;
         }
 

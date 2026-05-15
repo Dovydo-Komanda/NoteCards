@@ -13,6 +13,7 @@ namespace NoteCards.Views
         public ClearContentConfirmationDialog()
         {
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
             Loaded += ClearContentConfirmationDialog_Loaded;
         }
 

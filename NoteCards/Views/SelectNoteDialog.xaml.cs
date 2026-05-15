@@ -14,6 +14,7 @@ public partial class SelectNoteDialog : Window
     public SelectNoteDialog(IEnumerable<NoteCardViewModel> availableNotes)
     {
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
         _allNotes = availableNotes.ToList();
         _filteredNotes = new ObservableCollection<NoteCardViewModel>(_allNotes);
         NotesItemsControl.ItemsSource = _filteredNotes;

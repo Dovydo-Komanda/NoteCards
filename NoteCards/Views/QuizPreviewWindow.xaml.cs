@@ -96,6 +96,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             _questions.Add(new QuizPreviewQuestion(1, CreateDefaultQuestion()));
 
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
         // Užkrauti esamą progresą
         RefreshProgressPanel();
 
@@ -302,6 +303,10 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         UpdateEditedIndicator();
     }
 
+    public bool HasPendingAutoSaveChanges() => HasUnsavedChanges();
+
+    public void MarkCurrentStateAutoSaved() => MarkCurrentStateSaved();
+
     private bool HasUnsavedChanges()
     {
         if (_isInitializing)
@@ -410,7 +415,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             GroupId = existingDocument?.GroupId ?? _sourceDocument.GroupId,
             Schedules = existingDocument?.Schedules?.ToList() ?? _sourceDocument.Schedules?.ToList() ?? new List<NoteScheduleEntry>(),
             IsPinned = existingDocument?.IsPinned ?? _sourceDocument.IsPinned,
-            PassingScorePercent = existingDocument?.PassingScorePercent ?? _sourceDocument.PassingScorePercent
+            TimeLimitSeconds = existingDocument?.TimeLimitSeconds ?? _sourceDocument.TimeLimitSeconds,
+            PassingScorePercent = _sourceDocument.PassingScorePercent,
+            Attempts = _sourceDocument.Attempts?.ToList() ?? existingDocument?.Attempts?.ToList() ?? new List<QuizAttempt>()
         };
     }
 

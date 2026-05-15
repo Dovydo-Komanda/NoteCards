@@ -129,6 +129,17 @@
             </Setter>
         </Style>
 
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
         <!-- ComboBox Toggle Button Template -->
         <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="ToggleButton">
             <Border x:Name="Border"
@@ -568,16 +579,26 @@
                 </Border>
 
                     <!-- Auto-Save Setting -->
-                    <Border Grid.Row="4"
-        Margin="0,14,0,0"
-        Background="{DynamicResource SidebarBackground}"
-        BorderBrush="{DynamicResource BorderColor}"
-        BorderThickness="1"
-        CornerRadius="12"
-        Padding="16,12">
+                    <Border x:Name="AutoSaveSettingsCard"
+                            Grid.Row="4"
+                            Margin="0,14,0,0"
+                            Background="{DynamicResource SidebarBackground}"
+                            BorderBrush="{DynamicResource BorderColor}"
+                            BorderThickness="1"
+                            CornerRadius="12">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Padding" Value="12,8"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsChecked, ElementName=EnableAutoSaveCheckBox}" Value="True">
+                                        <Setter Property="Padding" Value="14,10"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <StackPanel>
                             <!-- Auto-Save Enable/Disable -->
-                            <Grid Margin="0,0,0,12">
+                            <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
@@ -599,42 +620,48 @@
                             </Grid>
 
                             <!-- Auto-Save Interval Control -->
-                            <Grid Visibility="{Binding IsChecked, ElementName=EnableAutoSaveCheckBox, Converter={StaticResource BoolToVis}}">
+                            <Grid Margin="0,8,0,0"
+                                  Visibility="{Binding IsChecked, ElementName=EnableAutoSaveCheckBox, Converter={StaticResource BoolToVis}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock Grid.Column="0"
-                       Text="{Binding [AutoSaveInterval], Source={StaticResource Loc}}"
+                       Text="{Binding [AutoSaveFrequency], Source={StaticResource Loc}}"
                        VerticalAlignment="Center"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextColor}"/>
 
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Slider x:Name="AutoSaveIntervalSlider"
-                        Width="150"
-                        Minimum="10"
-                        Maximum="300"
-                        TickFrequency="10"
-                        IsSnapToTickEnabled="True"
-                        VerticalAlignment="Center"
-                        Margin="0,0,10,0"
-                        ValueChanged="AutoSaveIntervalSlider_ValueChanged"/>
-                                    <TextBlock x:Name="AutoSaveIntervalText"
-                           Text="30s"
-                           VerticalAlignment="Center"
-                           FontSize="13"
-                           Foreground="{DynamicResource TextColorSecondary}"
-                           MinWidth="40"/>
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Right">
+                                    <Border Background="{DynamicResource CardBackground}"
+                                            BorderBrush="{DynamicResource BorderColor}"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="8,0"
+                                            Margin="0,0,8,0">
+                                        <TextBox x:Name="AutoSaveIntervalTextBox"
+                                                 Width="48"
+                                                 Height="30"
+                                                 Padding="0"
+                                                 BorderThickness="0"
+                                                 Background="Transparent"
+                                                 TextAlignment="Right"
+                                                 TextChanged="AutoSaveIntervalTextBox_TextChanged"
+                                                 LostFocus="AutoSaveIntervalTextBox_LostFocus"
+                                                 PreviewKeyDown="AutoSaveIntervalTextBox_PreviewKeyDown"/>
+                                    </Border>
+                                    <ComboBox x:Name="AutoSaveIntervalUnitBox"
+                                              Width="92"
+                                              SelectionChanged="AutoSaveIntervalUnitBox_SelectionChanged">
+                                        <ComboBoxItem Tag="Seconds" Content="{Binding [AutoSaveUnitSeconds], Source={StaticResource Loc}}"/>
+                                        <ComboBoxItem Tag="Minutes" Content="{Binding [AutoSaveUnitMinutes], Source={StaticResource Loc}}"/>
+                                        <ComboBoxItem Tag="Hours" Content="{Binding [AutoSaveUnitHours], Source={StaticResource Loc}}"/>
+                                    </ComboBox>
                                 </StackPanel>
                             </Grid>
-
-                            <TextBlock Grid.Row="1"
-                   FontSize="11"
-                   Foreground="{DynamicResource TextColorSecondary}"
-                   Margin="0,8,0,0"
-                   TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
 

@@ -113,6 +113,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
         LoadManualPositionsFromNodes(_root);
         _isManualPositioningMode = useManualPositions || _manualPositions.Count > 0;
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
 
         TitleTextBox.Text = string.IsNullOrWhiteSpace(title)
             ? (string.IsNullOrWhiteSpace(root.Text) ? LocalizationService.GetString("MindMapUntitled") : root.Text.Trim())
@@ -199,6 +200,10 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
         _lastSavedSnapshot = GetEditorSnapshot();
         UpdateEditedIndicator();
     }
+
+    public bool HasPendingAutoSaveChanges() => HasUnsavedChanges();
+
+    public void MarkCurrentStateAutoSaved() => MarkCurrentStateSaved();
 
     private bool HasUnsavedChanges()
     {

@@ -29,6 +29,7 @@ public partial class NoteEditorTabsWindow : Window
     public NoteEditorTabsWindow()
     {
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
     }
 
     public void OpenOrFocusNote(NoteCardViewModel noteViewModel, object? sharedDataContext)

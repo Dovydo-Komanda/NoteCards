@@ -48,6 +48,7 @@ namespace NoteCards.Views
                     .OrderBy(category => category, StringComparer.CurrentCultureIgnoreCase)
                     .ToList();
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
             DataContext = this;
             Loaded += EditFlashcardDialog_Loaded;
         }

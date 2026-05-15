@@ -98,6 +98,7 @@ namespace NoteCards
         public NoteEditorWindow()
         {
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
             InitializeAutoSave();
             UpdateCounter();
             UpdateOnlineSearchAvailability();

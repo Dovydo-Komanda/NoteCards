@@ -21,6 +21,7 @@ public partial class QuizAttemptHistoryWindow : Window
     public QuizAttemptHistoryWindow()
     {
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
         _allAttempts = QuizDocument.SavedAttempts;
         RefreshList();
     }

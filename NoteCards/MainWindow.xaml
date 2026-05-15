@@ -16,6 +16,7 @@
     <Window.Resources>
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+        <SolidColorBrush x:Key="DashboardGroupNameForeground" Color="#1C1C1C"/>
         <Style x:Key="RecentNoteCardStyle" TargetType="Button">
 			<Setter Property="OverridesDefaultStyle" Value="True"/>
 			<Setter Property="Cursor" Value="Hand"/>
@@ -1264,8 +1265,12 @@
 								<CheckBox Content="{Binding [UngroupedNotes], Source={StaticResource Loc}}"
 										  IsChecked="{Binding IsUngroupedSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
 										  Foreground="{DynamicResource TextColor}"/>
-							</StackPanel>
+                            </StackPanel>
                             <StackPanel Visibility="{Binding IsFlashcardsView, Converter={StaticResource BoolToVis}}">
+                                <CheckBox Content="{Binding [RecentFlashcards], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsRecentSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
                                 <CheckBox Content="{Binding [CalendarSection], Source={StaticResource Loc}}"
                                           IsChecked="{Binding IsCalendarSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           Margin="0,0,0,6"
@@ -1275,11 +1280,19 @@
                                           Foreground="{DynamicResource TextColor}"/>
                             </StackPanel>
                             <StackPanel Visibility="{Binding IsQuizzesView, Converter={StaticResource BoolToVis}}">
+                                <CheckBox Content="{Binding [RecentQuizzes], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsRecentSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
                                 <CheckBox Content="{Binding [CalendarSection], Source={StaticResource Loc}}"
                                           IsChecked="{Binding IsCalendarSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           Foreground="{DynamicResource TextColor}"/>
                             </StackPanel>
                             <StackPanel Visibility="{Binding IsMindMapsView, Converter={StaticResource BoolToVis}}">
+                                <CheckBox Content="{Binding [RecentMindMaps], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsRecentSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
                                 <CheckBox Content="{Binding [CalendarSection], Source={StaticResource Loc}}"
                                           IsChecked="{Binding IsCalendarSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           Margin="0,0,0,6"
@@ -1368,7 +1381,13 @@
             <Grid Grid.Row="1">
                 
                 <!-- NOTES VIEW -->
-                <Grid Visibility="{Binding IsNotesView, Converter={StaticResource BoolToVis}}">
+                <Grid x:Name="NotesDashboardView"
+                      Visibility="{Binding IsNotesView, Converter={StaticResource BoolToVis}}"
+                      RenderTransformOrigin="0.5,0.5"
+                      IsVisibleChanged="DashboardView_IsVisibleChanged">
+                    <Grid.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1"/>
+                    </Grid.RenderTransform>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -1836,7 +1855,7 @@
                                                                     <TextBlock Grid.Column="4"
 																   Text="{Binding Name}"
 																   FontWeight="SemiBold"
-																   Foreground="{DynamicResource TextColor}"
+																   Foreground="{StaticResource DashboardGroupNameForeground}"
 																   VerticalAlignment="Center"
 																   TextTrimming="CharacterEllipsis"
 																   Margin="8,0,0,0"/>
@@ -2084,9 +2103,104 @@
                     
                 </Grid>
                 <!-- FLASHCARDS VIEW -->
-                <Grid Visibility="{Binding IsFlashcardsView, Converter={StaticResource BoolToVis}}">
+                <Grid x:Name="FlashcardsDashboardView"
+                      Visibility="{Binding IsFlashcardsView, Converter={StaticResource BoolToVis}}"
+                      RenderTransformOrigin="0.5,0.5"
+                      IsVisibleChanged="DashboardView_IsVisibleChanged">
+                    <Grid.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1"/>
+                    </Grid.RenderTransform>
                     <Grid>
-                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0"
+                                Visibility="{Binding IsRecentSectionVisible, Converter={StaticResource BoolToVis}}"
+                                Background="{DynamicResource SidebarBackground}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="0,0,0,1"
+                                Padding="16,12">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0"
+                                            ToolTip="{Binding [ToggleRecentFlashcardsSection], Source={StaticResource Loc}}"
+                                            Click="ToggleRecentSectionButton_Click">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRecentSectionExpanded}" Value="False">
+                                                        <Setter Property="RenderTransform">
+                                                            <Setter.Value>
+                                                                <RotateTransform Angle="-90"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding [RecentFlashcards], Source={StaticResource Loc}}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextColor}"
+                                               Margin="8,0,0,0"
+                                               FontFamily="Segoe UI Variable, Segoe UI, sans-serif"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                                <Border x:Name="FlashcardRecentSectionBody"
+                                        Margin="0,10,0,0"
+                                        RenderTransformOrigin="0.5,0">
+                                    <Border.RenderTransform>
+                                        <TranslateTransform/>
+                                    </Border.RenderTransform>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollBarVisibility="Disabled"
+                                                  CanContentScroll="True"
+                                                  PanningMode="HorizontalOnly"
+                                                  PreviewMouseWheel="RecentNotesScrollViewer_PreviewMouseWheel">
+                                        <ItemsControl ItemsSource="{Binding RecentFlashcardSets}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:FlashcardSetViewModel}">
+                                                    <Button Style="{StaticResource RecentNoteCardStyle}"
+                                                            Tag="{Binding}"
+                                                            Click="RecentFlashcardSetButton_Click">
+                                                        <StackPanel MinWidth="120" MaxWidth="180">
+                                                            <TextBlock Text="{Binding Title}"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="13"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       Foreground="{DynamicResource TextColor}"/>
+                                                            <TextBlock Text="{Binding SetCountText}"
+                                                                       FontSize="11"
+                                                                       Foreground="{DynamicResource TextColorSecondary}"
+                                                                       Margin="0,4,0,0"/>
+                                                            <TextBlock Text="{Binding Document.LastModified, StringFormat='{}{0:dd MMM, HH:mm}'}"
+                                                                       FontSize="11"
+                                                                       Foreground="{DynamicResource TextColor}"
+                                                                       Margin="0,3,0,0"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <ScrollViewer Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
                                       PreviewDragOver="DashboardScrollViewer_PreviewDragOver"
                                       PreviewDragLeave="DashboardScrollViewer_PreviewDragLeave"
                                       Drop="DashboardScrollViewer_Drop"
@@ -2457,7 +2571,7 @@
                                                                 <TextBlock Grid.Column="4"
                                                                            Text="{Binding Name}"
                                                                            FontWeight="SemiBold"
-                                                                           Foreground="{DynamicResource TextColor}"
+                                                                           Foreground="{StaticResource DashboardGroupNameForeground}"
                                                                            VerticalAlignment="Center"
                                                                            TextTrimming="CharacterEllipsis"
                                                                            Margin="8,0,0,0"/>
@@ -2490,6 +2604,7 @@
                                                                                     <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}" Click="DuplicateFlashcardSetMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}" Click="RemoveFlashcardSetFromGroupMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleFlashcardSetMenuItem_Click"/>
+                                                                                    <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}" Click="FlashcardSetInfoMenuItem_Click"/>
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
                                                                                               Click="ToggleFlashcardSetPinMenuItem_Click"
@@ -2535,12 +2650,14 @@
                                                                                                     Margin="0,0,6,0">
                                                                                             <TextBlock Text="📌"
                                                                                                        FontSize="13"
+                                                                                                       Foreground="{DynamicResource TextColor}"
                                                                                                        Margin="0,0,5,0"
                                                                                                        VerticalAlignment="Center"
                                                                                                        Visibility="{Binding IsPinned, Converter={StaticResource BoolToVis}}"
                                                                                                        ToolTip="{Binding [Pin], Source={StaticResource Loc}}"/>
                                                                                             <TextBlock Text="🕒"
                                                                                                        FontSize="12"
+                                                                                                       Foreground="{DynamicResource TextColor}"
                                                                                                        Margin="0,0,5,0"
                                                                                                        VerticalAlignment="Center"
                                                                                                        Visibility="{Binding HasSchedule, Converter={StaticResource BoolToVis}}"
@@ -2633,6 +2750,8 @@
                                                                           Click="RemoveFlashcardSetFromGroupMenuItem_Click"/>
                                                                 <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}"
                                                                           Click="ScheduleFlashcardSetMenuItem_Click"/>
+                                                                <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}"
+                                                                          Click="FlashcardSetInfoMenuItem_Click"/>
                                                                 <Separator/>
                                                                 <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
                                                                           Click="ToggleFlashcardSetPinMenuItem_Click"
@@ -2808,12 +2927,14 @@
                                                                                 Margin="0,0,8,0">
                                                                         <TextBlock Text="📌"
                                                                                    FontSize="14"
+                                                                                   Foreground="{DynamicResource TextColor}"
                                                                                    Margin="0,0,6,0"
                                                                                    VerticalAlignment="Center"
                                                                                    Visibility="{Binding IsPinned, Converter={StaticResource BoolToVis}}"
                                                                                    ToolTip="{Binding [Pin], Source={StaticResource Loc}}"/>
                                                                         <TextBlock Text="🕒"
                                                                                    FontSize="13"
+                                                                                   Foreground="{DynamicResource TextColor}"
                                                                                    Margin="0,0,6,0"
                                                                                    VerticalAlignment="Center"
                                                                                    Visibility="{Binding HasSchedule, Converter={StaticResource BoolToVis}}"
@@ -2885,7 +3006,8 @@
                             </Grid>
                         </ScrollViewer>
 
-                        <Button Style="{StaticResource FabStyle}"
+                        <Button Grid.Row="1"
+                                Style="{StaticResource FabStyle}"
                                 VerticalAlignment="Bottom"
                                 HorizontalAlignment="Right"
                                 Margin="0,0,28,24"
@@ -2896,9 +3018,104 @@
                 </Grid>
 
                 <!-- QUIZZES VIEW -->
-                <Grid Visibility="{Binding IsQuizzesView, Converter={StaticResource BoolToVis}}">
+                <Grid x:Name="QuizzesDashboardView"
+                      Visibility="{Binding IsQuizzesView, Converter={StaticResource BoolToVis}}"
+                      RenderTransformOrigin="0.5,0.5"
+                      IsVisibleChanged="DashboardView_IsVisibleChanged">
+                    <Grid.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1"/>
+                    </Grid.RenderTransform>
                     <Grid>
-                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0"
+                                Visibility="{Binding IsRecentSectionVisible, Converter={StaticResource BoolToVis}}"
+                                Background="{DynamicResource SidebarBackground}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="0,0,0,1"
+                                Padding="16,12">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0"
+                                            ToolTip="{Binding [ToggleRecentQuizzesSection], Source={StaticResource Loc}}"
+                                            Click="ToggleRecentSectionButton_Click">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRecentSectionExpanded}" Value="False">
+                                                        <Setter Property="RenderTransform">
+                                                            <Setter.Value>
+                                                                <RotateTransform Angle="-90"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding [RecentQuizzes], Source={StaticResource Loc}}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextColor}"
+                                               Margin="8,0,0,0"
+                                               FontFamily="Segoe UI Variable, Segoe UI, sans-serif"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                                <Border x:Name="QuizRecentSectionBody"
+                                        Margin="0,10,0,0"
+                                        RenderTransformOrigin="0.5,0">
+                                    <Border.RenderTransform>
+                                        <TranslateTransform/>
+                                    </Border.RenderTransform>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollBarVisibility="Disabled"
+                                                  CanContentScroll="True"
+                                                  PanningMode="HorizontalOnly"
+                                                  PreviewMouseWheel="RecentNotesScrollViewer_PreviewMouseWheel">
+                                        <ItemsControl ItemsSource="{Binding RecentQuizzes}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:QuizViewModel}">
+                                                    <Button Style="{StaticResource RecentNoteCardStyle}"
+                                                            Tag="{Binding}"
+                                                            Click="RecentQuizButton_Click">
+                                                        <StackPanel MinWidth="120" MaxWidth="180">
+                                                            <TextBlock Text="{Binding Title}"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="13"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       Foreground="{DynamicResource TextColor}"/>
+                                                            <TextBlock Text="{Binding QuestionCountText}"
+                                                                       FontSize="11"
+                                                                       Foreground="{DynamicResource TextColorSecondary}"
+                                                                       Margin="0,4,0,0"/>
+                                                            <TextBlock Text="{Binding Document.LastModified, StringFormat='{}{0:dd MMM, HH:mm}'}"
+                                                                       FontSize="11"
+                                                                       Foreground="{DynamicResource TextColor}"
+                                                                       Margin="0,3,0,0"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <ScrollViewer Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
                                       PreviewDragOver="DashboardScrollViewer_PreviewDragOver"
                                       PreviewDragLeave="DashboardScrollViewer_PreviewDragLeave"
                                       Drop="DashboardScrollViewer_Drop"
@@ -3268,7 +3485,7 @@
                                                                 <TextBlock Grid.Column="4"
                                                                            Text="{Binding Name}"
                                                                            FontWeight="SemiBold"
-                                                                           Foreground="{DynamicResource TextColor}"
+                                                                           Foreground="{StaticResource DashboardGroupNameForeground}"
                                                                            VerticalAlignment="Center"
                                                                            TextTrimming="CharacterEllipsis"
                                                                            Margin="8,0,0,0"/>
@@ -3301,6 +3518,7 @@
                                                                                     <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}" Click="DuplicateQuizMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}" Click="RemoveQuizFromGroupMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleQuizMenuItem_Click"/>
+                                                                                    <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}" Click="QuizInfoMenuItem_Click"/>
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
                                                                                               Click="ToggleQuizPinMenuItem_Click"
@@ -3346,12 +3564,14 @@
                                                                                                     Margin="0,0,6,0">
                                                                                             <TextBlock Text="📌"
                                                                                                        FontSize="13"
+                                                                                                       Foreground="{DynamicResource TextColor}"
                                                                                                        Margin="0,0,5,0"
                                                                                                        VerticalAlignment="Center"
                                                                                                        Visibility="{Binding IsPinned, Converter={StaticResource BoolToVis}}"
                                                                                                        ToolTip="{Binding [Pin], Source={StaticResource Loc}}"/>
                                                                                             <TextBlock Text="🕒"
                                                                                                        FontSize="12"
+                                                                                                       Foreground="{DynamicResource TextColor}"
                                                                                                        Margin="0,0,5,0"
                                                                                                        VerticalAlignment="Center"
                                                                                                        Visibility="{Binding HasSchedule, Converter={StaticResource BoolToVis}}"
@@ -3444,6 +3664,8 @@
                                                                           Click="RemoveQuizFromGroupMenuItem_Click"/>
                                                                 <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}"
                                                                           Click="ScheduleQuizMenuItem_Click"/>
+                                                                <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}"
+                                                                          Click="QuizInfoMenuItem_Click"/>
                                                                 <Separator/>
                                                                 <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
                                                                           Click="ToggleQuizPinMenuItem_Click"
@@ -3580,12 +3802,14 @@
                                                                                 Margin="0,0,8,0">
                                                                         <TextBlock Text="📌"
                                                                                    FontSize="14"
+                                                                                   Foreground="{DynamicResource TextColor}"
                                                                                    Margin="0,0,6,0"
                                                                                    VerticalAlignment="Center"
                                                                                    Visibility="{Binding IsPinned, Converter={StaticResource BoolToVis}}"
                                                                                    ToolTip="{Binding [Pin], Source={StaticResource Loc}}"/>
                                                                         <TextBlock Text="🕒"
                                                                                    FontSize="13"
+                                                                                   Foreground="{DynamicResource TextColor}"
                                                                                    Margin="0,0,6,0"
                                                                                    VerticalAlignment="Center"
                                                                                    Visibility="{Binding HasSchedule, Converter={StaticResource BoolToVis}}"
@@ -3651,7 +3875,8 @@
                             </Grid>
                         </ScrollViewer>
 
-                        <Button Style="{StaticResource FabStyle}"
+                        <Button Grid.Row="1"
+                                Style="{StaticResource FabStyle}"
                                 VerticalAlignment="Bottom"
                                 HorizontalAlignment="Right"
                                 Margin="0,0,28,24"
@@ -3662,9 +3887,104 @@
                 </Grid>
 
                 <!-- MIND MAPS VIEW -->
-                <Grid Visibility="{Binding IsMindMapsView, Converter={StaticResource BoolToVis}}">
+                <Grid x:Name="MindMapsDashboardView"
+                      Visibility="{Binding IsMindMapsView, Converter={StaticResource BoolToVis}}"
+                      RenderTransformOrigin="0.5,0.5"
+                      IsVisibleChanged="DashboardView_IsVisibleChanged">
+                    <Grid.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1"/>
+                    </Grid.RenderTransform>
                     <Grid>
-                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0"
+                                Visibility="{Binding IsRecentSectionVisible, Converter={StaticResource BoolToVis}}"
+                                Background="{DynamicResource SidebarBackground}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="0,0,0,1"
+                                Padding="16,12">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0"
+                                            ToolTip="{Binding [ToggleRecentMindMapsSection], Source={StaticResource Loc}}"
+                                            Click="ToggleRecentSectionButton_Click">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRecentSectionExpanded}" Value="False">
+                                                        <Setter Property="RenderTransform">
+                                                            <Setter.Value>
+                                                                <RotateTransform Angle="-90"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding [RecentMindMaps], Source={StaticResource Loc}}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextColor}"
+                                               Margin="8,0,0,0"
+                                               FontFamily="Segoe UI Variable, Segoe UI, sans-serif"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                                <Border x:Name="MindMapRecentSectionBody"
+                                        Margin="0,10,0,0"
+                                        RenderTransformOrigin="0.5,0">
+                                    <Border.RenderTransform>
+                                        <TranslateTransform/>
+                                    </Border.RenderTransform>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollBarVisibility="Disabled"
+                                                  CanContentScroll="True"
+                                                  PanningMode="HorizontalOnly"
+                                                  PreviewMouseWheel="RecentNotesScrollViewer_PreviewMouseWheel">
+                                        <ItemsControl ItemsSource="{Binding RecentMindMaps}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:MindMapViewModel}">
+                                                    <Button Style="{StaticResource RecentNoteCardStyle}"
+                                                            Tag="{Binding}"
+                                                            Click="RecentMindMapButton_Click">
+                                                        <StackPanel MinWidth="120" MaxWidth="180">
+                                                            <TextBlock Text="{Binding Title}"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="13"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       Foreground="{DynamicResource TextColor}"/>
+                                                            <TextBlock Text="{Binding NodeCountText}"
+                                                                       FontSize="11"
+                                                                       Foreground="{DynamicResource TextColorSecondary}"
+                                                                       Margin="0,4,0,0"/>
+                                                            <TextBlock Text="{Binding Document.LastModified, StringFormat='{}{0:dd MMM, HH:mm}'}"
+                                                                       FontSize="11"
+                                                                       Foreground="{DynamicResource TextColor}"
+                                                                       Margin="0,3,0,0"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <ScrollViewer Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
                                       PreviewDragOver="DashboardScrollViewer_PreviewDragOver"
                                       PreviewDragLeave="DashboardScrollViewer_PreviewDragLeave"
                                       Drop="DashboardScrollViewer_Drop"
@@ -4037,7 +4357,7 @@
                                                                 <TextBlock Grid.Column="4"
                                    Text="{Binding Name}"
                                    FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextColor}"
+                                   Foreground="{StaticResource DashboardGroupNameForeground}"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
                                    Margin="8,0,0,0"/>
@@ -4074,6 +4394,7 @@
                                                                                               Visibility="{Binding Document.GroupId, Converter={StaticResource NullToVisibilityConverter}}"
                                                                                               Click="RemoveMindMapFromGroupMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleMindMapMenuItem_Click"/>
+                                                                                    <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}" Click="MindMapInfoMenuItem_Click"/>
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
                                                                                               Click="ToggleMindMapPinMenuItem_Click"
@@ -4120,12 +4441,14 @@
                                                                                                     Margin="0,0,6,0">
                                                                                             <TextBlock Text="📌"
                                                                                                        FontSize="13"
+                                                                                                       Foreground="{DynamicResource TextColor}"
                                                                                                        Margin="0,0,5,0"
                                                                                                        VerticalAlignment="Center"
                                                                                                        Visibility="{Binding IsPinned, Converter={StaticResource BoolToVis}}"
                                                                                                        ToolTip="{Binding [Pin], Source={StaticResource Loc}}"/>
                                                                                             <TextBlock Text="🕒"
                                                                                                        FontSize="12"
+                                                                                                       Foreground="{DynamicResource TextColor}"
                                                                                                        Margin="0,0,5,0"
                                                                                                        VerticalAlignment="Center"
                                                                                                        Visibility="{Binding HasSchedule, Converter={StaticResource BoolToVis}}"
@@ -4218,6 +4541,7 @@
                                                                           Visibility="{Binding Document.GroupId, Converter={StaticResource NullToVisibilityConverter}}"
                                                                           Click="RemoveMindMapFromGroupMenuItem_Click"/>
                                                                 <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleMindMapMenuItem_Click"/>
+                                                                <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}" Click="MindMapInfoMenuItem_Click"/>
                                                                 <Separator/>
                                                                 <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
                                                                           Click="ToggleMindMapPinMenuItem_Click"
@@ -4415,12 +4739,14 @@
                                                                                 Margin="0,0,8,0">
                                                                         <TextBlock Text="📌"
                                                                                    FontSize="14"
+                                                                                   Foreground="{DynamicResource TextColor}"
                                                                                    Margin="0,0,6,0"
                                                                                    VerticalAlignment="Center"
                                                                                    Visibility="{Binding IsPinned, Converter={StaticResource BoolToVis}}"
                                                                                    ToolTip="{Binding [Pin], Source={StaticResource Loc}}"/>
                                                                         <TextBlock Text="🕒"
                                                                                    FontSize="13"
+                                                                                   Foreground="{DynamicResource TextColor}"
                                                                                    Margin="0,0,6,0"
                                                                                    VerticalAlignment="Center"
                                                                                    Visibility="{Binding HasSchedule, Converter={StaticResource BoolToVis}}"

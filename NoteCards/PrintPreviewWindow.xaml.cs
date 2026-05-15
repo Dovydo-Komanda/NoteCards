@@ -14,6 +14,7 @@ namespace NoteCards
         public PrintPreviewWindow(string title, string content)
         {
             InitializeComponent();
+            NoteCards.Services.WindowThemeService.Register(this);
 
             _title = title;
             _content = content;

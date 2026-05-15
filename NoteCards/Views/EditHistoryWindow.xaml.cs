@@ -16,6 +16,7 @@ public partial class EditHistoryWindow : Window
     public EditHistoryWindow(IEnumerable<NoteEditHistoryEntry> versions)
     {
         InitializeComponent();
+        NoteCards.Services.WindowThemeService.Register(this);
 
         var items = versions
             .OrderByDescending(v => v.Timestamp)

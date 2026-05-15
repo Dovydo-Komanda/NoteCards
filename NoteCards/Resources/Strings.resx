@@ -17,6 +17,9 @@
   <data name="About" xml:space="preserve"><value>About</value></data>
   <data name="Settings" xml:space="preserve"><value>Settings</value></data>
   <data name="RecentNotes" xml:space="preserve"><value>Recent Notes</value></data>
+  <data name="RecentFlashcards" xml:space="preserve"><value>Recent Flashcards</value></data>
+  <data name="RecentMindMaps" xml:space="preserve"><value>Recent Mind Maps</value></data>
+  <data name="RecentQuizzes" xml:space="preserve"><value>Recent Quizzes</value></data>
   <data name="Open" xml:space="preserve"><value>Open</value></data>
   <data name="Delete" xml:space="preserve"><value>Delete</value></data>
   <data name="Close" xml:space="preserve"><value>Close</value></data>
@@ -27,8 +30,12 @@
   <data name="LanguageLithuanian" xml:space="preserve"><value>Lithuanian</value></data>
   <data name="Scrollbar" xml:space="preserve"><value>Scrollbar:</value></data>
   <data name="EnableScrollbar" xml:space="preserve"><value>Enable scrollbar</value></data>
-  <data name="AutoSave" xml:space="preserve"><value>Auto-save:</value></data>
+  <data name="AutoSave" xml:space="preserve"><value>Auto-save</value></data>
   <data name="EnableAutoSave" xml:space="preserve"><value>Enable auto-save</value></data>
+  <data name="AutoSaveFrequency" xml:space="preserve"><value>Save every:</value></data>
+  <data name="AutoSaveUnitSeconds" xml:space="preserve"><value>seconds</value></data>
+  <data name="AutoSaveUnitMinutes" xml:space="preserve"><value>minutes</value></data>
+  <data name="AutoSaveUnitHours" xml:space="preserve"><value>hours</value></data>
   <data name="FlashcardModel" xml:space="preserve"><value>AI model:</value></data>
   <data name="FlashcardModel08BDescription" xml:space="preserve"><value>faster, light</value></data>
   <data name="FlashcardModel2BDescription" xml:space="preserve"><value>balanced, better quality</value></data>
@@ -86,6 +93,9 @@
   <data name="CalendarSection" xml:space="preserve"><value>Calendar</value></data>
   <data name="ToggleCalendarSection" xml:space="preserve"><value>Show/hide calendar</value></data>
   <data name="ToggleRecentNotesSection" xml:space="preserve"><value>Show/hide recent notes</value></data>
+  <data name="ToggleRecentFlashcardsSection" xml:space="preserve"><value>Show/hide recent flashcards</value></data>
+  <data name="ToggleRecentMindMapsSection" xml:space="preserve"><value>Show/hide recent mind maps</value></data>
+  <data name="ToggleRecentQuizzesSection" xml:space="preserve"><value>Show/hide recent quizzes</value></data>
   <data name="MoveGroupsSectionUp" xml:space="preserve"><value>Move groups section up</value></data>
   <data name="MoveGroupsSectionDown" xml:space="preserve"><value>Move groups section down</value></data>
   <data name="ToggleGroupsSection" xml:space="preserve"><value>Show/hide groups</value></data>
@@ -186,6 +196,51 @@ Right-click to remove</value></data>
   <data name="DisbandGroup" xml:space="preserve"><value>Disband Group</value></data>
   <data name="DisbandGroupPrompt" xml:space="preserve"><value>Choose what to do with this group.</value></data>
   <data name="DropToUngroup" xml:space="preserve"><value>Drop here to move note out of group</value></data>
+  <data name="Info" xml:space="preserve"><value>Info</value></data>
+  <data name="InfoAdvanced" xml:space="preserve"><value>Advanced details</value></data>
+  <data name="InfoTypeNote" xml:space="preserve"><value>Note</value></data>
+  <data name="InfoTypeFlashcards" xml:space="preserve"><value>Flashcards</value></data>
+  <data name="InfoTypeMindMap" xml:space="preserve"><value>Mind map</value></data>
+  <data name="InfoTypeQuiz" xml:space="preserve"><value>Quiz</value></data>
+  <data name="InfoLabelType" xml:space="preserve"><value>Type</value></data>
+  <data name="InfoLabelTitle" xml:space="preserve"><value>Title</value></data>
+  <data name="InfoLabelCreated" xml:space="preserve"><value>Created</value></data>
+  <data name="InfoLabelModified" xml:space="preserve"><value>Modified</value></data>
+  <data name="InfoLabelGroup" xml:space="preserve"><value>Group</value></data>
+  <data name="InfoLabelPinned" xml:space="preserve"><value>Pinned</value></data>
+  <data name="InfoLabelScheduled" xml:space="preserve"><value>Scheduled</value></data>
+  <data name="InfoLabelTags" xml:space="preserve"><value>Tags</value></data>
+  <data name="InfoLabelWords" xml:space="preserve"><value>Words</value></data>
+  <data name="InfoLabelCharacters" xml:space="preserve"><value>Characters</value></data>
+  <data name="InfoLabelImages" xml:space="preserve"><value>Images</value></data>
+  <data name="InfoLabelEditHistory" xml:space="preserve"><value>Edit history</value></data>
+  <data name="InfoLabelFont" xml:space="preserve"><value>Font</value></data>
+  <data name="InfoLabelId" xml:space="preserve"><value>ID</value></data>
+  <data name="InfoLabelCards" xml:space="preserve"><value>Cards</value></data>
+  <data name="InfoLabelSets" xml:space="preserve"><value>Sets</value></data>
+  <data name="InfoLabelKnownCards" xml:space="preserve"><value>Known cards</value></data>
+  <data name="InfoLabelUnknownCards" xml:space="preserve"><value>Unknown cards</value></data>
+  <data name="InfoLabelCategories" xml:space="preserve"><value>Categories</value></data>
+  <data name="InfoLabelGeneratedWith" xml:space="preserve"><value>Generated with</value></data>
+  <data name="InfoLabelNodes" xml:space="preserve"><value>Nodes</value></data>
+  <data name="InfoLabelBranches" xml:space="preserve"><value>Branches</value></data>
+  <data name="InfoLabelLayout" xml:space="preserve"><value>Layout</value></data>
+  <data name="InfoLabelManualPositioning" xml:space="preserve"><value>Manual positioning</value></data>
+  <data name="InfoLabelSourceNote" xml:space="preserve"><value>Source note</value></data>
+  <data name="InfoLabelQuestions" xml:space="preserve"><value>Questions</value></data>
+  <data name="InfoLabelPassingScore" xml:space="preserve"><value>Passing score</value></data>
+  <data name="InfoLabelTimeLimit" xml:space="preserve"><value>Time limit</value></data>
+  <data name="InfoLabelAttempts" xml:space="preserve"><value>Attempts</value></data>
+  <data name="InfoLabelBestScore" xml:space="preserve"><value>Best score</value></data>
+  <data name="InfoYes" xml:space="preserve"><value>Yes</value></data>
+  <data name="InfoNo" xml:space="preserve"><value>No</value></data>
+  <data name="InfoNone" xml:space="preserve"><value>None</value></data>
+  <data name="InfoUnknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="InfoUngrouped" xml:space="preserve"><value>Ungrouped</value></data>
+  <data name="InfoNoLimit" xml:space="preserve"><value>No limit</value></data>
+  <data name="InfoScheduleNextFormat" xml:space="preserve"><value>{0} (next: {1})</value></data>
+  <data name="InfoScheduleLatestFormat" xml:space="preserve"><value>{0} (latest: {1})</value></data>
+  <data name="InfoGroupFallbackFormat" xml:space="preserve"><value>Group {0}</value></data>
   <data name="Tags" xml:space="preserve"><value>Tags:</value></data>
   <data name="TagsHint" xml:space="preserve"><value>Example: work, urgent, idea</value></data>
   <data name="FilterTags" xml:space="preserve"><value>Filter Tags</value></data>

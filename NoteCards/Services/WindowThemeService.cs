@@ -36,6 +36,11 @@ internal static class WindowThemeService
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool GetWindowRect(IntPtr hWnd, out Rect rect);
 
+    public static void Register(Window window)
+    {
+        ApplyThemeWhenReady(window, ThemeManager.CurrentTheme);
+    }
+
     public static void ApplyThemeWhenReady(Window window, string theme, bool rebuildFrame = false)
     {
         if (new WindowInteropHelper(window).Handle != IntPtr.Zero)
