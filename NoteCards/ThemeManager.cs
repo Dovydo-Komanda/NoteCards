@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using NoteCards.Services;
+using System.Windows;
 
 namespace NoteCards
 {
@@ -50,6 +51,7 @@ namespace NoteCards
             // Invalidate all windows
             foreach (Window window in Application.Current.Windows)
             {
+                WindowThemeService.ApplyTheme(window, _currentTheme);
                 window.InvalidateVisual();
             }
         }

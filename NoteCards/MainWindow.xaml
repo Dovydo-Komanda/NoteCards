@@ -618,10 +618,10 @@
 			<Setter Property="Height" Value="28"/>
 			<Setter Property="Padding" Value="0"/>
 			<Setter Property="Cursor" Value="Hand"/>
-			<Setter Property="Background" Value="#F5F7FB"/>
-			<Setter Property="BorderBrush" Value="#DDE4F3"/>
+			<Setter Property="Background" Value="{DynamicResource IconButtonBackground}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource IconButtonBorder}"/>
 			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="Foreground" Value="#4B5878"/>
+			<Setter Property="Foreground" Value="{DynamicResource IconButtonForeground}"/>
 			<Setter Property="Template">
 				<Setter.Value>
 					<ControlTemplate TargetType="Button">
@@ -638,12 +638,12 @@
 						</Border>
 						<ControlTemplate.Triggers>
 							<Trigger Property="IsMouseOver" Value="True">
-								<Setter TargetName="GroupIconBorder" Property="Background" Value="#EAF0FD"/>
-								<Setter TargetName="GroupIconBorder" Property="BorderBrush" Value="#C9D7F5"/>
+								<Setter TargetName="GroupIconBorder" Property="Background" Value="{DynamicResource IconButtonHoverBackground}"/>
+								<Setter TargetName="GroupIconBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
 							</Trigger>
 							<Trigger Property="IsPressed" Value="True">
-								<Setter TargetName="GroupIconBorder" Property="Background" Value="#DCE7FB"/>
-								<Setter TargetName="GroupIconBorder" Property="BorderBrush" Value="#B8CAF2"/>
+								<Setter TargetName="GroupIconBorder" Property="Background" Value="{DynamicResource IconButtonPressedBackground}"/>
+								<Setter TargetName="GroupIconBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
 							</Trigger>
 						</ControlTemplate.Triggers>
 					</ControlTemplate>
@@ -696,10 +696,11 @@
 
 		<Style x:Key="DashboardCalendarDayButtonStyle" TargetType="CalendarDayButton">
 			<Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
-			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Background" Value="{DynamicResource CardBackground}"/>
 			<Setter Property="BorderBrush" Value="Transparent"/>
-			<Setter Property="BorderThickness" Value="1"/>
-           <Setter Property="Margin" Value="1"/>
+			<Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+           <Setter Property="Margin" Value="0"/>
 			<Setter Property="Template">
 				<Setter.Value>
 					<ControlTemplate TargetType="CalendarDayButton">
@@ -735,12 +736,77 @@
 		</Style>
 
 		<Style x:Key="DashboardCalendarControlStyle" TargetType="Calendar">
-			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
 			<Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
 			<Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
 			<Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI, sans-serif"/>
-              <Setter Property="Padding" Value="4"/>
+               <Setter Property="Padding" Value="4"/>
 			<Setter Property="CalendarDayButtonStyle" Value="{StaticResource DashboardCalendarDayButtonStyle}"/>
+            <Setter Property="CalendarButtonStyle">
+                <Setter.Value>
+                    <Style TargetType="CalendarButton">
+                        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="CalendarButton">
+                                    <Border x:Name="CalendarButtonBorder"
+                                            Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="8"
+                                            Padding="4">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="CalendarButtonBorder" Property="Background" Value="{DynamicResource HoverBackground}"/>
+                                            <Setter TargetName="CalendarButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="CalendarButtonBorder" Property="Background" Value="{DynamicResource SelectionBackground}"/>
+                                            <Setter TargetName="CalendarButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="CalendarItemStyle">
+                <Setter.Value>
+                    <Style TargetType="CalendarItem">
+                        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Calendar">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <CalendarItem x:Name="PART_CalendarItem"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="Transparent"
+                                          BorderThickness="0"
+                                          Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Setter Property="FontSize" Value="13"/>
 		</Style>
 	</Window.Resources>
@@ -757,7 +823,7 @@
 		<!-- Sidebar -->
      <Border Grid.Column="0"
 				Background="{DynamicResource SidebarBackground}"
-				BorderBrush="#E0E0E0"
+				BorderBrush="{DynamicResource BorderColor}"
 				BorderThickness="0,0,1,0"
              IsEnabled="{Binding IsNotMassSelectMode}"
 				Padding="8,10">
@@ -875,7 +941,7 @@
 			<!-- Top Bar -->
 			<Border Grid.Row="0"
 					Background="{DynamicResource SidebarBackground}"
-					BorderBrush="#E0E0E0"
+					BorderBrush="{DynamicResource BorderColor}"
 					BorderThickness="0,0,0,1"
 					Padding="16,10">
 				<Grid>
@@ -982,7 +1048,7 @@
 				   AllowsTransparency="True"
 				   PopupAnimation="Fade">
 				<Border Background="{DynamicResource SidebarBackground}"
-						BorderBrush="#D8D8D8"
+						BorderBrush="{DynamicResource BorderColor}"
 						BorderThickness="1"
 						CornerRadius="10"
 						MinWidth="260"
@@ -1024,7 +1090,7 @@
 				   AllowsTransparency="True"
 				   PopupAnimation="Fade">
 				<Border Background="{DynamicResource SidebarBackground}"
-						BorderBrush="#D8D8D8"
+						BorderBrush="{DynamicResource BorderColor}"
 						BorderThickness="1"
 						CornerRadius="10"
 						MinWidth="220"
@@ -1097,7 +1163,7 @@
 				   AllowsTransparency="True"
 				   PopupAnimation="Fade">
 				<Border Background="{DynamicResource SidebarBackground}"
-						BorderBrush="#D8D8D8"
+						BorderBrush="{DynamicResource BorderColor}"
 						BorderThickness="1"
 						CornerRadius="10"
 						MinWidth="260"
@@ -1143,7 +1209,7 @@
                       <TextBlock Text="{Binding [NoTagsFound], Source={StaticResource Loc}}"
 								   Margin="4,8,4,6"
 								   FontStyle="Italic"
-								   Foreground="#7A7F90">
+								   Foreground="{DynamicResource TextColorSecondary}">
 							<TextBlock.Style>
 								<Style TargetType="TextBlock">
 									<Setter Property="Visibility" Value="Collapsed"/>
@@ -1270,8 +1336,8 @@
 									Visibility="{Binding IsCalendarSectionVisible, Converter={StaticResource BoolToVis}}"
                                     Background="{DynamicResource SidebarBackground}"
 									BorderBrush="{DynamicResource BorderColor}"
-									BorderThickness="1"
-                                   CornerRadius="14"
+									BorderThickness="0"
+                                    CornerRadius="14"
 									Padding="12"
 									Margin="8,0,8,10"
 									RenderTransformOrigin="0.5,0.5">
@@ -1355,7 +1421,7 @@
                                             <Border Grid.Column="2"
 												Background="{DynamicResource CardBackground}"
 												BorderBrush="{DynamicResource BorderColor}"
-												BorderThickness="1"
+												BorderThickness="0"
                                                CornerRadius="12"
                                                 Padding="8"
                                                ClipToBounds="True"
@@ -1631,7 +1697,7 @@
                                                                     <TextBlock Grid.Column="4"
 																   Text="{Binding Name}"
 																   FontWeight="SemiBold"
-																   Foreground="#2F3A59"
+																   Foreground="{DynamicResource TextColor}"
 																   VerticalAlignment="Center"
 																   TextTrimming="CharacterEllipsis"
 																   Margin="8,0,0,0"/>
@@ -1779,7 +1845,7 @@
 							VerticalAlignment="Top"
 							Margin="0,10,14,0"
 							Background="{DynamicResource SidebarBackground}"
-							BorderBrush="#D5DCEC"
+							BorderBrush="{DynamicResource BorderColor}"
 							BorderThickness="1"
 							Padding="10"
 							CornerRadius="12">
@@ -1800,7 +1866,7 @@
 										   FontSize="13"
 										   Foreground="{DynamicResource TextColor}"/>
                                     <TextBlock Text="{Binding MassSelectSelectionText}"
-										   Foreground="#4D5A79"
+										   Foreground="{DynamicResource TextColorSecondary}"
 										   FontSize="12"
 										   Margin="0,2,0,0"/>
                                 </StackPanel>
@@ -1824,7 +1890,7 @@
                                     <Border x:Name="MassSelectMoreActionsPanel"
 										Margin="8,0,0,0"
 										Padding="6,0,0,0"
-										BorderBrush="#E1E6F2"
+										BorderBrush="{DynamicResource BorderColor}"
 										BorderThickness="1,0,0,0"
 										Visibility="Collapsed"
 										Opacity="0"
@@ -1863,7 +1929,7 @@
 
                                     <Border Margin="8,0,0,0"
 										Padding="8,0,0,0"
-										BorderBrush="#D5DCEC"
+										BorderBrush="{DynamicResource BorderColor}"
 										BorderThickness="1,0,0,0"
 										VerticalAlignment="Stretch">
                                         <Button Style="{StaticResource MassActionIconButtonStyle}"
@@ -1898,7 +1964,7 @@
                                         Visibility="{Binding IsCalendarSectionVisible, Converter={StaticResource BoolToVis}}"
                                         Background="{DynamicResource SidebarBackground}"
                                         BorderBrush="{DynamicResource BorderColor}"
-                                        BorderThickness="1"
+                                        BorderThickness="0"
                                         CornerRadius="14"
                                         Padding="12"
                                         Margin="8,0,8,10"
@@ -1983,7 +2049,7 @@
                                             <Border Grid.Column="2"
                                                     Background="{DynamicResource CardBackground}"
                                                     BorderBrush="{DynamicResource BorderColor}"
-                                                    BorderThickness="1"
+                                                    BorderThickness="0"
                                                     CornerRadius="12"
                                                     Padding="8"
                                                     ClipToBounds="True"
@@ -2252,7 +2318,7 @@
                                                                 <TextBlock Grid.Column="4"
                                                                            Text="{Binding Name}"
                                                                            FontWeight="SemiBold"
-                                                                           Foreground="#2F3A59"
+                                                                           Foreground="{DynamicResource TextColor}"
                                                                            VerticalAlignment="Center"
                                                                            TextTrimming="CharacterEllipsis"
                                                                            Margin="8,0,0,0"/>
@@ -2664,7 +2730,7 @@
                                         Visibility="{Binding IsCalendarSectionVisible, Converter={StaticResource BoolToVis}}"
                                         Background="{DynamicResource SidebarBackground}"
                                         BorderBrush="{DynamicResource BorderColor}"
-                                        BorderThickness="1"
+                                        BorderThickness="0"
                                         CornerRadius="14"
                                         Padding="12"
                                         Margin="8,0,8,10"
@@ -2749,7 +2815,7 @@
                                             <Border Grid.Column="2"
                                                     Background="{DynamicResource CardBackground}"
                                                     BorderBrush="{DynamicResource BorderColor}"
-                                                    BorderThickness="1"
+                                                    BorderThickness="0"
                                                     CornerRadius="12"
                                                     Padding="8"
                                                     ClipToBounds="True"
@@ -3017,7 +3083,7 @@
                                                                 <TextBlock Grid.Column="4"
                                                                            Text="{Binding Name}"
                                                                            FontWeight="SemiBold"
-                                                                           Foreground="#2F3A59"
+                                                                           Foreground="{DynamicResource TextColor}"
                                                                            VerticalAlignment="Center"
                                                                            TextTrimming="CharacterEllipsis"
                                                                            Margin="8,0,0,0"/>
@@ -3384,7 +3450,7 @@
                                         Visibility="{Binding IsCalendarSectionVisible, Converter={StaticResource BoolToVis}}"
                                         Background="{DynamicResource SidebarBackground}"
                                         BorderBrush="{DynamicResource BorderColor}"
-                                        BorderThickness="1"
+                                        BorderThickness="0"
                                         CornerRadius="14"
                                         Padding="12"
                                         Margin="8,0,8,10"
@@ -3469,7 +3535,7 @@
                                             <Border Grid.Column="2"
                                                     Background="{DynamicResource CardBackground}"
                                                     BorderBrush="{DynamicResource BorderColor}"
-                                                    BorderThickness="1"
+                                                    BorderThickness="0"
                                                     CornerRadius="12"
                                                     Padding="8"
                                                     ClipToBounds="True"
@@ -3740,7 +3806,7 @@
                                                                 <TextBlock Grid.Column="4"
                                    Text="{Binding Name}"
                                    FontWeight="SemiBold"
-                                   Foreground="#2F3A59"
+                                   Foreground="{DynamicResource TextColor}"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
                                    Margin="8,0,0,0"/>

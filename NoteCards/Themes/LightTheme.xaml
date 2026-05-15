@@ -67,6 +67,12 @@
     <SolidColorBrush x:Key="SelectionBackground" Color="#F5F5F8"/>
     <SolidColorBrush x:Key="HoverBackground" Color="#FAFBFC"/>
 
+    <!-- Scrollbar Colors -->
+    <SolidColorBrush x:Key="ScrollBarTrackBackground" Color="#EBEBEF"/>
+    <SolidColorBrush x:Key="ScrollBarThumbBackground" Color="#8F8F97"/>
+    <SolidColorBrush x:Key="ScrollBarThumbHoverBackground" Color="#73737C"/>
+    <SolidColorBrush x:Key="ScrollBarThumbPressedBackground" Color="#5E5E68"/>
+
     <!-- Mind map search highlight colors -->
     <SolidColorBrush x:Key="MindMapSearchMatchBorderBrush" Color="#EAA43A"/>
     <SolidColorBrush x:Key="MindMapSearchActiveBorderBrush" Color="#DA6A21"/>
