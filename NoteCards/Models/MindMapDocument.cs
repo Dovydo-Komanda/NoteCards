@@ -14,4 +14,5 @@ public sealed class MindMapDocument
     public Guid? SourceNoteId { get; set; }
     public Guid? GroupId { get; set; }
     public List<NoteScheduleEntry> Schedules { get; set; } = new();
+    public bool IsPinned { get; set; }
 }

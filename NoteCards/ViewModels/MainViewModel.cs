@@ -585,7 +585,8 @@ public class MainViewModel : ViewModelBase
 
             foreach (var set in sets
                          .Where(set => set != null)
-                         .OrderByDescending(set => set.LastModified)
+                         .OrderByDescending(set => set.IsPinned)
+                         .ThenByDescending(set => set.LastModified)
                          .ThenBy(set => set.Title, StringComparer.CurrentCultureIgnoreCase))
             {
                 NormalizeFlashcardSetDocument(set);
@@ -651,6 +652,8 @@ public class MainViewModel : ViewModelBase
             existing.Document.LastModified = document.LastModified;
             existing.Document.AiModelDisplayName = document.AiModelDisplayName;
             existing.Document.GroupId = document.GroupId;
+            existing.Document.Schedules = document.Schedules;
+            existing.Document.IsPinned = document.IsPinned;
             existing.NotifyChanged();
         }
 
@@ -683,7 +686,8 @@ public class MainViewModel : ViewModelBase
         var path = GetFlashcardSetsFilePath();
         var documents = FlashcardSets
             .Select(set => set.Document)
-            .OrderByDescending(set => set.LastModified)
+            .OrderByDescending(set => set.IsPinned)
+            .ThenByDescending(set => set.LastModified)
             .ThenBy(set => set.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
@@ -703,7 +707,8 @@ public class MainViewModel : ViewModelBase
     private void ReorderFlashcardSets()
     {
         var ordered = FlashcardSets
-            .OrderByDescending(set => set.Document.LastModified)
+            .OrderByDescending(set => set.Document.IsPinned)
+            .ThenByDescending(set => set.Document.LastModified)
             .ThenBy(set => set.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
@@ -753,7 +758,12 @@ public class MainViewModel : ViewModelBase
 
         foreach (var group in grouped)
         {
-            var visibleSets = group.Where(MatchesFlashcardSetFilters).ToList();
+            var visibleSets = group
+                .Where(MatchesFlashcardSetFilters)
+                .OrderByDescending(set => set.Document.IsPinned)
+                .ThenByDescending(set => set.Document.LastModified)
+                .ThenBy(set => set.Title, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
             if (visibleSets.Count == 0)
                 continue;
 
@@ -1067,7 +1077,8 @@ public class MainViewModel : ViewModelBase
 
         foreach (var map in maps
                      .Where(map => map != null)
-                     .OrderByDescending(map => map.LastModified)
+                     .OrderByDescending(map => map.IsPinned)
+                     .ThenByDescending(map => map.LastModified)
                      .ThenBy(map => map.Title, StringComparer.CurrentCultureIgnoreCase))
         {
             NormalizeMindMapDocument(map);
@@ -1100,6 +1111,9 @@ public class MainViewModel : ViewModelBase
             existing.Document.LastModified = document.LastModified;
             existing.Document.AiModelDisplayName = document.AiModelDisplayName;
             existing.Document.SourceNoteId = document.SourceNoteId;
+            existing.Document.GroupId = document.GroupId;
+            existing.Document.Schedules = document.Schedules;
+            existing.Document.IsPinned = document.IsPinned;
             existing.NotifyChanged();
         }
 
@@ -1329,7 +1343,8 @@ public class MainViewModel : ViewModelBase
         var path = GetMindMapsFilePath();
         var documents = MindMaps
             .Select(map => map.Document)
-            .OrderByDescending(map => map.LastModified)
+            .OrderByDescending(map => map.IsPinned)
+            .ThenByDescending(map => map.LastModified)
             .ThenBy(map => map.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
@@ -1349,7 +1364,8 @@ public class MainViewModel : ViewModelBase
     private void ReorderMindMaps()
     {
         var ordered = MindMaps
-            .OrderByDescending(map => map.Document.LastModified)
+            .OrderByDescending(map => map.Document.IsPinned)
+            .ThenByDescending(map => map.Document.LastModified)
             .ThenBy(map => map.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
@@ -1477,7 +1493,8 @@ public class MainViewModel : ViewModelBase
 
         foreach (var quiz in documents
                      .Where(quiz => quiz != null)
-                     .OrderByDescending(quiz => quiz.LastModified)
+                     .OrderByDescending(quiz => quiz.IsPinned)
+                     .ThenByDescending(quiz => quiz.LastModified)
                      .ThenBy(quiz => quiz.Title, StringComparer.CurrentCultureIgnoreCase))
         {
             NormalizeQuizDocument(quiz);
@@ -1510,6 +1527,7 @@ public class MainViewModel : ViewModelBase
             existing.Document.SourceNoteId = document.SourceNoteId;
             existing.Document.GroupId = document.GroupId;
             existing.Document.Schedules = document.Schedules;
+            existing.Document.IsPinned = document.IsPinned;
             existing.NotifyChanged();
         }
 
@@ -1542,7 +1560,8 @@ public class MainViewModel : ViewModelBase
         var path = GetQuizzesFilePath();
         var documents = Quizzes
             .Select(quiz => quiz.Document)
-            .OrderByDescending(quiz => quiz.LastModified)
+            .OrderByDescending(quiz => quiz.IsPinned)
+            .ThenByDescending(quiz => quiz.LastModified)
             .ThenBy(quiz => quiz.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
@@ -1567,7 +1586,8 @@ public class MainViewModel : ViewModelBase
     private void ReorderQuizzes()
     {
         var ordered = Quizzes
-            .OrderByDescending(quiz => quiz.Document.LastModified)
+            .OrderByDescending(quiz => quiz.Document.IsPinned)
+            .ThenByDescending(quiz => quiz.Document.LastModified)
             .ThenBy(quiz => quiz.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
@@ -1617,7 +1637,12 @@ public class MainViewModel : ViewModelBase
 
         foreach (var group in grouped)
         {
-            var visibleQuizzes = group.Where(MatchesQuizFilters).ToList();
+            var visibleQuizzes = group
+                .Where(MatchesQuizFilters)
+                .OrderByDescending(quiz => quiz.Document.IsPinned)
+                .ThenByDescending(quiz => quiz.Document.LastModified)
+                .ThenBy(quiz => quiz.Title, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
             if (visibleQuizzes.Count == 0)
                 continue;
 
@@ -2389,6 +2414,51 @@ public class MainViewModel : ViewModelBase
         RebuildGroups();
         ApplyFilters();
         SaveNotes();
+    }
+
+    public void ToggleFlashcardSetPin(FlashcardSetViewModel set)
+    {
+        if (set is null)
+            return;
+
+        set.Document.IsPinned = !set.Document.IsPinned;
+        set.NotifyChanged();
+        ReorderFlashcardSets();
+        NormalizeFlashcardSetGroups();
+        RebuildFlashcardSetGroups();
+        ApplyFlashcardFilters();
+        SaveFlashcardSets();
+        NotifyFlashcardSetsChanged();
+    }
+
+    public void ToggleMindMapPin(MindMapViewModel mindMap)
+    {
+        if (mindMap is null)
+            return;
+
+        mindMap.Document.IsPinned = !mindMap.Document.IsPinned;
+        mindMap.NotifyChanged();
+        ReorderMindMaps();
+        NormalizeMindMapGroups();
+        RebuildMindMapGroups();
+        ApplyMindMapFilters();
+        SaveMindMaps();
+        NotifyMindMapsChanged();
+    }
+
+    public void ToggleQuizPin(QuizViewModel quiz)
+    {
+        if (quiz is null)
+            return;
+
+        quiz.Document.IsPinned = !quiz.Document.IsPinned;
+        quiz.NotifyChanged();
+        ReorderQuizzes();
+        NormalizeQuizGroups();
+        RebuildQuizGroups();
+        ApplyQuizFilters();
+        SaveQuizzes();
+        NotifyQuizzesChanged();
     }
 
     private void DeleteNote(NoteCardViewModel noteCard)
@@ -3589,6 +3659,7 @@ public class MainViewModel : ViewModelBase
     private void ApplySortToFlashcardSetsView()
     {
         _flashcardSetsView.SortDescriptions.Clear();
+        _flashcardSetsView.SortDescriptions.Add(new SortDescription("Document.IsPinned", ListSortDirection.Descending));
 
         switch (_selectedFlashcardSortOptionKey)
         {
@@ -3628,6 +3699,7 @@ public class MainViewModel : ViewModelBase
     private void ApplySortToMindMapsView()
     {
         _mindMapsView.SortDescriptions.Clear();
+        _mindMapsView.SortDescriptions.Add(new SortDescription("Document.IsPinned", ListSortDirection.Descending));
 
         switch (_selectedMindMapSortOptionKey)
         {
@@ -3667,6 +3739,7 @@ public class MainViewModel : ViewModelBase
     private void ApplySortToQuizzesView()
     {
         _quizzesView.SortDescriptions.Clear();
+        _quizzesView.SortDescriptions.Add(new SortDescription("Document.IsPinned", ListSortDirection.Descending));
 
         switch (_selectedQuizSortOptionKey)
         {
@@ -4161,7 +4234,12 @@ public class MainViewModel : ViewModelBase
                 _mindMapGroupMetadata[group.Key] = meta;
             }
 
-            var visibleMaps = group.Where(MatchesMindMapFilters).ToList();
+            var visibleMaps = group
+                .Where(MatchesMindMapFilters)
+                .OrderByDescending(map => map.Document.IsPinned)
+                .ThenByDescending(map => map.Document.LastModified)
+                .ThenBy(map => map.Title, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
             if (visibleMaps.Count == 0)
                 continue;
 

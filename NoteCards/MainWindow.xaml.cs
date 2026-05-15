@@ -1244,6 +1244,12 @@ namespace NoteCards
             }
         }
 
+        private void ToggleQuizPinMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: QuizViewModel quizVm })
+                vm.ToggleQuizPin(quizVm);
+        }
+
         private void RemoveQuizFromGroupMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: QuizViewModel quizVm })
@@ -1286,6 +1292,12 @@ namespace NoteCards
                 vm.DuplicateFlashcardSet(set);
         }
 
+        private void ToggleFlashcardSetPinMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: FlashcardSetViewModel set })
+                vm.ToggleFlashcardSetPin(set);
+        }
+
         private void RemoveFlashcardSetFromGroupMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: FlashcardSetViewModel set })
@@ -1315,6 +1327,12 @@ namespace NoteCards
                     // OpenMindMapEditor(newMindMap);
                 }
             }
+        }
+
+        private void ToggleMindMapPinMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is MenuItem { DataContext: MindMapViewModel mindMapVm })
+                vm.ToggleMindMapPin(mindMapVm);
         }
 
         private async void DeleteMindMapMenuItem_Click(object sender, RoutedEventArgs e)

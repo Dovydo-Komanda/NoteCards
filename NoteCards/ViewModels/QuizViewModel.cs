@@ -26,7 +26,16 @@ public sealed class QuizViewModel : ViewModelBase
         ? string.Join("   ", Document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => $"#{tag.Trim()}"))
         : string.Empty;
 
+    public bool IsPinned => Document.IsPinned;
+
     public bool HasSchedule => Document.Schedules?.Any() == true;
+
+    public string NextScheduleDisplay => HasSchedule
+        ? Document.Schedules
+            .OrderBy(schedule => schedule.ScheduledAt)
+            .First()
+            .ScheduledAt.ToString("yyyy-MM-dd HH:mm")
+        : string.Empty;
 
     public bool IsAiGenerated => !string.IsNullOrWhiteSpace(Document.AiModelDisplayName);
 
@@ -41,7 +50,9 @@ public sealed class QuizViewModel : ViewModelBase
         OnPropertyChanged(nameof(QuestionCountText));
         OnPropertyChanged(nameof(HasTags));
         OnPropertyChanged(nameof(TagsDisplay));
+        OnPropertyChanged(nameof(IsPinned));
         OnPropertyChanged(nameof(HasSchedule));
+        OnPropertyChanged(nameof(NextScheduleDisplay));
         OnPropertyChanged(nameof(IsAiGenerated));
         OnPropertyChanged(nameof(AiGeneratedTooltip));
     }

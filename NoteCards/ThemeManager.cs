@@ -8,6 +8,7 @@ namespace NoteCards
         public static event EventHandler? ThemeChanged;
 
         private static string _currentTheme = "Light";
+        private static int _nativeThemeRefreshVersion;
 
         public static string CurrentTheme => _currentTheme;
 
@@ -49,11 +50,30 @@ namespace NoteCards
             }
 
             // Invalidate all windows
+            var refreshVersion = ++_nativeThemeRefreshVersion;
+            ApplyNativeThemeToOpenWindows(_currentTheme, invalidateVisuals: true, rebuildFrame: false);
+            RefreshNativeThemeAfterLayout(_currentTheme, refreshVersion);
+        }
+
+        private static void ApplyNativeThemeToOpenWindows(string theme, bool invalidateVisuals, bool rebuildFrame)
+        {
             foreach (Window window in Application.Current.Windows)
             {
-                WindowThemeService.ApplyTheme(window, _currentTheme);
-                window.InvalidateVisual();
+                WindowThemeService.ApplyThemeWhenReady(window, theme, rebuildFrame);
+                if (invalidateVisuals)
+                    window.InvalidateVisual();
             }
+        }
+
+        private static void RefreshNativeThemeAfterLayout(string theme, int refreshVersion)
+        {
+            Application.Current.Dispatcher.BeginInvoke(() =>
+            {
+                if (refreshVersion == _nativeThemeRefreshVersion)
+                {
+                    ApplyNativeThemeToOpenWindows(theme, invalidateVisuals: false, rebuildFrame: true);
+                }
+            }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
     }
 }

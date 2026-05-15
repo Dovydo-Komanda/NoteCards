@@ -13,4 +13,5 @@ public sealed class FlashcardSetDocument
     public string AiModelDisplayName { get; set; } = string.Empty;
     public Guid? GroupId { get; set; }
     public List<NoteScheduleEntry> Schedules { get; set; } = new();
+    public bool IsPinned { get; set; }
 }

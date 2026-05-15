@@ -408,6 +408,8 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 : _modelDisplayName,
             SourceNoteId = SelectedLinkedNote?.Id ?? existingDocument?.SourceNoteId ?? _sourceDocument.SourceNoteId,
             GroupId = existingDocument?.GroupId ?? _sourceDocument.GroupId,
+            Schedules = existingDocument?.Schedules?.ToList() ?? _sourceDocument.Schedules?.ToList() ?? new List<NoteScheduleEntry>(),
+            IsPinned = existingDocument?.IsPinned ?? _sourceDocument.IsPinned,
             PassingScorePercent = existingDocument?.PassingScorePercent ?? _sourceDocument.PassingScorePercent
         };
     }

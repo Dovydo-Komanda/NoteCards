@@ -21,13 +21,14 @@ public partial class App : Application
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         var window = new MainWindow();
         MainWindow = window;
+        WindowThemeService.ApplyThemeWhenReady(window, ThemeManager.CurrentTheme);
         window.Show();
     }
 
     private static void OnWindowLoaded(object sender, RoutedEventArgs e)
     {
         if (sender is Window window)
-            WindowThemeService.ApplyTheme(window, ThemeManager.CurrentTheme);
+            WindowThemeService.ApplyThemeWhenReady(window, ThemeManager.CurrentTheme);
     }
 
     protected override void OnExit(ExitEventArgs e)

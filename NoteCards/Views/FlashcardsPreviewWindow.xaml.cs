@@ -140,7 +140,9 @@ public partial class FlashcardsPreviewWindow : Window
             AiModelDisplayName = string.IsNullOrWhiteSpace(_modelDisplayName)
                 ? existingDocument?.AiModelDisplayName ?? string.Empty
                 : _modelDisplayName,
-            GroupId = existingDocument?.GroupId
+            GroupId = existingDocument?.GroupId,
+            Schedules = existingDocument?.Schedules?.ToList() ?? new List<NoteScheduleEntry>(),
+            IsPinned = existingDocument?.IsPinned ?? false
         };
     }
 

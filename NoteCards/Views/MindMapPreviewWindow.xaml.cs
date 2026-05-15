@@ -359,7 +359,8 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
                 : _modelDisplayName,
             SourceNoteId = _selectedLinkedNote?.Id ?? existingDocument?.SourceNoteId,
             GroupId = existingDocument?.GroupId,
-            Schedules = existingDocument?.Schedules?.ToList() ?? new List<NoteScheduleEntry>()
+            Schedules = existingDocument?.Schedules?.ToList() ?? new List<NoteScheduleEntry>(),
+            IsPinned = existingDocument?.IsPinned ?? false
         };
     }
 
