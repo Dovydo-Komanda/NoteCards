@@ -42,10 +42,10 @@
   <data name="ContinueAnyway" xml:space="preserve"><value>Tęsti vis tiek</value></data>
   <data name="FlashcardsGeneratedWithModel" xml:space="preserve"><value>Sugeneruota su modeliu: {0}</value></data>
   <data name="QuizLinkedNoteNone" xml:space="preserve"><value>Nėra susieto užrašo</value></data>
-  <data name="QuizLinkedNoteNoneTooltip" xml:space="preserve"><value>Šis testas nėra susietas su užrašu.</value></data>
+  <data name="QuizLinkedNoteNoneTooltip" xml:space="preserve"><value>Ši viktorina nėra susieta su užrašu.</value></data>
   <data name="QuizLinkedNoteOpenTooltip" xml:space="preserve"><value>Atidaryti susietą užrašą: {0}</value></data>
-  <data name="QuizLinkedNoteSelectorTooltip" xml:space="preserve"><value>Pasirinkite šio testo šaltinio užrašą.</value></data>
-  <data name="QuizModeTitle" xml:space="preserve"><value>Testo režimas</value></data>
+  <data name="QuizLinkedNoteSelectorTooltip" xml:space="preserve"><value>Pasirinkite šios viktorinos šaltinio užrašą.</value></data>
+  <data name="QuizModeTitle" xml:space="preserve"><value>Viktorinos režimas</value></data>
   <data name="QuizQuestionProgressFormat" xml:space="preserve"><value>Klausimas {0} iš {1}</value></data>
   <data name="QuizMultipleChoiceInstruction" xml:space="preserve"><value>Daugkartinis pasirinkimas – pažymėkite visus tinkamus variantus</value></data>
   <data name="QuizResultsTitleGreat" xml:space="preserve"><value>🎉 Puikiai padirbėta!</value></data>
@@ -58,15 +58,15 @@
   <data name="QuizNoAnswer" xml:space="preserve"><value>Nėra atsakymo</value></data>
   <data name="QuizCorrectAnswerFormat" xml:space="preserve"><value>Teisingas atsakymas: {0}</value></data>
   <data name="QuizExplanationFormat" xml:space="preserve"><value>Paaiškinimas: {0}</value></data>
-  <data name="QuizSubmitButton" xml:space="preserve"><value>Pateikti testą</value></data>
+  <data name="QuizSubmitButton" xml:space="preserve"><value>Pateikti viktoriną</value></data>
   <data name="QuizDoneButton" xml:space="preserve"><value>Baigta</value></data>
   <data name="QuizPreviousButton" xml:space="preserve"><value>← Ankstesnis</value></data>
   <data name="QuizNextButton" xml:space="preserve"><value>Kitas →</value></data>
   <data name="QuizReviewAnswers" xml:space="preserve"><value>Peržiūrėti atsakymus:</value></data>
   <data name="QuizStartButton" xml:space="preserve"><value>▶ PRADĖTI</value></data>
-  <data name="QuizStartButtonTooltip" xml:space="preserve"><value>Pradėti testo režimą</value></data>
-  <data name="QuizSubmitDialogTitle" xml:space="preserve"><value>Pateikti testą</value></data>
-  <data name="QuizSubmitDialogMessage" xml:space="preserve"><value>Ar tikrai norite pateikti testą ir peržiūrėti rezultatus?</value></data>
+  <data name="QuizStartButtonTooltip" xml:space="preserve"><value>Pradėti viktorinos režimą</value></data>
+  <data name="QuizSubmitDialogTitle" xml:space="preserve"><value>Pateikti viktoriną</value></data>
+  <data name="QuizSubmitDialogMessage" xml:space="preserve"><value>Ar tikrai norite pateikti viktoriną ir peržiūrėti rezultatus?</value></data>
   <data name="QuizSubmitDialogConfirm" xml:space="preserve"><value>Pateikti</value></data>
   <data name="QuizSubmitDialogCancel" xml:space="preserve"><value>Atšaukti</value></data>
   <data name="KeepNotesUngrouped" xml:space="preserve"><value>Palikti užrašus nesugrupuotus</value></data>
@@ -300,15 +300,15 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ConvertToMindMapStatusProcessing" xml:space="preserve"><value>DI generuoja minčių žemėlapį...</value></data>
   <data name="ConvertToMindMapStatusFinalizing" xml:space="preserve"><value>Baigiamas formuoti minčių žemėlapis...</value></data>
   <data name="ConvertToMindMapStatusRepairing" xml:space="preserve"><value>DI generuoja minčių žemėlapį... (repair)</value></data>
-  <data name="ConvertToTest" xml:space="preserve"><value>Paversti į testą</value></data>
-  <data name="ConvertToTestEmpty" xml:space="preserve"><value>Prieš konvertuodami į testą, įrašykite užrašo tekstą.</value></data>
-  <data name="ConvertToTestInProgress" xml:space="preserve"><value>Generuojamas testas...</value></data>
-  <data name="ConvertToTestFailed" xml:space="preserve"><value>Nepavyko paversti užrašo į testą naudojant su programėle pateiktą Qwen modelį.</value></data>
-  <data name="ConvertToTestSuccess" xml:space="preserve"><value>Testas sugeneruotas</value></data>
-  <data name="ConvertToTestParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamo testo.</value></data>
-  <data name="ConvertToTestStatusProcessing" xml:space="preserve"><value>DI generuoja testą...</value></data>
-  <data name="ConvertToTestStatusFinalizing" xml:space="preserve"><value>Baigiamas formuoti testas...</value></data>
-  <data name="ConvertToTestStatusRepairing" xml:space="preserve"><value>DI generuoja testą... (repair)</value></data>
+  <data name="ConvertToTest" xml:space="preserve"><value>Paversti į viktoriną</value></data>
+  <data name="ConvertToTestEmpty" xml:space="preserve"><value>Prieš konvertuodami į viktoriną, įrašykite užrašo tekstą.</value></data>
+  <data name="ConvertToTestInProgress" xml:space="preserve"><value>Generuojama viktorina...</value></data>
+  <data name="ConvertToTestFailed" xml:space="preserve"><value>Nepavyko paversti užrašo į viktoriną naudojant su programėle pateiktą Qwen modelį.</value></data>
+  <data name="ConvertToTestSuccess" xml:space="preserve"><value>Viktorina sugeneruota</value></data>
+  <data name="ConvertToTestParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamos viktorinos.</value></data>
+  <data name="ConvertToTestStatusProcessing" xml:space="preserve"><value>DI generuoja viktoriną...</value></data>
+  <data name="ConvertToTestStatusFinalizing" xml:space="preserve"><value>Baigiama formuoti viktorina...</value></data>
+  <data name="ConvertToTestStatusRepairing" xml:space="preserve"><value>DI generuoja viktoriną... (repair)</value></data>
   <data name="AiInputRejectedTitle" xml:space="preserve"><value>DI generavimas atmestas</value></data>
   <data name="AiInputRejectedInsufficientContent" xml:space="preserve"><value>Užraše nėra pakankamai prasmingo teksto mokymosi medžiagai sugeneruoti. Įrašykite rišlų tekstinį turinį ir bandykite dar kartą.</value></data>
   <data name="AiGenerationTimedOut" xml:space="preserve"><value>DI generavimas sustabdytas, nes modelis laiku nepateikė tinkamo atsakymo.</value></data>
@@ -343,9 +343,9 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Atsakymas</value></data>
   <data name="FlashcardCategory" xml:space="preserve"><value>Kategorija</value></data>
   <data name="ConvertToFlashcardsParseFailed" xml:space="preserve"><value>DI atsakyme nerasta tinkamų Q/A kortelių.</value></data>
-  <data name="QuizPreviewTitle" xml:space="preserve"><value>Testas</value></data>
-  <data name="QuizTitleHint" xml:space="preserve"><value>Testo pavadinimas</value></data>
-  <data name="QuizUntitled" xml:space="preserve"><value>Testas be pavadinimo</value></data>
+  <data name="QuizPreviewTitle" xml:space="preserve"><value>Viktorina</value></data>
+  <data name="QuizTitleHint" xml:space="preserve"><value>Viktorinos pavadinimas</value></data>
+  <data name="QuizUntitled" xml:space="preserve"><value>Viktorina be pavadinimo</value></data>
   <data name="QuizGeneratedWithModel" xml:space="preserve"><value>Sugeneruota su modeliu: {0}</value></data>
   <data name="QuizQuestionCountFormat" xml:space="preserve"><value>{0} klaus.</value></data>
   <data name="QuizAnsweredCountFormat" xml:space="preserve"><value>Atsakyta {0}/{1}</value></data>
@@ -363,22 +363,22 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="QuizCheckAnswers" xml:space="preserve"><value>Tikrinti atsakymus</value></data>
   <data name="QuizResetAnswers" xml:space="preserve"><value>Iš naujo</value></data>
   <data name="QuizExport" xml:space="preserve"><value>Eksportuoti</value></data>
-  <data name="QuizExportDialogTitle" xml:space="preserve"><value>Eksportuoti testą</value></data>
-  <data name="QuizExportDialogFilter" xml:space="preserve"><value>Testo failai (*.json)|*.json|CSV failai (*.csv)|*.csv|Spausdinamas failas (*.xps)|*.xps|Visi failai (*.*)|*.*</value></data>
-  <data name="QuizExportComplete" xml:space="preserve"><value>Testas sėkmingai eksportuotas.</value></data>
+  <data name="QuizExportDialogTitle" xml:space="preserve"><value>Eksportuoti viktoriną</value></data>
+  <data name="QuizExportDialogFilter" xml:space="preserve"><value>Viktorinos failai (*.json)|*.json|CSV failai (*.csv)|*.csv|Spausdinamas failas (*.xps)|*.xps|Visi failai (*.*)|*.*</value></data>
+  <data name="QuizExportComplete" xml:space="preserve"><value>Viktorina sėkmingai eksportuota.</value></data>
   <data name="QuizExportUnsupportedFormat" xml:space="preserve"><value>Nepalaikomas eksporto formatas.</value></data>
-  <data name="QuizExportFailedFormat" xml:space="preserve"><value>Nepavyko eksportuoti testo: {0}</value></data>
-  <data name="QuizzesDashboard" xml:space="preserve"><value>Testai</value></data>
-  <data name="QuizzesDashboardTitle" xml:space="preserve"><value>Testai</value></data>
-  <data name="QuizzesEmptyDashboardPrompt" xml:space="preserve"><value>Sukurkite testą arba paverskite užrašą testu ir jis atsiras čia.</value></data>
-  <data name="CreateQuiz" xml:space="preserve"><value>Sukurti testą</value></data>
-  <data name="QuizCountFormat" xml:space="preserve"><value>{0} testai(-ų)</value></data>
+  <data name="QuizExportFailedFormat" xml:space="preserve"><value>Nepavyko eksportuoti viktorinos: {0}</value></data>
+  <data name="QuizzesDashboard" xml:space="preserve"><value>Viktorinos</value></data>
+  <data name="QuizzesDashboardTitle" xml:space="preserve"><value>Viktorinos</value></data>
+  <data name="QuizzesEmptyDashboardPrompt" xml:space="preserve"><value>Sukurkite viktoriną arba paverskite užrašą į viktoriną ir ji atsiras čia.</value></data>
+  <data name="CreateQuiz" xml:space="preserve"><value>Sukurti viktoriną</value></data>
+  <data name="QuizCountFormat" xml:space="preserve"><value>{0} viktorinos(-ų)</value></data>
   <data name="SortByQuizQuestionsDesc" xml:space="preserve"><value>Daugiausia klausimų</value></data>
   <data name="SortByQuizQuestionsAsc" xml:space="preserve"><value>Mažiausiai klausimų</value></data>
-  <data name="DeleteQuiz" xml:space="preserve"><value>Ištrinti testą</value></data>
+  <data name="DeleteQuiz" xml:space="preserve"><value>Ištrinti viktoriną</value></data>
   <data name="DeleteQuizConfirmationFormat" xml:space="preserve"><value>Ar tikrai norite ištrinti „{0}“? Šio veiksmo negalima atšaukti.</value></data>
-  <data name="EditQuiz" xml:space="preserve"><value>Redaguoti testą</value></data>
-  <data name="ViewQuiz" xml:space="preserve"><value>Žiūrėti testą</value></data>
+  <data name="EditQuiz" xml:space="preserve"><value>Redaguoti viktoriną</value></data>
+  <data name="ViewQuiz" xml:space="preserve"><value>Žiūrėti viktoriną</value></data>
   <data name="AddQuestion" xml:space="preserve"><value>Pridėti klausimą</value></data>
   <data name="AddOption" xml:space="preserve"><value>Pridėti variantą</value></data>
   <data name="DeleteQuestion" xml:space="preserve"><value>Ištrinti klausimą</value></data>

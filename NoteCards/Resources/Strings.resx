@@ -340,15 +340,15 @@ Right-click to remove</value></data>
   <data name="ConvertToMindMapStatusProcessing" xml:space="preserve"><value>AI is generating a mind map...</value></data>
   <data name="ConvertToMindMapStatusFinalizing" xml:space="preserve"><value>Finalizing mind map...</value></data>
   <data name="ConvertToMindMapStatusRepairing" xml:space="preserve"><value>AI is generating a mind map... (repair)</value></data>
-  <data name="ConvertToTest" xml:space="preserve"><value>Convert to test</value></data>
-  <data name="ConvertToTestEmpty" xml:space="preserve"><value>Add note text before converting to a test.</value></data>
-  <data name="ConvertToTestInProgress" xml:space="preserve"><value>Generating test...</value></data>
-  <data name="ConvertToTestFailed" xml:space="preserve"><value>Failed to convert note into a test with the bundled Qwen model.</value></data>
-  <data name="ConvertToTestSuccess" xml:space="preserve"><value>Test generated</value></data>
-  <data name="ConvertToTestParseFailed" xml:space="preserve"><value>AI response did not contain a usable test.</value></data>
-  <data name="ConvertToTestStatusProcessing" xml:space="preserve"><value>AI is generating a test...</value></data>
-  <data name="ConvertToTestStatusFinalizing" xml:space="preserve"><value>Finalizing test...</value></data>
-  <data name="ConvertToTestStatusRepairing" xml:space="preserve"><value>AI is generating a test... (repair)</value></data>
+  <data name="ConvertToTest" xml:space="preserve"><value>Convert to quiz</value></data>
+  <data name="ConvertToTestEmpty" xml:space="preserve"><value>Add note text before converting to a quiz.</value></data>
+  <data name="ConvertToTestInProgress" xml:space="preserve"><value>Generating quiz...</value></data>
+  <data name="ConvertToTestFailed" xml:space="preserve"><value>Failed to convert note into a quiz with the bundled Qwen model.</value></data>
+  <data name="ConvertToTestSuccess" xml:space="preserve"><value>Quiz generated</value></data>
+  <data name="ConvertToTestParseFailed" xml:space="preserve"><value>AI response did not contain a usable quiz.</value></data>
+  <data name="ConvertToTestStatusProcessing" xml:space="preserve"><value>AI is generating a quiz...</value></data>
+  <data name="ConvertToTestStatusFinalizing" xml:space="preserve"><value>Finalizing quiz...</value></data>
+  <data name="ConvertToTestStatusRepairing" xml:space="preserve"><value>AI is generating a quiz... (repair)</value></data>
   <data name="AiInputRejectedTitle" xml:space="preserve"><value>AI generation refused</value></data>
   <data name="AiInputRejectedInsufficientContent" xml:space="preserve"><value>The note does not contain enough meaningful text to generate study material. Add coherent text content and try again.</value></data>
   <data name="AiGenerationTimedOut" xml:space="preserve"><value>AI generation was stopped because the model did not produce a usable response in time.</value></data>
@@ -383,9 +383,9 @@ Right-click to remove</value></data>
   <data name="FlashcardAnswer" xml:space="preserve"><value>Answer</value></data>
   <data name="FlashcardCategory" xml:space="preserve"><value>Category</value></data>
   <data name="ConvertToFlashcardsParseFailed" xml:space="preserve"><value>AI response did not contain valid Q/A flashcards.</value></data>
-  <data name="QuizPreviewTitle" xml:space="preserve"><value>Test</value></data>
-  <data name="QuizTitleHint" xml:space="preserve"><value>Test title</value></data>
-  <data name="QuizUntitled" xml:space="preserve"><value>Untitled test</value></data>
+  <data name="QuizPreviewTitle" xml:space="preserve"><value>Quiz</value></data>
+  <data name="QuizTitleHint" xml:space="preserve"><value>Quiz title</value></data>
+  <data name="QuizUntitled" xml:space="preserve"><value>Untitled quiz</value></data>
   <data name="QuizGeneratedWithModel" xml:space="preserve"><value>Generated with model: {0}</value></data>
   <data name="QuizQuestionCountFormat" xml:space="preserve"><value>{0} questions</value></data>
   <data name="QuizAnsweredCountFormat" xml:space="preserve"><value>{0}/{1} answered</value></data>
@@ -408,17 +408,17 @@ Right-click to remove</value></data>
   <data name="QuizExportComplete" xml:space="preserve"><value>Quiz exported successfully.</value></data>
   <data name="QuizExportUnsupportedFormat" xml:space="preserve"><value>Unsupported export format.</value></data>
   <data name="QuizExportFailedFormat" xml:space="preserve"><value>Failed to export quiz: {0}</value></data>
-  <data name="QuizzesDashboard" xml:space="preserve"><value>Tests</value></data>
-  <data name="QuizzesDashboardTitle" xml:space="preserve"><value>Tests</value></data>
-  <data name="QuizzesEmptyDashboardPrompt" xml:space="preserve"><value>Create a test or convert a note into a test to see it here.</value></data>
-  <data name="CreateQuiz" xml:space="preserve"><value>Create test</value></data>
-  <data name="QuizCountFormat" xml:space="preserve"><value>{0} tests</value></data>
+  <data name="QuizzesDashboard" xml:space="preserve"><value>Quizzes</value></data>
+  <data name="QuizzesDashboardTitle" xml:space="preserve"><value>Quizzes</value></data>
+  <data name="QuizzesEmptyDashboardPrompt" xml:space="preserve"><value>Create a quiz or convert a note into a quiz to see it here.</value></data>
+  <data name="CreateQuiz" xml:space="preserve"><value>Create quiz</value></data>
+  <data name="QuizCountFormat" xml:space="preserve"><value>{0} quizzes</value></data>
   <data name="SortByQuizQuestionsDesc" xml:space="preserve"><value>Most questions</value></data>
   <data name="SortByQuizQuestionsAsc" xml:space="preserve"><value>Fewest questions</value></data>
-  <data name="DeleteQuiz" xml:space="preserve"><value>Delete test</value></data>
+  <data name="DeleteQuiz" xml:space="preserve"><value>Delete quiz</value></data>
   <data name="DeleteQuizConfirmationFormat" xml:space="preserve"><value>Are you sure you want to delete "{0}"? This action cannot be undone.</value></data>
-  <data name="EditQuiz" xml:space="preserve"><value>Edit test</value></data>
-  <data name="ViewQuiz" xml:space="preserve"><value>View test</value></data>
+  <data name="EditQuiz" xml:space="preserve"><value>Edit quiz</value></data>
+  <data name="ViewQuiz" xml:space="preserve"><value>View quiz</value></data>
   <data name="AddQuestion" xml:space="preserve"><value>Add question</value></data>
   <data name="AddOption" xml:space="preserve"><value>Add option</value></data>
   <data name="DeleteQuestion" xml:space="preserve"><value>Delete question</value></data>

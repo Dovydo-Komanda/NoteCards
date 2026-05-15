@@ -70,7 +70,7 @@
                                FontSize="20"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextColor}"/>
-                    <TextBlock Text="Browse all quizzes, filter by category, and combine selected quizzes into a new test."
+                    <TextBlock Text="Browse all quizzes, filter by category, and combine selected quizzes into a new quiz."
                                Margin="0,6,0,0"
                                FontSize="12"
                                Foreground="{DynamicResource TextColorSecondary}"/>
