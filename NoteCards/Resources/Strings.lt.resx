@@ -87,8 +87,22 @@
   <data name="ThemeLight" xml:space="preserve"><value>Šviesi</value></data>
   <data name="ThemeDark" xml:space="preserve"><value>Tamsi</value></data>
   <data name="CheckForUpdates" xml:space="preserve"><value>Tikrinti atnaujinimus</value></data>
+  <data name="CheckingForUpdates" xml:space="preserve"><value>Tikrinama...</value></data>
   <data name="LatestVersion" xml:space="preserve"><value>Naudojate naujausią versiją.</value></data>
   <data name="AppUpdate" xml:space="preserve"><value>Programos atnaujinimas</value></data>
+  <data name="UpdateAvailableTitle" xml:space="preserve"><value>Yra atnaujinimas</value></data>
+  <data name="UpdateAvailableMessageFormat" xml:space="preserve"><value>GitHub pasiekiama {0} versija. Atsisiųskite ir įdiekite ją rankiniu būdu iš leidimų puslapio.</value></data>
+  <data name="UpdateNoReleasesMessage" xml:space="preserve"><value>Viešų NoteCards leidimų GitHub nepavyko rasti.</value></data>
+  <data name="UpdateVersionCompareUnavailableMessage" xml:space="preserve"><value>Naujausias GitHub leidimas rastas, bet jo versijos nepavyko automatiškai palyginti. Galite atidaryti leidimų puslapį ir patikrinti rankiniu būdu.</value></data>
+  <data name="UpdateCurrentVersionFormat" xml:space="preserve"><value>Įdiegta: {0}</value></data>
+  <data name="UpdateLatestVersionFormat" xml:space="preserve"><value>Naujausia GitHub: {0}</value></data>
+  <data name="UpdatePublishedFormat" xml:space="preserve"><value>Paskelbta: {0}</value></data>
+  <data name="UpdateNoReleaseVersion" xml:space="preserve"><value>Leidimas nerastas</value></data>
+  <data name="UpdateLatestVersionUnavailable" xml:space="preserve"><value>Naujausia GitHub: nepasiekiama</value></data>
+  <data name="UpdateCheckFailedTitle" xml:space="preserve"><value>Nepavyko patikrinti atnaujinimų</value></data>
+  <data name="UpdateCheckFailedMessageFormat" xml:space="preserve"><value>NoteCards šiuo metu nepavyko pasiekti GitHub leidimų. Galite atidaryti leidimų puslapį rankiniu būdu arba bandyti vėliau. Informacija: {0}</value></data>
+  <data name="OpenRelease" xml:space="preserve"><value>Atidaryti leidimą</value></data>
+  <data name="OpenReleases" xml:space="preserve"><value>Atidaryti leidimus</value></data>
   <data name="DashboardSections" xml:space="preserve"><value>Skydelio sekcijos</value></data>
   <data name="CalendarSection" xml:space="preserve"><value>Kalendorius</value></data>
   <data name="ToggleCalendarSection" xml:space="preserve"><value>Rodyti / slėpti kalendorių</value></data>

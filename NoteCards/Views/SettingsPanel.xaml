@@ -258,22 +258,13 @@
                 <DropShadowEffect Color="#000000" Opacity="0.20" BlurRadius="24" ShadowDepth="0"/>
             </Border.Effect>
 
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled"
-                          CanContentScroll="True">
-                <Grid>
+            <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <Grid>
+                <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -290,8 +281,24 @@
                             Click="CloseButton_Click"/>
                 </Grid>
 
-                <Border Grid.Row="1"
-                        Margin="0,18,0,0"
+                <ScrollViewer Grid.Row="1"
+                              Margin="0,18,0,0"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              CanContentScroll="True">
+                <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
                         BorderThickness="1"
@@ -338,7 +345,7 @@
                         </StackPanel>
                     </Grid>
                 </Border>
-                <Border Grid.Row="2"
+                <Border Grid.Row="1"
                         Margin="0,14,0,0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
@@ -519,7 +526,7 @@
                     </StackPanel>
                 </Border>
 
-                <Border Grid.Row="3"
+                <Border Grid.Row="2"
         Margin="0,14,0,0"
         Background="{DynamicResource SidebarBackground}"
         BorderBrush="{DynamicResource BorderColor}"
@@ -543,7 +550,7 @@
                     </StackPanel>
                 </Border>
                 <!-- Scrollbar and Auto-Save Settings -->
-                <Border Grid.Row="4"
+                <Border Grid.Row="3"
         Margin="0,14,0,0"
         Background="{DynamicResource SidebarBackground}"
         BorderBrush="{DynamicResource BorderColor}"
@@ -580,7 +587,7 @@
 
                     <!-- Auto-Save Setting -->
                     <Border x:Name="AutoSaveSettingsCard"
-                            Grid.Row="4"
+                            Grid.Row="3"
                             Margin="0,14,0,0"
                             Background="{DynamicResource SidebarBackground}"
                             BorderBrush="{DynamicResource BorderColor}"
@@ -666,7 +673,7 @@
                     </Border>
 
                     <!-- Activity Summary Settings -->
-                <Border Grid.Row="5"
+                <Border Grid.Row="4"
                         Margin="0,14,0,0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
@@ -698,7 +705,7 @@
                 </Border>
 
                 <!-- Reset Factory Settings Section -->
-                <Border Grid.Row="6"
+                <Border Grid.Row="5"
                         Margin="0,14,0,0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
@@ -725,7 +732,7 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Grid.Row="7" Margin="0,20,0,0">
+                <Grid Grid.Row="6" Margin="0,20,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -748,6 +755,7 @@
                 </Grid>
                 </Grid>
             </ScrollViewer>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

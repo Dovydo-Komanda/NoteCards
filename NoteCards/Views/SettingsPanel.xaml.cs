@@ -37,8 +37,10 @@ namespace NoteCards.Views
         private bool _isApplyingSettings;
         private bool _isDownloadingAiModel;
         private bool _isDownloadingRuntime;
+        private bool _isCheckingForUpdates;
         private string _lastSelectedFlashcardModelKey = "Qwen3.5-0.8B";
         private readonly ObservableCollection<ManagedAiToolItem> _managedAiTools = new();
+        private readonly GitHubUpdateService _updateService = new();
 
         public SettingsPanel()
         {
@@ -946,16 +948,53 @@ namespace NoteCards.Views
                 HideAnimated();
         }
 
-        private void CheckUpdates_Click(object sender, RoutedEventArgs e)
+        private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new ModernInfoDialog(
-                LocalizationService.GetString("AppUpdate"),
-                LocalizationService.GetString("LatestVersion"))
-            {
-                Owner = Window.GetWindow(this)
-            };
+            if (_isCheckingForUpdates)
+                return;
 
-            dialog.ShowDialog();
+            _isCheckingForUpdates = true;
+            var button = sender as Button;
+            var previousContent = button?.Content;
+
+            if (button is not null)
+            {
+                button.IsEnabled = false;
+                button.Content = LocalizationService.GetString("CheckingForUpdates");
+            }
+
+            try
+            {
+                var result = await _updateService.CheckForUpdatesAsync();
+                var dialog = new UpdateCheckDialog(result)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                var dialog = new UpdateCheckDialog(
+                    LocalizationService.GetString("UpdateCheckFailedTitle"),
+                    string.Format(LocalizationService.GetString("UpdateCheckFailedMessageFormat"), ex.Message),
+                    GitHubUpdateService.ReleasesUrl)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+
+                dialog.ShowDialog();
+            }
+            finally
+            {
+                _isCheckingForUpdates = false;
+
+                if (button is not null)
+                {
+                    button.Content = previousContent;
+                    button.IsEnabled = true;
+                }
+            }
         }
 
         private void ResetFactorySettings_Click(object sender, RoutedEventArgs e)

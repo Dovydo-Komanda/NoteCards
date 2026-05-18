@@ -87,8 +87,22 @@
   <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
   <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
   <data name="CheckForUpdates" xml:space="preserve"><value>Check for Updates</value></data>
+  <data name="CheckingForUpdates" xml:space="preserve"><value>Checking...</value></data>
   <data name="LatestVersion" xml:space="preserve"><value>You are using the latest version.</value></data>
   <data name="AppUpdate" xml:space="preserve"><value>App Update</value></data>
+  <data name="UpdateAvailableTitle" xml:space="preserve"><value>Update available</value></data>
+  <data name="UpdateAvailableMessageFormat" xml:space="preserve"><value>Version {0} is available on GitHub. Download and install it manually from the releases page.</value></data>
+  <data name="UpdateNoReleasesMessage" xml:space="preserve"><value>No public GitHub releases were found for NoteCards.</value></data>
+  <data name="UpdateVersionCompareUnavailableMessage" xml:space="preserve"><value>The latest GitHub release was found, but its version could not be compared automatically. You can open the releases page to review it manually.</value></data>
+  <data name="UpdateCurrentVersionFormat" xml:space="preserve"><value>Installed: {0}</value></data>
+  <data name="UpdateLatestVersionFormat" xml:space="preserve"><value>Latest on GitHub: {0}</value></data>
+  <data name="UpdatePublishedFormat" xml:space="preserve"><value>Published: {0}</value></data>
+  <data name="UpdateNoReleaseVersion" xml:space="preserve"><value>No release found</value></data>
+  <data name="UpdateLatestVersionUnavailable" xml:space="preserve"><value>Latest on GitHub: unavailable</value></data>
+  <data name="UpdateCheckFailedTitle" xml:space="preserve"><value>Could not check for updates</value></data>
+  <data name="UpdateCheckFailedMessageFormat" xml:space="preserve"><value>NoteCards could not reach GitHub releases right now. You can open the releases page manually or try again later. Details: {0}</value></data>
+  <data name="OpenRelease" xml:space="preserve"><value>Open release</value></data>
+  <data name="OpenReleases" xml:space="preserve"><value>Open releases</value></data>
   <data name="DashboardSections" xml:space="preserve"><value>Dashboard sections</value></data>
   <data name="CalendarSection" xml:space="preserve"><value>Calendar</value></data>
   <data name="ToggleCalendarSection" xml:space="preserve"><value>Show/hide calendar</value></data>
