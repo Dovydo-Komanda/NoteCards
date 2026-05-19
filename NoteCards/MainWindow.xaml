@@ -128,11 +128,11 @@
 		<Style x:Key="MassActionIconButtonStyle" TargetType="Button">
 			<Setter Property="OverridesDefaultStyle" Value="True"/>
 			<Setter Property="Cursor" Value="Hand"/>
-			<Setter Property="Width" Value="34"/>
-			<Setter Property="Height" Value="34"/>
-			<Setter Property="Margin" Value="0,0,6,0"/>
+			<Setter Property="Width" Value="30"/>
+			<Setter Property="Height" Value="30"/>
+			<Setter Property="Margin" Value="0,0,3,0"/>
 			<Setter Property="Padding" Value="0"/>
-			<Setter Property="FontSize" Value="14"/>
+			<Setter Property="FontSize" Value="12"/>
 			<Setter Property="Foreground" Value="{DynamicResource IconButtonForeground}"/>
 			<Setter Property="Background" Value="{DynamicResource IconButtonBackground}"/>
 			<Setter Property="BorderBrush" Value="{DynamicResource IconButtonBorder}"/>
@@ -167,6 +167,12 @@
 				</Setter.Value>
 			</Setter>
 		</Style>
+
+        <Style x:Key="MassActionDangerIconButtonStyle" TargetType="Button" BasedOn="{StaticResource MassActionIconButtonStyle}">
+            <Setter Property="Foreground" Value="#B91C1C"/>
+            <Setter Property="Background" Value="#FFF1F2"/>
+            <Setter Property="BorderBrush" Value="#FCA5A5"/>
+        </Style>
 
 		<Style x:Key="TopBarIconButtonStyle" TargetType="Button">
 			<Setter Property="OverridesDefaultStyle" Value="True"/>
@@ -2742,9 +2748,6 @@
                                                                                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                                                     <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}" Click="OpenFlashcardSetMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [SelectMultiple], Source={StaticResource Loc}}" Click="StartDashboardMassSelectMenuItem_Click"/>
-                                                                                    <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}" Click="DuplicateFlashcardSetMenuItem_Click"/>
-                                                                                    <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}" Click="RemoveFlashcardSetFromGroupMenuItem_Click"/>
-                                                                                    <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleFlashcardSetMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}" Click="FlashcardSetInfoMenuItem_Click"/>
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
@@ -2753,6 +2756,10 @@
                                                                                     <MenuItem Header="{Binding [Unpin], Source={StaticResource Loc}}"
                                                                                               Click="ToggleFlashcardSetPinMenuItem_Click"
                                                                                               Visibility="{Binding Document.IsPinned, Converter={StaticResource BoolToVis}}"/>
+                                                                                    <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleFlashcardSetMenuItem_Click"/>
+                                                                                    <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}" Click="RemoveFlashcardSetFromGroupMenuItem_Click"/>
+                                                                                    <Separator/>
+                                                                                    <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}" Click="DuplicateFlashcardSetMenuItem_Click"/>
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [DeleteFlashcardSet], Source={StaticResource Loc}}" Click="DeleteFlashcardSetMenuItem_Click"/>
                                                                                 </ContextMenu>
@@ -2762,8 +2769,9 @@
                                                                                     <Grid.RowDefinitions>
                                                                                         <RowDefinition Height="Auto"/>
                                                                                         <RowDefinition Height="Auto"/>
+                                                                                        <RowDefinition Height="Auto"/>
                                                                                     </Grid.RowDefinitions>
-                                                                                    <CheckBox Grid.RowSpan="2"
+                                                                                    <CheckBox Grid.RowSpan="3"
                                                                                               HorizontalAlignment="Right"
                                                                                               VerticalAlignment="Top"
                                                                                               Margin="0,0,2,0"
@@ -2831,6 +2839,11 @@
                                                                                                FontSize="12"
                                                                                                Foreground="{DynamicResource TextColorSecondary}"
                                                                                                Margin="0,6,0,0"/>
+                                                                                    <Border Grid.Row="2"
+                                                                                            Style="{StaticResource DashboardTagChipStyle}">
+                                                                                        <TextBlock Text="{Binding TagsDisplay}"
+                                                                                                   Style="{StaticResource DashboardTagTextStyle}"/>
+                                                                                    </Border>
                                                                                 </Grid>
                                                                             </Border>
                                                                         </Border>
@@ -2944,13 +2957,6 @@
                                                                           Click="OpenFlashcardSetMenuItem_Click"/>
                                                                 <MenuItem Header="{Binding [SelectMultiple], Source={StaticResource Loc}}"
                                                                           Click="StartDashboardMassSelectMenuItem_Click"/>
-                                                                <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
-                                                                          Click="DuplicateFlashcardSetMenuItem_Click"/>
-                                                                <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}"
-                                                                          Visibility="{Binding Document.GroupId, Converter={StaticResource NullToVisibilityConverter}}"
-                                                                          Click="RemoveFlashcardSetFromGroupMenuItem_Click"/>
-                                                                <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}"
-                                                                          Click="ScheduleFlashcardSetMenuItem_Click"/>
                                                                 <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}"
                                                                           Click="FlashcardSetInfoMenuItem_Click"/>
                                                                 <Separator/>
@@ -2960,6 +2966,14 @@
                                                                 <MenuItem Header="{Binding [Unpin], Source={StaticResource Loc}}"
                                                                           Click="ToggleFlashcardSetPinMenuItem_Click"
                                                                           Visibility="{Binding Document.IsPinned, Converter={StaticResource BoolToVis}}"/>
+                                                                <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}"
+                                                                          Click="ScheduleFlashcardSetMenuItem_Click"/>
+                                                                <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}"
+                                                                          Visibility="{Binding Document.GroupId, Converter={StaticResource NullToVisibilityConverter}}"
+                                                                          Click="RemoveFlashcardSetFromGroupMenuItem_Click"/>
+                                                                <Separator/>
+                                                                <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
+                                                                          Click="DuplicateFlashcardSetMenuItem_Click"/>
                                                                 <Separator/>
 																<MenuItem Header="{Binding [DeleteFlashcardSet], Source={StaticResource Loc}}"
 																		  Click="DeleteFlashcardSetMenuItem_Click"/>
@@ -3176,13 +3190,11 @@
                                                                                Foreground="{DynamicResource TextColorSecondary}"/>
                                                                 </StackPanel>
 
-                                                                <TextBlock Grid.Row="2"
-                                                                           Text="{Binding TagsDisplay}"
-                                                                           FontSize="12"
-                                                                           Foreground="{DynamicResource TextColorSecondary}"
-                                                                           TextWrapping="Wrap"
-                                                                           MaxHeight="38"
-                                                                           Visibility="{Binding HasTags, Converter={StaticResource BoolToVis}}"/>
+                                                                <Border Grid.Row="2"
+                                                                        Style="{StaticResource DashboardTagChipStyle}">
+                                                                    <TextBlock Text="{Binding TagsDisplay}"
+                                                                               Style="{StaticResource DashboardTagTextStyle}"/>
+                                                                </Border>
                                                             </Grid>
                                                         </Border>
                                                     </Border>
@@ -3816,9 +3828,6 @@
                                                                                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                                                                     <MenuItem Header="{Binding [Open], Source={StaticResource Loc}}" Click="OpenQuizMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [SelectMultiple], Source={StaticResource Loc}}" Click="StartDashboardMassSelectMenuItem_Click"/>
-                                                                                    <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}" Click="DuplicateQuizMenuItem_Click"/>
-                                                                                    <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}" Click="RemoveQuizFromGroupMenuItem_Click"/>
-                                                                                    <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleQuizMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}" Click="QuizInfoMenuItem_Click"/>
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
@@ -3827,6 +3836,10 @@
                                                                                     <MenuItem Header="{Binding [Unpin], Source={StaticResource Loc}}"
                                                                                               Click="ToggleQuizPinMenuItem_Click"
                                                                                               Visibility="{Binding Document.IsPinned, Converter={StaticResource BoolToVis}}"/>
+                                                                                    <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleQuizMenuItem_Click"/>
+                                                                                    <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}" Click="RemoveQuizFromGroupMenuItem_Click"/>
+                                                                                    <Separator/>
+                                                                                    <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}" Click="DuplicateQuizMenuItem_Click"/>
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}" Click="DeleteQuizMenuItem_Click"/>
                                                                                 </ContextMenu>
@@ -3836,8 +3849,9 @@
                                                                                     <Grid.RowDefinitions>
                                                                                         <RowDefinition Height="Auto"/>
                                                                                         <RowDefinition Height="Auto"/>
+                                                                                        <RowDefinition Height="Auto"/>
                                                                                     </Grid.RowDefinitions>
-                                                                                    <CheckBox Grid.RowSpan="2"
+                                                                                    <CheckBox Grid.RowSpan="3"
                                                                                               HorizontalAlignment="Right"
                                                                                               VerticalAlignment="Top"
                                                                                               Margin="0,0,2,0"
@@ -3905,6 +3919,11 @@
                                                                                                FontSize="12"
                                                                                                Foreground="{DynamicResource TextColorSecondary}"
                                                                                                Margin="0,6,0,0"/>
+                                                                                    <Border Grid.Row="2"
+                                                                                            Style="{StaticResource DashboardTagChipStyle}">
+                                                                                        <TextBlock Text="{Binding TagsDisplay}"
+                                                                                                   Style="{StaticResource DashboardTagTextStyle}"/>
+                                                                                    </Border>
                                                                                 </Grid>
                                                                             </Border>
                                                                         </Border>
@@ -4018,13 +4037,6 @@
                                                                 Click="OpenQuizMenuItem_Click"/>
                                                             <MenuItem Header="{Binding [SelectMultiple], Source={StaticResource Loc}}"
                                                                 Click="StartDashboardMassSelectMenuItem_Click"/>
-                                                                <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
-                                                                Click="DuplicateQuizMenuItem_Click"/>
-                                                                <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}"
-                                                                          Visibility="{Binding Document.GroupId, Converter={StaticResource NullToVisibilityConverter}}"
-                                                                          Click="RemoveQuizFromGroupMenuItem_Click"/>
-                                                                <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}"
-                                                                          Click="ScheduleQuizMenuItem_Click"/>
                                                                 <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}"
                                                                           Click="QuizInfoMenuItem_Click"/>
                                                                 <Separator/>
@@ -4034,6 +4046,14 @@
                                                                 <MenuItem Header="{Binding [Unpin], Source={StaticResource Loc}}"
                                                                           Click="ToggleQuizPinMenuItem_Click"
                                                                           Visibility="{Binding Document.IsPinned, Converter={StaticResource BoolToVis}}"/>
+                                                                <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}"
+                                                                          Click="ScheduleQuizMenuItem_Click"/>
+                                                                <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}"
+                                                                          Visibility="{Binding Document.GroupId, Converter={StaticResource NullToVisibilityConverter}}"
+                                                                          Click="RemoveQuizFromGroupMenuItem_Click"/>
+                                                                <Separator/>
+                                                                <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
+                                                                Click="DuplicateQuizMenuItem_Click"/>
                                                                 <Separator/>
                                                                 <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
                                                                 Click="DeleteQuizMenuItem_Click"/>
@@ -4205,13 +4225,11 @@
                                                                                Foreground="{DynamicResource TextColorSecondary}"/>
                                                                 </StackPanel>
 
-                                                                <TextBlock Grid.Row="2"
-                                                                           Text="{Binding TagsDisplay}"
-                                                                           FontSize="12"
-                                                                           Foreground="{DynamicResource TextColorSecondary}"
-                                                                           TextWrapping="Wrap"
-                                                                           MaxHeight="38"
-                                                                           Visibility="{Binding HasTags, Converter={StaticResource BoolToVis}}"/>
+                                                                <Border Grid.Row="2"
+                                                                        Style="{StaticResource DashboardTagChipStyle}">
+                                                                    <TextBlock Text="{Binding TagsDisplay}"
+                                                                               Style="{StaticResource DashboardTagTextStyle}"/>
+                                                                </Border>
                                                             </Grid>
                                                         </Border>
                                                     </Border>
@@ -4842,12 +4860,6 @@
                   Click="OpenMindMapMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [SelectMultiple], Source={StaticResource Loc}}"
                   Click="StartDashboardMassSelectMenuItem_Click"/>
-                                                                                    <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
-                  Click="DuplicateMindMapMenuItem_Click"/>
-                                                                                    <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}"
-                                                                                              Visibility="{Binding Document.GroupId, Converter={StaticResource NullToVisibilityConverter}}"
-                                                                                              Click="RemoveMindMapFromGroupMenuItem_Click"/>
-                                                                                    <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleMindMapMenuItem_Click"/>
                                                                                     <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}" Click="MindMapInfoMenuItem_Click"/>
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
@@ -4856,6 +4868,13 @@
                                                                                     <MenuItem Header="{Binding [Unpin], Source={StaticResource Loc}}"
                                                                                               Click="ToggleMindMapPinMenuItem_Click"
                                                                                               Visibility="{Binding Document.IsPinned, Converter={StaticResource BoolToVis}}"/>
+                                                                                    <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleMindMapMenuItem_Click"/>
+                                                                                    <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}"
+                                                                                              Visibility="{Binding Document.GroupId, Converter={StaticResource NullToVisibilityConverter}}"
+                                                                                              Click="RemoveMindMapFromGroupMenuItem_Click"/>
+                                                                                    <Separator/>
+                                                                                    <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
+                  Click="DuplicateMindMapMenuItem_Click"/>
                                                                                     <Separator/>
                                                                                     <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
                   Click="DeleteMindMapMenuItem_Click"/>
@@ -4866,8 +4885,9 @@
                                                                                     <Grid.RowDefinitions>
                                                                                         <RowDefinition Height="Auto"/>
                                                                                         <RowDefinition Height="*"/>
+                                                                                        <RowDefinition Height="Auto"/>
                                                                                     </Grid.RowDefinitions>
-                                                                                    <CheckBox Grid.RowSpan="2"
+                                                                                    <CheckBox Grid.RowSpan="3"
                                                                                               HorizontalAlignment="Right"
                                                                                               VerticalAlignment="Top"
                                                                                               Margin="0,0,2,0"
@@ -4935,6 +4955,11 @@
                        FontSize="12"
                        Foreground="{DynamicResource TextColorSecondary}"
                        Margin="0,6,0,0"/>
+                                                                                    <Border Grid.Row="2"
+                                                                                            Style="{StaticResource DashboardTagChipStyle}">
+                                                                                        <TextBlock Text="{Binding TagsDisplay}"
+                                                                                                   Style="{StaticResource DashboardTagTextStyle}"/>
+                                                                                    </Border>
                                                                                 </Grid>
                                                                             </Border>
                                                                         </Border>
@@ -5049,12 +5074,6 @@
                   Click="OpenMindMapMenuItem_Click"/>
                                                             <MenuItem Header="{Binding [SelectMultiple], Source={StaticResource Loc}}"
                   Click="StartDashboardMassSelectMenuItem_Click"/>
-                                                                <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
-                  Click="DuplicateMindMapMenuItem_Click"/>
-                                                                <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}"
-                                                                          Visibility="{Binding Document.GroupId, Converter={StaticResource NullToVisibilityConverter}}"
-                                                                          Click="RemoveMindMapFromGroupMenuItem_Click"/>
-                                                                <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleMindMapMenuItem_Click"/>
                                                                 <MenuItem Header="{Binding [Info], Source={StaticResource Loc}}" Click="MindMapInfoMenuItem_Click"/>
                                                                 <Separator/>
                                                                 <MenuItem Header="{Binding [Pin], Source={StaticResource Loc}}"
@@ -5063,6 +5082,13 @@
                                                                 <MenuItem Header="{Binding [Unpin], Source={StaticResource Loc}}"
                                                                           Click="ToggleMindMapPinMenuItem_Click"
                                                                           Visibility="{Binding Document.IsPinned, Converter={StaticResource BoolToVis}}"/>
+                                                                <MenuItem Header="{Binding [CalendarAssignMenu], Source={StaticResource Loc}}" Click="ScheduleMindMapMenuItem_Click"/>
+                                                                <MenuItem Header="{Binding [RemoveFromGroup], Source={StaticResource Loc}}"
+                                                                          Visibility="{Binding Document.GroupId, Converter={StaticResource NullToVisibilityConverter}}"
+                                                                          Click="RemoveMindMapFromGroupMenuItem_Click"/>
+                                                                <Separator/>
+                                                                <MenuItem Header="{Binding [Duplicate], Source={StaticResource Loc}}"
+                  Click="DuplicateMindMapMenuItem_Click"/>
                                                                 <Separator/>
                                                                 <MenuItem Header="{Binding [Delete], Source={StaticResource Loc}}"
                   Click="DeleteMindMapMenuItem_Click"/>
@@ -5342,13 +5368,11 @@
 																			   Foreground="{DynamicResource TextColorSecondary}"/>
 																</StackPanel>
 
-                                                                <TextBlock Grid.Row="2"
-                                                                           Text="{Binding TagsDisplay}"
-                                                                           FontSize="12"
-                                                                           Foreground="{DynamicResource TextColorSecondary}"
-                                                                           TextWrapping="Wrap"
-                                                                           MaxHeight="38"
-                                                                           Visibility="{Binding HasTags, Converter={StaticResource BoolToVis}}"/>
+                                                                <Border Grid.Row="2"
+                                                                        Style="{StaticResource DashboardTagChipStyle}">
+                                                                    <TextBlock Text="{Binding TagsDisplay}"
+                                                                               Style="{StaticResource DashboardTagTextStyle}"/>
+                                                                </Border>
                                                             </Grid>
                                                         </Border>
                                                     </Border>
@@ -5406,51 +5430,83 @@
                     Background="{DynamicResource SidebarBackground}"
                     BorderBrush="{DynamicResource BorderColor}"
                     BorderThickness="1"
-                    Padding="10"
-                    CornerRadius="12">
+                    Padding="6"
+                    CornerRadius="12"
+                    MaxWidth="620">
                 <Border.RenderTransform>
                     <TranslateTransform Y="-12"/>
                 </Border.RenderTransform>
                 <Border.Effect>
-                    <DropShadowEffect Color="#000000" Opacity="0.16" BlurRadius="18" ShadowDepth="2" Direction="270"/>
+                    <DropShadowEffect Color="#000000" Opacity="0.18" BlurRadius="20" ShadowDepth="2" Direction="270"/>
                 </Border.Effect>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding [MassSelectModeTitle], Source={StaticResource Loc}}"
-                                   FontWeight="SemiBold"
-                                   FontSize="13"
-                                   Foreground="{DynamicResource TextColor}"/>
-                        <TextBlock Text="{Binding MassSelectSelectionText}"
-                                   Foreground="{DynamicResource TextColorSecondary}"
-                                   FontSize="12"
-                                   Margin="0,2,0,0"/>
-                    </StackPanel>
+                    <Border Grid.Column="0"
+                            Background="{DynamicResource CardBackground}"
+                            BorderBrush="{DynamicResource BorderColor}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="8,5"
+                            Margin="0,0,6,0"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="9"
+                                    Height="9"
+                                    CornerRadius="5"
+                                    Background="{DynamicResource NoteCardSelectionBorder}"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"/>
+                            <StackPanel>
+                                <TextBlock Text="{Binding [MassSelectModeTitle], Source={StaticResource Loc}}"
+                                           FontWeight="SemiBold"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextColor}"/>
+                                <TextBlock Text="{Binding MassSelectSelectionText}"
+                                           Foreground="{DynamicResource TextColorSecondary}"
+                                           FontSize="10"
+                                           Margin="0,1,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <WrapPanel VerticalAlignment="Center">
-                            <Button Style="{StaticResource MassActionIconButtonStyle}"
-                                    Content="☑"
-                                    ToolTip="{Binding [MassSelectSelectAll], Source={StaticResource Loc}}"
-                                    Command="{Binding SelectAllVisibleNotesCommand}"/>
-                            <Button Style="{StaticResource MassActionIconButtonStyle}"
-                                    Content="🗑"
-                                    ToolTip="{Binding [MassSelectDeleteSelected], Source={StaticResource Loc}}"
-                                    Click="DeleteSelectedMassButton_Click"/>
-                            <Button x:Name="MassSelectMoreActionsToggleButton"
-                                    Style="{StaticResource MassActionIconButtonStyle}"
-                                    Content=">"
-                                    ToolTip="{Binding [MassSelectMoreActions], Source={StaticResource Loc}}"
-                                    Click="ToggleMassSelectMoreActionsButton_Click"/>
-                        </WrapPanel>
+                        <Border Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="4,4,1,4"
+                                Margin="0,0,6,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource MassActionIconButtonStyle}"
+                                        Content="☑"
+                                        ToolTip="{Binding [MassSelectSelectAll], Source={StaticResource Loc}}"
+                                        Command="{Binding SelectAllVisibleNotesCommand}"/>
+                                <Button Style="{StaticResource MassActionDangerIconButtonStyle}"
+                                        Content="🗑"
+                                        FontSize="13"
+                                        ToolTip="{Binding [MassSelectDeleteSelected], Source={StaticResource Loc}}"
+                                        Click="DeleteSelectedMassButton_Click"/>
+                                <Button x:Name="MassSelectMoreActionsToggleButton"
+                                        Style="{StaticResource MassActionIconButtonStyle}"
+                                        Content="›"
+                                        ToolTip="{Binding [MassSelectMoreActions], Source={StaticResource Loc}}"
+                                        Click="ToggleMassSelectMoreActionsButton_Click"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Width="1"
+                                Margin="0,3,7,3"
+                                Background="{DynamicResource BorderColor}"/>
 
                         <Border x:Name="MassSelectMoreActionsPanel"
-                                Margin="8,0,0,0"
-                                Padding="6,0,0,0"
+                                Margin="0"
+                                Padding="5,4,2,4"
+                                Background="{DynamicResource CardBackground}"
                                 BorderBrush="{DynamicResource BorderColor}"
-                                BorderThickness="1,0,0,0"
+                                BorderThickness="1"
+                                CornerRadius="10"
                                 Visibility="Collapsed"
                                 Opacity="0"
                                 RenderTransformOrigin="0,0.5">
@@ -5485,19 +5541,20 @@
                                         Click="AddTagsToSelectedButton_Click"/>
                             </WrapPanel>
                         </Border>
-
-                        <Border Margin="8,0,0,0"
-                                Padding="8,0,0,0"
-                                BorderBrush="{DynamicResource BorderColor}"
-                                BorderThickness="1,0,0,0"
-                                VerticalAlignment="Stretch">
-                            <Button Style="{StaticResource MassActionIconButtonStyle}"
-                                    Margin="0"
-                                    Content="✕"
-                                    ToolTip="{Binding [Close], Source={StaticResource Loc}}"
-                                    Click="ExitMassSelectButton_Click"/>
-                        </Border>
                     </StackPanel>
+                    <Border Grid.Column="2"
+                            Margin="8,0,0,0"
+                            Padding="8,0,0,0"
+                            BorderBrush="{DynamicResource BorderColor}"
+                            BorderThickness="1,0,0,0"
+                            VerticalAlignment="Stretch">
+                        <Button Style="{StaticResource MassActionIconButtonStyle}"
+                                Margin="0"
+                                Content="×"
+                                FontSize="15"
+                                ToolTip="{Binding [Close], Source={StaticResource Loc}}"
+                                Click="ExitMassSelectButton_Click"/>
+                    </Border>
                 </Grid>
             </Border>
         </Grid>

@@ -584,7 +584,7 @@ namespace NoteCards
             if (MassSelectMoreActionsToggleButtonElement is not Button toggle)
                 return;
 
-            toggle.Content = _isMassSelectMoreActionsExpanded ? "<" : ">";
+            toggle.Content = _isMassSelectMoreActionsExpanded ? "‹" : "›";
         }
 
         private static ScaleTransform EnsureMassMoreActionsScaleTransform(FrameworkElement panel)

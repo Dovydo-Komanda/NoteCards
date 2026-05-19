@@ -50,7 +50,7 @@ public class NoteCardViewModel : ViewModelBase
 
             return string.Join("   ", Document.Tags
                 .Where(tag => !string.IsNullOrWhiteSpace(tag))
-                .Select(tag => $"-{tag.Trim()}"));
+                .Select(tag => $"#{tag.Trim()}"));
         }
     }
 

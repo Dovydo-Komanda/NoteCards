@@ -62,6 +62,21 @@
                 </Setter>
             </Style>
 
+            <Style x:Key="DashboardTagChipStyle" TargetType="Border">
+                <Setter Property="Margin" Value="0,10,0,0"/>
+                <Setter Property="Padding" Value="8,4"/>
+                <Setter Property="Background" Value="#F5F7FB"/>
+                <Setter Property="CornerRadius" Value="7"/>
+                <Setter Property="Visibility" Value="{Binding HasTags, Converter={StaticResource BoolToVis}}"/>
+            </Style>
+
+            <Style x:Key="DashboardTagTextStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="Foreground" Value="#4A5D80"/>
+                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                <Setter Property="TextWrapping" Value="NoWrap"/>
+            </Style>
+
             <Style x:Key="ModernScrollBarThumbStyle" TargetType="{x:Type Thumb}">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
                 <Setter Property="Background" Value="{DynamicResource ScrollBarThumbBackground}"/>
