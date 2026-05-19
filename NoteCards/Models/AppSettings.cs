@@ -20,6 +20,8 @@ public class AppSettings
 
     public bool IsUngroupedSectionExpanded { get; set; } = true;
 
+    public bool IsNotesDashboardSectionVisible { get; set; } = true;
+
     public bool IsNotesDashboardSectionExpanded { get; set; } = true;
 
     public bool IsRecentSectionVisible { get; set; } = true;
@@ -34,6 +36,12 @@ public class AppSettings
 
     public bool IsFlashcardGroupsSectionExpanded { get; set; } = true;
 
+    public bool IsFlashcardGroupsSectionVisible { get; set; } = true;
+
+    public bool IsFlashcardDashboardGroupsSectionVisible { get; set; } = true;
+
+    public bool IsFlashcardDashboardUngroupedSectionVisible { get; set; } = true;
+
     public bool IsFlashcardDashboardGroupsSectionExpanded { get; set; } = true;
 
     public bool IsFlashcardDashboardUngroupedSectionExpanded { get; set; } = true;
@@ -42,13 +50,23 @@ public class AppSettings
 
     public bool IsMindMapGroupsSectionExpanded { get; set; } = true;
 
+    public bool IsMindMapDashboardGroupsSectionVisible { get; set; } = true;
+
+    public bool IsMindMapDashboardUngroupedSectionVisible { get; set; } = true;
+
     public bool IsMindMapDashboardGroupsSectionExpanded { get; set; } = true;
 
     public bool IsMindMapDashboardUngroupedSectionExpanded { get; set; } = true;
 
     public bool IsMindMapDashboardGroupsFirst { get; set; } = true;
 
+    public bool IsQuizGroupsSectionVisible { get; set; } = true;
+
     public bool IsQuizGroupsSectionExpanded { get; set; } = true;
+
+    public bool IsQuizDashboardGroupsSectionVisible { get; set; } = true;
+
+    public bool IsQuizDashboardUngroupedSectionVisible { get; set; } = true;
 
     public bool IsQuizDashboardGroupsSectionExpanded { get; set; } = true;
 

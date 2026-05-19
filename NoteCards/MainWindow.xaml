@@ -1258,12 +1258,18 @@
 										  IsChecked="{Binding IsCalendarSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
 										  Margin="0,0,0,6"
 										  Foreground="{DynamicResource TextColor}"/>
+                                <CheckBox Content="{Binding [NotesDashboard], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsNotesDashboardSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
 								<CheckBox Content="{Binding [Groups], Source={StaticResource Loc}}"
 										  IsChecked="{Binding IsGroupsSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding IsNotesDashboardSectionVisible}"
 										  Margin="0,0,0,6"
 										  Foreground="{DynamicResource TextColor}"/>
 								<CheckBox Content="{Binding [UngroupedItems], Source={StaticResource Loc}}"
 										  IsChecked="{Binding IsUngroupedSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding IsNotesDashboardSectionVisible}"
 										  Foreground="{DynamicResource TextColor}"/>
                             </StackPanel>
                             <StackPanel Visibility="{Binding IsFlashcardsView, Converter={StaticResource BoolToVis}}">
@@ -1277,6 +1283,16 @@
                                           Foreground="{DynamicResource TextColor}"/>
                                 <CheckBox Content="{Binding [FlashcardGroupsDashboardTitle], Source={StaticResource Loc}}"
                                           IsChecked="{Binding IsFlashcardGroupsSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
+                                <CheckBox Content="{Binding [Groups], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsFlashcardDashboardGroupsSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding IsFlashcardGroupsSectionVisible}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
+                                <CheckBox Content="{Binding [UngroupedItems], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsFlashcardDashboardUngroupedSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding IsFlashcardGroupsSectionVisible}"
                                           Foreground="{DynamicResource TextColor}"/>
                             </StackPanel>
                             <StackPanel Visibility="{Binding IsQuizzesView, Converter={StaticResource BoolToVis}}">
@@ -1286,6 +1302,20 @@
                                           Foreground="{DynamicResource TextColor}"/>
                                 <CheckBox Content="{Binding [CalendarSection], Source={StaticResource Loc}}"
                                           IsChecked="{Binding IsCalendarSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
+                                <CheckBox Content="{Binding [QuizzesDashboardTitle], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsQuizGroupsSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
+                                <CheckBox Content="{Binding [Groups], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsQuizDashboardGroupsSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding IsQuizGroupsSectionVisible}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
+                                <CheckBox Content="{Binding [UngroupedItems], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsQuizDashboardUngroupedSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding IsQuizGroupsSectionVisible}"
                                           Foreground="{DynamicResource TextColor}"/>
                             </StackPanel>
                             <StackPanel Visibility="{Binding IsMindMapsView, Converter={StaticResource BoolToVis}}">
@@ -1299,6 +1329,16 @@
                                           Foreground="{DynamicResource TextColor}"/>
                                 <CheckBox Content="{Binding [MindMapsDashboardTitle], Source={StaticResource Loc}}"
                                           IsChecked="{Binding IsMindMapGroupsSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
+                                <CheckBox Content="{Binding [Groups], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsMindMapDashboardGroupsSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding IsMindMapGroupsSectionVisible}"
+                                          Margin="0,0,0,6"
+                                          Foreground="{DynamicResource TextColor}"/>
+                                <CheckBox Content="{Binding [UngroupedItems], Source={StaticResource Loc}}"
+                                          IsChecked="{Binding IsMindMapDashboardUngroupedSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding IsMindMapGroupsSectionVisible}"
                                           Foreground="{DynamicResource TextColor}"/>
                             </StackPanel>
                             </Grid>
@@ -1710,8 +1750,15 @@
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Setter Property="Grid.Row" Value="1"/>
-                                            <Setter Property="Visibility" Value="{Binding HasNotes, Converter={StaticResource BoolToVis}}"/>
+                                            <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding HasNotes}" Value="True"/>
+                                                        <Condition Binding="{Binding IsNotesDashboardSectionVisible}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
                                                 <DataTrigger Binding="{Binding IsCalendarFirst}" Value="False">
                                                     <Setter Property="Grid.Row" Value="0"/>
                                                 </DataTrigger>
@@ -1788,6 +1835,7 @@
                                                 <MultiDataTrigger>
                                                     <MultiDataTrigger.Conditions>
                                                         <Condition Binding="{Binding HasGroups}" Value="True"/>
+                                                        <Condition Binding="{Binding IsGroupsSectionVisible}" Value="True"/>
                                                     </MultiDataTrigger.Conditions>
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </MultiDataTrigger>
@@ -1957,6 +2005,7 @@
                                                 <MultiDataTrigger>
                                                     <MultiDataTrigger.Conditions>
                                                         <Condition Binding="{Binding HasUngroupedNotes}" Value="True"/>
+                                                        <Condition Binding="{Binding IsUngroupedSectionVisible}" Value="True"/>
                                                     </MultiDataTrigger.Conditions>
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </MultiDataTrigger>
@@ -2594,9 +2643,13 @@
                                                             <Setter Property="Visibility" Value="Collapsed"/>
                                                             <Setter Property="Grid.Row" Value="0"/>
                                                             <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding HasFlashcardSetGroups}" Value="True">
+                                                                <MultiDataTrigger>
+                                                                    <MultiDataTrigger.Conditions>
+                                                                        <Condition Binding="{Binding HasFlashcardSetGroups}" Value="True"/>
+                                                                        <Condition Binding="{Binding IsFlashcardDashboardGroupsSectionVisible}" Value="True"/>
+                                                                    </MultiDataTrigger.Conditions>
                                                                     <Setter Property="Visibility" Value="Visible"/>
-                                                                </DataTrigger>
+                                                                </MultiDataTrigger>
                                                                 <DataTrigger Binding="{Binding IsFlashcardDashboardGroupsFirst}" Value="False">
                                                                     <Setter Property="Grid.Row" Value="1"/>
                                                                 </DataTrigger>
@@ -2864,9 +2917,13 @@
                                                     <Setter Property="Grid.Row" Value="1"/>
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding HasFlashcardSets}" Value="True">
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding HasFlashcardSets}" Value="True"/>
+                                                                <Condition Binding="{Binding IsFlashcardDashboardUngroupedSectionVisible}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
                                                             <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
+                                                        </MultiDataTrigger>
                                                         <DataTrigger Binding="{Binding IsFlashcardDashboardGroupsFirst}" Value="False">
                                                             <Setter Property="Grid.Row" Value="0"/>
                                                         </DataTrigger>
@@ -3553,8 +3610,15 @@
                                             <Setter Property="CornerRadius" Value="14"/>
                                             <Setter Property="Padding" Value="18"/>
                                             <Setter Property="Margin" Value="8,0,8,10"/>
-                                            <Setter Property="Visibility" Value="{Binding HasQuizzes, Converter={StaticResource BoolToVis}}"/>
+                                            <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding HasQuizzes}" Value="True"/>
+                                                        <Condition Binding="{Binding IsQuizGroupsSectionVisible}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
                                                 <DataTrigger Binding="{Binding IsCalendarFirst}" Value="False">
                                                     <Setter Property="Grid.Row" Value="0"/>
                                                 </DataTrigger>
@@ -3636,9 +3700,13 @@
                                                             <Setter Property="Visibility" Value="Collapsed"/>
                                                             <Setter Property="Grid.Row" Value="0"/>
                                                             <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding HasQuizGroups}" Value="True">
+                                                                <MultiDataTrigger>
+                                                                    <MultiDataTrigger.Conditions>
+                                                                        <Condition Binding="{Binding HasQuizGroups}" Value="True"/>
+                                                                        <Condition Binding="{Binding IsQuizDashboardGroupsSectionVisible}" Value="True"/>
+                                                                    </MultiDataTrigger.Conditions>
                                                                     <Setter Property="Visibility" Value="Visible"/>
-                                                                </DataTrigger>
+                                                                </MultiDataTrigger>
                                                                 <DataTrigger Binding="{Binding IsQuizDashboardGroupsFirst}" Value="False">
                                                                     <Setter Property="Grid.Row" Value="1"/>
                                                                 </DataTrigger>
@@ -3906,9 +3974,13 @@
                                                     <Setter Property="Grid.Row" Value="1"/>
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding HasQuizzes}" Value="True">
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding HasQuizzes}" Value="True"/>
+                                                                <Condition Binding="{Binding IsQuizDashboardUngroupedSectionVisible}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
                                                             <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
+                                                        </MultiDataTrigger>
                                                         <DataTrigger Binding="{Binding IsQuizDashboardGroupsFirst}" Value="False">
                                                             <Setter Property="Grid.Row" Value="0"/>
                                                         </DataTrigger>
@@ -4633,9 +4705,13 @@
                                                             <Setter Property="Visibility" Value="Collapsed"/>
                                                             <Setter Property="Grid.Row" Value="0"/>
                                                             <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding HasMindMapGroups}" Value="True">
+                                                                <MultiDataTrigger>
+                                                                    <MultiDataTrigger.Conditions>
+                                                                        <Condition Binding="{Binding HasMindMapGroups}" Value="True"/>
+                                                                        <Condition Binding="{Binding IsMindMapDashboardGroupsSectionVisible}" Value="True"/>
+                                                                    </MultiDataTrigger.Conditions>
                                                                     <Setter Property="Visibility" Value="Visible"/>
-                                                                </DataTrigger>
+                                                                </MultiDataTrigger>
                                                                 <DataTrigger Binding="{Binding IsMindMapDashboardGroupsFirst}" Value="False">
                                                                     <Setter Property="Grid.Row" Value="1"/>
                                                                 </DataTrigger>
@@ -4910,9 +4986,13 @@
                                                     <Setter Property="Grid.Row" Value="1"/>
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding HasMindMaps}" Value="True">
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding HasMindMaps}" Value="True"/>
+                                                                <Condition Binding="{Binding IsMindMapDashboardUngroupedSectionVisible}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
                                                             <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
+                                                        </MultiDataTrigger>
                                                         <DataTrigger Binding="{Binding IsMindMapDashboardGroupsFirst}" Value="False">
                                                             <Setter Property="Grid.Row" Value="0"/>
                                                         </DataTrigger>
