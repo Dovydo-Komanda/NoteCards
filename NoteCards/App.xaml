@@ -25,6 +25,43 @@
             <sys:Double x:Key="{x:Static SystemParameters.VerticalScrollBarWidthKey}">6</sys:Double>
             <sys:Double x:Key="{x:Static SystemParameters.HorizontalScrollBarHeightKey}">6</sys:Double>
 
+            <Style x:Key="DashboardMassSelectCheckBoxStyle" TargetType="CheckBox">
+                <Setter Property="Width" Value="22"/>
+                <Setter Property="Height" Value="22"/>
+                <Setter Property="IsHitTestVisible" Value="False"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <Border x:Name="SelectionBox"
+                                    Background="{DynamicResource MassSelectBoxBackground}"
+                                    BorderBrush="{DynamicResource MassSelectBoxBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="7">
+                                <Border.RenderTransform>
+                                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                                </Border.RenderTransform>
+                                <TextBlock x:Name="SelectionGlyph"
+                                           Text=""
+                                           Foreground="Transparent"
+                                           FontSize="12"
+                                           FontWeight="Bold"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="SelectionBox" Property="Background" Value="{DynamicResource MassSelectBoxCheckedBackground}"/>
+                                    <Setter TargetName="SelectionBox" Property="BorderBrush" Value="{DynamicResource MassSelectBoxCheckedBorder}"/>
+                                    <Setter TargetName="SelectionGlyph" Property="Text" Value="✓"/>
+                                    <Setter TargetName="SelectionGlyph" Property="Foreground" Value="{DynamicResource MassSelectBoxGlyph}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style x:Key="ModernScrollBarThumbStyle" TargetType="{x:Type Thumb}">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
                 <Setter Property="Background" Value="{DynamicResource ScrollBarThumbBackground}"/>

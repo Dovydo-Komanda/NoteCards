@@ -20,6 +20,49 @@
              Drop="OnDrop"
              MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave">
     <UserControl.Resources>
+        <Style x:Key="NoteDashboardListingMenuButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource NoteCardTitle}"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Visibility" Value="{Binding IsMenuVisible, Converter={StaticResource BoolToVis}}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="MenuButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MenuButtonBorder" Property="Background" Value="{DynamicResource IconButtonHoverBackground}"/>
+                                <Setter TargetName="MenuButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="MenuButtonBorder" Property="Background" Value="{DynamicResource IconButtonPressedBackground}"/>
+                                <Setter TargetName="MenuButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsMassSelectMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Visibility" Value="Hidden"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Storyboard x:Key="ExitStoryboard">
             <DoubleAnimation Storyboard.TargetProperty="Opacity"
                              From="1" To="0" Duration="0:0:0.2">
@@ -115,9 +158,6 @@
         </EventTrigger>
     </UserControl.Triggers>
     <Border x:Name="CardBorder"
-            Background="{DynamicResource NoteCardBackground}"
-            BorderBrush="{DynamicResource NoteCardBorder}"
-            BorderThickness="1"
             CornerRadius="12"
             Padding="14">
         <Border.Effect>
@@ -126,6 +166,9 @@
         </Border.Effect>
         <Border.Style>
             <Style TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource NoteCardBackground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource NoteCardBorder}"/>
+                <Setter Property="BorderThickness" Value="1"/>
                 <Style.Triggers>
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
@@ -188,52 +231,10 @@
                 <Button x:Name="MenuButton"
                         Grid.Column="1"
                         Content="&#x22EE;"
-                        Foreground="{DynamicResource NoteCardTitle}"
-                        HorizontalAlignment="Right" VerticalAlignment="Top"
-                        Width="28" Height="28" Padding="0"
-                        FontSize="16" FontWeight="Bold"
-                        Background="Transparent"
-                        BorderBrush="Transparent"
-                        BorderThickness="1"
-                        Cursor="Hand"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Style="{StaticResource NoteDashboardListingMenuButtonStyle}"
                         Click="OnMenuButtonClick">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="BorderThickness" Value="1"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="MenuButtonBorder"
-                                                Background="{TemplateBinding Background}"
-                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                CornerRadius="8">
-                                            <ContentPresenter HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="MenuButtonBorder" Property="Background" Value="{DynamicResource IconButtonHoverBackground}"/>
-                                                <Setter TargetName="MenuButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
-                                            </Trigger>
-                                            <Trigger Property="IsPressed" Value="True">
-                                                <Setter TargetName="MenuButtonBorder" Property="Background" Value="{DynamicResource IconButtonPressedBackground}"/>
-                                                <Setter TargetName="MenuButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Setter Property="Visibility" Value="{Binding IsMenuVisible, Converter={StaticResource BoolToVis}}"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding DataContext.IsMassSelectMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
                     <Button.ContextMenu>
                         <ContextMenu HasDropShadow="False"
                                      Background="{DynamicResource CardBackground}"
@@ -289,79 +290,11 @@
                 <CheckBox Grid.Column="1"
                           HorizontalAlignment="Right"
                           VerticalAlignment="Top"
-                          Width="22"
-                          Height="22"
-                          Margin="0,1,2,0"
-                          IsHitTestVisible="False"
-                          Focusable="False"
+                          Margin="0,0,2,0"
+                          Style="{StaticResource DashboardMassSelectCheckBoxStyle}"
                           Panel.ZIndex="6"
                           Visibility="{Binding DataContext.IsMassSelectMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"
-                          IsChecked="{Binding IsSelectedInMassSelect}">
-                    <CheckBox.Template>
-                        <ControlTemplate TargetType="CheckBox">
-                            <Border x:Name="SelectionBox"
-                                    Background="{DynamicResource MassSelectBoxBackground}"
-                                    BorderBrush="{DynamicResource MassSelectBoxBorder}"
-                                    BorderThickness="1"
-                                    CornerRadius="7">
-                                <Border.RenderTransform>
-                                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                                </Border.RenderTransform>
-                                <TextBlock x:Name="SelectionGlyph"
-                                           Text=""
-                                           Foreground="Transparent"
-                                           FontSize="12"
-                                           FontWeight="Bold"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="SelectionBox" Property="Background" Value="{DynamicResource MassSelectBoxCheckedBackground}"/>
-                                    <Setter TargetName="SelectionBox" Property="BorderBrush" Value="{DynamicResource MassSelectBoxCheckedBorder}"/>
-                                    <Setter TargetName="SelectionGlyph" Property="Text" Value="✓"/>
-                                    <Setter TargetName="SelectionGlyph" Property="Foreground" Value="{DynamicResource MassSelectBoxGlyph}"/>
-                                    <Trigger.EnterActions>
-                                        <BeginStoryboard>
-                                            <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetName="SelectionBox"
-                                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                 To="1"
-                                                                 Duration="0:0:0.12">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <BackEase Amplitude="0.4" EasingMode="EaseOut"/>
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetName="SelectionBox"
-                                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                 To="1"
-                                                                 Duration="0:0:0.12">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <BackEase Amplitude="0.4" EasingMode="EaseOut"/>
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </Trigger.EnterActions>
-                                    <Trigger.ExitActions>
-                                        <BeginStoryboard>
-                                            <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetName="SelectionBox"
-                                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                 To="0.9"
-                                                                 Duration="0:0:0.1"/>
-                                                <DoubleAnimation Storyboard.TargetName="SelectionBox"
-                                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                 To="0.9"
-                                                                 Duration="0:0:0.1"/>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </Trigger.ExitActions>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </CheckBox.Template>
-                </CheckBox>
+                          IsChecked="{Binding IsSelectedInMassSelect}"/>
             </Grid>
             <TextBlock Grid.Row="1"
                        Text="{Binding Content}"

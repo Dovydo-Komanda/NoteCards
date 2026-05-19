@@ -2452,7 +2452,7 @@ namespace NoteCards
 
         private void AddTagsToSelectedButton_Click(object sender, RoutedEventArgs e)
         {
-            if (DataContext is not MainViewModel vm || !vm.IsMassSelectMode)
+            if (DataContext is not MainViewModel vm || !vm.IsMassSelectMode || vm.ActiveMassSelectedCount <= 0)
                 return;
 
             var dialog = new SimpleInputDialog(
@@ -2470,12 +2470,12 @@ namespace NoteCards
 
         private void DeleteSelectedMassButton_Click(object sender, RoutedEventArgs e)
         {
-            if (DataContext is not MainViewModel vm || !vm.IsMassSelectMode || vm.SelectedNotesCount <= 0)
+            if (DataContext is not MainViewModel vm || !vm.IsMassSelectMode || vm.ActiveMassSelectedCount <= 0)
                 return;
 
             var message = string.Format(
                 LocalizationService.GetString("DeleteSelectedNotesConfirmation"),
-                vm.SelectedNotesCount);
+                vm.ActiveMassSelectedCount);
 
             var dialog = new DeleteConfirmationDialog(
                 title: LocalizationService.GetString("DeleteNotesTitle"),
@@ -2489,6 +2489,29 @@ namespace NoteCards
 
             if (vm.DeleteSelectedNotesCommand.CanExecute(null))
                 vm.DeleteSelectedNotesCommand.Execute(null);
+        }
+
+        private void StartDashboardMassSelectMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var listing = sender is MenuItem menuItem
+                ? menuItem.DataContext ?? ResolveDashboardGroupFromMenuItem(menuItem)
+                : null;
+
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            switch (listing)
+            {
+                case FlashcardSetViewModel set:
+                    vm.EnterMassSelect(set);
+                    break;
+                case MindMapViewModel map:
+                    vm.EnterMassSelect(map);
+                    break;
+                case QuizViewModel quiz:
+                    vm.EnterMassSelect(quiz);
+                    break;
+            }
         }
 
         private void MoveGroupsUpButton_Click(object sender, RoutedEventArgs e)
@@ -2711,6 +2734,9 @@ namespace NoteCards
 
         private void DashboardListing_PreviewMouseMove(object sender, MouseEventArgs e)
         {
+            if (DataContext is MainViewModel { IsMassSelectMode: true })
+                return;
+
             if (sender is not FrameworkElement element)
                 return;
 
@@ -2755,6 +2781,13 @@ namespace NoteCards
                 return;
 
             var listing = ResolveDashboardListingFromElement(sender as FrameworkElement);
+            if (DataContext is MainViewModel { IsMassSelectMode: true } massSelectVm)
+            {
+                massSelectVm.ToggleMassSelectForDashboardItem(listing);
+                e.Handled = true;
+                return;
+            }
+
             switch (listing)
             {
                 case FlashcardSetViewModel flashcardSet when DataContext is MainViewModel vm:
@@ -2774,6 +2807,13 @@ namespace NoteCards
 
         private void DashboardListing_PreviewDragEnter(object sender, DragEventArgs e)
         {
+            if (DataContext is MainViewModel { IsMassSelectMode: true })
+            {
+                e.Effects = DragDropEffects.None;
+                e.Handled = true;
+                return;
+            }
+
             var canDrop = CanDropDashboardListing(sender, e);
             SetDashboardListingDropVisual(sender as DependencyObject, canDrop);
             e.Effects = canDrop ? DragDropEffects.Move : DragDropEffects.None;
@@ -2782,6 +2822,13 @@ namespace NoteCards
 
         private void DashboardListing_PreviewDragOver(object sender, DragEventArgs e)
         {
+            if (DataContext is MainViewModel { IsMassSelectMode: true })
+            {
+                e.Effects = DragDropEffects.None;
+                e.Handled = true;
+                return;
+            }
+
             var canDrop = CanDropDashboardListing(sender, e);
             SetDashboardListingDropVisual(sender as DependencyObject, canDrop);
             e.Effects = canDrop ? DragDropEffects.Move : DragDropEffects.None;
@@ -2796,6 +2843,13 @@ namespace NoteCards
 
         private void DashboardListing_PreviewDrop(object sender, DragEventArgs e)
         {
+            if (DataContext is MainViewModel { IsMassSelectMode: true })
+            {
+                e.Effects = DragDropEffects.None;
+                e.Handled = true;
+                return;
+            }
+
             try
             {
                 if (sender is not FrameworkElement targetElement)
@@ -2851,6 +2905,13 @@ namespace NoteCards
 
         private void DashboardUngroupedDropZone_DragOver(object sender, DragEventArgs e)
         {
+            if (DataContext is MainViewModel { IsMassSelectMode: true })
+            {
+                e.Effects = DragDropEffects.None;
+                e.Handled = true;
+                return;
+            }
+
             if (FindDashboardListingElementFromDragEvent(e) is FrameworkElement listingElement
                 && CanDropDashboardListing(listingElement, e))
             {
@@ -2870,6 +2931,13 @@ namespace NoteCards
 
         private void DashboardUngroupedDropZone_Drop(object sender, DragEventArgs e)
         {
+            if (DataContext is MainViewModel { IsMassSelectMode: true })
+            {
+                e.Effects = DragDropEffects.None;
+                e.Handled = true;
+                return;
+            }
+
             if (DataContext is not MainViewModel vm)
                 return;
 

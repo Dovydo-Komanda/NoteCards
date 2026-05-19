@@ -341,7 +341,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="SaveAndExit" xml:space="preserve"><value>Išsaugoti ir išeiti</value></data>
   <data name="EditedIndicator" xml:space="preserve"><value>Redaguota</value></data>
   <data name="TabCloseWarning" xml:space="preserve"><value>Šis skirtukas turi neiššaugotus pakeitimus. Uždaryti vis tiek?</value></data>
-  <data name="SelectMultiple" xml:space="preserve"><value>Pažymėti užrašą</value></data>
+  <data name="SelectMultiple" xml:space="preserve"><value>Pažymėti elementą</value></data>
   <data name="CalendarAssignMenu" xml:space="preserve"><value>Priskirti kalendoriui...</value></data>
   <data name="CalendarAssignTitle" xml:space="preserve"><value>Užrašo planavimas</value></data>
   <data name="CalendarAssignHint" xml:space="preserve"><value>Pridėkite vieną ar kelias priminimo datas šiam užrašui.</value></data>
@@ -356,7 +356,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="CalendarNoSchedulesForDay" xml:space="preserve"><value>Šiai dienai suplanuotų įrašų nėra.</value></data>
   <data name="CalendarClearSchedule" xml:space="preserve"><value>Išvalyti planavimą</value></data>
   <data name="CalendarDateRequired" xml:space="preserve"><value>Pasirinkite priminimo datą.</value></data>
-  <data name="MassSelectModeTitle" xml:space="preserve"><value>Pažymėti užrašą</value></data>
+  <data name="MassSelectModeTitle" xml:space="preserve"><value>Pažymėti elementus</value></data>
   <data name="MassSelectSelectedCount" xml:space="preserve"><value>Pažymėta: {0}</value></data>
   <data name="MassSelectMoreActions" xml:space="preserve"><value>Daugiau veiksmų</value></data>
   <data name="MassSelectSelectAll" xml:space="preserve"><value>Pažymėti visus matomus</value></data>
@@ -367,13 +367,13 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="MassSelectPinSelected" xml:space="preserve"><value>Prisegti pažymėtus</value></data>
   <data name="MassSelectUnpinSelected" xml:space="preserve"><value>Atsegti pažymėtus</value></data>
   <data name="MassSelectDuplicateSelected" xml:space="preserve"><value>Kopijuoti pažymėtus</value></data>
-  <data name="MassSelectAddTagsTitle" xml:space="preserve"><value>Pridėti žymes pažymėtiems užrašams</value></data>
+  <data name="MassSelectAddTagsTitle" xml:space="preserve"><value>Pridėti žymes pažymėtiems elementams</value></data>
   <data name="MassSelectAddTagsPrompt" xml:space="preserve"><value>Įveskite žymes atskirtas kableliais (pvz.: darbas, skubu):</value></data>
   <data name="ConfirmDelete" xml:space="preserve"><value>Ištrinti užrašą</value></data>
   <data name="DeleteNotesTitle" xml:space="preserve"><value>Ištrinti užrašus</value></data>
   <data name="DeleteNoteConfirmation" xml:space="preserve"><value>Ar tikrai norite ištrinti šį užrašą? Šio veiksmo negalima atšaukti.</value></data>
   <data name="Confirm" xml:space="preserve"><value>Ištrinti</value></data>
-  <data name="DeleteSelectedNotesConfirmation" xml:space="preserve"><value>Ar tikrai norite ištrinti {0} pažymėtus užrašus? Šio veiksmo negalima atšaukti.</value></data>
+  <data name="DeleteSelectedNotesConfirmation" xml:space="preserve"><value>Ar tikrai norite ištrinti {0} pažymėtus elementus? Šio veiksmo negalima atšaukti.</value></data>
   <data name="ConvertToFlashcards" xml:space="preserve"><value>Paversti į mokymosi korteles</value></data>
   <data name="ConvertToFlashcardsEmpty" xml:space="preserve"><value>Prieš konvertuodami į mokymosi korteles, įrašykite užrašo tekstą.</value></data>
   <data name="ConvertToFlashcardsInProgress" xml:space="preserve"><value>Generuojamos mokymosi kortelės...</value></data>

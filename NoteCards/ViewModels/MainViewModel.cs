@@ -52,7 +52,11 @@ public class MainViewModel : ViewModelBase
     private readonly HashSet<string> _selectedMindMapTags = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _selectedQuizTags = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<Guid> _massSelectedNoteIds = new();
+    private readonly HashSet<Guid> _massSelectedFlashcardSetIds = new();
+    private readonly HashSet<Guid> _massSelectedMindMapIds = new();
+    private readonly HashSet<Guid> _massSelectedQuizIds = new();
     private bool _isMassSelectMode;
+    private string _massSelectDashboard = DashboardNotes;
     private DateTime _calendarSelectedDate = DateTime.Today;
     private AppSettings _settings;
     private readonly Dictionary<Guid, FlashcardSetGroupData> _flashcardSetGroupMetadata = new();
@@ -437,6 +441,9 @@ public class MainViewModel : ViewModelBase
         if (string.Equals(_activeDashboard, normalized, StringComparison.Ordinal))
             return;
 
+        if (IsMassSelectMode)
+            ExitMassSelect();
+
         _activeDashboard = normalized;
         CurrentView = normalized;
         OnPropertyChanged(nameof(ActiveDashboard));
@@ -494,6 +501,7 @@ public class MainViewModel : ViewModelBase
             NotifyFlashcardSetsChanged();
             RefreshCalendarScheduledNotes();
             RefreshRecentFlashcardSets();
+            EnsureMassSelectionConsistency();
         };
         MindMaps.CollectionChanged += (_, _) =>
         {
@@ -502,6 +510,7 @@ public class MainViewModel : ViewModelBase
             NotifyMindMapsChanged();
             RefreshCalendarScheduledNotes();
             RefreshRecentMindMaps();
+            EnsureMassSelectionConsistency();
         };
         Quizzes.CollectionChanged += (_, _) =>
         {
@@ -510,6 +519,7 @@ public class MainViewModel : ViewModelBase
             NotifyQuizzesChanged();
             RefreshCalendarScheduledNotes();
             RefreshRecentQuizzes();
+            EnsureMassSelectionConsistency();
         };
         
         NoteCards.Services.ActivityTracker.ActivityUpdated += RefreshActivityStats;
@@ -534,8 +544,8 @@ public class MainViewModel : ViewModelBase
         ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
         ClearTagFiltersCommand = new RelayCommand(ClearActiveTagFilters, () => ActiveHasActiveTagFilters);
         ExitMassSelectCommand = new RelayCommand(ExitMassSelect, () => IsMassSelectMode);
-        SelectAllVisibleNotesCommand = new RelayCommand(SelectAllVisibleNotes, () => IsMassSelectMode);
-        DeleteSelectedNotesCommand = new RelayCommand(DeleteSelectedNotes, () => IsMassSelectMode && SelectedNotesCount > 0);
+        SelectAllVisibleNotesCommand = new RelayCommand(SelectAllVisibleMassItems, () => IsMassSelectMode);
+        DeleteSelectedNotesCommand = new RelayCommand(DeleteSelectedMassItems, () => IsMassSelectMode && ActiveMassSelectedCount > 0);
         RemoveSelectedFromGroupsCommand = new RelayCommand(RemoveSelectedFromGroups, CanUngroupSelectedNotes);
         GroupSelectedNotesCommand = new RelayCommand(GroupSelectedNotes, CanGroupSelectedNotes);
         PinSelectedNotesCommand = new RelayCommand(PinSelectedNotes, CanPinSelectedNotes);
@@ -2119,8 +2129,15 @@ public class MainViewModel : ViewModelBase
         }
     }
     public bool IsNotMassSelectMode => !IsMassSelectMode;
-    public int SelectedNotesCount => _massSelectedNoteIds.Count;
-    public string MassSelectSelectionText => string.Format(LocalizationService.GetString("MassSelectSelectedCount"), SelectedNotesCount);
+    public int SelectedNotesCount => ActiveMassSelectedCount;
+    public int ActiveMassSelectedCount => _massSelectDashboard switch
+    {
+        DashboardFlashcards => _massSelectedFlashcardSetIds.Count,
+        DashboardMindMaps => _massSelectedMindMapIds.Count,
+        DashboardQuizzes => _massSelectedQuizIds.Count,
+        _ => _massSelectedNoteIds.Count
+    };
+    public string MassSelectSelectionText => string.Format(LocalizationService.GetString("MassSelectSelectedCount"), ActiveMassSelectedCount);
     public string TagFilterButtonText => HasActiveTagFilters
         ? $"{LocalizationService.GetString("FilterTags")} ({_selectedTags.Count})"
         : LocalizationService.GetString("FilterTags");
@@ -2743,16 +2760,57 @@ public class MainViewModel : ViewModelBase
 
     public void EnterMassSelect(NoteCardViewModel initialNote)
     {
+        _massSelectDashboard = DashboardNotes;
         IsMassSelectMode = true;
         SetNoteSelectedState(initialNote, true);
     }
 
+    public void EnterMassSelect(FlashcardSetViewModel initialSet)
+    {
+        _massSelectDashboard = DashboardFlashcards;
+        IsMassSelectMode = true;
+        SetFlashcardSetSelectedState(initialSet, true);
+    }
+
+    public void EnterMassSelect(MindMapViewModel initialMap)
+    {
+        _massSelectDashboard = DashboardMindMaps;
+        IsMassSelectMode = true;
+        SetMindMapSelectedState(initialMap, true);
+    }
+
+    public void EnterMassSelect(QuizViewModel initialQuiz)
+    {
+        _massSelectDashboard = DashboardQuizzes;
+        IsMassSelectMode = true;
+        SetQuizSelectedState(initialQuiz, true);
+    }
+
     public void ToggleMassSelectForNote(NoteCardViewModel note)
+    {
+        if (!IsMassSelectMode || !string.Equals(_massSelectDashboard, DashboardNotes, StringComparison.Ordinal))
+            return;
+
+        SetNoteSelectedState(note, !_massSelectedNoteIds.Contains(note.Document.Id));
+    }
+
+    public void ToggleMassSelectForDashboardItem(object? item)
     {
         if (!IsMassSelectMode)
             return;
 
-        SetNoteSelectedState(note, !_massSelectedNoteIds.Contains(note.Document.Id));
+        switch (item)
+        {
+            case FlashcardSetViewModel set when string.Equals(_massSelectDashboard, DashboardFlashcards, StringComparison.Ordinal):
+                SetFlashcardSetSelectedState(set, !_massSelectedFlashcardSetIds.Contains(set.Document.Id));
+                break;
+            case MindMapViewModel map when string.Equals(_massSelectDashboard, DashboardMindMaps, StringComparison.Ordinal):
+                SetMindMapSelectedState(map, !_massSelectedMindMapIds.Contains(map.Document.Id));
+                break;
+            case QuizViewModel quiz when string.Equals(_massSelectDashboard, DashboardQuizzes, StringComparison.Ordinal):
+                SetQuizSelectedState(quiz, !_massSelectedQuizIds.Contains(quiz.Document.Id));
+                break;
+        }
     }
 
     public void ExitMassSelect()
@@ -2761,8 +2819,17 @@ public class MainViewModel : ViewModelBase
             return;
 
         _massSelectedNoteIds.Clear();
+        _massSelectedFlashcardSetIds.Clear();
+        _massSelectedMindMapIds.Clear();
+        _massSelectedQuizIds.Clear();
         foreach (var note in Notes)
             note.IsSelectedInMassSelect = false;
+        foreach (var set in FlashcardSets)
+            set.IsSelectedInMassSelect = false;
+        foreach (var map in MindMaps)
+            map.IsSelectedInMassSelect = false;
+        foreach (var quiz in Quizzes)
+            quiz.IsSelectedInMassSelect = false;
 
         IsMassSelectMode = false;
         NotifyMassSelectionChanged();
@@ -2783,15 +2850,15 @@ public class MainViewModel : ViewModelBase
             return 0;
 
         var affected = 0;
-        foreach (var note in GetMassSelectedNotes())
+        foreach (var item in GetSelectedTaggableDocuments())
         {
             var changed = false;
             foreach (var tag in tags)
             {
-                if (note.Document.Tags.Any(existing => string.Equals(existing, tag, StringComparison.OrdinalIgnoreCase)))
+                if (item.Tags.Any(existing => string.Equals(existing, tag, StringComparison.OrdinalIgnoreCase)))
                     continue;
 
-                note.Document.Tags.Add(tag);
+                item.Tags.Add(tag);
                 changed = true;
             }
 
@@ -2799,16 +2866,15 @@ public class MainViewModel : ViewModelBase
                 continue;
 
             affected++;
-            note.Document.LastModified = DateTime.Now;
-            note.NotifyContentChanged();
+            item.LastModified = DateTime.Now;
+            item.NotifyChanged();
         }
 
         if (affected == 0)
             return 0;
 
-        RefreshAvailableTags();
-        ApplyFilters();
-        SaveNotes();
+        SaveActiveMassSelectDashboard();
+        RefreshActiveMassSelectDashboard();
         return affected;
     }
 
@@ -3632,186 +3698,276 @@ public class MainViewModel : ViewModelBase
                || node.Children.Any(child => MindMapContainsText(child, query));
     }
 
-    private void SelectAllVisibleNotes()
+    private void SelectAllVisibleMassItems()
     {
         if (!IsMassSelectMode)
             return;
 
-        var visibleNotes = Notes.Where(MatchesSearch).ToList();
-        if (visibleNotes.Count == 0)
+        switch (_massSelectDashboard)
+        {
+            case DashboardFlashcards:
+                ToggleAllVisibleFlashcardSets();
+                break;
+            case DashboardMindMaps:
+                ToggleAllVisibleMindMaps();
+                break;
+            case DashboardQuizzes:
+                ToggleAllVisibleQuizzes();
+                break;
+            default:
+                ToggleAllVisibleNotes();
+                break;
+        }
+    }
+
+    private void ToggleAllVisibleNotes()
+    {
+        var visible = Notes.Where(MatchesSearch).ToList();
+        if (visible.Count == 0)
             return;
 
-        var allVisibleSelected = visibleNotes.All(note => _massSelectedNoteIds.Contains(note.Document.Id));
-        if (allVisibleSelected)
-        {
-            foreach (var note in Notes)
-                SetNoteSelectedState(note, false, notify: false);
-        }
-        else
-        {
-            foreach (var note in visibleNotes)
-                SetNoteSelectedState(note, true, notify: false);
-        }
+        var allVisibleSelected = visible.All(note => _massSelectedNoteIds.Contains(note.Document.Id));
+        var targetNotes = allVisibleSelected ? Notes.ToList() : visible;
+        foreach (var note in targetNotes)
+            SetNoteSelectedState(note, !allVisibleSelected, notify: false);
 
         NotifyMassSelectionChanged();
     }
 
-    private void DeleteSelectedNotes()
+    private void ToggleAllVisibleFlashcardSets()
     {
-        var selected = GetMassSelectedNotes();
-        if (selected.Count == 0)
+        var visible = FlashcardSets.Where(MatchesFlashcardSetFilters).ToList();
+        if (visible.Count == 0)
             return;
 
-        foreach (var note in selected)
-            Notes.Remove(note);
+        var allVisibleSelected = visible.All(set => _massSelectedFlashcardSetIds.Contains(set.Document.Id));
+        var targetSets = allVisibleSelected ? FlashcardSets.ToList() : visible;
+        foreach (var set in targetSets)
+            SetFlashcardSetSelectedState(set, !allVisibleSelected, notify: false);
 
-        NormalizeGroups();
-        RebuildGroups();
-        SaveNotes();
+        NotifyMassSelectionChanged();
+    }
+
+    private void ToggleAllVisibleMindMaps()
+    {
+        var visible = MindMaps.Where(MatchesMindMapFilters).ToList();
+        if (visible.Count == 0)
+            return;
+
+        var allVisibleSelected = visible.All(map => _massSelectedMindMapIds.Contains(map.Document.Id));
+        var targetMaps = allVisibleSelected ? MindMaps.ToList() : visible;
+        foreach (var map in targetMaps)
+            SetMindMapSelectedState(map, !allVisibleSelected, notify: false);
+
+        NotifyMassSelectionChanged();
+    }
+
+    private void ToggleAllVisibleQuizzes()
+    {
+        var visible = Quizzes.Where(MatchesQuizFilters).ToList();
+        if (visible.Count == 0)
+            return;
+
+        var allVisibleSelected = visible.All(quiz => _massSelectedQuizIds.Contains(quiz.Document.Id));
+        var targetQuizzes = allVisibleSelected ? Quizzes.ToList() : visible;
+        foreach (var quiz in targetQuizzes)
+            SetQuizSelectedState(quiz, !allVisibleSelected, notify: false);
+
+        NotifyMassSelectionChanged();
+    }
+
+    private void DeleteSelectedMassItems()
+    {
+        switch (_massSelectDashboard)
+        {
+            case DashboardFlashcards:
+                foreach (var set in GetMassSelectedFlashcardSets())
+                    FlashcardSets.Remove(set);
+                NormalizeFlashcardSetGroups();
+                RebuildFlashcardSetGroups();
+                SaveFlashcardSets();
+                RefreshAvailableFlashcardTags();
+                ApplyFlashcardFilters();
+                NotifyFlashcardSetsChanged();
+                break;
+            case DashboardMindMaps:
+                foreach (var map in GetMassSelectedMindMaps())
+                    MindMaps.Remove(map);
+                NormalizeMindMapGroups();
+                RebuildMindMapGroups();
+                SaveMindMaps();
+                RefreshAvailableMindMapTags();
+                ApplyMindMapFilters();
+                NotifyMindMapsChanged();
+                break;
+            case DashboardQuizzes:
+                foreach (var quiz in GetMassSelectedQuizzes())
+                    Quizzes.Remove(quiz);
+                NormalizeQuizGroups();
+                RebuildQuizGroups();
+                SaveQuizzes();
+                RefreshAvailableQuizTags();
+                ApplyQuizFilters();
+                NotifyQuizzesChanged();
+                break;
+            default:
+                foreach (var note in GetMassSelectedNotes())
+                    Notes.Remove(note);
+                NormalizeGroups();
+                RebuildGroups();
+                SaveNotes();
+                break;
+        }
+
         NotifyMassSelectionChanged();
     }
 
     private void RemoveSelectedFromGroups()
     {
-        var selected = GetMassSelectedNotes();
-        if (selected.Count == 0 || selected.Any(note => !note.Document.GroupId.HasValue))
+        if (!CanUngroupSelectedNotes())
             return;
 
-        foreach (var note in selected)
+        foreach (var item in GetSelectedGroupableDocuments())
         {
-            if (!note.Document.GroupId.HasValue)
-                continue;
-
-            note.Document.GroupId = null;
-            note.Document.LastModified = DateTime.Now;
-            note.NotifyGroupChanged();
+            item.GroupId = null;
+            item.LastModified = DateTime.Now;
+            item.NotifyChanged();
         }
 
-        NormalizeGroups();
-        RebuildGroups();
-        SaveNotes();
+        NormalizeActiveMassSelectGroups();
+        RebuildActiveMassSelectGroups();
+        SaveActiveMassSelectDashboard();
+        RefreshActiveMassSelectDashboard();
     }
 
     private void GroupSelectedNotes()
     {
-        var selected = GetMassSelectedNotes();
+        var selected = GetSelectedGroupableDocuments().ToList();
         if (selected.Count < 2)
             return;
 
-        var selectedGroupIds = selected
-            .Select(note => note.Document.GroupId)
-            .Distinct()
-            .ToList();
-
+        var selectedGroupIds = selected.Select(item => item.GroupId).Distinct().ToList();
         if (selectedGroupIds.Count == 1 && selectedGroupIds[0].HasValue)
             return;
 
-        var targetGroupId = selected.FirstOrDefault(note => note.Document.GroupId.HasValue)?.Document.GroupId ?? Guid.NewGuid();
-        EnsureGroupMetadata(targetGroupId);
+        var targetGroupId = selected.FirstOrDefault(item => item.GroupId.HasValue)?.GroupId ?? Guid.NewGuid();
+        EnsureActiveMassSelectGroupMetadata(targetGroupId);
 
-        foreach (var note in selected)
+        foreach (var item in selected)
         {
-            if (note.Document.GroupId == targetGroupId)
+            if (item.GroupId == targetGroupId)
                 continue;
 
-            note.Document.GroupId = targetGroupId;
-            note.Document.LastModified = DateTime.Now;
-            note.NotifyGroupChanged();
+            item.GroupId = targetGroupId;
+            item.LastModified = DateTime.Now;
+            item.NotifyChanged();
         }
 
-        NormalizeGroups();
-        RebuildGroups();
-        SaveNotes();
+        NormalizeActiveMassSelectGroups();
+        RebuildActiveMassSelectGroups();
+        SaveActiveMassSelectDashboard();
+        RefreshActiveMassSelectDashboard();
     }
 
     private void PinSelectedNotes()
     {
-        var selected = GetMassSelectedNotes();
-        if (selected.Count == 0)
-            return;
-
         var changed = false;
-        foreach (var note in selected.Where(note => !note.Document.IsPinned))
+        foreach (var item in GetSelectedGroupableDocuments().Where(item => !item.IsPinned))
         {
-            note.Document.IsPinned = true;
-            note.Document.LastModified = DateTime.Now;
+            item.IsPinned = true;
+            item.LastModified = DateTime.Now;
+            item.NotifyChanged();
             changed = true;
         }
 
         if (!changed)
             return;
 
-        RebuildGroups();
-        ApplyFilters();
-        SaveNotes();
+        ReorderActiveMassSelectDashboard();
+        RebuildActiveMassSelectGroups();
+        RefreshActiveMassSelectDashboard();
+        SaveActiveMassSelectDashboard();
     }
 
     private void UnpinSelectedNotes()
     {
-        var selected = GetMassSelectedNotes();
-        if (selected.Count == 0)
-            return;
-
         var changed = false;
-        foreach (var note in selected.Where(note => note.Document.IsPinned))
+        foreach (var item in GetSelectedGroupableDocuments().Where(item => item.IsPinned))
         {
-            note.Document.IsPinned = false;
-            note.Document.LastModified = DateTime.Now;
+            item.IsPinned = false;
+            item.LastModified = DateTime.Now;
+            item.NotifyChanged();
             changed = true;
         }
 
         if (!changed)
             return;
 
-        RebuildGroups();
-        ApplyFilters();
-        SaveNotes();
+        ReorderActiveMassSelectDashboard();
+        RebuildActiveMassSelectGroups();
+        RefreshActiveMassSelectDashboard();
+        SaveActiveMassSelectDashboard();
     }
 
     private void DuplicateSelectedNotes()
     {
-        var selected = GetMassSelectedNotes();
-        if (selected.Count == 0)
-            return;
+        switch (_massSelectDashboard)
+        {
+            case DashboardFlashcards:
+                foreach (var set in GetMassSelectedFlashcardSets().ToList())
+                    DuplicateFlashcardSet(set);
+                break;
+            case DashboardMindMaps:
+                foreach (var map in GetMassSelectedMindMaps().ToList())
+                    DuplicateMindMap(map);
+                RebuildMindMapGroups();
+                ApplyMindMapFilters();
+                break;
+            case DashboardQuizzes:
+                foreach (var quiz in GetMassSelectedQuizzes().ToList())
+                    DuplicateQuiz(quiz);
+                break;
+            default:
+                var duplicates = GetMassSelectedNotes()
+                    .Select(note => new NoteDocument
+                    {
+                        Title = $"{note.Document.Title} (Copy)",
+                        Content = note.Document.Content,
+                        Tags = note.Document.Tags?.ToList() ?? new List<string>(),
+                        FontFamily = note.Document.FontFamily,
+                        FontSize = note.Document.FontSize,
+                        CreatedAt = DateTime.Now,
+                        LastModified = DateTime.Now,
+                        GroupId = null,
+                        IsPinned = note.Document.IsPinned
+                    })
+                    .ToList();
 
-        var duplicates = selected
-            .Select(note => new NoteDocument
-            {
-                Title = $"{note.Document.Title} (Copy)",
-                Content = note.Document.Content,
-                Tags = note.Document.Tags?.ToList() ?? new List<string>(),
-                FontFamily = note.Document.FontFamily,
-                FontSize = note.Document.FontSize,
-                CreatedAt = DateTime.Now,
-                LastModified = DateTime.Now,
-                GroupId = null,
-                IsPinned = note.Document.IsPinned
-            })
-            .ToList();
+                foreach (var document in duplicates)
+                    Notes.Add(CreateNoteCard(document));
 
-        foreach (var document in duplicates)
-            Notes.Add(CreateNoteCard(document));
-
-        RebuildGroups();
-        ApplyFilters();
-        SaveNotes();
+                RebuildGroups();
+                ApplyFilters();
+                SaveNotes();
+                break;
+        }
     }
 
     private bool CanUngroupSelectedNotes()
     {
-        if (!IsMassSelectMode || SelectedNotesCount == 0)
+        if (!IsMassSelectMode || ActiveMassSelectedCount == 0)
             return false;
 
-        return GetMassSelectedNotes().All(note => note.Document.GroupId.HasValue);
+        return GetSelectedGroupableDocuments().All(item => item.GroupId.HasValue);
     }
 
     private bool CanGroupSelectedNotes()
     {
-        if (!IsMassSelectMode || SelectedNotesCount < 2)
+        if (!IsMassSelectMode || ActiveMassSelectedCount < 2)
             return false;
 
-        var selectedGroupIds = GetMassSelectedNotes()
-            .Select(note => note.Document.GroupId)
+        var selectedGroupIds = GetSelectedGroupableDocuments()
+            .Select(item => item.GroupId)
             .Distinct()
             .ToList();
 
@@ -3820,24 +3976,104 @@ public class MainViewModel : ViewModelBase
 
     private bool CanPinSelectedNotes()
     {
-        if (!IsMassSelectMode || SelectedNotesCount == 0)
-            return false;
-
-        return GetMassSelectedNotes().Any(note => !note.Document.IsPinned);
+        return IsMassSelectMode
+               && ActiveMassSelectedCount > 0
+               && GetSelectedGroupableDocuments().Any(item => !item.IsPinned);
     }
 
     private bool CanUnpinSelectedNotes()
     {
-        if (!IsMassSelectMode || SelectedNotesCount == 0)
-            return false;
-
-        return GetMassSelectedNotes().Any(note => note.Document.IsPinned);
+        return IsMassSelectMode
+               && ActiveMassSelectedCount > 0
+               && GetSelectedGroupableDocuments().Any(item => item.IsPinned);
     }
 
     private bool CanDuplicateSelectedNotes()
     {
-        return IsMassSelectMode && SelectedNotesCount > 0;
+        return IsMassSelectMode && ActiveMassSelectedCount > 0;
     }
+
+    private sealed class MassSelectDocumentAdapter
+    {
+        public required Guid Id { get; init; }
+        public required Func<Guid?> GetGroupId { get; init; }
+        public required Action<Guid?> SetGroupId { get; init; }
+        public required Func<bool> GetIsPinned { get; init; }
+        public required Action<bool> SetIsPinned { get; init; }
+        public required Action<DateTime> SetLastModified { get; init; }
+        public required List<string> Tags { get; init; }
+        public required Action NotifyChanged { get; init; }
+
+        public Guid? GroupId
+        {
+            get => GetGroupId();
+            set => SetGroupId(value);
+        }
+
+        public bool IsPinned
+        {
+            get => GetIsPinned();
+            set => SetIsPinned(value);
+        }
+
+        public DateTime LastModified
+        {
+            set => SetLastModified(value);
+        }
+    }
+
+    private List<MassSelectDocumentAdapter> GetSelectedGroupableDocuments()
+    {
+        return _massSelectDashboard switch
+        {
+            DashboardFlashcards => GetMassSelectedFlashcardSets().Select(set => new MassSelectDocumentAdapter
+            {
+                Id = set.Document.Id,
+                GetGroupId = () => set.Document.GroupId,
+                SetGroupId = value => set.Document.GroupId = value,
+                GetIsPinned = () => set.Document.IsPinned,
+                SetIsPinned = value => set.Document.IsPinned = value,
+                SetLastModified = value => set.Document.LastModified = value,
+                Tags = set.Document.Tags,
+                NotifyChanged = set.NotifyChanged
+            }).ToList(),
+            DashboardMindMaps => GetMassSelectedMindMaps().Select(map => new MassSelectDocumentAdapter
+            {
+                Id = map.Document.Id,
+                GetGroupId = () => map.Document.GroupId,
+                SetGroupId = value => map.Document.GroupId = value,
+                GetIsPinned = () => map.Document.IsPinned,
+                SetIsPinned = value => map.Document.IsPinned = value,
+                SetLastModified = value => map.Document.LastModified = value,
+                Tags = map.Document.Tags,
+                NotifyChanged = map.NotifyChanged
+            }).ToList(),
+            DashboardQuizzes => GetMassSelectedQuizzes().Select(quiz => new MassSelectDocumentAdapter
+            {
+                Id = quiz.Document.Id,
+                GetGroupId = () => quiz.Document.GroupId,
+                SetGroupId = value => quiz.Document.GroupId = value,
+                GetIsPinned = () => quiz.Document.IsPinned,
+                SetIsPinned = value => quiz.Document.IsPinned = value,
+                SetLastModified = value => quiz.Document.LastModified = value,
+                Tags = quiz.Document.Tags,
+                NotifyChanged = quiz.NotifyChanged
+            }).ToList(),
+            _ => GetMassSelectedNotes().Select(note => new MassSelectDocumentAdapter
+            {
+                Id = note.Document.Id,
+                GetGroupId = () => note.Document.GroupId,
+                SetGroupId = value => note.Document.GroupId = value,
+                GetIsPinned = () => note.Document.IsPinned,
+                SetIsPinned = value => note.Document.IsPinned = value,
+                SetLastModified = value => note.Document.LastModified = value,
+                Tags = note.Document.Tags,
+                NotifyChanged = note.NotifyContentChanged
+            }).ToList()
+        };
+    }
+
+    private List<MassSelectDocumentAdapter> GetSelectedTaggableDocuments() => GetSelectedGroupableDocuments();
 
     private List<NoteCardViewModel> GetMassSelectedNotes()
     {
@@ -3846,6 +4082,36 @@ public class MainViewModel : ViewModelBase
 
         return Notes
             .Where(note => _massSelectedNoteIds.Contains(note.Document.Id))
+            .ToList();
+    }
+
+    private List<FlashcardSetViewModel> GetMassSelectedFlashcardSets()
+    {
+        if (_massSelectedFlashcardSetIds.Count == 0)
+            return new List<FlashcardSetViewModel>();
+
+        return FlashcardSets
+            .Where(set => _massSelectedFlashcardSetIds.Contains(set.Document.Id))
+            .ToList();
+    }
+
+    private List<MindMapViewModel> GetMassSelectedMindMaps()
+    {
+        if (_massSelectedMindMapIds.Count == 0)
+            return new List<MindMapViewModel>();
+
+        return MindMaps
+            .Where(map => _massSelectedMindMapIds.Contains(map.Document.Id))
+            .ToList();
+    }
+
+    private List<QuizViewModel> GetMassSelectedQuizzes()
+    {
+        if (_massSelectedQuizIds.Count == 0)
+            return new List<QuizViewModel>();
+
+        return Quizzes
+            .Where(quiz => _massSelectedQuizIds.Contains(quiz.Document.Id))
             .ToList();
     }
 
@@ -3866,6 +4132,182 @@ public class MainViewModel : ViewModelBase
             NotifyMassSelectionChanged();
     }
 
+    private void SetFlashcardSetSelectedState(FlashcardSetViewModel set, bool isSelected, bool notify = true)
+    {
+        if (isSelected)
+        {
+            if (_massSelectedFlashcardSetIds.Add(set.Document.Id))
+                set.IsSelectedInMassSelect = true;
+        }
+        else
+        {
+            if (_massSelectedFlashcardSetIds.Remove(set.Document.Id))
+                set.IsSelectedInMassSelect = false;
+        }
+
+        if (notify)
+            NotifyMassSelectionChanged();
+    }
+
+    private void SetMindMapSelectedState(MindMapViewModel map, bool isSelected, bool notify = true)
+    {
+        if (isSelected)
+        {
+            if (_massSelectedMindMapIds.Add(map.Document.Id))
+                map.IsSelectedInMassSelect = true;
+        }
+        else
+        {
+            if (_massSelectedMindMapIds.Remove(map.Document.Id))
+                map.IsSelectedInMassSelect = false;
+        }
+
+        if (notify)
+            NotifyMassSelectionChanged();
+    }
+
+    private void SetQuizSelectedState(QuizViewModel quiz, bool isSelected, bool notify = true)
+    {
+        if (isSelected)
+        {
+            if (_massSelectedQuizIds.Add(quiz.Document.Id))
+                quiz.IsSelectedInMassSelect = true;
+        }
+        else
+        {
+            if (_massSelectedQuizIds.Remove(quiz.Document.Id))
+                quiz.IsSelectedInMassSelect = false;
+        }
+
+        if (notify)
+            NotifyMassSelectionChanged();
+    }
+
+    private void EnsureActiveMassSelectGroupMetadata(Guid groupId)
+    {
+        switch (_massSelectDashboard)
+        {
+            case DashboardFlashcards:
+                EnsureFlashcardSetGroupMetadata(groupId);
+                break;
+            case DashboardMindMaps:
+                if (!_mindMapGroupMetadata.ContainsKey(groupId))
+                    _mindMapGroupMetadata[groupId] = new MindMapGroupData
+                    {
+                        GroupId = groupId,
+                        Name = string.Format(LocalizationService.GetString("GroupTitleFormat"), groupId.ToString()[..4].ToUpperInvariant()),
+                        BackgroundColor = DefaultGroupBackground
+                    };
+                break;
+            case DashboardQuizzes:
+                EnsureQuizGroupMetadata(groupId);
+                break;
+            default:
+                EnsureGroupMetadata(groupId);
+                break;
+        }
+    }
+
+    private void NormalizeActiveMassSelectGroups()
+    {
+        switch (_massSelectDashboard)
+        {
+            case DashboardFlashcards:
+                NormalizeFlashcardSetGroups();
+                break;
+            case DashboardMindMaps:
+                NormalizeMindMapGroups();
+                break;
+            case DashboardQuizzes:
+                NormalizeQuizGroups();
+                break;
+            default:
+                NormalizeGroups();
+                break;
+        }
+    }
+
+    private void RebuildActiveMassSelectGroups()
+    {
+        switch (_massSelectDashboard)
+        {
+            case DashboardFlashcards:
+                RebuildFlashcardSetGroups();
+                break;
+            case DashboardMindMaps:
+                RebuildMindMapGroups();
+                break;
+            case DashboardQuizzes:
+                RebuildQuizGroups();
+                break;
+            default:
+                RebuildGroups();
+                break;
+        }
+    }
+
+    private void ReorderActiveMassSelectDashboard()
+    {
+        switch (_massSelectDashboard)
+        {
+            case DashboardFlashcards:
+                ReorderFlashcardSets();
+                break;
+            case DashboardMindMaps:
+                ReorderMindMaps();
+                break;
+            case DashboardQuizzes:
+                ReorderQuizzes();
+                break;
+        }
+    }
+
+    private void SaveActiveMassSelectDashboard()
+    {
+        switch (_massSelectDashboard)
+        {
+            case DashboardFlashcards:
+                SaveFlashcardSets();
+                break;
+            case DashboardMindMaps:
+                SaveMindMaps();
+                break;
+            case DashboardQuizzes:
+                SaveQuizzes();
+                break;
+            default:
+                SaveNotes();
+                break;
+        }
+    }
+
+    private void RefreshActiveMassSelectDashboard()
+    {
+        switch (_massSelectDashboard)
+        {
+            case DashboardFlashcards:
+                RefreshAvailableFlashcardTags();
+                ApplyFlashcardFilters();
+                NotifyFlashcardSetsChanged();
+                break;
+            case DashboardMindMaps:
+                RefreshAvailableMindMapTags();
+                ApplyMindMapFilters();
+                NotifyMindMapsChanged();
+                break;
+            case DashboardQuizzes:
+                RefreshAvailableQuizTags();
+                ApplyQuizFilters();
+                NotifyQuizzesChanged();
+                break;
+            default:
+                RefreshAvailableTags();
+                ApplyFilters();
+                NotifyNotesChanged();
+                break;
+        }
+    }
+
     private void EnsureMassSelectionConsistency()
     {
         var existingIds = Notes.Select(note => note.Document.Id).ToHashSet();
@@ -3875,12 +4317,31 @@ public class MainViewModel : ViewModelBase
         foreach (var note in Notes)
             note.IsSelectedInMassSelect = _massSelectedNoteIds.Contains(note.Document.Id);
 
+        var existingFlashcardSetIds = FlashcardSets.Select(set => set.Document.Id).ToHashSet();
+        if (_massSelectedFlashcardSetIds.Count > 0)
+            _massSelectedFlashcardSetIds.RemoveWhere(id => !existingFlashcardSetIds.Contains(id));
+        foreach (var set in FlashcardSets)
+            set.IsSelectedInMassSelect = _massSelectedFlashcardSetIds.Contains(set.Document.Id);
+
+        var existingMindMapIds = MindMaps.Select(map => map.Document.Id).ToHashSet();
+        if (_massSelectedMindMapIds.Count > 0)
+            _massSelectedMindMapIds.RemoveWhere(id => !existingMindMapIds.Contains(id));
+        foreach (var map in MindMaps)
+            map.IsSelectedInMassSelect = _massSelectedMindMapIds.Contains(map.Document.Id);
+
+        var existingQuizIds = Quizzes.Select(quiz => quiz.Document.Id).ToHashSet();
+        if (_massSelectedQuizIds.Count > 0)
+            _massSelectedQuizIds.RemoveWhere(id => !existingQuizIds.Contains(id));
+        foreach (var quiz in Quizzes)
+            quiz.IsSelectedInMassSelect = _massSelectedQuizIds.Contains(quiz.Document.Id);
+
         NotifyMassSelectionChanged();
     }
 
     private void NotifyMassSelectionChanged()
     {
         OnPropertyChanged(nameof(SelectedNotesCount));
+        OnPropertyChanged(nameof(ActiveMassSelectedCount));
         OnPropertyChanged(nameof(MassSelectSelectionText));
         CommandManager.InvalidateRequerySuggested();
     }

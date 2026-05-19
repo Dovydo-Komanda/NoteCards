@@ -12,8 +12,7 @@
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
-        ShowInTaskbar="False"
-        Topmost="True">
+        ShowInTaskbar="False">
 
     <Window.Resources>
         <Style x:Key="OrangeConfirmButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogPrimaryButtonStyle}">

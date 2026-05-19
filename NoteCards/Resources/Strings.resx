@@ -383,7 +383,7 @@ Right-click to remove</value></data>
   <data name="SaveAndExit" xml:space="preserve"><value>Save and exit</value></data>
   <data name="EditedIndicator" xml:space="preserve"><value>Edited</value></data>
   <data name="TabCloseWarning" xml:space="preserve"><value>This tab has unsaved changes. Close anyway?</value></data>
-  <data name="SelectMultiple" xml:space="preserve"><value>Select note</value></data>
+  <data name="SelectMultiple" xml:space="preserve"><value>Select item</value></data>
   <data name="CalendarAssignMenu" xml:space="preserve"><value>Schedule in calendar...</value></data>
   <data name="CalendarAssignTitle" xml:space="preserve"><value>Schedule note</value></data>
   <data name="CalendarAssignHint" xml:space="preserve"><value>Add one or more reminder dates for this note.</value></data>
@@ -398,7 +398,7 @@ Right-click to remove</value></data>
   <data name="CalendarNoSchedulesForDay" xml:space="preserve"><value>No scheduled items for this day.</value></data>
   <data name="CalendarClearSchedule" xml:space="preserve"><value>Clear schedule</value></data>
   <data name="CalendarDateRequired" xml:space="preserve"><value>Please select a date for the reminder.</value></data>
-  <data name="MassSelectModeTitle" xml:space="preserve"><value>Select note</value></data>
+  <data name="MassSelectModeTitle" xml:space="preserve"><value>Select items</value></data>
   <data name="MassSelectSelectedCount" xml:space="preserve"><value>Selected: {0}</value></data>
   <data name="MassSelectMoreActions" xml:space="preserve"><value>More actions</value></data>
   <data name="MassSelectSelectAll" xml:space="preserve"><value>Select all visible</value></data>
@@ -409,13 +409,13 @@ Right-click to remove</value></data>
   <data name="MassSelectPinSelected" xml:space="preserve"><value>Pin selected</value></data>
   <data name="MassSelectUnpinSelected" xml:space="preserve"><value>Unpin selected</value></data>
   <data name="MassSelectDuplicateSelected" xml:space="preserve"><value>Duplicate selected</value></data>
-  <data name="MassSelectAddTagsTitle" xml:space="preserve"><value>Add tags to selected notes</value></data>
+  <data name="MassSelectAddTagsTitle" xml:space="preserve"><value>Add tags to selected items</value></data>
   <data name="MassSelectAddTagsPrompt" xml:space="preserve"><value>Enter tags separated by commas (example: work, urgent):</value></data>
   <data name="ConfirmDelete" xml:space="preserve"><value>Delete note</value></data>
   <data name="DeleteNotesTitle" xml:space="preserve"><value>Delete notes</value></data>
   <data name="DeleteNoteConfirmation" xml:space="preserve"><value>Are you sure you want to delete this note? This action cannot be undone.</value></data>
   <data name="Confirm" xml:space="preserve"><value>Delete</value></data>
-  <data name="DeleteSelectedNotesConfirmation" xml:space="preserve"><value>Are you sure you want to delete {0} selected notes? This action cannot be undone.</value></data>
+  <data name="DeleteSelectedNotesConfirmation" xml:space="preserve"><value>Are you sure you want to delete {0} selected items? This action cannot be undone.</value></data>
   <data name="ConvertToFlashcards" xml:space="preserve"><value>Convert to flashcards</value></data>
   <data name="ConvertToFlashcardsEmpty" xml:space="preserve"><value>Add note text before converting to flashcards.</value></data>
   <data name="ConvertToFlashcardsInProgress" xml:space="preserve"><value>Generating flashcards...</value></data>

@@ -5,6 +5,8 @@ namespace NoteCards.ViewModels;
 
 public sealed class FlashcardSetViewModel : ViewModelBase
 {
+    private bool _isSelectedInMassSelect;
+
     public FlashcardSetViewModel(FlashcardSetDocument document)
     {
         Document = document;
@@ -34,6 +36,12 @@ public sealed class FlashcardSetViewModel : ViewModelBase
         : string.Empty;
 
     public bool IsPinned => Document.IsPinned;
+
+    public bool IsSelectedInMassSelect
+    {
+        get => _isSelectedInMassSelect;
+        set => SetProperty(ref _isSelectedInMassSelect, value);
+    }
 
     public bool HasSchedule => Document.Schedules?.Any() == true;
 

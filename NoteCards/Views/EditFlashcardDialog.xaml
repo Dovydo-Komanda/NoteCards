@@ -10,8 +10,7 @@
         Background="Transparent"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        ShowInTaskbar="False"
-        Topmost="True">
+        ShowInTaskbar="False">
     <Grid Background="#66000000">
         <Grid.Resources>
             <Style x:Key="FlashcardEditorInputStyle" TargetType="TextBox">
