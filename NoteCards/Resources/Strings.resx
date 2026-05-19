@@ -49,9 +49,9 @@
   <data name="ContinueAnyway" xml:space="preserve"><value>Continue anyway</value></data>
   <data name="FlashcardsGeneratedWithModel" xml:space="preserve"><value>Generated with model: {0}</value></data>
   <data name="QuizLinkedNoteNone" xml:space="preserve"><value>No linked note</value></data>
-  <data name="QuizLinkedNoteNoneTooltip" xml:space="preserve"><value>This quiz is not linked to a note.</value></data>
+  <data name="QuizLinkedNoteNoneTooltip" xml:space="preserve"><value>This item is not linked to a note.</value></data>
   <data name="QuizLinkedNoteOpenTooltip" xml:space="preserve"><value>Open linked note: {0}</value></data>
-  <data name="QuizLinkedNoteSelectorTooltip" xml:space="preserve"><value>Select the source note linked to this quiz.</value></data>
+  <data name="QuizLinkedNoteSelectorTooltip" xml:space="preserve"><value>Select the source note linked to this item.</value></data>
   <data name="QuizModeTitle" xml:space="preserve"><value>Quiz Mode</value></data>
   <data name="QuizQuestionProgressFormat" xml:space="preserve"><value>Question {0} of {1}</value></data>
   <data name="QuizMultipleChoiceInstruction" xml:space="preserve"><value>Multiple Choice - Select all that apply</value></data>
@@ -72,6 +72,21 @@
   <data name="QuizReviewAnswers" xml:space="preserve"><value>Review Answers:</value></data>
   <data name="QuizStartButton" xml:space="preserve"><value>▶ START</value></data>
   <data name="QuizStartButtonTooltip" xml:space="preserve"><value>Start Quiz Mode</value></data>
+  <data name="QuizStartOptionsTitle" xml:space="preserve"><value>Start quiz</value></data>
+  <data name="QuizStartOptionsMessage" xml:space="preserve"><value>Choose the rules for this attempt before the quiz begins.</value></data>
+  <data name="QuizStartTimeLimitQuestion" xml:space="preserve"><value>How much time should this attempt have?</value></data>
+  <data name="QuizStartPassingScoreQuestion" xml:space="preserve"><value>What passing score is required?</value></data>
+  <data name="QuizStartConfirm" xml:space="preserve"><value>Start quiz</value></data>
+  <data name="QuizPassingScoreValidation" xml:space="preserve"><value>Enter a number from 0 to 100.</value></data>
+  <data name="QuizTimeLimitNone" xml:space="preserve"><value>No limit</value></data>
+  <data name="QuizTimeLimitOneMinute" xml:space="preserve"><value>1 minute</value></data>
+  <data name="QuizTimeLimitFiveMinutes" xml:space="preserve"><value>5 minutes</value></data>
+  <data name="QuizTimeLimitTenMinutes" xml:space="preserve"><value>10 minutes</value></data>
+  <data name="QuizTimeLimitFifteenMinutes" xml:space="preserve"><value>15 minutes</value></data>
+  <data name="QuizTimeLimitThirtyMinutes" xml:space="preserve"><value>30 minutes</value></data>
+  <data name="QuizTimeLimitCustom" xml:space="preserve"><value>Custom...</value></data>
+  <data name="QuizTimeLimitCustomUnit" xml:space="preserve"><value>minutes</value></data>
+  <data name="QuizTimeLimitValidation" xml:space="preserve"><value>Enter 1 to 1440 minutes.</value></data>
   <data name="QuizSubmitDialogTitle" xml:space="preserve"><value>Submit Quiz</value></data>
   <data name="QuizSubmitDialogMessage" xml:space="preserve"><value>Are you sure you want to submit the quiz and view your results?</value></data>
   <data name="QuizSubmitDialogConfirm" xml:space="preserve"><value>Submit</value></data>
@@ -86,6 +101,7 @@
   <data name="ViewModeList" xml:space="preserve"><value>List</value></data>
   <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
   <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="ThemeSystem" xml:space="preserve"><value>Use system</value></data>
   <data name="CheckForUpdates" xml:space="preserve"><value>Check for Updates</value></data>
   <data name="CheckingForUpdates" xml:space="preserve"><value>Checking...</value></data>
   <data name="LatestVersion" xml:space="preserve"><value>You are using the latest version.</value></data>
@@ -110,6 +126,10 @@
   <data name="ToggleRecentFlashcardsSection" xml:space="preserve"><value>Show/hide recent flashcards</value></data>
   <data name="ToggleRecentMindMapsSection" xml:space="preserve"><value>Show/hide recent mind maps</value></data>
   <data name="ToggleRecentQuizzesSection" xml:space="preserve"><value>Show/hide recent quizzes</value></data>
+  <data name="ToggleFlashcardDashboardSection" xml:space="preserve"><value>Minimize/expand flashcards</value></data>
+  <data name="ToggleMindMapDashboardSection" xml:space="preserve"><value>Minimize/expand mind maps</value></data>
+  <data name="ToggleQuizDashboardSection" xml:space="preserve"><value>Minimize/expand quizzes</value></data>
+  <data name="ToggleNotesDashboardSection" xml:space="preserve"><value>Minimize/expand notes</value></data>
   <data name="MoveGroupsSectionUp" xml:space="preserve"><value>Move groups section up</value></data>
   <data name="MoveGroupsSectionDown" xml:space="preserve"><value>Move groups section down</value></data>
   <data name="ToggleGroupsSection" xml:space="preserve"><value>Show/hide groups</value></data>
@@ -266,6 +286,8 @@ Right-click to remove</value></data>
   <data name="ResetFactorySettingsDescription" xml:space="preserve"><value>Reset all settings and data to default. This action cannot be undone.</value></data>
   <data name="ResetFactorySettingsPrompt" xml:space="preserve"><value>This will reset all settings and data to default. This action cannot be undone. Continue?</value></data>
   <data name="ResetFactorySettingsWarning" xml:space="preserve"><value>⚠ Warning: This action cannot be undone.</value></data>
+  <data name="ResetFactorySettingsSuccess" xml:space="preserve"><value>Settings have been reset to factory defaults. The app will now restart.</value></data>
+  <data name="ResetFactorySettingsFailedFormat" xml:space="preserve"><value>Failed to reset factory settings: {0}</value></data>
   <data name="AiToolsSectionTitle" xml:space="preserve"><value>AI Tools</value></data>
   <data name="AiToolsDefaultModel" xml:space="preserve"><value>Default model</value></data>
   <data name="AiToolsAvailableModels" xml:space="preserve"><value>Available models</value></data>
@@ -435,6 +457,7 @@ Right-click to remove</value></data>
   <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Flashcard Editor</value></data>
   <data name="FlashcardsEditorTitle" xml:space="preserve"><value>Flashcard Editor</value></data>
   <data name="NotesDashboard" xml:space="preserve"><value>Notes</value></data>
+  <data name="NotesEmptyDashboardPrompt" xml:space="preserve"><value>Begin by creating a note</value></data>
   <data name="FlashcardsDashboard" xml:space="preserve"><value>Flashcards</value></data>
   <data name="FlashcardGroupsDashboardTitle" xml:space="preserve"><value>Flashcards</value></data>
   <data name="FlashcardsEmptyDashboardPrompt" xml:space="preserve"><value>Start by creating flashcards</value></data>
@@ -496,6 +519,7 @@ Right-click to remove</value></data>
   <data name="CorrectAnswer" xml:space="preserve"><value>Correct answer</value></data>
   <data name="MoveOptionUp" xml:space="preserve"><value>Move option up</value></data>
   <data name="MoveOptionDown" xml:space="preserve"><value>Move option down</value></data>
+  <data name="RemoveOption" xml:space="preserve"><value>Remove option</value></data>
   <data name="QuizExplanationLabel" xml:space="preserve"><value>Explanation</value></data>
   <data name="QuizExplanationHint" xml:space="preserve"><value>Optional explanation</value></data>
   <data name="NewQuizQuestion" xml:space="preserve"><value>New question</value></data>

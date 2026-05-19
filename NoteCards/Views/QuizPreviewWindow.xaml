@@ -69,6 +69,24 @@
             <Setter Property="Margin" Value="0,0,8,8"/>
         </Style>
 
+        <Style x:Key="QuizFooterButtonStyle" TargetType="Button" BasedOn="{StaticResource QuizToolbarButtonStyle}">
+            <Setter Property="Margin" Value="0,4,8,4"/>
+            <Setter Property="MinHeight" Value="34"/>
+        </Style>
+
+        <Style x:Key="QuizFooterPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource QuizToolbarPrimaryButtonStyle}">
+            <Setter Property="Margin" Value="0,4,8,4"/>
+            <Setter Property="MinHeight" Value="34"/>
+        </Style>
+
+        <Style x:Key="QuizCompactToolButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogSecondaryButtonStyle}">
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="MinWidth" Value="78"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+        </Style>
+
         <Style x:Key="QuizOptionMoveButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogSecondaryButtonStyle}">
             <Setter Property="Padding" Value="0"/>
             <Setter Property="MinWidth" Value="28"/>
@@ -76,6 +94,44 @@
             <Setter Property="Height" Value="28"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Margin" Value="4,0,0,0"/>
+        </Style>
+
+        <Style x:Key="QuizOptionRemoveButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogDangerButtonStyle}">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="MinWidth" Value="28"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="4,0,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#C92222"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#C92222"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#A91B1B"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#A91B1B"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="QuizEditorTextBoxStyle" TargetType="{x:Type TextBox}">
@@ -420,6 +476,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal"
@@ -439,12 +496,42 @@
                         Padding="10,5"
                         CornerRadius="8"
                         Background="{DynamicResource SelectionBackground}"
+                        Margin="12,0,0,0"
                         Visibility="Collapsed">
                     <TextBlock x:Name="ScoreTextBlock"
                                FontSize="13"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextColor}"/>
                 </Border>
+
+                <WrapPanel Grid.Column="2"
+                           Orientation="Horizontal"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0">
+                    <Button x:Name="ModeToggleButton"
+                            Content="{Binding [EditQuiz], Source={StaticResource Loc}}"
+                            Style="{StaticResource QuizCompactToolButtonStyle}"
+                            Click="ModeToggleButton_Click"/>
+                    <Button Content="Shuffle"
+                            Style="{StaticResource QuizCompactToolButtonStyle}"
+                            Click="ShuffleQuestionsButton_Click"
+                            ToolTip="Shuffle questions randomly"/>
+                    <Button x:Name="CategoriesButton"
+                            Content="Categories"
+                            Style="{StaticResource QuizCompactToolButtonStyle}"
+                            Click="CategoriesAndSetsButton_Click"
+                            ToolTip="Edit quiz tags"/>
+                    <Button x:Name="ExportButton"
+                            Content="{Binding [Export], Source={StaticResource Loc}}"
+                            Style="{StaticResource QuizCompactToolButtonStyle}"
+                            Click="ExportButton_Click"
+                            ToolTip="{Binding [Export], Source={StaticResource Loc}}"/>
+                    <Button x:Name="FullscreenButton"
+                            Content="Fullscreen"
+                            Style="{StaticResource QuizCompactToolButtonStyle}"
+                            Click="FullscreenButton_Click"
+                            ToolTip="Toggle Fullscreen (F11)"/>
+                </WrapPanel>
             </Grid>
         </Border>
 
@@ -631,6 +718,11 @@
                                                                 Style="{StaticResource QuizOptionMoveButtonStyle}"
                                                                 ToolTip="{Binding [MoveOptionDown], Source={StaticResource Loc}}"
                                                                 Click="MoveOptionDownButton_Click"/>
+                                                        <Button Content="×"
+                                                                Style="{StaticResource QuizOptionRemoveButtonStyle}"
+                                                                ToolTip="{Binding [RemoveOption], Source={StaticResource Loc}}"
+                                                                Click="RemoveOptionButton_Click"
+                                                                Visibility="{Binding Parent.CanRemoveOption, Converter={StaticResource BoolToVis}}"/>
                                                     </StackPanel>
                                                 </Grid>
                                             </Button>
@@ -688,78 +780,56 @@
 
         <Border Grid.Row="3"
                 Margin="20,0,20,12"
-                Padding="10,10,10,2"
+                Padding="12,10"
                 Background="{DynamicResource CardBackground}"
                 BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
                 CornerRadius="10">
-            <WrapPanel Orientation="Horizontal"
-                       HorizontalAlignment="Right">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,8">
-                    <TextBlock Text="Time limit:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <ComboBox x:Name="TimeLimitComboBox" Width="120">
-                        <ComboBoxItem Content="No limit" Tag="0"/>
-                        <ComboBoxItem Content="1 min" Tag="60"/>
-                        <ComboBoxItem Content="5 min" Tag="300"/>
-                        <ComboBoxItem Content="10 min" Tag="600"/>
-                        <ComboBoxItem Content="15 min" Tag="900"/>
-                        <ComboBoxItem Content="30 min" Tag="1800"/>
-                    </ComboBox>
-                </StackPanel>
-                <Button x:Name="StartQuizButton"
-                        Content="{Binding [QuizStartButton], Source={StaticResource Loc}}"
-                        Style="{StaticResource QuizToolbarPrimaryButtonStyle}"
-                        Background="#10B981"
-                        BorderBrush="#10B981"
-                        Foreground="White"
-                        Click="StartQuizButton_Click"
-                        ToolTip="{Binding [QuizStartButtonTooltip], Source={StaticResource Loc}}"/>
-                <Button x:Name="FullscreenButton"
-                        Content="⛶ Fullscreen"
-                        Style="{StaticResource QuizToolbarButtonStyle}"
-                        Click="FullscreenButton_Click"
-                        ToolTip="Toggle Fullscreen (F11)"/>
-                <Button x:Name="ExportButton"
-                        Content="{Binding [Export], Source={StaticResource Loc}}"
-                        Style="{StaticResource QuizToolbarButtonStyle}"
-                        Click="ExportButton_Click"
-                        ToolTip="{Binding [Export], Source={StaticResource Loc}}"/>
-                <Button x:Name="CategoriesButton"
-                        Content="Categories"
-                        Style="{StaticResource QuizToolbarButtonStyle}"
-                        Click="CategoriesAndSetsButton_Click"
-                        ToolTip="Edit quiz tags"/>
-                <Button x:Name="ModeToggleButton"
-                        Content="{Binding [EditQuiz], Source={StaticResource Loc}}"
-                        Style="{StaticResource QuizToolbarButtonStyle}"
-                        Click="ModeToggleButton_Click"/>
-                <Button x:Name="CheckAnswersButton"
-                        Content="{Binding [QuizCheckAnswers], Source={StaticResource Loc}}"
-                        Style="{StaticResource QuizToolbarPrimaryButtonStyle}"
-                        Click="CheckAnswersButton_Click"/>
-                <Button x:Name="ResetAnswersButton"
-                        Content="{Binding [QuizResetAnswers], Source={StaticResource Loc}}"
-                        Style="{StaticResource QuizToolbarButtonStyle}"
-                        Click="ResetAnswersButton_Click"/>
-                <Button x:Name="AddQuestionButton"
-                        Content="{Binding [AddQuestion], Source={StaticResource Loc}}"
-                        Style="{StaticResource QuizToolbarButtonStyle}"
-                        Click="AddQuestionButton_Click"/>
-                <Button Content="Passing Score"
-                        Style="{StaticResource QuizToolbarButtonStyle}"
-                        Click="PassingScoreButton_Click"
-                        ToolTip="Set minimum percentage needed to pass"/>
-                <Button Content="🔀 Shuffle"
-                        Style="{StaticResource QuizToolbarButtonStyle}"
-                        Click="ShuffleQuestionsButton_Click"
-                        ToolTip="Shuffle questions randomly"/>
-                <Button Content="{Binding [Save], Source={StaticResource Loc}}"
-                        Style="{StaticResource QuizToolbarPrimaryButtonStyle}"
-                        Click="SaveButton_Click"/>
-                <Button Content="{Binding [Close], Source={StaticResource Loc}}"
-                        Style="{StaticResource QuizToolbarButtonStyle}"
-                        Click="CloseButton_Click"/>
-            </WrapPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <WrapPanel Grid.Column="0"
+                           Orientation="Horizontal"
+                           VerticalAlignment="Center">
+                    <Button x:Name="StartQuizButton"
+                            Content="{Binding [QuizStartButton], Source={StaticResource Loc}}"
+                            Style="{StaticResource QuizFooterPrimaryButtonStyle}"
+                            Background="#10B981"
+                            BorderBrush="#10B981"
+                            Foreground="White"
+                            Click="StartQuizButton_Click"
+                            ToolTip="{Binding [QuizStartButtonTooltip], Source={StaticResource Loc}}"/>
+                    <Button x:Name="CheckAnswersButton"
+                            Content="{Binding [QuizCheckAnswers], Source={StaticResource Loc}}"
+                            Style="{StaticResource QuizFooterPrimaryButtonStyle}"
+                            Click="CheckAnswersButton_Click"/>
+                    <Button x:Name="ResetAnswersButton"
+                            Content="{Binding [QuizResetAnswers], Source={StaticResource Loc}}"
+                            Style="{StaticResource QuizFooterButtonStyle}"
+                            Click="ResetAnswersButton_Click"/>
+                    <Button x:Name="AddQuestionButton"
+                            Content="{Binding [AddQuestion], Source={StaticResource Loc}}"
+                            Style="{StaticResource QuizFooterButtonStyle}"
+                            Click="AddQuestionButton_Click"/>
+                </WrapPanel>
+
+                <WrapPanel Grid.Column="1"
+                           Orientation="Horizontal"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right"
+                           Margin="10,0,0,0">
+                    <Button Content="{Binding [Save], Source={StaticResource Loc}}"
+                            Style="{StaticResource QuizFooterPrimaryButtonStyle}"
+                            Click="SaveButton_Click"/>
+                    <Button Content="{Binding [Close], Source={StaticResource Loc}}"
+                            Style="{StaticResource QuizFooterButtonStyle}"
+                            Margin="0,4,0,4"
+                            Click="CloseButton_Click"/>
+                </WrapPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>

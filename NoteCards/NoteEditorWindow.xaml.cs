@@ -592,9 +592,10 @@ namespace NoteCards
                 var modelDisplayName = BundledModelHostService.Instance.GetSelectedModelDisplayName();
                 var preview = new FlashcardsPreviewWindow(
                     flashcards,
-                    modelDisplayName,
-                    documentTitle,
-                    ParseTags(TagsTextBox.Text))
+                    modelDisplayName: modelDisplayName,
+                    title: documentTitle,
+                    tags: ParseTags(TagsTextBox.Text),
+                    sourceNoteId: _currentDocument?.Id)
                 {
                     Owner = GetDialogOwnerWindow()
                 };
@@ -602,7 +603,9 @@ namespace NoteCards
                 if (preview.ShowDialog() == true
                     && Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
                 {
-                    mainViewModel.AddOrUpdateFlashcardSet(preview.ToDocument());
+                    var document = preview.ToDocument();
+                    document.SourceNoteId = _currentDocument?.Id;
+                    mainViewModel.AddOrUpdateFlashcardSet(document);
                 }
 
                 ShowStatusIndicator(LocalizationService.GetString("ConvertToFlashcardsSuccess"));

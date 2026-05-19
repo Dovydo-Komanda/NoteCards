@@ -219,10 +219,21 @@ public class MainViewModel : ViewModelBase
     }
 
     private bool _isUngroupedSectionVisible = true;
+    private bool _isNotesDashboardSectionExpanded = true;
     private bool _isFlashcardGroupsSectionVisible = true;
     private bool _isFlashcardGroupsSectionExpanded = true;
+    private bool _isFlashcardDashboardGroupsSectionExpanded = true;
+    private bool _isFlashcardDashboardUngroupedSectionExpanded = true;
+    private bool _isFlashcardDashboardGroupsFirst = true;
     private bool _isMindMapGroupsSectionVisible = true;
     private bool _isMindMapGroupsSectionExpanded = true;
+    private bool _isMindMapDashboardGroupsSectionExpanded = true;
+    private bool _isMindMapDashboardUngroupedSectionExpanded = true;
+    private bool _isMindMapDashboardGroupsFirst = true;
+    private bool _isQuizGroupsSectionExpanded = true;
+    private bool _isQuizDashboardGroupsSectionExpanded = true;
+    private bool _isQuizDashboardUngroupedSectionExpanded = true;
+    private bool _isQuizDashboardGroupsFirst = true;
     public bool IsUngroupedSectionVisible
     {
         get => _isUngroupedSectionVisible;
@@ -289,7 +300,7 @@ public class MainViewModel : ViewModelBase
         get => _selectedTheme;
         set
         {
-            var normalized = string.Equals(value, "Dark", StringComparison.OrdinalIgnoreCase) ? "Dark" : "Light";
+            var normalized = ThemeManager.NormalizeThemePreference(value);
             if (_selectedTheme != normalized)
             {
                 _selectedTheme = normalized;
@@ -414,6 +425,7 @@ public class MainViewModel : ViewModelBase
         {
             RefreshAvailableTags();
             ApplyFilters();
+            NotifyNotesChanged();
             RefreshActivityStats();
             EnsureMassSelectionConsistency();
         };
@@ -660,6 +672,7 @@ public class MainViewModel : ViewModelBase
             existing.Document.CreatedAt = document.CreatedAt;
             existing.Document.LastModified = document.LastModified;
             existing.Document.AiModelDisplayName = document.AiModelDisplayName;
+            existing.Document.SourceNoteId = document.SourceNoteId;
             existing.Document.GroupId = document.GroupId;
             existing.Document.Schedules = document.Schedules;
             existing.Document.IsPinned = document.IsPinned;
@@ -990,7 +1003,8 @@ public class MainViewModel : ViewModelBase
             }).ToList(),
             CreatedAt = DateTime.UtcNow,
             LastModified = DateTime.Now,
-            AiModelDisplayName = source.AiModelDisplayName
+            AiModelDisplayName = source.AiModelDisplayName,
+            SourceNoteId = source.SourceNoteId
         };
 
         FlashcardSets.Add(new FlashcardSetViewModel(document));
@@ -1013,6 +1027,14 @@ public class MainViewModel : ViewModelBase
         document.SetNames = document.SetNames?
             .Where(pair => pair.Key >= 1 && !string.IsNullOrWhiteSpace(pair.Value))
             .ToDictionary(pair => pair.Key, pair => pair.Value.Trim()) ?? new Dictionary<int, string>();
+        if (!document.SourceNoteId.HasValue || document.SourceNoteId == Guid.Empty)
+        {
+            var migratedLinkedNoteId = document.Cards?
+                .Where(card => card != null)
+                .Select(card => card.LinkedNoteId)
+                .FirstOrDefault(id => id.HasValue && id != Guid.Empty);
+            document.SourceNoteId = migratedLinkedNoteId;
+        }
         document.Cards = document.Cards?
             .Where(card => card != null)
             .Select(card => new FlashcardItem
@@ -1023,7 +1045,8 @@ public class MainViewModel : ViewModelBase
                 Category = card.Category?.Trim() ?? string.Empty,
                 SetIndex = Math.Max(1, card.SetIndex),
                 IsKnown = card.IsKnown && !card.IsUnknown,
-                IsUnknown = card.IsUnknown && !card.IsKnown
+                IsUnknown = card.IsUnknown && !card.IsKnown,
+                LinkedNoteId = null
             })
             .ToList() ?? new List<FlashcardItem>();
         document.CreatedAt = document.CreatedAt == default ? DateTime.UtcNow : document.CreatedAt;
@@ -2009,6 +2032,8 @@ public class MainViewModel : ViewModelBase
         : IsQuizzesView ? QuizTagFilters : IsFlashcardsView ? FlashcardTagFilters : TagFilters;
     public ObservableCollection<CalendarScheduledItemViewModel> CalendarScheduledNotes { get; }
      public bool HasGroups => NoteGroups.Count > 0;
+    public bool HasNotes => Notes.Count > 0;
+    public bool HasUngroupedNotes => Notes.OfType<NoteCardViewModel>().Any(note => !note.Document.GroupId.HasValue && MatchesSearch(note));
     public bool HasTagFilters => TagFilters.Count > 0;
     public bool HasFlashcardTagFilters => FlashcardTagFilters.Count > 0;
     public bool HasMindMapTagFilters => MindMapTagFilters.Count > 0;
@@ -2157,6 +2182,16 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    public bool IsNotesDashboardSectionExpanded
+    {
+        get => _isNotesDashboardSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isNotesDashboardSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
     public bool IsFlashcardGroupsSectionExpanded
     {
         get => _isFlashcardGroupsSectionExpanded;
@@ -2167,12 +2202,112 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    public bool IsFlashcardDashboardGroupsSectionExpanded
+    {
+        get => _isFlashcardDashboardGroupsSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isFlashcardDashboardGroupsSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsFlashcardDashboardUngroupedSectionExpanded
+    {
+        get => _isFlashcardDashboardUngroupedSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isFlashcardDashboardUngroupedSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsFlashcardDashboardGroupsFirst
+    {
+        get => _isFlashcardDashboardGroupsFirst;
+        set
+        {
+            if (SetProperty(ref _isFlashcardDashboardGroupsFirst, value))
+                SaveAppSettings();
+        }
+    }
+
     public bool IsMindMapGroupsSectionExpanded
     {
         get => _isMindMapGroupsSectionExpanded;
         set
         {
             if (SetProperty(ref _isMindMapGroupsSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsMindMapDashboardGroupsSectionExpanded
+    {
+        get => _isMindMapDashboardGroupsSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isMindMapDashboardGroupsSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsMindMapDashboardUngroupedSectionExpanded
+    {
+        get => _isMindMapDashboardUngroupedSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isMindMapDashboardUngroupedSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsMindMapDashboardGroupsFirst
+    {
+        get => _isMindMapDashboardGroupsFirst;
+        set
+        {
+            if (SetProperty(ref _isMindMapDashboardGroupsFirst, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsQuizGroupsSectionExpanded
+    {
+        get => _isQuizGroupsSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isQuizGroupsSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsQuizDashboardGroupsSectionExpanded
+    {
+        get => _isQuizDashboardGroupsSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isQuizDashboardGroupsSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsQuizDashboardUngroupedSectionExpanded
+    {
+        get => _isQuizDashboardUngroupedSectionExpanded;
+        set
+        {
+            if (SetProperty(ref _isQuizDashboardUngroupedSectionExpanded, value))
+                SaveAppSettings();
+        }
+    }
+
+    public bool IsQuizDashboardGroupsFirst
+    {
+        get => _isQuizDashboardGroupsFirst;
+        set
+        {
+            if (SetProperty(ref _isQuizDashboardGroupsFirst, value))
                 SaveAppSettings();
         }
     }
@@ -4286,7 +4421,21 @@ public class MainViewModel : ViewModelBase
             NoteGroups.Add(new NoteGroupViewModel(group.Key, metadata.Name, metadata.BackgroundColor, visibleNotes));
         }
 
+        OnPropertyChanged(nameof(NoteGroups));
+        OnPropertyChanged(nameof(NotesView));
         OnPropertyChanged(nameof(HasGroups));
+        OnPropertyChanged(nameof(HasUngroupedNotes));
+        OnPropertyChanged(nameof(HasNotes));
+    }
+
+    private void NotifyNotesChanged()
+    {
+        OnPropertyChanged(nameof(HasNotes));
+        OnPropertyChanged(nameof(HasGroups));
+        OnPropertyChanged(nameof(HasUngroupedNotes));
+        OnPropertyChanged(nameof(NoteGroups));
+        OnPropertyChanged(nameof(NotesView));
+        CommandManager.InvalidateRequerySuggested();
     }
 
     public void RebuildMindMapGroups()
@@ -4370,7 +4519,7 @@ public class MainViewModel : ViewModelBase
 
         _enableScrollbar = settings.EnableScrollbar;
         _selectedLanguage = LocalizationService.NormalizeLanguage(settings.Language);
-        _selectedTheme = string.Equals(settings.Theme, "Dark", StringComparison.OrdinalIgnoreCase) ? "Dark" : "Light";
+        _selectedTheme = ThemeManager.NormalizeThemePreference(settings.Theme);
         _activeDashboard = NormalizeDashboard(settings.LastView);
         _selectedSortOptionKey = NormalizeSortOptionKey(settings.NoteSortOptionKey);
         _selectedFlashcardSortOptionKey = NormalizeFlashcardSortOptionKey(settings.FlashcardSortOptionKey);
@@ -4379,8 +4528,20 @@ public class MainViewModel : ViewModelBase
         _isRecentSectionExpanded = settings.IsRecentSectionExpanded;
         _isGroupsSectionExpanded = settings.IsGroupsSectionExpanded;
         _isUngroupedSectionExpanded = settings.IsUngroupedSectionExpanded;
+        _isNotesDashboardSectionExpanded = settings.IsNotesDashboardSectionExpanded;
         _isCalendarSectionExpanded = settings.IsCalendarSectionExpanded;
+        _isFlashcardGroupsSectionExpanded = settings.IsFlashcardGroupsSectionExpanded;
+        _isFlashcardDashboardGroupsSectionExpanded = settings.IsFlashcardDashboardGroupsSectionExpanded;
+        _isFlashcardDashboardUngroupedSectionExpanded = settings.IsFlashcardDashboardUngroupedSectionExpanded;
+        _isFlashcardDashboardGroupsFirst = settings.IsFlashcardDashboardGroupsFirst;
         _isMindMapGroupsSectionExpanded = settings.IsMindMapGroupsSectionExpanded;
+        _isMindMapDashboardGroupsSectionExpanded = settings.IsMindMapDashboardGroupsSectionExpanded;
+        _isMindMapDashboardUngroupedSectionExpanded = settings.IsMindMapDashboardUngroupedSectionExpanded;
+        _isMindMapDashboardGroupsFirst = settings.IsMindMapDashboardGroupsFirst;
+        _isQuizGroupsSectionExpanded = settings.IsQuizGroupsSectionExpanded;
+        _isQuizDashboardGroupsSectionExpanded = settings.IsQuizDashboardGroupsSectionExpanded;
+        _isQuizDashboardUngroupedSectionExpanded = settings.IsQuizDashboardUngroupedSectionExpanded;
+        _isQuizDashboardGroupsFirst = settings.IsQuizDashboardGroupsFirst;
         _isRecentSectionVisible = settings.IsRecentSectionVisible;
         _isGroupsSectionVisible = settings.IsGroupsSectionVisible;
         _isUngroupedSectionVisible = settings.IsUngroupedSectionVisible;
@@ -4412,8 +4573,20 @@ public class MainViewModel : ViewModelBase
         settings.IsRecentSectionExpanded = _isRecentSectionExpanded;
         settings.IsGroupsSectionExpanded = _isGroupsSectionExpanded;
         settings.IsUngroupedSectionExpanded = _isUngroupedSectionExpanded;
+        settings.IsNotesDashboardSectionExpanded = _isNotesDashboardSectionExpanded;
         settings.IsCalendarSectionExpanded = _isCalendarSectionExpanded;
+        settings.IsFlashcardGroupsSectionExpanded = _isFlashcardGroupsSectionExpanded;
+        settings.IsFlashcardDashboardGroupsSectionExpanded = _isFlashcardDashboardGroupsSectionExpanded;
+        settings.IsFlashcardDashboardUngroupedSectionExpanded = _isFlashcardDashboardUngroupedSectionExpanded;
+        settings.IsFlashcardDashboardGroupsFirst = _isFlashcardDashboardGroupsFirst;
         settings.IsMindMapGroupsSectionExpanded = _isMindMapGroupsSectionExpanded;
+        settings.IsMindMapDashboardGroupsSectionExpanded = _isMindMapDashboardGroupsSectionExpanded;
+        settings.IsMindMapDashboardUngroupedSectionExpanded = _isMindMapDashboardUngroupedSectionExpanded;
+        settings.IsMindMapDashboardGroupsFirst = _isMindMapDashboardGroupsFirst;
+        settings.IsQuizGroupsSectionExpanded = _isQuizGroupsSectionExpanded;
+        settings.IsQuizDashboardGroupsSectionExpanded = _isQuizDashboardGroupsSectionExpanded;
+        settings.IsQuizDashboardUngroupedSectionExpanded = _isQuizDashboardUngroupedSectionExpanded;
+        settings.IsQuizDashboardGroupsFirst = _isQuizDashboardGroupsFirst;
         settings.IsRecentSectionVisible = _isRecentSectionVisible;
         settings.IsGroupsSectionVisible = _isGroupsSectionVisible;
         settings.IsUngroupedSectionVisible = _isUngroupedSectionVisible;

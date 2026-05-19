@@ -49,9 +49,9 @@
   <data name="ContinueAnyway" xml:space="preserve"><value>Tęsti vis tiek</value></data>
   <data name="FlashcardsGeneratedWithModel" xml:space="preserve"><value>Sugeneruota su modeliu: {0}</value></data>
   <data name="QuizLinkedNoteNone" xml:space="preserve"><value>Nėra susieto užrašo</value></data>
-  <data name="QuizLinkedNoteNoneTooltip" xml:space="preserve"><value>Ši viktorina nėra susieta su užrašu.</value></data>
+  <data name="QuizLinkedNoteNoneTooltip" xml:space="preserve"><value>Šis elementas nėra susietas su užrašu.</value></data>
   <data name="QuizLinkedNoteOpenTooltip" xml:space="preserve"><value>Atidaryti susietą užrašą: {0}</value></data>
-  <data name="QuizLinkedNoteSelectorTooltip" xml:space="preserve"><value>Pasirinkite šios viktorinos šaltinio užrašą.</value></data>
+  <data name="QuizLinkedNoteSelectorTooltip" xml:space="preserve"><value>Pasirinkite šio elemento šaltinio užrašą.</value></data>
   <data name="QuizModeTitle" xml:space="preserve"><value>Viktorinos režimas</value></data>
   <data name="QuizQuestionProgressFormat" xml:space="preserve"><value>Klausimas {0} iš {1}</value></data>
   <data name="QuizMultipleChoiceInstruction" xml:space="preserve"><value>Daugkartinis pasirinkimas – pažymėkite visus tinkamus variantus</value></data>
@@ -72,6 +72,21 @@
   <data name="QuizReviewAnswers" xml:space="preserve"><value>Peržiūrėti atsakymus:</value></data>
   <data name="QuizStartButton" xml:space="preserve"><value>▶ PRADĖTI</value></data>
   <data name="QuizStartButtonTooltip" xml:space="preserve"><value>Pradėti viktorinos režimą</value></data>
+  <data name="QuizStartOptionsTitle" xml:space="preserve"><value>Pradėti viktoriną</value></data>
+  <data name="QuizStartOptionsMessage" xml:space="preserve"><value>Prieš pradedant pasirinkite šio bandymo taisykles.</value></data>
+  <data name="QuizStartTimeLimitQuestion" xml:space="preserve"><value>Kiek laiko skirti šiam bandymui?</value></data>
+  <data name="QuizStartPassingScoreQuestion" xml:space="preserve"><value>Kokio išlaikymo balo reikia?</value></data>
+  <data name="QuizStartConfirm" xml:space="preserve"><value>Pradėti viktoriną</value></data>
+  <data name="QuizPassingScoreValidation" xml:space="preserve"><value>Įveskite skaičių nuo 0 iki 100.</value></data>
+  <data name="QuizTimeLimitNone" xml:space="preserve"><value>Be limito</value></data>
+  <data name="QuizTimeLimitOneMinute" xml:space="preserve"><value>1 minutė</value></data>
+  <data name="QuizTimeLimitFiveMinutes" xml:space="preserve"><value>5 minutės</value></data>
+  <data name="QuizTimeLimitTenMinutes" xml:space="preserve"><value>10 minučių</value></data>
+  <data name="QuizTimeLimitFifteenMinutes" xml:space="preserve"><value>15 minučių</value></data>
+  <data name="QuizTimeLimitThirtyMinutes" xml:space="preserve"><value>30 minučių</value></data>
+  <data name="QuizTimeLimitCustom" xml:space="preserve"><value>Pasirinktinis...</value></data>
+  <data name="QuizTimeLimitCustomUnit" xml:space="preserve"><value>min.</value></data>
+  <data name="QuizTimeLimitValidation" xml:space="preserve"><value>Įveskite nuo 1 iki 1440 minučių.</value></data>
   <data name="QuizSubmitDialogTitle" xml:space="preserve"><value>Pateikti viktoriną</value></data>
   <data name="QuizSubmitDialogMessage" xml:space="preserve"><value>Ar tikrai norite pateikti viktoriną ir peržiūrėti rezultatus?</value></data>
   <data name="QuizSubmitDialogConfirm" xml:space="preserve"><value>Pateikti</value></data>
@@ -86,6 +101,7 @@
   <data name="ViewModeList" xml:space="preserve"><value>Sąrašas</value></data>
   <data name="ThemeLight" xml:space="preserve"><value>Šviesi</value></data>
   <data name="ThemeDark" xml:space="preserve"><value>Tamsi</value></data>
+  <data name="ThemeSystem" xml:space="preserve"><value>Naudoti sistemos</value></data>
   <data name="CheckForUpdates" xml:space="preserve"><value>Tikrinti atnaujinimus</value></data>
   <data name="CheckingForUpdates" xml:space="preserve"><value>Tikrinama...</value></data>
   <data name="LatestVersion" xml:space="preserve"><value>Naudojate naujausią versiją.</value></data>
@@ -110,6 +126,10 @@
   <data name="ToggleRecentFlashcardsSection" xml:space="preserve"><value>Rodyti / slėpti naujausias korteles</value></data>
   <data name="ToggleRecentMindMapsSection" xml:space="preserve"><value>Rodyti / slėpti naujausius minčių žemėlapius</value></data>
   <data name="ToggleRecentQuizzesSection" xml:space="preserve"><value>Rodyti / slėpti naujausius testus</value></data>
+  <data name="ToggleFlashcardDashboardSection" xml:space="preserve"><value>Sutraukti / išplėsti mokymosi korteles</value></data>
+  <data name="ToggleMindMapDashboardSection" xml:space="preserve"><value>Sutraukti / išplėsti minčių žemėlapius</value></data>
+  <data name="ToggleQuizDashboardSection" xml:space="preserve"><value>Sutraukti / išplėsti testus</value></data>
+  <data name="ToggleNotesDashboardSection" xml:space="preserve"><value>Sutraukti / išplėsti užrašus</value></data>
   <data name="MoveGroupsSectionUp" xml:space="preserve"><value>Perkelti grupių sekciją aukštyn</value></data>
   <data name="MoveGroupsSectionDown" xml:space="preserve"><value>Perkelti grupių sekciją žemyn</value></data>
   <data name="ToggleGroupsSection" xml:space="preserve"><value>Rodyti / slėpti grupes</value></data>
@@ -395,6 +415,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FlashcardsPreviewTitle" xml:space="preserve"><value>Kortelių redaktorius</value></data>
   <data name="FlashcardsEditorTitle" xml:space="preserve"><value>Kortelių redaktorius</value></data>
   <data name="NotesDashboard" xml:space="preserve"><value>Užrašai</value></data>
+  <data name="NotesEmptyDashboardPrompt" xml:space="preserve"><value>Pradėkite sukurdami užrašą</value></data>
   <data name="FlashcardsDashboard" xml:space="preserve"><value>Kortelės</value></data>
   <data name="FlashcardGroupsDashboardTitle" xml:space="preserve"><value>Mokymosi kortelės</value></data>
   <data name="FlashcardsEmptyDashboardPrompt" xml:space="preserve"><value>Pradėkite sukurdami mokymosi korteles</value></data>
@@ -456,6 +477,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="CorrectAnswer" xml:space="preserve"><value>Teisingas atsakymas</value></data>
   <data name="MoveOptionUp" xml:space="preserve"><value>Perkelti variantą aukštyn</value></data>
   <data name="MoveOptionDown" xml:space="preserve"><value>Perkelti variantą žemyn</value></data>
+  <data name="RemoveOption" xml:space="preserve"><value>Pašalinti variantą</value></data>
   <data name="QuizExplanationLabel" xml:space="preserve"><value>Paaiškinimas</value></data>
   <data name="QuizExplanationHint" xml:space="preserve"><value>Pasirenkamas paaiškinimas</value></data>
   <data name="NewQuizQuestion" xml:space="preserve"><value>Naujas klausimas</value></data>
@@ -586,6 +608,8 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="ResetFactorySettingsDescription" xml:space="preserve"><value>Atstatyti visus nustatymus ir duomenis į numatytuosius. Šis veiksmas negali būti anuliuotas.</value></data>
   <data name="ResetFactorySettingsPrompt" xml:space="preserve"><value>Tai atstatys visus nustatymus ir duomenis į numatytuosius. Šio veiksmo negalima anuliuoti. Tęsti?</value></data>
   <data name="ResetFactorySettingsWarning" xml:space="preserve"><value>⚠ Dėmesio: Šio veiksmo negalima anuliuoti.</value></data>
+  <data name="ResetFactorySettingsSuccess" xml:space="preserve"><value>Nustatymai atstatyti į gamyklines reikšmes. Programa dabar bus paleista iš naujo.</value></data>
+  <data name="ResetFactorySettingsFailedFormat" xml:space="preserve"><value>Nepavyko atstatyti gamyklinių nustatymų: {0}</value></data>
   <data name="AiToolsSectionTitle" xml:space="preserve"><value>DI įrankiai</value></data>
   <data name="AiToolsDefaultModel" xml:space="preserve"><value>Numatytasis modelis</value></data>
   <data name="AiToolsAvailableModels" xml:space="preserve"><value>Galimi modeliai</value></data>

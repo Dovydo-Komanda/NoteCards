@@ -1262,7 +1262,7 @@
 										  IsChecked="{Binding IsGroupsSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
 										  Margin="0,0,0,6"
 										  Foreground="{DynamicResource TextColor}"/>
-								<CheckBox Content="{Binding [UngroupedNotes], Source={StaticResource Loc}}"
+								<CheckBox Content="{Binding [UngroupedItems], Source={StaticResource Loc}}"
 										  IsChecked="{Binding IsUngroupedSectionVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
 										  Foreground="{DynamicResource TextColor}"/>
                             </StackPanel>
@@ -1507,7 +1507,7 @@
                                             <Setter Property="Grid.Row" Value="0"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsCalendarFirst}" Value="False">
-                                                    <Setter Property="Grid.Row" Value="2"/>
+                                                    <Setter Property="Grid.Row" Value="1"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -1700,38 +1700,100 @@
                                     </StackPanel>
                                 </Border>
 
+                                <Border
+                                    Background="{DynamicResource SidebarBackground}"
+                                    BorderBrush="{DynamicResource BorderColor}"
+                                    BorderThickness="1"
+                                    CornerRadius="14"
+                                    Padding="14"
+                                    Margin="8,0,8,10">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Grid.Row" Value="1"/>
+                                            <Setter Property="Visibility" Value="{Binding HasNotes, Converter={StaticResource BoolToVis}}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsCalendarFirst}" Value="False">
+                                                    <Setter Property="Grid.Row" Value="0"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000" Opacity="0.08" BlurRadius="14" ShadowDepth="1" Direction="270"/>
+                                    </Border.Effect>
+                                    <StackPanel>
+                                        <Grid Margin="2,0,2,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Button Grid.Column="0"
+                                                    Style="{StaticResource DashboardSectionMoveButtonStyle}"
+                                                    Content="↑"
+                                                    Margin="0,0,2,0"
+                                                    ToolTip="{Binding [MoveSectionUp], Source={StaticResource Loc}}"
+                                                    Click="MoveDashboardContentUpButton_Click"/>
+                                            <Button Grid.Column="1"
+                                                    Style="{StaticResource DashboardSectionMoveButtonStyle}"
+                                                    Content="↓"
+                                                    Margin="0,0,4,0"
+                                                    ToolTip="{Binding [MoveSectionDown], Source={StaticResource Loc}}"
+                                                    Click="MoveDashboardContentDownButton_Click"/>
+                                            <Button Grid.Column="2"
+                                                    ToolTip="{Binding [ToggleNotesDashboardSection], Source={StaticResource Loc}}"
+                                                    Click="ToggleNotesDashboardSectionButton_Click">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsNotesDashboardSectionExpanded}" Value="False">
+                                                                <Setter Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="-90"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <TextBlock Grid.Column="3"
+                                                       Grid.ColumnSpan="2"
+                                                       Text="{Binding [NotesDashboard], Source={StaticResource Loc}}"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextColor}"
+                                                       Margin="8,0,0,0"
+                                                       VerticalAlignment="Center"/>
+                                        </Grid>
+                                        <Grid x:Name="NotesDashboardSectionBody"
+                                              RenderTransformOrigin="0.5,0">
+                                            <Grid.RenderTransform>
+                                                <TranslateTransform/>
+                                            </Grid.RenderTransform>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
                                 <Border x:Name="GroupsSectionContainer"
 									Margin="0,0,0,10"
 									RenderTransformOrigin="0.5,0.5">
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Setter Property="Grid.Row" Value="1"/>
+                                            <Setter Property="Grid.Row" Value="0"/>
                                             <Style.Triggers>
                                                 <MultiDataTrigger>
                                                     <MultiDataTrigger.Conditions>
                                                         <Condition Binding="{Binding HasGroups}" Value="True"/>
-                                                        <Condition Binding="{Binding IsGroupsSectionVisible}" Value="True"/>
                                                     </MultiDataTrigger.Conditions>
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </MultiDataTrigger>
                                                 <DataTrigger Binding="{Binding IsGroupsFirst}" Value="False">
-                                                    <Setter Property="Grid.Row" Value="2"/>
-                                                </DataTrigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
-                                                        <Condition Binding="{Binding IsGroupsFirst}" Value="True"/>
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Grid.Row" Value="0"/>
-                                                </MultiDataTrigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
-                                                        <Condition Binding="{Binding IsGroupsFirst}" Value="False"/>
-                                                    </MultiDataTrigger.Conditions>
                                                     <Setter Property="Grid.Row" Value="1"/>
-                                                </MultiDataTrigger>
+                                                </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
@@ -1882,7 +1944,6 @@
                                 </Border>
 
                                 <Border x:Name="UngroupedSectionContainer"
-                                    Visibility="{Binding IsUngroupedSectionVisible, Converter={StaticResource BoolToVis}}"
 									Background="Transparent"
 									AllowDrop="True"
 									DragOver="UngroupedDropZone_DragOver"
@@ -1890,25 +1951,18 @@
 									RenderTransformOrigin="0.5,0.5">
                                     <Border.Style>
                                         <Style TargetType="Border">
-                                            <Setter Property="Grid.Row" Value="2"/>
+                                            <Setter Property="Grid.Row" Value="1"/>
+                                            <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding HasUngroupedNotes}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
                                                 <DataTrigger Binding="{Binding IsGroupsFirst}" Value="False">
-                                                    <Setter Property="Grid.Row" Value="1"/>
-                                                </DataTrigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
-                                                        <Condition Binding="{Binding IsGroupsFirst}" Value="True"/>
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Grid.Row" Value="1"/>
-                                                </MultiDataTrigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsCalendarFirst}" Value="False"/>
-                                                        <Condition Binding="{Binding IsGroupsFirst}" Value="False"/>
-                                                    </MultiDataTrigger.Conditions>
                                                     <Setter Property="Grid.Row" Value="0"/>
-                                                </MultiDataTrigger>
+                                                </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
@@ -1942,7 +1996,7 @@
                                                 </Button.Style>
                                             </Button>
                                             <TextBlock Grid.Column="3"
-												   Text="{Binding [UngroupedNotes], Source={StaticResource Loc}}"
+												   Text="{Binding [UngroupedItems], Source={StaticResource Loc}}"
 												   FontSize="14"
 												   FontWeight="SemiBold"
 												   Foreground="{DynamicResource TextColor}"
@@ -1973,6 +2027,28 @@
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel Grid.Row="2"
+                                            HorizontalAlignment="Center"
+                                            Margin="0,32,0,0"
+                                            Visibility="{Binding HasNotes, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding [NotesEmptyDashboardPrompt], Source={StaticResource Loc}}"
+                                               FontSize="18"
+                                               FontStyle="Italic"
+                                               Foreground="{DynamicResource TextColorSecondary}"
+                                               HorizontalAlignment="Center"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="520"
+                                               Margin="0,0,0,8"/>
+                                    <Button Content="{Binding [AddNote], Source={StaticResource Loc}}"
+                                            Style="{StaticResource DialogPrimaryButtonStyle}"
+                                            MinWidth="180"
+                                            Padding="18,10"
+                                            Command="{Binding AddNoteCommand}"/>
+                                </StackPanel>
                             </Grid>
                         </ScrollViewer>
                         <Button x:Name="ImportButton"
@@ -2199,7 +2275,8 @@
                                 </Border>
                             </StackPanel>
                         </Border>
-                        <ScrollViewer Grid.Row="1"
+                        <ScrollViewer x:Name="FlashcardsScrollViewer"
+                                      Grid.Row="1"
                                       VerticalScrollBarVisibility="Auto"
                                       PreviewDragOver="DashboardScrollViewer_PreviewDragOver"
                                       PreviewDragLeave="DashboardScrollViewer_PreviewDragLeave"
@@ -2428,7 +2505,7 @@
                                         BorderBrush="{DynamicResource BorderColor}"
                                         BorderThickness="1"
                                         CornerRadius="14"
-                                        Padding="14"
+                                        Padding="18"
                                         Margin="8,0,8,10">
                                     <Border.Style>
                                         <Style TargetType="Border">
@@ -2457,6 +2534,7 @@
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <Button Grid.Column="0"
@@ -2471,7 +2549,24 @@
                                                     Margin="0,0,4,0"
                                                     ToolTip="{Binding [MoveSectionDown], Source={StaticResource Loc}}"
                                                     Click="MoveDashboardContentDownButton_Click"/>
-                                            <TextBlock Grid.Column="2"
+                                            <Button Grid.Column="2"
+                                                    ToolTip="{Binding [ToggleFlashcardDashboardSection], Source={StaticResource Loc}}"
+                                                    Click="ToggleFlashcardGroupsSectionButton_Click">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsFlashcardGroupsSectionExpanded}" Value="False">
+                                                                <Setter Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="-90"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <TextBlock Grid.Column="3"
                                                        Grid.ColumnSpan="2"
                                                        Text="{Binding [FlashcardGroupsDashboardTitle], Source={StaticResource Loc}}"
                                                        FontSize="16"
@@ -2481,14 +2576,73 @@
                                                        VerticalAlignment="Center"/>
                                         </Grid>
 
-                                        <Grid Margin="8,2,8,8"
-                                              Visibility="{Binding HasFlashcardSetGroups, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="{Binding [Groups], Source={StaticResource Loc}}"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextColorSecondary}"/>
-                                        </Grid>
-                                        <ItemsControl ItemsSource="{Binding FlashcardSetGroups}"
+                                        <StackPanel x:Name="FlashcardGroupsSectionBody"
+                                                    RenderTransformOrigin="0.5,0">
+                                            <StackPanel.RenderTransform>
+                                                <TranslateTransform/>
+                                            </StackPanel.RenderTransform>
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Border x:Name="FlashcardDashboardGroupsSectionContainer"
+                                                        Margin="0,0,0,10"
+                                                        RenderTransformOrigin="0.5,0.5">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Setter Property="Grid.Row" Value="0"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasFlashcardSetGroups}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsFlashcardDashboardGroupsFirst}" Value="False">
+                                                                    <Setter Property="Grid.Row" Value="1"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <Border.RenderTransform>
+                                                        <TranslateTransform/>
+                                                    </Border.RenderTransform>
+                                                    <StackPanel>
+                                                        <Grid Margin="10,6,10,8">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="{Binding [MoveGroupsSectionUp], Source={StaticResource Loc}}" Click="MoveFlashcardDashboardGroupsUpButton_Click"/>
+                                                            <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="{Binding [MoveGroupsSectionDown], Source={StaticResource Loc}}" Click="MoveFlashcardDashboardGroupsDownButton_Click"/>
+                                                            <Button Grid.Column="2" ToolTip="{Binding [ToggleGroupsSection], Source={StaticResource Loc}}" Click="ToggleFlashcardDashboardGroupsSectionButton_Click">
+                                                                <Button.Style>
+                                                                    <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsFlashcardDashboardGroupsSectionExpanded}" Value="False">
+                                                                                <Setter Property="RenderTransform">
+                                                                                    <Setter.Value>
+                                                                                        <RotateTransform Angle="-90"/>
+                                                                                    </Setter.Value>
+                                                                                </Setter>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Button.Style>
+                                                            </Button>
+                                                            <TextBlock Grid.Column="3"
+                                                                       Text="{Binding [Groups], Source={StaticResource Loc}}"
+                                                                       FontSize="14"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource TextColor}"
+                                                                       Margin="8,0,0,0"
+                                                                       VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                        <StackPanel x:Name="FlashcardDashboardGroupsSectionBody">
+                                        <ItemsControl x:Name="FlashcardDashboardGroupsItemsControl"
+                                                      ItemsSource="{Binding FlashcardSetGroups}"
                                                       Visibility="{Binding HasFlashcardSetGroups, Converter={StaticResource BoolToVis}}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type vm:FlashcardSetGroupViewModel}">
@@ -2585,9 +2739,10 @@
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate DataType="{x:Type vm:FlashcardSetViewModel}">
                                                                         <Border Tag="{Binding}"
-                                                                                Width="220"
-                                                                                MinHeight="96"
-                                                                                Margin="0,0,10,10"
+                                                                                Width="236"
+                                                                                MinHeight="112"
+                                                                                Margin="0,0,4,6"
+                                                                                Padding="8"
                                                                                 Background="Transparent"
                                                                                 Cursor="Hand"
                                                                                 AllowDrop="True"
@@ -2693,27 +2848,72 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
 
-                                        <Border Margin="0,0,0,10"
+                                        <Border x:Name="FlashcardDashboardUngroupedSectionContainer"
+                                                Margin="0,0,0,10"
                                                 MinHeight="96"
                                                 Background="Transparent"
                                                 AllowDrop="True"
                                                 DragOver="DashboardUngroupedDropZone_DragOver"
-                                                Drop="DashboardUngroupedDropZone_Drop"
-                                                Visibility="{Binding HasFlashcardSets, Converter={StaticResource BoolToVis}}">
+                                                Drop="DashboardUngroupedDropZone_Drop">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Grid.Row" Value="1"/>
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasFlashcardSets}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsFlashcardDashboardGroupsFirst}" Value="False">
+                                                            <Setter Property="Grid.Row" Value="0"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <StackPanel>
-                                        <Grid Margin="8,2,8,8"
+                                        <Grid Margin="10,2,10,8"
                                               Background="Transparent"
                                               AllowDrop="True"
                                               DragOver="DashboardUngroupedDropZone_DragOver"
-                                              Drop="DashboardUngroupedDropZone_Drop"
-                                              Visibility="{Binding HasFlashcardSets, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="{Binding [UngroupedItems], Source={StaticResource Loc}}"
-                                                       FontSize="13"
+                                              Drop="DashboardUngroupedDropZone_Drop">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="{Binding [MoveUngroupedSectionUp], Source={StaticResource Loc}}" Click="MoveFlashcardDashboardUngroupedUpButton_Click"/>
+                                            <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="{Binding [MoveUngroupedSectionDown], Source={StaticResource Loc}}" Click="MoveFlashcardDashboardUngroupedDownButton_Click"/>
+                                            <Button Grid.Column="2" ToolTip="{Binding [ToggleUngroupedSection], Source={StaticResource Loc}}" Click="ToggleFlashcardDashboardUngroupedSectionButton_Click">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsFlashcardDashboardUngroupedSectionExpanded}" Value="False">
+                                                                <Setter Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="-90"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <TextBlock Grid.Column="3"
+                                                       Text="{Binding [UngroupedItems], Source={StaticResource Loc}}"
+                                                       FontSize="14"
                                                        FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextColorSecondary}"/>
+                                                       Foreground="{DynamicResource TextColor}"
+                                                       Margin="8,0,0,0"
+                                                       VerticalAlignment="Center"/>
                                         </Grid>
-                                        <ItemsControl ItemsSource="{Binding FlashcardSetsView}"
+                                        <StackPanel x:Name="FlashcardDashboardUngroupedSectionBody">
+                                        <ItemsControl x:Name="FlashcardDashboardUngroupedItemsControl"
+                                                      ItemsSource="{Binding FlashcardSetsView}"
                                                       AllowDrop="True"
                                                       DragOver="DashboardUngroupedDropZone_DragOver"
                                                       Drop="DashboardUngroupedDropZone_Drop"
@@ -2726,9 +2926,10 @@
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type vm:FlashcardSetViewModel}">
                                                     <Border Tag="{Binding}"
-                                                            Width="300"
-                                                            MinHeight="164"
-                                                            Margin="0,0,14,14"
+                                                            Width="320"
+                                                            MinHeight="184"
+                                                            Margin="0,0,10,10"
+                                                            Padding="10"
                                                             Background="Transparent"
                                                             Cursor="Hand"
                                                             AllowDrop="True"
@@ -2983,7 +3184,10 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                             </StackPanel>
+                                            </StackPanel>
                                         </Border>
+                                            </Grid>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
@@ -3114,7 +3318,8 @@
                                 </Border>
                             </StackPanel>
                         </Border>
-                        <ScrollViewer Grid.Row="1"
+                        <ScrollViewer x:Name="QuizzesScrollViewer"
+                                      Grid.Row="1"
                                       VerticalScrollBarVisibility="Auto"
                                       PreviewDragOver="DashboardScrollViewer_PreviewDragOver"
                                       PreviewDragLeave="DashboardScrollViewer_PreviewDragLeave"
@@ -3346,7 +3551,7 @@
                                             <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
                                             <Setter Property="BorderThickness" Value="1"/>
                                             <Setter Property="CornerRadius" Value="14"/>
-                                            <Setter Property="Padding" Value="14"/>
+                                            <Setter Property="Padding" Value="18"/>
                                             <Setter Property="Margin" Value="8,0,8,10"/>
                                             <Setter Property="Visibility" Value="{Binding HasQuizzes, Converter={StaticResource BoolToVis}}"/>
                                             <Style.Triggers>
@@ -3365,6 +3570,7 @@
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <Button Grid.Column="0"
@@ -3379,14 +3585,31 @@
                                                     Margin="0,0,4,0"
                                                     ToolTip="{Binding [MoveSectionDown], Source={StaticResource Loc}}"
                                                     Click="MoveDashboardContentDownButton_Click"/>
-                                            <TextBlock Grid.Column="2"
+                                            <Button Grid.Column="2"
+                                                    ToolTip="{Binding [ToggleQuizDashboardSection], Source={StaticResource Loc}}"
+                                                    Click="ToggleQuizGroupsSectionButton_Click">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsQuizGroupsSectionExpanded}" Value="False">
+                                                                <Setter Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="-90"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <TextBlock Grid.Column="3"
                                                        Text="{Binding [QuizzesDashboardTitle], Source={StaticResource Loc}}"
                                                        FontSize="16"
                                                        FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextColor}"
                                                        Margin="8,0,0,0"
                                                        VerticalAlignment="Center"/>
-                                            <Button Grid.Column="3"
+                                            <Button Grid.Column="4"
                                                     Style="{StaticResource GroupHeaderIconButtonStyle}"
                                                     FontSize="14"
                                                     Content="▤"
@@ -3395,14 +3618,73 @@
                                                     Click="OpenQuizLibraryButton_Click"/>
                                         </Grid>
 
-                                        <Grid Margin="8,2,8,8"
-                                              Visibility="{Binding HasQuizGroups, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="{Binding [Groups], Source={StaticResource Loc}}"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextColorSecondary}"/>
-                                        </Grid>
-                                        <ItemsControl ItemsSource="{Binding QuizGroups}"
+                                        <StackPanel x:Name="QuizGroupsSectionBody"
+                                                    RenderTransformOrigin="0.5,0">
+                                            <StackPanel.RenderTransform>
+                                                <TranslateTransform/>
+                                            </StackPanel.RenderTransform>
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Border x:Name="QuizDashboardGroupsSectionContainer"
+                                                        Margin="0,0,0,10"
+                                                        RenderTransformOrigin="0.5,0.5">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Setter Property="Grid.Row" Value="0"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasQuizGroups}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsQuizDashboardGroupsFirst}" Value="False">
+                                                                    <Setter Property="Grid.Row" Value="1"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <Border.RenderTransform>
+                                                        <TranslateTransform/>
+                                                    </Border.RenderTransform>
+                                                    <StackPanel>
+                                                        <Grid Margin="10,6,10,8">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="{Binding [MoveGroupsSectionUp], Source={StaticResource Loc}}" Click="MoveQuizDashboardGroupsUpButton_Click"/>
+                                                            <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="{Binding [MoveGroupsSectionDown], Source={StaticResource Loc}}" Click="MoveQuizDashboardGroupsDownButton_Click"/>
+                                                            <Button Grid.Column="2" ToolTip="{Binding [ToggleGroupsSection], Source={StaticResource Loc}}" Click="ToggleQuizDashboardGroupsSectionButton_Click">
+                                                                <Button.Style>
+                                                                    <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsQuizDashboardGroupsSectionExpanded}" Value="False">
+                                                                                <Setter Property="RenderTransform">
+                                                                                    <Setter.Value>
+                                                                                        <RotateTransform Angle="-90"/>
+                                                                                    </Setter.Value>
+                                                                                </Setter>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Button.Style>
+                                                            </Button>
+                                                            <TextBlock Grid.Column="3"
+                                                                       Text="{Binding [Groups], Source={StaticResource Loc}}"
+                                                                       FontSize="14"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource TextColor}"
+                                                                       Margin="8,0,0,0"
+                                                                       VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                        <StackPanel x:Name="QuizDashboardGroupsSectionBody">
+                                        <ItemsControl x:Name="QuizDashboardGroupsItemsControl"
+                                                      ItemsSource="{Binding QuizGroups}"
                                                       Visibility="{Binding HasQuizGroups, Converter={StaticResource BoolToVis}}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type vm:QuizGroupViewModel}">
@@ -3499,9 +3781,10 @@
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate DataType="{x:Type vm:QuizViewModel}">
                                                                         <Border Tag="{Binding}"
-                                                                                Width="220"
-                                                                                MinHeight="96"
-                                                                                Margin="0,0,10,10"
+                                                                                Width="236"
+                                                                                MinHeight="112"
+                                                                                Margin="0,0,4,6"
+                                                                                Padding="8"
                                                                                 Background="Transparent"
                                                                                 Cursor="Hand"
                                                                                 AllowDrop="True"
@@ -3607,27 +3890,72 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
 
-                                        <Border Margin="0,0,0,10"
+                                        <Border x:Name="QuizDashboardUngroupedSectionContainer"
+                                                Margin="0,0,0,10"
                                                 MinHeight="96"
                                                 Background="Transparent"
                                                 AllowDrop="True"
                                                 DragOver="DashboardUngroupedDropZone_DragOver"
-                                                Drop="DashboardUngroupedDropZone_Drop"
-                                                Visibility="{Binding HasQuizzes, Converter={StaticResource BoolToVis}}">
+                                                Drop="DashboardUngroupedDropZone_Drop">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Grid.Row" Value="1"/>
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasQuizzes}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsQuizDashboardGroupsFirst}" Value="False">
+                                                            <Setter Property="Grid.Row" Value="0"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <StackPanel>
-                                        <Grid Margin="8,2,8,8"
+                                        <Grid Margin="10,2,10,8"
                                               Background="Transparent"
                                               AllowDrop="True"
                                               DragOver="DashboardUngroupedDropZone_DragOver"
-                                              Drop="DashboardUngroupedDropZone_Drop"
-                                              Visibility="{Binding HasQuizzes, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="{Binding [UngroupedItems], Source={StaticResource Loc}}"
-                                                       FontSize="13"
+                                              Drop="DashboardUngroupedDropZone_Drop">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="{Binding [MoveUngroupedSectionUp], Source={StaticResource Loc}}" Click="MoveQuizDashboardUngroupedUpButton_Click"/>
+                                            <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="{Binding [MoveUngroupedSectionDown], Source={StaticResource Loc}}" Click="MoveQuizDashboardUngroupedDownButton_Click"/>
+                                            <Button Grid.Column="2" ToolTip="{Binding [ToggleUngroupedSection], Source={StaticResource Loc}}" Click="ToggleQuizDashboardUngroupedSectionButton_Click">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsQuizDashboardUngroupedSectionExpanded}" Value="False">
+                                                                <Setter Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="-90"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <TextBlock Grid.Column="3"
+                                                       Text="{Binding [UngroupedItems], Source={StaticResource Loc}}"
+                                                       FontSize="14"
                                                        FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextColorSecondary}"/>
+                                                       Foreground="{DynamicResource TextColor}"
+                                                       Margin="8,0,0,0"
+                                                       VerticalAlignment="Center"/>
                                         </Grid>
-                                        <ItemsControl ItemsSource="{Binding QuizzesView}"
+                                        <StackPanel x:Name="QuizDashboardUngroupedSectionBody">
+                                        <ItemsControl x:Name="QuizDashboardUngroupedItemsControl"
+                                                      ItemsSource="{Binding QuizzesView}"
                                                       AllowDrop="True"
                                                       DragOver="DashboardUngroupedDropZone_DragOver"
                                                       Drop="DashboardUngroupedDropZone_Drop"
@@ -3640,9 +3968,10 @@
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type vm:QuizViewModel}">
                                                     <Border Tag="{Binding}"
-                                                            Width="300"
-                                                            MinHeight="154"
-                                                            Margin="0,0,14,14"
+                                                            Width="320"
+                                                            MinHeight="174"
+                                                            Margin="0,0,10,10"
+                                                            Padding="10"
                                                             Background="Transparent"
                                                             Cursor="Hand"
                                                             AllowDrop="True"
@@ -3852,7 +4181,10 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                             </StackPanel>
+                                            </StackPanel>
                                         </Border>
+                                            </Grid>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
@@ -3983,7 +4315,8 @@
                                 </Border>
                             </StackPanel>
                         </Border>
-                        <ScrollViewer Grid.Row="1"
+                        <ScrollViewer x:Name="MindMapsScrollViewer"
+                                      Grid.Row="1"
                                       VerticalScrollBarVisibility="Auto"
                                       PreviewDragOver="DashboardScrollViewer_PreviewDragOver"
                                       PreviewDragLeave="DashboardScrollViewer_PreviewDragLeave"
@@ -4212,7 +4545,7 @@
                                         BorderBrush="{DynamicResource BorderColor}"
                                         BorderThickness="1"
                                         CornerRadius="14"
-                                        Padding="14"
+                                        Padding="18"
                                         Margin="8,0,8,10">
                                     <Border.Style>
                                         <Style TargetType="Border">
@@ -4241,6 +4574,7 @@
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <Button Grid.Column="0"
@@ -4255,7 +4589,24 @@
                                                     Margin="0,0,4,0"
                                                     ToolTip="{Binding [MoveSectionDown], Source={StaticResource Loc}}"
                                                     Click="MoveDashboardContentDownButton_Click"/>
-                                            <TextBlock Grid.Column="2"
+                                            <Button Grid.Column="2"
+                                                    ToolTip="{Binding [ToggleMindMapDashboardSection], Source={StaticResource Loc}}"
+                                                    Click="ToggleMindMapGroupsSectionButton_Click">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMindMapGroupsSectionExpanded}" Value="False">
+                                                                <Setter Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="-90"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <TextBlock Grid.Column="3"
                                                        Grid.ColumnSpan="2"
                                                        Text="{Binding [MindMapsDashboardTitle], Source={StaticResource Loc}}"
                                                        FontSize="16"
@@ -4264,15 +4615,73 @@
                                                        Margin="8,0,0,0"
                                                        VerticalAlignment="Center"/>
                                         </Grid>
-                                        <!-- Mind Map Groups/Sets -->
-                                        <Grid Margin="8,2,8,8"
-                                              Visibility="{Binding HasMindMapGroups, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="{Binding [Groups], Source={StaticResource Loc}}"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextColorSecondary}"/>
-                                        </Grid>
-                                        <ItemsControl ItemsSource="{Binding MindMapGroups}"
+                                        <StackPanel x:Name="MindMapGroupsSectionBody"
+                                                    RenderTransformOrigin="0.5,0">
+                                            <StackPanel.RenderTransform>
+                                                <TranslateTransform/>
+                                            </StackPanel.RenderTransform>
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Border x:Name="MindMapDashboardGroupsSectionContainer"
+                                                        Margin="0,0,0,10"
+                                                        RenderTransformOrigin="0.5,0.5">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Setter Property="Grid.Row" Value="0"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasMindMapGroups}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsMindMapDashboardGroupsFirst}" Value="False">
+                                                                    <Setter Property="Grid.Row" Value="1"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <Border.RenderTransform>
+                                                        <TranslateTransform/>
+                                                    </Border.RenderTransform>
+                                                    <StackPanel>
+                                                        <Grid Margin="10,6,10,8">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="{Binding [MoveGroupsSectionUp], Source={StaticResource Loc}}" Click="MoveMindMapDashboardGroupsUpButton_Click"/>
+                                                            <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="{Binding [MoveGroupsSectionDown], Source={StaticResource Loc}}" Click="MoveMindMapDashboardGroupsDownButton_Click"/>
+                                                            <Button Grid.Column="2" ToolTip="{Binding [ToggleGroupsSection], Source={StaticResource Loc}}" Click="ToggleMindMapDashboardGroupsSectionButton_Click">
+                                                                <Button.Style>
+                                                                    <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsMindMapDashboardGroupsSectionExpanded}" Value="False">
+                                                                                <Setter Property="RenderTransform">
+                                                                                    <Setter.Value>
+                                                                                        <RotateTransform Angle="-90"/>
+                                                                                    </Setter.Value>
+                                                                                </Setter>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Button.Style>
+                                                            </Button>
+                                                            <TextBlock Grid.Column="3"
+                                                                       Text="{Binding [Groups], Source={StaticResource Loc}}"
+                                                                       FontSize="14"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource TextColor}"
+                                                                       Margin="8,0,0,0"
+                                                                       VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                        <StackPanel x:Name="MindMapDashboardGroupsSectionBody">
+                                        <ItemsControl x:Name="MindMapDashboardGroupsItemsControl"
+                                                      ItemsSource="{Binding MindMapGroups}"
                                                       Visibility="{Binding HasMindMapGroups, Converter={StaticResource BoolToVis}}"
                                                       Margin="0,0,0,10">
                                             <ItemsControl.ItemTemplate>
@@ -4372,8 +4781,9 @@
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate DataType="{x:Type vm:MindMapViewModel}">
                                                                         <Border Tag="{Binding}"
-        Width="220" MinHeight="120"
-        Margin="0,0,10,10"
+        Width="236" MinHeight="136"
+        Margin="0,0,4,6"
+        Padding="8"
         Background="Transparent"
         Cursor="Hand"
         AllowDrop="True"
@@ -4484,27 +4894,72 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
 
-                                        <Border Margin="0,0,0,10"
+                                        <Border x:Name="MindMapDashboardUngroupedSectionContainer"
+                                                Margin="0,0,0,10"
                                                 MinHeight="96"
                                                 Background="Transparent"
                                                 AllowDrop="True"
                                                 DragOver="DashboardUngroupedDropZone_DragOver"
-                                                Drop="DashboardUngroupedDropZone_Drop"
-                                                Visibility="{Binding HasMindMaps, Converter={StaticResource BoolToVis}}">
+                                                Drop="DashboardUngroupedDropZone_Drop">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Grid.Row" Value="1"/>
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasMindMaps}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsMindMapDashboardGroupsFirst}" Value="False">
+                                                            <Setter Property="Grid.Row" Value="0"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <StackPanel>
-                                        <Grid Margin="8,2,8,8"
+                                        <Grid Margin="10,2,10,8"
                                               Background="Transparent"
                                               AllowDrop="True"
                                               DragOver="DashboardUngroupedDropZone_DragOver"
-                                              Drop="DashboardUngroupedDropZone_Drop"
-                                              Visibility="{Binding HasMindMaps, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="{Binding [UngroupedItems], Source={StaticResource Loc}}"
-                                                       FontSize="13"
+                                              Drop="DashboardUngroupedDropZone_Drop">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Button Grid.Column="0" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,2,0" Content="↑" ToolTip="{Binding [MoveUngroupedSectionUp], Source={StaticResource Loc}}" Click="MoveMindMapDashboardUngroupedUpButton_Click"/>
+                                            <Button Grid.Column="1" Style="{StaticResource DashboardSectionMoveButtonStyle}" Margin="0,0,4,0" Content="↓" ToolTip="{Binding [MoveUngroupedSectionDown], Source={StaticResource Loc}}" Click="MoveMindMapDashboardUngroupedDownButton_Click"/>
+                                            <Button Grid.Column="2" ToolTip="{Binding [ToggleUngroupedSection], Source={StaticResource Loc}}" Click="ToggleMindMapDashboardUngroupedSectionButton_Click">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource DashboardSectionToggleButtonStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMindMapDashboardUngroupedSectionExpanded}" Value="False">
+                                                                <Setter Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="-90"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <TextBlock Grid.Column="3"
+                                                       Text="{Binding [UngroupedItems], Source={StaticResource Loc}}"
+                                                       FontSize="14"
                                                        FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextColorSecondary}"/>
+                                                       Foreground="{DynamicResource TextColor}"
+                                                       Margin="8,0,0,0"
+                                                       VerticalAlignment="Center"/>
                                         </Grid>
-                                        <ItemsControl ItemsSource="{Binding MindMapsView}"
+                                        <StackPanel x:Name="MindMapDashboardUngroupedSectionBody">
+                                        <ItemsControl x:Name="MindMapDashboardUngroupedItemsControl"
+                                                      ItemsSource="{Binding MindMapsView}"
                                                       AllowDrop="True"
                                                       DragOver="DashboardUngroupedDropZone_DragOver"
                                                       Drop="DashboardUngroupedDropZone_Drop"
@@ -4518,9 +4973,10 @@
                                                 <DataTemplate DataType="{x:Type vm:MindMapViewModel}">
 													<Border x:Name="MindMapCardButton"
 															Tag="{Binding}"
-															Width="330"
-															MinHeight="184"
-                                                            Margin="0,0,14,14"
+															Width="350"
+															MinHeight="204"
+                                                            Margin="0,0,10,10"
+                                                            Padding="10"
                                                             Background="Transparent"
 																																								Cursor="Hand"
                                                             AllowDrop="True"
@@ -4836,7 +5292,10 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                             </StackPanel>
+                                            </StackPanel>
                                         </Border>
+                                            </Grid>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 

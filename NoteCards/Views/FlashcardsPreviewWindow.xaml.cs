@@ -1,6 +1,5 @@
 using NoteCards.Models;
 using NoteCards.Localization;
-using NoteCards.ViewModels;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -13,7 +12,7 @@ using System.Windows.Media.Animation;
 
 namespace NoteCards.Views;
 
-public partial class FlashcardsPreviewWindow : Window
+public partial class FlashcardsPreviewWindow : Window, INotifyPropertyChanged
 {
     private enum UnsavedCloseDecision
     {
@@ -35,9 +34,10 @@ public partial class FlashcardsPreviewWindow : Window
     private readonly ObservableCollection<FlashcardSetOption> _setOptions;
     private readonly ObservableCollection<FlashcardStatusFilterOption> _statusFilterOptions;
     private readonly ObservableCollection<FlashcardCategoryFilterOption> _categoryFilterOptions;
+    private readonly ObservableCollection<FlashcardNoteLinkOption> _noteLinkOptions = new();
     private readonly List<FlashcardPreviewItem> _studyHistory = new();
     private readonly Random _random = new();
-    private readonly MainWindow? _mainWindow;
+    private Action<Guid>? _openNoteAction;
     private bool _isStudyMode;
     private bool _isFullscreen;
     private WindowStyle _restoreWindowStyle = WindowStyle.SingleBorderWindow;
@@ -58,19 +58,40 @@ public partial class FlashcardsPreviewWindow : Window
     private bool _isInitializing = true;
     private bool _allowCloseWithoutPrompt;
     private FlashcardStudySession? _pendingStudySession;
+    private FlashcardNoteLinkOption? _selectedLinkedNote;
+
+    public sealed class FlashcardNoteLinkOption
+    {
+        public FlashcardNoteLinkOption(Guid id, string title)
+        {
+            Id = id;
+            Title = string.IsNullOrWhiteSpace(title) ? LocalizationService.GetString("QuizLinkedNoteNone") : title.Trim();
+        }
+
+        public Guid Id { get; }
+        public string Title { get; }
+    }
 
     public FlashcardsPreviewWindow(
         IEnumerable<FlashcardItem> items,
+        IEnumerable<FlashcardNoteLinkOption>? noteOptions = null,
         string? modelDisplayName = null,
         string? title = null,
         IEnumerable<string>? tags = null,
         IReadOnlyDictionary<int, string>? setNames = null,
         FlashcardStudySession? studySession = null,
-        MainWindow? mainWindow = null)
+        Guid? sourceNoteId = null,
+        Action<Guid>? openNoteAction = null)
     {
         InitializeComponent();
         NoteCards.Services.WindowThemeService.Register(this);
-        _mainWindow = mainWindow;
+        _openNoteAction = openNoteAction;
+        if (noteOptions != null)
+        {
+            foreach (var option in noteOptions)
+                _noteLinkOptions.Add(option);
+        }
+        _selectedLinkedNote = _noteLinkOptions.FirstOrDefault(option => option.Id == sourceNoteId);
         _allItems = items
             .Select(i => new FlashcardPreviewItem(
                 i.Id,
@@ -79,8 +100,7 @@ public partial class FlashcardsPreviewWindow : Window
                 Math.Max(DefaultSetIndex, i.SetIndex),
                 i.Category,
                 i.IsKnown,
-                i.IsUnknown,
-                i.LinkedNoteId))
+                i.IsUnknown))
             .ToList();
         _items = new ObservableCollection<FlashcardPreviewItem>();
         _setOptions = new ObservableCollection<FlashcardSetOption>();
@@ -98,6 +118,9 @@ public partial class FlashcardsPreviewWindow : Window
             ? string.Empty
             : string.Join(", ", tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
         ConfigureAiGeneratedIndicator(modelDisplayName);
+        OnPropertyChanged(nameof(NoteLinkOptions));
+        OnPropertyChanged(nameof(LinkedNoteButtonText));
+        OnPropertyChanged(nameof(LinkedNoteButtonToolTip));
 
         _pendingStudySession = studySession;
         UpdateShuffleButtonState();
@@ -122,6 +145,32 @@ public partial class FlashcardsPreviewWindow : Window
 
     public string AiModelDisplayName => _modelDisplayName;
 
+    public ObservableCollection<FlashcardNoteLinkOption> NoteLinkOptions => _noteLinkOptions;
+
+    public string LinkedNoteButtonText => _selectedLinkedNote?.Title ?? LocalizationService.GetString("QuizLinkedNoteNone");
+
+    public string LinkedNoteButtonToolTip => _selectedLinkedNote is null
+        ? LocalizationService.GetString("QuizLinkedNoteNoneTooltip")
+        : string.Format(LocalizationService.GetString("QuizLinkedNoteOpenTooltip"), _selectedLinkedNote.Title);
+
+    public FlashcardNoteLinkOption? SelectedLinkedNote
+    {
+        get => _selectedLinkedNote;
+        set
+        {
+            if (ReferenceEquals(_selectedLinkedNote, value))
+                return;
+
+            _selectedLinkedNote = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LinkedNoteButtonText));
+            OnPropertyChanged(nameof(LinkedNoteButtonToolTip));
+            UpdateEditedIndicator();
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     public FlashcardSetDocument ToDocument(FlashcardSetDocument? existingDocument = null)
     {
         return new FlashcardSetDocument
@@ -141,6 +190,7 @@ public partial class FlashcardsPreviewWindow : Window
             AiModelDisplayName = string.IsNullOrWhiteSpace(_modelDisplayName)
                 ? existingDocument?.AiModelDisplayName ?? string.Empty
                 : _modelDisplayName,
+            SourceNoteId = _selectedLinkedNote?.Id ?? existingDocument?.SourceNoteId,
             GroupId = existingDocument?.GroupId,
             Schedules = existingDocument?.Schedules?.ToList() ?? new List<NoteScheduleEntry>(),
             IsPinned = existingDocument?.IsPinned ?? false
@@ -158,8 +208,7 @@ public partial class FlashcardsPreviewWindow : Window
                 Category = item.Category,
                 SetIndex = Math.Max(DefaultSetIndex, item.SetIndex),
                 IsKnown = item.IsKnown,
-                IsUnknown = item.IsUnknown,
-                LinkedNoteId = item.LinkedNoteId
+                IsUnknown = item.IsUnknown
             })
             .ToList();
     }
@@ -280,10 +329,24 @@ public partial class FlashcardsPreviewWindow : Window
         return string.Join(
             '\u001F',
             TitleTextBox.Text,
+            _selectedLinkedNote?.Id.ToString() ?? string.Empty,
             string.Join('\u001E', Tags),
             setSnapshot,
             cardSnapshot,
             studySnapshot);
+    }
+
+    private void LinkedNoteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedLinkedNote is null)
+            return;
+
+        _openNoteAction?.Invoke(_selectedLinkedNote.Id);
+    }
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
     private UnsavedCloseDecision GetCloseDecision()
@@ -1155,7 +1218,7 @@ public partial class FlashcardsPreviewWindow : Window
         if (dialog.ShowDialog() != true)
             return;
 
-        var flashcard = new FlashcardPreviewItem(Guid.NewGuid(), dialog.Question, dialog.Answer, normalizedSetIndex, dialog.Category, isKnown: false, isUnknown: false, linkedNoteId: null);
+        var flashcard = new FlashcardPreviewItem(Guid.NewGuid(), dialog.Question, dialog.Answer, normalizedSetIndex, dialog.Category, isKnown: false, isUnknown: false);
         _allItems.Add(flashcard);
 
         var selectedSetIndex = GetSelectedSetIndex() ?? _currentSetIndex;
@@ -1345,67 +1408,6 @@ public partial class FlashcardsPreviewWindow : Window
             EditFlashcard(flashcard);
 
         e.Handled = true;
-    }
-
-    private void LinkNoteButton_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.DataContext is not FlashcardPreviewItem flashcard)
-            return;
-
-        if (_mainWindow?.DataContext is not MainViewModel vm)
-        {
-            MessageBox.Show("Unable to access the notes. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
-        }
-
-        // If a note is already linked, open it
-        if (flashcard.HasLinkedNote && flashcard.LinkedNoteId.HasValue)
-        {
-            var linkedNote = vm.Notes.FirstOrDefault(n => n.Document.Id == flashcard.LinkedNoteId);
-            if (linkedNote != null)
-            {
-                _mainWindow.OpenNoteEditor(linkedNote);
-            }
-            else
-            {
-                var result = MessageBox.Show(
-                    "The linked note no longer exists. Would you like to link to a different note?",
-                    "Note Not Found",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-                
-                if (result == MessageBoxResult.Yes)
-                {
-                    ShowNoteLinkDialog(flashcard, vm);
-                }
-            }
-            return;
-        }
-
-        // No note is linked, show dialog to select one
-        ShowNoteLinkDialog(flashcard, vm);
-
-        e.Handled = true;
-    }
-
-    private void ShowNoteLinkDialog(FlashcardPreviewItem flashcard, MainViewModel vm)
-    {
-        if (vm.Notes.Count == 0)
-        {
-            MessageBox.Show("No notes available to link. Create a note first.", "No Notes", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var dialog = new SelectNoteDialog(vm.Notes)
-        {
-            Owner = this
-        };
-
-        if (dialog.ShowDialog() == true && dialog.SelectedNote != null)
-        {
-            flashcard.LinkedNoteId = dialog.SelectedNote.Document.Id;
-            UpdateEditedIndicator();
-        }
     }
 
     private void QuestionAnswerToggleButton_Click(object sender, RoutedEventArgs e)
@@ -1626,7 +1628,6 @@ public partial class FlashcardsPreviewWindow : Window
         private string _answer = string.Empty;
         private string _category = string.Empty;
         private int _setIndex;
-        private Guid? _linkedNoteId;
 
         public FlashcardPreviewItem(
             Guid id,
@@ -1635,8 +1636,7 @@ public partial class FlashcardsPreviewWindow : Window
             int setIndex,
             string? category = null,
             bool isKnown = false,
-            bool isUnknown = false,
-            Guid? linkedNoteId = null)
+            bool isUnknown = false)
         {
             Id = id == Guid.Empty ? Guid.NewGuid() : id;
             Question = question;
@@ -1645,7 +1645,6 @@ public partial class FlashcardsPreviewWindow : Window
             Category = category ?? string.Empty;
             _isKnown = isKnown && !isUnknown;
             _isUnknown = isUnknown && !isKnown;
-            _linkedNoteId = linkedNoteId;
         }
 
         public string Question
@@ -1755,21 +1754,6 @@ public partial class FlashcardsPreviewWindow : Window
         }
 
         public bool IsUnreviewed => !_isKnown && !_isUnknown;
-
-        public Guid? LinkedNoteId
-        {
-            get => _linkedNoteId;
-            set
-            {
-                if (_linkedNoteId == value)
-                    return;
-                _linkedNoteId = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(HasLinkedNote));
-            }
-        }
-
-        public bool HasLinkedNote => _linkedNoteId.HasValue && _linkedNoteId != Guid.Empty;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 

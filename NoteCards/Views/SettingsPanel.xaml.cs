@@ -1036,7 +1036,7 @@ namespace NoteCards.Views
                 // Show confirmation message
                 var confirmMessage = new ModernInfoDialog(
                     LocalizationService.GetString("Success"),
-                    "Settings have been reset to factory defaults. The app will now restart.")
+                    LocalizationService.GetString("ResetFactorySettingsSuccess"))
                 {
                     Owner = Window.GetWindow(this)
                 };
@@ -1051,7 +1051,7 @@ namespace NoteCards.Views
             {
                 var errorDialog = new ModernInfoDialog(
                     LocalizationService.GetString("Error"),
-                    $"Failed to reset factory settings: {ex.Message}")
+                    string.Format(LocalizationService.GetString("ResetFactorySettingsFailedFormat"), ex.Message))
                 {
                     Owner = Window.GetWindow(this)
                 };

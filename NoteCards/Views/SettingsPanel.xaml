@@ -339,6 +339,7 @@
                                       MinWidth="180"
                                       SelectedValuePath="Tag"
                                       SelectedValue="{Binding SelectedTheme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                <ComboBoxItem Tag="System" Content="{Binding [ThemeSystem], Source={StaticResource Loc}}"/>
                                 <ComboBoxItem Tag="Light" Content="{Binding [ThemeLight], Source={StaticResource Loc}}"/>
                                 <ComboBoxItem Tag="Dark" Content="{Binding [ThemeDark], Source={StaticResource Loc}}"/>
                             </ComboBox>
@@ -500,24 +501,25 @@
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextColor}"/>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left">
+                        <WrapPanel Margin="0,8,-8,-8" HorizontalAlignment="Left">
                             <Button Content="{Binding [AiToolsRuntimeDownload], Source={StaticResource Loc}}"
                                     x:Name="RuntimeDownloadButton"
                                     Style="{StaticResource DialogPrimaryButtonStyle}"
                                     Padding="12,6"
+                                    Margin="0,0,8,8"
                                     Click="DownloadRuntime_Click"/>
                             <Button Content="{Binding [AiToolsRuntimeDelete], Source={StaticResource Loc}}"
                                     x:Name="RuntimeDeleteButton"
-                                    Margin="8,0,0,0"
                                     Style="{StaticResource DialogDangerButtonStyle}"
                                     Padding="12,6"
+                                    Margin="0,0,8,8"
                                     Click="DeleteRuntime_Click"/>
                             <Button Content="{Binding [AiToolsRuntimeOpenFolder], Source={StaticResource Loc}}"
-                                    Margin="8,0,0,0"
                                     Style="{StaticResource DialogSecondaryButtonStyle}"
                                     Padding="12,6"
+                                    Margin="0,0,8,8"
                                     Click="OpenRuntimeFolder_Click"/>
-                        </StackPanel>
+                        </WrapPanel>
 
                         <TextBlock x:Name="RuntimeStatusText"
                                    Margin="0,8,0,0"
@@ -559,7 +561,7 @@
         Padding="16,12">
                     <StackPanel>
                         <!-- Scrollbar Setting -->
-                        <Grid Margin="0,0,0,12">
+                        <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
@@ -577,17 +579,12 @@
                       IsChecked="{Binding EnableScrollbar, Mode=TwoWay}"/>
                         </Grid>
 
-                        <Border Height="1" 
-                Background="{DynamicResource BorderColor}" 
-                Margin="0,0,0,12"/>
-
-                        
                     </StackPanel>
                 </Border>
 
                     <!-- Auto-Save Setting -->
                     <Border x:Name="AutoSaveSettingsCard"
-                            Grid.Row="3"
+                            Grid.Row="4"
                             Margin="0,14,0,0"
                             Background="{DynamicResource SidebarBackground}"
                             BorderBrush="{DynamicResource BorderColor}"
@@ -595,10 +592,10 @@
                             CornerRadius="12">
                         <Border.Style>
                             <Style TargetType="Border">
-                                <Setter Property="Padding" Value="12,8"/>
+                                <Setter Property="Padding" Value="16,12"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsChecked, ElementName=EnableAutoSaveCheckBox}" Value="True">
-                                        <Setter Property="Padding" Value="14,10"/>
+                                        <Setter Property="Padding" Value="16,12"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -673,7 +670,7 @@
                     </Border>
 
                     <!-- Activity Summary Settings -->
-                <Border Grid.Row="4"
+                <Border Grid.Row="5"
                         Margin="0,14,0,0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
@@ -705,7 +702,7 @@
                 </Border>
 
                 <!-- Reset Factory Settings Section -->
-                <Border Grid.Row="5"
+                <Border Grid.Row="6"
                         Margin="0,14,0,0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderColor}"
@@ -718,7 +715,7 @@
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextColor}"
                                    Margin="0,0,0,8"/>
-                        <TextBlock Text="Reset all settings and data to default. This action cannot be undone."
+                        <TextBlock Text="{Binding [ResetFactorySettingsDescription], Source={StaticResource Loc}}"
                                    FontSize="12"
                                    Foreground="{DynamicResource TextColorSecondary}"
                                    TextWrapping="Wrap"
@@ -732,7 +729,7 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Grid.Row="6" Margin="0,20,0,0">
+                <Grid Grid.Row="7" Margin="0,20,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>

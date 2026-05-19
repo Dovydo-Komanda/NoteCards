@@ -1,4 +1,5 @@
-﻿using NoteCards.Services;
+using Microsoft.Win32;
+using NoteCards.Services;
 using System.Windows;
 
 namespace NoteCards
@@ -7,23 +8,56 @@ namespace NoteCards
     {
         public static event EventHandler? ThemeChanged;
 
-        private static string _currentTheme = "Light";
-        private static int _nativeThemeRefreshVersion;
+        public const string LightTheme = "Light";
+        public const string DarkTheme = "Dark";
+        public const string SystemTheme = "System";
 
+        private static string _themePreference = LightTheme;
+        private static string _currentTheme = LightTheme;
+        private static int _nativeThemeRefreshVersion;
+        private static bool _systemEventsRegistered;
+
+        public static string CurrentThemePreference => _themePreference;
         public static string CurrentTheme => _currentTheme;
 
         public static void SetTheme(string theme)
         {
-            _currentTheme = theme;
-            ApplyTheme(theme);
+            EnsureSystemEventsRegistered();
+
+            var preference = NormalizeThemePreference(theme);
+            var effectiveTheme = ResolveEffectiveTheme(preference);
+            var preferenceChanged = !string.Equals(_themePreference, preference, StringComparison.OrdinalIgnoreCase);
+            var effectiveThemeChanged = !string.Equals(_currentTheme, effectiveTheme, StringComparison.OrdinalIgnoreCase);
+
+            _themePreference = preference;
+
+            if (!effectiveThemeChanged)
+            {
+                if (preferenceChanged)
+                    ThemeChanged?.Invoke(null, EventArgs.Empty);
+                return;
+            }
+
+            _currentTheme = effectiveTheme;
+            ApplyTheme(effectiveTheme);
             ThemeChanged?.Invoke(null, EventArgs.Empty);
+        }
+
+        public static string NormalizeThemePreference(string? theme)
+        {
+            if (string.Equals(theme, DarkTheme, StringComparison.OrdinalIgnoreCase))
+                return DarkTheme;
+            if (string.Equals(theme, SystemTheme, StringComparison.OrdinalIgnoreCase))
+                return SystemTheme;
+
+            return LightTheme;
         }
 
         private static void ApplyTheme(string theme)
         {
             var dict = new ResourceDictionary();
 
-            if (theme == "Dark")
+            if (string.Equals(theme, DarkTheme, StringComparison.OrdinalIgnoreCase))
                 dict.Source = new Uri("pack://application:,,,/NoteCards;component/Themes/DarkTheme.xaml", UriKind.Absolute);
             else
                 dict.Source = new Uri("pack://application:,,,/NoteCards;component/Themes/LightTheme.xaml", UriKind.Absolute);
@@ -53,6 +87,48 @@ namespace NoteCards
             var refreshVersion = ++_nativeThemeRefreshVersion;
             ApplyNativeThemeToOpenWindows(_currentTheme, invalidateVisuals: true, rebuildFrame: false);
             RefreshNativeThemeAfterLayout(_currentTheme, refreshVersion);
+        }
+
+        private static string ResolveEffectiveTheme(string preference)
+        {
+            return string.Equals(preference, SystemTheme, StringComparison.OrdinalIgnoreCase)
+                ? GetWindowsAppTheme()
+                : preference;
+        }
+
+        private static string GetWindowsAppTheme()
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+                var value = key?.GetValue("AppsUseLightTheme");
+                return value is int lightTheme && lightTheme == 0 ? DarkTheme : LightTheme;
+            }
+            catch
+            {
+                return LightTheme;
+            }
+        }
+
+        private static void EnsureSystemEventsRegistered()
+        {
+            if (_systemEventsRegistered)
+                return;
+
+            SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
+            _systemEventsRegistered = true;
+        }
+
+        private static void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        {
+            if (!string.Equals(_themePreference, SystemTheme, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                if (string.Equals(_themePreference, SystemTheme, StringComparison.OrdinalIgnoreCase))
+                    SetTheme(SystemTheme);
+            });
         }
 
         private static void ApplyNativeThemeToOpenWindows(string theme, bool invalidateVisuals, bool rebuildFrame)

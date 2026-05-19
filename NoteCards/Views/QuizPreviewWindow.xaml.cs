@@ -486,8 +486,18 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         try
         {
-            var selectedItem = TimeLimitComboBox.SelectedItem as ComboBoxItem;
-            int timeLimitSeconds = selectedItem?.Tag is string tag ? int.Parse(tag) : 0;
+            var optionsDialog = new QuizStartOptionsDialog(_sourceDocument.TimeLimitSeconds, _sourceDocument.PassingScorePercent)
+            {
+                Owner = this
+            };
+
+            if (optionsDialog.ShowDialog() != true)
+                return;
+
+            var timeLimitSeconds = optionsDialog.TimeLimitSeconds;
+            _sourceDocument.TimeLimitSeconds = timeLimitSeconds == 0 ? null : timeLimitSeconds;
+            _sourceDocument.PassingScorePercent = optionsDialog.PassingScorePercent;
+
             var quizModeWindow = new QuizModeWindow(_sourceDocument, timeLimitSeconds);
             quizModeWindow.ShowDialog();
             // Išsaugoti attempt į dokumento istoriją
@@ -665,19 +675,6 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         UpdateSummary();
     }
 
-    private void PassingScoreButton_Click(object sender, RoutedEventArgs e)
-    {
-        var input = Microsoft.VisualBasic.Interaction.InputBox(
-            "Enter the minimum percentage required to pass:",
-            "Passing Score",
-            _sourceDocument.PassingScorePercent.ToString(CultureInfo.InvariantCulture));
-
-        if (!int.TryParse(input, out var percent))
-            return;
-
-        _sourceDocument.PassingScorePercent = Math.Clamp(percent, 0, 100);
-    }
-
     private void ShuffleQuestionsButton_Click(object sender, RoutedEventArgs e)
     {
         if (_questions.Count < 2) return;
@@ -809,6 +806,19 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         options.Move(index, index + 1);
         option.Parent.RefreshOptionOrderState();
+    }
+
+    private void RemoveOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!IsEditMode)
+            return;
+
+        if ((sender as FrameworkElement)?.DataContext is not QuizPreviewOption option)
+            return;
+
+        option.Parent.RemoveOption(option);
+        UpdateSummary();
+        e.Handled = true;
     }
 
     private void DeleteQuestionButton_Click(object sender, RoutedEventArgs e)
@@ -1320,6 +1330,8 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         public bool CanReorderOptions => Type != QuizQuestionType.TrueFalse && Options.Count > 1;
 
+        public bool CanRemoveOption => Type != QuizQuestionType.TrueFalse && Options.Count > 2;
+
         public bool HasSelection => Options.Any(option => option.IsSelected);
 
         public bool IsSubmitted => _isSubmitted;
@@ -1400,12 +1412,33 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
             Options.Add(new QuizPreviewOption(this, text, isCorrect));
             OnPropertyChanged(nameof(CanReorderOptions));
+            OnPropertyChanged(nameof(CanRemoveOption));
+            RefreshState();
+        }
+
+        public void RemoveOption(QuizPreviewOption option)
+        {
+            if (!CanRemoveOption || !Options.Contains(option))
+                return;
+
+            var removedWasCorrect = option.IsCorrect;
+            Options.Remove(option);
+
+            if (removedWasCorrect && Options.All(item => !item.IsCorrect))
+                Options[0].SetCorrectSilently(true);
+
+            if (Options.Count > 0 && Options.All(item => string.IsNullOrWhiteSpace(item.Text)))
+                Options[0].Text = LocalizationService.GetString("NewQuizCorrectAnswer");
+
+            OnPropertyChanged(nameof(CanReorderOptions));
+            OnPropertyChanged(nameof(CanRemoveOption));
             RefreshState();
         }
 
         public void RefreshOptionOrderState()
         {
             OnPropertyChanged(nameof(CanReorderOptions));
+            OnPropertyChanged(nameof(CanRemoveOption));
             foreach (var option in Options)
                 option.RefreshState();
         }
@@ -1420,6 +1453,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             IsCorrect = null;
             EnsureValidOptions();
             OnPropertyChanged(nameof(CanReorderOptions));
+            OnPropertyChanged(nameof(CanRemoveOption));
             RefreshState();
         }
 
@@ -1509,6 +1543,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 Options[0].SetCorrectSilently(true);
 
             OnPropertyChanged(nameof(CanReorderOptions));
+            OnPropertyChanged(nameof(CanRemoveOption));
         }
 
         private void ResetToTrueFalseOptions()
@@ -1522,6 +1557,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             Options.Add(new QuizPreviewOption(this, LocalizationService.GetString("QuizOptionTrue"), !falseIsCorrect));
             Options.Add(new QuizPreviewOption(this, LocalizationService.GetString("QuizOptionFalse"), falseIsCorrect));
             OnPropertyChanged(nameof(CanReorderOptions));
+            OnPropertyChanged(nameof(CanRemoveOption));
         }
 
         private static void NormalizeModelOptions(QuizQuestionType type, List<QuizOption> options)
