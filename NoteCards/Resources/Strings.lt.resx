@@ -30,6 +30,8 @@
   <data name="LanguageLithuanian" xml:space="preserve"><value>Lietuvių</value></data>
   <data name="Scrollbar" xml:space="preserve"><value>Slinkties juosta:</value></data>
   <data name="EnableScrollbar" xml:space="preserve"><value>Rodyti slinkties juostą</value></data>
+  <data name="EnableVerticalScrollbar" xml:space="preserve"><value>Vertikali slinkties juosta</value></data>
+  <data name="EnableHorizontalScrollbar" xml:space="preserve"><value>Horizontali slinkties juosta</value></data>
   <data name="AutoSave" xml:space="preserve"><value>Automatinis išsaugojimas</value></data>
   <data name="EnableAutoSave" xml:space="preserve"><value>Įjungti automatinį išsaugojimą</value></data>
   <data name="AutoSaveFrequency" xml:space="preserve"><value>Išsaugoti kas:</value></data>

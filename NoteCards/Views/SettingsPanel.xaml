@@ -571,12 +571,27 @@
                        VerticalAlignment="Center"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextColor}"/>
-                            <CheckBox Grid.Column="1"
-                      x:Name="EnableScrollbarCheckBox"
-                      Content="{Binding [EnableScrollbar], Source={StaticResource Loc}}"
-                      HorizontalAlignment="Right"
-                      VerticalAlignment="Center"
-                      IsChecked="{Binding EnableScrollbar, Mode=TwoWay}"/>
+                            <StackPanel Grid.Column="1"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center">
+                                <CheckBox x:Name="EnableScrollbarCheckBox"
+                                          Content="{Binding [EnableScrollbar], Source={StaticResource Loc}}"
+                                          HorizontalAlignment="Left"
+                                          IsChecked="{Binding EnableScrollbar, Mode=TwoWay}"/>
+                                <StackPanel Margin="24,10,0,0"
+                                            IsEnabled="{Binding IsChecked, ElementName=EnableScrollbarCheckBox}"
+                                            Visibility="{Binding IsChecked, ElementName=EnableScrollbarCheckBox, Converter={StaticResource BoolToVis}}">
+                                    <CheckBox x:Name="EnableVerticalScrollbarCheckBox"
+                                              Content="{Binding [EnableVerticalScrollbar], Source={StaticResource Loc}}"
+                                              HorizontalAlignment="Left"
+                                              IsChecked="{Binding EnableVerticalScrollbar, Mode=TwoWay}"/>
+                                    <CheckBox x:Name="EnableHorizontalScrollbarCheckBox"
+                                              Margin="0,8,0,0"
+                                              Content="{Binding [EnableHorizontalScrollbar], Source={StaticResource Loc}}"
+                                              HorizontalAlignment="Left"
+                                              IsChecked="{Binding EnableHorizontalScrollbar, Mode=TwoWay}"/>
+                                </StackPanel>
+                            </StackPanel>
                         </Grid>
 
                     </StackPanel>

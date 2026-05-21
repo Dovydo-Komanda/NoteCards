@@ -65,9 +65,11 @@ namespace NoteCards
         private long _lastSavedEditorChangeVersion;
         private const double StatusIndicatorExpandedHeight = 20;
         private const double FloatingImageAnchorHeight = 80;
+        private const double UnwrappedDocumentPageWidth = 10000;
         private const string ImageMarkerPrefix = "[[NoteCardsImage:";
         private const string ImageMarkerSuffix = "]]";
         private ScrollViewer? _contentScrollViewer;
+        private INotifyPropertyChanged? _editorSettingsSource;
         private bool _isUpdatingFloatingImageLayout;
         private bool _isFloatingImageOverlayLayoutUpdateQueued;
         private bool _isInlineImageDropPending;
@@ -102,7 +104,10 @@ namespace NoteCards
             InitializeAutoSave();
             UpdateCounter();
             UpdateOnlineSearchAvailability();
-            ContentTextBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+            DataContextChanged += NoteEditorWindow_DataContextChanged;
+            AttachEditorSettingsSource(DataContext as INotifyPropertyChanged);
+            ApplyEditorTextLayout();
+            UpdateEditorToolButtonStates();
             ContentTextBox.IsDocumentEnabled = true; // Ensure interactive elements (like ResizableImage) can receive pointer events
             ContentTextBox.PreviewMouseDown += ContentTextBox_PreviewMouseDown;
             ContentTextBox.SizeChanged += (_, _) => ScheduleFloatingImageOverlayLayoutUpdate();
@@ -115,9 +120,84 @@ namespace NoteCards
             ThemeManager.ThemeChanged += ThemeManager_ThemeChanged;
         }
 
+        private void NoteEditorWindow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            AttachEditorSettingsSource(e.NewValue as INotifyPropertyChanged);
+            ApplyEditorTextLayout();
+        }
+
+        private void AttachEditorSettingsSource(INotifyPropertyChanged? source)
+        {
+            if (ReferenceEquals(_editorSettingsSource, source))
+                return;
+
+            if (_editorSettingsSource != null)
+                _editorSettingsSource.PropertyChanged -= EditorSettingsSource_PropertyChanged;
+
+            _editorSettingsSource = source;
+
+            if (_editorSettingsSource != null)
+                _editorSettingsSource.PropertyChanged += EditorSettingsSource_PropertyChanged;
+        }
+
+        private void EditorSettingsSource_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(e.PropertyName)
+                && !string.Equals(e.PropertyName, nameof(MainViewModel.EnableScrollbar), StringComparison.Ordinal)
+                && !string.Equals(e.PropertyName, nameof(MainViewModel.EnableVerticalScrollbar), StringComparison.Ordinal)
+                && !string.Equals(e.PropertyName, nameof(MainViewModel.EnableHorizontalScrollbar), StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            Dispatcher.Invoke(ApplyEditorTextLayout);
+        }
+
+        private (bool Vertical, bool Horizontal) ResolveEditorScrollbarSettings()
+        {
+            if (DataContext is MainViewModel mainViewModel)
+            {
+                return (
+                    mainViewModel.EnableScrollbar && mainViewModel.EnableVerticalScrollbar,
+                    mainViewModel.EnableScrollbar && mainViewModel.EnableHorizontalScrollbar);
+            }
+
+            var settings = AppSettingsService.Load();
+            return (
+                settings.EnableScrollbar && settings.EnableVerticalScrollbar,
+                settings.EnableScrollbar && settings.EnableHorizontalScrollbar);
+        }
+
+        private void ApplyEditorTextLayout()
+        {
+            var scrollbars = ResolveEditorScrollbarSettings();
+            var horizontalScrollEnabled = scrollbars.Horizontal && !_isWordWrapEnabled;
+
+            ContentTextBox.VerticalScrollBarVisibility = scrollbars.Vertical
+                ? ScrollBarVisibility.Auto
+                : ScrollBarVisibility.Hidden;
+
+            ContentTextBox.HorizontalScrollBarVisibility = horizontalScrollEnabled
+                ? ScrollBarVisibility.Auto
+                : ScrollBarVisibility.Disabled;
+
+            ContentTextBox.Document.PageWidth = horizontalScrollEnabled
+                ? UnwrappedDocumentPageWidth
+                : double.NaN;
+
+            ContentTextBox.InvalidateMeasure();
+            _contentScrollViewer?.InvalidateScrollInfo();
+            UpdateEditorToolButtonStates();
+            UpdateEditorScrollbarCorner();
+            Dispatcher.InvokeAsync(UpdateEditorScrollbarCorner);
+            ScheduleFloatingImageOverlayLayoutUpdate();
+        }
+
         private void ThemeManager_ThemeChanged(object? sender, EventArgs e)
         {
             ApplyRichTextBoxTheme();
+            UpdateEditorToolButtonStates();
+            UpdateEditorScrollbarCorner();
         }
 
         private void NoteEditorWindow_Loaded(object sender, RoutedEventArgs e)
@@ -135,7 +215,11 @@ namespace NoteCards
             ContentTextBox.ApplyTemplate();
             _contentScrollViewer = FindVisualChild<ScrollViewer>(ContentTextBox);
             if (_contentScrollViewer != null)
+            {
+                _contentScrollViewer.SetResourceReference(ScrollViewer.BackgroundProperty, "RichTextBoxBackground");
                 _contentScrollViewer.ScrollChanged += ContentScrollViewer_ScrollChanged;
+                UpdateEditorScrollbarCorner();
+            }
         }
 
         private void DetachContentScrollViewer()
@@ -148,8 +232,49 @@ namespace NoteCards
 
         private void ContentScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
+            UpdateEditorScrollbarCorner();
             UpdateFloatingImageOverlayLayout();
             ScheduleFloatingImageOverlayLayoutUpdate();
+        }
+
+        private void UpdateEditorScrollbarCorner()
+        {
+            if (_contentScrollViewer == null || EditorScrollbarCorner == null)
+                return;
+
+            var bothScrollbarsVisible =
+                _contentScrollViewer.ComputedVerticalScrollBarVisibility == Visibility.Visible
+                && _contentScrollViewer.ComputedHorizontalScrollBarVisibility == Visibility.Visible;
+
+            EditorScrollbarCorner.Visibility = bothScrollbarsVisible
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        private void UpdateEditorToolButtonStates()
+        {
+            var horizontalScrollbarAvailable = ResolveEditorScrollbarSettings().Horizontal;
+            SetEditorToolButtonActive(WordWrapButton, _isWordWrapEnabled || !horizontalScrollbarAvailable);
+            SetEditorToolButtonActive(ZoomInButton, _zoomLevel > 1.0001);
+            SetEditorToolButtonActive(ZoomOutButton, _zoomLevel < 0.9999);
+            SetEditorToolButtonActive(ZoomResetButton, false);
+        }
+
+        private static void SetEditorToolButtonActive(Button button, bool isActive)
+        {
+            if (isActive)
+            {
+                button.SetResourceReference(Control.BackgroundProperty, "EditorToolActiveBackground");
+                button.SetResourceReference(Control.BorderBrushProperty, "EditorToolActiveBorder");
+                button.SetResourceReference(Control.ForegroundProperty, "EditorToolActiveForeground");
+                button.BorderThickness = new Thickness(2);
+                return;
+            }
+
+            button.SetResourceReference(Control.BackgroundProperty, "IconButtonBackground");
+            button.SetResourceReference(Control.BorderBrushProperty, "IconButtonBorder");
+            button.SetResourceReference(Control.ForegroundProperty, "IconButtonForeground");
+            button.BorderThickness = new Thickness(1);
         }
 
         public void EnableTabMode()
@@ -181,6 +306,8 @@ namespace NoteCards
             DetachContentScrollViewer();
             Loaded -= NoteEditorWindow_Loaded;
             RootGrid.Loaded -= NoteEditorWindow_Loaded;
+            DataContextChanged -= NoteEditorWindow_DataContextChanged;
+            AttachEditorSettingsSource(null);
             _flashcardConversionCancellationSource?.Cancel();
             _flashcardConversionCancellationSource?.Dispose();
             _flashcardConversionCancellationSource = null;
@@ -213,6 +340,8 @@ namespace NoteCards
             DetachContentScrollViewer();
             Loaded -= NoteEditorWindow_Loaded;
             RootGrid.Loaded -= NoteEditorWindow_Loaded;
+            DataContextChanged -= NoteEditorWindow_DataContextChanged;
+            AttachEditorSettingsSource(null);
             _flashcardConversionCancellationSource?.Cancel();
             _mindMapConversionCancellationSource?.Cancel();
             _testConversionCancellationSource?.Cancel();
@@ -1422,6 +1551,7 @@ namespace NoteCards
                     // Apply theme colors to the loaded content
                     ApplyRichTextBoxTheme();
                     ConfigureResizableImages();
+                    ApplyEditorTextLayout();
 
                     // Clear any selection and move caret to start
                     ContentTextBox.CaretPosition = ContentTextBox.Document.ContentStart;
@@ -2399,6 +2529,8 @@ namespace NoteCards
                     TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
                     tr.Text = content;
                 }
+
+                ApplyEditorTextLayout();
             }
             catch
             {
@@ -4529,23 +4661,14 @@ namespace NoteCards
             if (_zoomLevel > 3.0) _zoomLevel = 3.0;
 
             ContentTextBox.LayoutTransform = new ScaleTransform(_zoomLevel, _zoomLevel);
+            UpdateEditorToolButtonStates();
         }
         private bool _isWordWrapEnabled = true;
 
         private void ToggleWordWrap_Click(object sender, RoutedEventArgs e)
         {
             _isWordWrapEnabled = !_isWordWrapEnabled;
-
-            if (_isWordWrapEnabled)
-            {
-               
-                ContentTextBox.Document.PageWidth = double.NaN;
-            }
-            else
-            {
-                
-                ContentTextBox.Document.PageWidth = 1000;
-            }
+            ApplyEditorTextLayout();
         }
 
         private enum FindDirection

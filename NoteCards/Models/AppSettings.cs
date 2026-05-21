@@ -9,6 +9,10 @@ public class AppSettings
     public string NoteSortOptionKey { get; set; } = "last-modified-desc";
 
     public bool EnableScrollbar { get; set; } = true;
+
+    public bool EnableVerticalScrollbar { get; set; } = true;
+
+    public bool EnableHorizontalScrollbar { get; set; } = true;
     
     public bool EnableAutoSave { get; set; } = true;
     

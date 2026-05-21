@@ -55,6 +55,9 @@
     <SolidColorBrush x:Key="IconButtonForeground" Color="#2B3650"/>
     <SolidColorBrush x:Key="IconButtonHoverBackground" Color="#EAF0FD"/>
     <SolidColorBrush x:Key="IconButtonPressedBackground" Color="#DCE7FB"/>
+    <SolidColorBrush x:Key="EditorToolActiveBackground" Color="#EAF2FF"/>
+    <SolidColorBrush x:Key="EditorToolActiveBorder" Color="#8FB1FF"/>
+    <SolidColorBrush x:Key="EditorToolActiveForeground" Color="#1F4EA8"/>
 
     <!-- Mass Select Colors -->
     <SolidColorBrush x:Key="MassSelectBoxBackground" Color="#F5F7FB"/>

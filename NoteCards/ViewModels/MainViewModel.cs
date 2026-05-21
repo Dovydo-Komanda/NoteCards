@@ -39,6 +39,8 @@ public class MainViewModel : ViewModelBase
     private bool _saveNotesQueued;
     private DispatcherTimer? _autoSaveTimer;
     private bool _enableScrollbar = true;
+    private bool _enableVerticalScrollbar = true;
+    private bool _enableHorizontalScrollbar = true;
     private string _selectedLanguage = LocalizationService.English;
     private string _selectedTheme = "Light";
     private string _activeDashboard = DashboardNotes;
@@ -80,6 +82,35 @@ public class MainViewModel : ViewModelBase
             }
         }
     }
+
+    public bool EnableVerticalScrollbar
+    {
+        get => _enableVerticalScrollbar;
+        set
+        {
+            if (_enableVerticalScrollbar != value)
+            {
+                _enableVerticalScrollbar = value;
+                OnPropertyChanged(nameof(EnableVerticalScrollbar));
+                SaveAppSettings();
+            }
+        }
+    }
+
+    public bool EnableHorizontalScrollbar
+    {
+        get => _enableHorizontalScrollbar;
+        set
+        {
+            if (_enableHorizontalScrollbar != value)
+            {
+                _enableHorizontalScrollbar = value;
+                OnPropertyChanged(nameof(EnableHorizontalScrollbar));
+                SaveAppSettings();
+            }
+        }
+    }
+
     private string GetFlashcardsFilePath()
     {
         var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NoteCards");
@@ -5099,6 +5130,8 @@ public class MainViewModel : ViewModelBase
         var settings = AppSettingsService.Load();
 
         _enableScrollbar = settings.EnableScrollbar;
+        _enableVerticalScrollbar = settings.EnableVerticalScrollbar;
+        _enableHorizontalScrollbar = settings.EnableHorizontalScrollbar;
         _selectedLanguage = LocalizationService.NormalizeLanguage(settings.Language);
         _selectedTheme = ThemeManager.NormalizeThemePreference(settings.Theme);
         _activeDashboard = NormalizeDashboard(settings.LastView);
@@ -5184,6 +5217,8 @@ public class MainViewModel : ViewModelBase
         settings.MindMapSortOptionKey = _selectedMindMapSortOptionKey;
         settings.QuizSortOptionKey = _selectedQuizSortOptionKey;
         settings.EnableScrollbar = _enableScrollbar;
+        settings.EnableVerticalScrollbar = _enableVerticalScrollbar;
+        settings.EnableHorizontalScrollbar = _enableHorizontalScrollbar;
         settings.IsRecentSectionExpanded = _isRecentSectionExpanded;
         settings.IsGroupsSectionExpanded = _isGroupsSectionExpanded;
         settings.IsUngroupedSectionExpanded = _isUngroupedSectionExpanded;

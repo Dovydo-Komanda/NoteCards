@@ -120,6 +120,8 @@ namespace NoteCards.Views
 
             _isApplyingSettings = true;
             EnableScrollbarCheckBox.IsChecked = settings.EnableScrollbar;
+            EnableVerticalScrollbarCheckBox.IsChecked = settings.EnableVerticalScrollbar;
+            EnableHorizontalScrollbarCheckBox.IsChecked = settings.EnableHorizontalScrollbar;
             EnableAutoSaveCheckBox.IsChecked = settings.EnableAutoSave;
 
             UpdateAutoSaveIntervalControls(settings.AutoSaveIntervalSeconds);

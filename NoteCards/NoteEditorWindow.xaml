@@ -8,10 +8,8 @@
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
-        Closing="NoteEditorWindow_Closing"
-        xmlns:converters="clr-namespace:NoteCards.Converters">
+        Closing="NoteEditorWindow_Closing">
     <Window.Resources>
-        <converters:BoolToScrollBarVisibilityConverter x:Key="BoolToScrollBarVisibilityConverter" />
         <Storyboard x:Key="CloseStoryboard">
             <DoubleAnimation Storyboard.TargetName="RootGrid"
                              Storyboard.TargetProperty="Opacity"
@@ -568,7 +566,6 @@
                              FontSize="14"
                              FontFamily="Segoe UI"
                              AcceptsReturn="True"
-                             VerticalScrollBarVisibility="{Binding EnableScrollbar, Converter={StaticResource BoolToScrollBarVisibilityConverter}}"
                              Background="Transparent"
                              BorderThickness="0">
 
@@ -586,6 +583,15 @@
                     <Canvas x:Name="FloatingImageOverlay"
                             Panel.ZIndex="20"
                             ClipToBounds="False"/>
+                    <Border x:Name="EditorScrollbarCorner"
+                            Width="6"
+                            Height="6"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom"
+                            Background="{DynamicResource ScrollBarTrackBackground}"
+                            IsHitTestVisible="False"
+                            Panel.ZIndex="30"
+                            Visibility="Collapsed"/>
                 </Grid>
             </Border>
         </Border>
@@ -637,7 +643,8 @@
                             ToolTip="{Binding [InsertImage], Source={StaticResource Loc}}"
                             Click="InsertImageButton_Click"/>
                     <Separator Margin="4,0,4,8"/>
-                    <Button Content="↔"
+                    <Button x:Name="WordWrapButton"
+                            Content="↔"
                             Style="{StaticResource EditorSideToolButtonStyle}"
                             ToolTip="{Binding [ToggleWordWrap], Source={StaticResource Loc}}"
                             Click="ToggleWordWrap_Click"/>
@@ -648,15 +655,18 @@
                             ToolTip="{Binding [Font], Source={StaticResource Loc}}"
                             Click="FontSettings_Click"/>
                     <Separator Margin="4,0,4,8"/>
-                    <Button Content="🔍+"
+                    <Button x:Name="ZoomInButton"
+                            Content="🔍+"
                             Style="{StaticResource EditorSideToolButtonStyle}"
                             ToolTip="{Binding [ZoomIn], Source={StaticResource Loc}}"
                             Click="ZoomInButton_Click"/>
-                    <Button Content="🔍-"
+                    <Button x:Name="ZoomOutButton"
+                            Content="🔍-"
                             Style="{StaticResource EditorSideToolButtonStyle}"
                             ToolTip="{Binding [ZoomOut], Source={StaticResource Loc}}"
                             Click="ZoomOutButton_Click"/>
-                    <Button Content="1:1"
+                    <Button x:Name="ZoomResetButton"
+                            Content="1:1"
                             Style="{StaticResource EditorSideToolButtonStyle}"
                             ToolTip="{Binding [ZoomReset], Source={StaticResource Loc}}"
                             Click="ZoomResetButton_Click"/>

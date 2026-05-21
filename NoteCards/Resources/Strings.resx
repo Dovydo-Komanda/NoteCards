@@ -30,6 +30,8 @@
   <data name="LanguageLithuanian" xml:space="preserve"><value>Lithuanian</value></data>
   <data name="Scrollbar" xml:space="preserve"><value>Scrollbar:</value></data>
   <data name="EnableScrollbar" xml:space="preserve"><value>Enable scrollbar</value></data>
+  <data name="EnableVerticalScrollbar" xml:space="preserve"><value>Vertical scrollbar</value></data>
+  <data name="EnableHorizontalScrollbar" xml:space="preserve"><value>Horizontal scrollbar</value></data>
   <data name="AutoSave" xml:space="preserve"><value>Auto-save</value></data>
   <data name="EnableAutoSave" xml:space="preserve"><value>Enable auto-save</value></data>
   <data name="AutoSaveFrequency" xml:space="preserve"><value>Save every:</value></data>
