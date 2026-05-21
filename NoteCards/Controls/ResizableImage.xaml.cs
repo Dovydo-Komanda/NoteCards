@@ -27,6 +27,35 @@ namespace NoteCards.Controls
         private Point _clickPosition;
         private Point _inlineDragStartPosition;
         private double _lockedAspectRatio;
+        private ResizeHandle _activeResizeHandle = ResizeHandle.None;
+        private ResizeAxis _activeAspectResizeAxis = ResizeAxis.None;
+        private double _resizeStartWidth;
+        private double _resizeStartHeight;
+        private double _resizeStartLeft;
+        private double _resizeStartTop;
+        private double _resizeAccumulatedWidthDelta;
+        private double _resizeAccumulatedHeightDelta;
+        private double _resizeGestureAspectRatio;
+
+        private enum ResizeHandle
+        {
+            None,
+            TopLeft,
+            Top,
+            TopRight,
+            Right,
+            BottomRight,
+            Bottom,
+            BottomLeft,
+            Left
+        }
+
+        private enum ResizeAxis
+        {
+            None,
+            Width,
+            Height
+        }
 
         public event EventHandler? ImageBoundsChanged;
         public event EventHandler<ImageLayoutChangeRequestedEventArgs>? LayoutChangeRequested;
@@ -175,14 +204,14 @@ namespace NoteCards.Controls
             this.MouseLeftButtonUp += OnMouseLeftButtonUp;
             this.LostFocus += ResizableImage_LostFocus;
 
-            TopLeftThumb.DragDelta += TopLeft_DragDelta;
-            TopThumb.DragDelta += Top_DragDelta;
-            TopRightThumb.DragDelta += TopRight_DragDelta;
-            RightThumb.DragDelta += Right_DragDelta;
-            BottomRightThumb.DragDelta += BottomRight_DragDelta;
-            BottomThumb.DragDelta += Bottom_DragDelta;
-            BottomLeftThumb.DragDelta += BottomLeft_DragDelta;
-            LeftThumb.DragDelta += Left_DragDelta;
+            AttachResizeThumb(TopLeftThumb, ResizeHandle.TopLeft, TopLeft_DragDelta);
+            AttachResizeThumb(TopThumb, ResizeHandle.Top, Top_DragDelta);
+            AttachResizeThumb(TopRightThumb, ResizeHandle.TopRight, TopRight_DragDelta);
+            AttachResizeThumb(RightThumb, ResizeHandle.Right, Right_DragDelta);
+            AttachResizeThumb(BottomRightThumb, ResizeHandle.BottomRight, BottomRight_DragDelta);
+            AttachResizeThumb(BottomThumb, ResizeHandle.Bottom, Bottom_DragDelta);
+            AttachResizeThumb(BottomLeftThumb, ResizeHandle.BottomLeft, BottomLeft_DragDelta);
+            AttachResizeThumb(LeftThumb, ResizeHandle.Left, Left_DragDelta);
 
             SetLocalizedLayoutText();
             UpdateLayoutMenuChecks();
@@ -191,6 +220,13 @@ namespace NoteCards.Controls
 
             // Make sure the UserControl itself can receive focus when clicked
             FocusManager.SetIsFocusScope(this, true);
+        }
+
+        private void AttachResizeThumb(Thumb thumb, ResizeHandle handle, DragDeltaEventHandler dragDeltaHandler)
+        {
+            thumb.DragStarted += (_, _) => BeginResizeGesture(handle);
+            thumb.DragDelta += dragDeltaHandler;
+            thumb.DragCompleted += (_, _) => EndResizeGesture();
         }
 
         private void UpdateSelectionVisualState(bool isSelected)
@@ -451,16 +487,49 @@ namespace NoteCards.Controls
             return false;
         }
 
+        private void BeginResizeGesture(ResizeHandle handle)
+        {
+            _activeResizeHandle = handle;
+            _activeAspectResizeAxis = ResizeAxis.None;
+            _resizeStartWidth = ResolveElementWidth(this);
+            _resizeStartHeight = ResolveElementHeight(this);
+            _resizeStartLeft = Canvas.GetLeft(this);
+            _resizeStartTop = Canvas.GetTop(this);
+            if (double.IsNaN(_resizeStartLeft))
+                _resizeStartLeft = 0;
+            if (double.IsNaN(_resizeStartTop))
+                _resizeStartTop = 0;
+
+            _resizeAccumulatedWidthDelta = 0;
+            _resizeAccumulatedHeightDelta = 0;
+            _resizeGestureAspectRatio = ResolveLockedAspectRatio(_resizeStartWidth, _resizeStartHeight);
+        }
+
+        private void EndResizeGesture()
+        {
+            _activeResizeHandle = ResizeHandle.None;
+            _activeAspectResizeAxis = ResizeAxis.None;
+            _resizeAccumulatedWidthDelta = 0;
+            _resizeAccumulatedHeightDelta = 0;
+            _resizeGestureAspectRatio = 0;
+        }
+
         private void Resize(double dX, double dY, bool adjustLeft, bool adjustTop)
         {
-            var currentWidth = ResolveElementWidth(this);
-            var currentHeight = ResolveElementHeight(this);
-            var newWidth = currentWidth + dX;
-            var newHeight = currentHeight + dY;
+            if (_activeResizeHandle == ResizeHandle.None)
+                BeginResizeGesture(ResizeHandle.None);
+
+            _resizeAccumulatedWidthDelta += dX;
+            _resizeAccumulatedHeightDelta += dY;
+
+            var baseWidth = _resizeStartWidth > 0 ? _resizeStartWidth : ResolveElementWidth(this);
+            var baseHeight = _resizeStartHeight > 0 ? _resizeStartHeight : ResolveElementHeight(this);
+            var newWidth = baseWidth + _resizeAccumulatedWidthDelta;
+            var newHeight = baseHeight + _resizeAccumulatedHeightDelta;
 
             if (PreserveAspectRatio)
             {
-                var lockedSize = ResolveAspectLockedSize(currentWidth, currentHeight, dX, dY);
+                var lockedSize = ResolveAspectLockedSize(baseWidth, baseHeight, _resizeAccumulatedWidthDelta, _resizeAccumulatedHeightDelta);
                 newWidth = lockedSize.Width;
                 newHeight = lockedSize.Height;
             }
@@ -470,19 +539,15 @@ namespace NoteCards.Controls
                 newHeight = Math.Max(MinHeight, newHeight);
             }
 
-            var widthDelta = newWidth - currentWidth;
-            var heightDelta = newHeight - currentHeight;
-            var isHorizontalResize = Math.Abs(dX) > 0.001;
-            var isVerticalResize = Math.Abs(dY) > 0.001;
+            var widthDelta = newWidth - baseWidth;
+            var heightDelta = newHeight - baseHeight;
+            var isHorizontalResize = Math.Abs(_resizeAccumulatedWidthDelta) > 0.001;
+            var isVerticalResize = Math.Abs(_resizeAccumulatedHeightDelta) > 0.001;
 
             if (Parent is Canvas)
             {
-                var left = Canvas.GetLeft(this);
-                var top = Canvas.GetTop(this);
-                if (double.IsNaN(left))
-                    left = 0;
-                if (double.IsNaN(top))
-                    top = 0;
+                var left = _resizeStartLeft;
+                var top = _resizeStartTop;
 
                 if (adjustLeft)
                     left -= widthDelta;
@@ -508,14 +573,17 @@ namespace NoteCards.Controls
 
         private Size ResolveAspectLockedSize(double currentWidth, double currentHeight, double dX, double dY)
         {
-            var ratio = ResolveLockedAspectRatio(currentWidth, currentHeight);
+            var ratio = _resizeGestureAspectRatio >= MinimumAspectRatio && !double.IsInfinity(_resizeGestureAspectRatio)
+                ? _resizeGestureAspectRatio
+                : ResolveLockedAspectRatio(currentWidth, currentHeight);
             var isHorizontalResize = Math.Abs(dX) > 0.001;
             var isVerticalResize = Math.Abs(dY) > 0.001;
 
             double targetWidth;
             double targetHeight;
 
-            if (isHorizontalResize && (!isVerticalResize || Math.Abs(dX) >= Math.Abs(dY * ratio)))
+            var resizeAxis = ResolveAspectResizeAxis(ratio, dX, dY, isHorizontalResize, isVerticalResize);
+            if (resizeAxis == ResizeAxis.Width)
             {
                 targetWidth = currentWidth + dX;
                 targetHeight = targetWidth / ratio;
@@ -552,6 +620,34 @@ namespace NoteCards.Controls
             }
 
             return new Size(Math.Max(MinWidth, targetWidth), Math.Max(MinHeight, targetHeight));
+        }
+
+        private ResizeAxis ResolveAspectResizeAxis(
+            double ratio,
+            double dX,
+            double dY,
+            bool isHorizontalResize,
+            bool isVerticalResize)
+        {
+            if (isHorizontalResize && !isVerticalResize)
+                return ResizeAxis.Width;
+
+            if (isVerticalResize && !isHorizontalResize)
+                return ResizeAxis.Height;
+
+            if (_activeAspectResizeAxis != ResizeAxis.None)
+                return _activeAspectResizeAxis;
+
+            var horizontalMagnitude = Math.Abs(dX);
+            var verticalMagnitudeAsWidth = Math.Abs(dY * ratio);
+            var selectedAxis = horizontalMagnitude >= verticalMagnitudeAsWidth
+                ? ResizeAxis.Width
+                : ResizeAxis.Height;
+
+            if (Math.Max(horizontalMagnitude, verticalMagnitudeAsWidth) >= 2)
+                _activeAspectResizeAxis = selectedAxis;
+
+            return selectedAxis;
         }
 
         private double ResolveLockedAspectRatio(double currentWidth, double currentHeight)
