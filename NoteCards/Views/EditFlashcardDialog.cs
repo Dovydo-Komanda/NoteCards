@@ -74,7 +74,7 @@ namespace NoteCards.Views
         {
             if (string.IsNullOrWhiteSpace(Question) || string.IsNullOrWhiteSpace(Answer))
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     LocalizationService.GetString("FlashcardEditEmptyError"),
                     LocalizationService.GetString("EditFlashcard"),
                     MessageBoxButton.OK,

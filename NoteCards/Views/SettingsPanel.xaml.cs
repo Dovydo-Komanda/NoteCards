@@ -1,3 +1,4 @@
+using NoteCards;
 using NoteCards.Localization;
 using NoteCards.Models;
 using NoteCards.Services;
@@ -623,16 +624,13 @@ namespace NoteCards.Views
                     LocalizationService.GetString("FlashcardModelWarningPrompt"),
                     BundledModelHostService.GetFlashcardModelDisplayName(selected));
 
-                var dialog = new ModelCompatibilityWarningDialog(
+                var accepted = ModernDialog.ConfirmWarning(
+                    Window.GetWindow(this),
                     LocalizationService.GetString("FlashcardModelWarningTitle"),
-                    warning)
-                {
-                    Owner = Window.GetWindow(this)
-                };
+                    warning,
+                    LocalizationService.GetString("ContinueAnyway"));
 
-                var result = dialog.ShowDialog();
-
-                if (result != true)
+                if (!accepted)
                 {
                     if (FindName("FlashcardModelBox") is ComboBox flashcardModelBox)
                     {
@@ -710,14 +708,13 @@ namespace NoteCards.Views
             if (AiToolsListBox.SelectedItem is not ManagedAiToolItem selected)
                 return;
 
-            var deleteDialog = new DeleteConfirmationDialog(
+            var confirmed = ModernDialog.ConfirmDanger(
+                Window.GetWindow(this),
                 LocalizationService.GetString("AiToolsDeleteTitle"),
-                string.Format(LocalizationService.GetString("AiToolsDeletePromptFormat"), selected.Name))
-            {
-                Owner = Window.GetWindow(this)
-            };
+                string.Format(LocalizationService.GetString("AiToolsDeletePromptFormat"), selected.Name),
+                LocalizationService.GetString("Confirm"));
 
-            if (deleteDialog.ShowDialog() != true)
+            if (!confirmed)
                 return;
 
             BundledModelHostService.DeleteModelArtifacts(selected.Key);
@@ -758,14 +755,10 @@ namespace NoteCards.Views
             {
                 AiToolsStatusText.Text = string.Format(LocalizationService.GetString("AiToolsDownloadFailedFormat"), selected.Name);
 
-                var dialog = new ModernInfoDialog(
+                ModernDialog.ShowError(
+                    Window.GetWindow(this),
                     LocalizationService.GetString("Error"),
-                    string.Format(LocalizationService.GetString("AiToolsDownloadErrorDialogFormat"), selected.Name, ex.Message))
-                {
-                    Owner = Window.GetWindow(this)
-                };
-
-                dialog.ShowDialog();
+                    string.Format(LocalizationService.GetString("AiToolsDownloadErrorDialogFormat"), selected.Name, ex.Message));
             }
             finally
             {
@@ -807,14 +800,10 @@ namespace NoteCards.Views
             {
                 RuntimeStatusText.Text = LocalizationService.GetString("AiToolsRuntimeDownloadFailed");
 
-                var dialog = new ModernInfoDialog(
+                ModernDialog.ShowError(
+                    Window.GetWindow(this),
                     LocalizationService.GetString("Error"),
-                    ex.Message)
-                {
-                    Owner = Window.GetWindow(this)
-                };
-
-                dialog.ShowDialog();
+                    ex.Message);
             }
             finally
             {
@@ -826,14 +815,13 @@ namespace NoteCards.Views
 
         private void DeleteRuntime_Click(object sender, RoutedEventArgs e)
         {
-            var deleteDialog = new DeleteConfirmationDialog(
+            var confirmed = ModernDialog.ConfirmDanger(
+                Window.GetWindow(this),
                 LocalizationService.GetString("AiToolsRuntimeDeleteTitle"),
-                LocalizationService.GetString("AiToolsRuntimeDeletePrompt"))
-            {
-                Owner = Window.GetWindow(this)
-            };
+                LocalizationService.GetString("AiToolsRuntimeDeletePrompt"),
+                LocalizationService.GetString("Confirm"));
 
-            if (deleteDialog.ShowDialog() != true)
+            if (!confirmed)
                 return;
 
             BundledModelHostService.DeleteRuntimeArtifacts();
@@ -1001,14 +989,19 @@ namespace NoteCards.Views
 
         private void ResetFactorySettings_Click(object sender, RoutedEventArgs e)
         {
-            var confirmDialog = new ResetFactorySettingsDialog
-            {
-                Owner = Window.GetWindow(this)
-            };
+            var message = string.Concat(
+                LocalizationService.GetString("ResetFactorySettingsWarning"),
+                Environment.NewLine,
+                Environment.NewLine,
+                LocalizationService.GetString("ResetFactorySettingsPrompt"));
 
-            var result = confirmDialog.ShowDialog();
+            var confirmed = ModernDialog.ConfirmDanger(
+                Window.GetWindow(this),
+                LocalizationService.GetString("ResetFactorySettingsTitle"),
+                message,
+                LocalizationService.GetString("ResetFactorySettings"));
 
-            if (result == true)
+            if (confirmed)
             {
                 PerformFactoryReset();
             }
@@ -1036,14 +1029,10 @@ namespace NoteCards.Views
                 HideAnimated();
 
                 // Show confirmation message
-                var confirmMessage = new ModernInfoDialog(
+                ModernDialog.ShowSuccess(
+                    Window.GetWindow(this),
                     LocalizationService.GetString("Success"),
-                    LocalizationService.GetString("ResetFactorySettingsSuccess"))
-                {
-                    Owner = Window.GetWindow(this)
-                };
-
-                confirmMessage.ShowDialog();
+                    LocalizationService.GetString("ResetFactorySettingsSuccess"));
 
                 // Restart the application
                 System.Diagnostics.Process.Start(System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "");
@@ -1051,14 +1040,10 @@ namespace NoteCards.Views
             }
             catch (Exception ex)
             {
-                var errorDialog = new ModernInfoDialog(
+                ModernDialog.ShowError(
+                    Window.GetWindow(this),
                     LocalizationService.GetString("Error"),
-                    string.Format(LocalizationService.GetString("ResetFactorySettingsFailedFormat"), ex.Message))
-                {
-                    Owner = Window.GetWindow(this)
-                };
-
-                errorDialog.ShowDialog();
+                    string.Format(LocalizationService.GetString("ResetFactorySettingsFailedFormat"), ex.Message));
             }
         }
 

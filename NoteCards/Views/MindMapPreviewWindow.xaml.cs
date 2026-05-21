@@ -1,5 +1,6 @@
 using NoteCards.Localization;
 using NoteCards.Models;
+using NoteCards;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -264,23 +265,21 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
             return UnsavedCloseDecision.LeaveWithoutSaving;
 
         var documentTitle = ResolveEditorTitleForPrompt();
-        var dialog = new DeleteConfirmationDialog(
+        var result = ModernDialog.Show(
+            this,
             LocalizationService.GetString("UnsavedChanges"),
             string.Format(LocalizationService.GetString("UnsavedChangesConfirmationFormat"), documentTitle),
+            ModernDialogTone.Warning,
             LocalizationService.GetString("LeaveWithoutSaving"),
             LocalizationService.GetString("Cancel"),
-            LocalizationService.GetString("SaveAndExit"))
-        {
-            Owner = this
-        };
+            LocalizationService.GetString("SaveAndExit"),
+            primaryStyle: ModernDialogButtonStyle.Danger,
+            secondaryStyle: ModernDialogButtonStyle.Primary);
 
-        if (dialog.ShowDialog() != true)
-            return UnsavedCloseDecision.Cancel;
-
-        return dialog.SelectedAction switch
+        return result switch
         {
-            DeleteConfirmationDialog.ConfirmationAction.Confirm => UnsavedCloseDecision.LeaveWithoutSaving,
-            DeleteConfirmationDialog.ConfirmationAction.Secondary => UnsavedCloseDecision.SaveAndClose,
+            ModernDialogResult.Primary => UnsavedCloseDecision.LeaveWithoutSaving,
+            ModernDialogResult.Secondary => UnsavedCloseDecision.SaveAndClose,
             _ => UnsavedCloseDecision.Cancel
         };
     }
@@ -1400,7 +1399,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
     {
         if (ReferenceEquals(node, _root))
         {
-            MessageBox.Show(
+            ModernMessageBox.Show(
                 LocalizationService.GetString("MindMapCannotAddSiblingToRoot"),
                 LocalizationService.GetString("MindMapAddSibling"),
                 MessageBoxButton.OK,
@@ -1456,7 +1455,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
     {
         if (ReferenceEquals(node, _root))
         {
-            MessageBox.Show(
+            ModernMessageBox.Show(
                 LocalizationService.GetString("MindMapCannotDeleteRoot"),
                 LocalizationService.GetString("Delete"),
                 MessageBoxButton.OK,
@@ -1468,17 +1467,16 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
             ? LocalizationService.GetString("MindMapNodeDefaultName")
             : node.Text.Trim();
 
-        var dialog = new DeleteConfirmationDialog(
+        var confirmed = ModernDialog.ConfirmDanger(
+            this,
             LocalizationService.GetString("MindMapDeleteNodeTitle"),
             string.Format(
                 CultureInfo.CurrentCulture,
                 LocalizationService.GetString("MindMapDeleteNodeConfirmationFormat"),
-                nodeName))
-        {
-            Owner = this
-        };
+                nodeName),
+            LocalizationService.GetString("Confirm"));
 
-        if (dialog.ShowDialog() != true)
+        if (!confirmed)
             return;
 
         // Find parent and reparent children before deleting
@@ -1503,7 +1501,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
     {
         if (_selectedNode is null)
         {
-            MessageBox.Show(
+            ModernMessageBox.Show(
                 LocalizationService.GetString("MindMapSelectNodeToAddChild"),
                 LocalizationService.GetString("MindMapAddChild"),
                 MessageBoxButton.OK,
@@ -1518,7 +1516,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
     {
         if (_selectedNode is null)
         {
-            MessageBox.Show(
+            ModernMessageBox.Show(
                 LocalizationService.GetString("MindMapSelectNodeToAddChild"),
                 LocalizationService.GetString("MindMapAddChild"),
                 MessageBoxButton.OK,
@@ -1533,7 +1531,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
     {
         if (_selectedNode is null)
         {
-            MessageBox.Show(
+            ModernMessageBox.Show(
                 LocalizationService.GetString("MindMapSelectNodeToAddSibling"),
                 LocalizationService.GetString("MindMapAddSibling"),
                 MessageBoxButton.OK,
@@ -1548,7 +1546,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
     {
         if (_selectedNode is null)
         {
-            MessageBox.Show(
+            ModernMessageBox.Show(
                 LocalizationService.GetString("MindMapSelectNodeToDelete"),
                 LocalizationService.GetString("Delete"),
                 MessageBoxButton.OK,
@@ -1787,12 +1785,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
 
     private void ShowExportDialog(string title, string message)
     {
-        var dialog = new ModernInfoDialog(title, message)
-        {
-            Owner = this
-        };
-
-        dialog.ShowDialog();
+        ModernDialog.ShowInfo(this, title, message);
     }
 
     private string GetExportFileName(bool exportSelectedBranchOnly)

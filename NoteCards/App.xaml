@@ -24,6 +24,8 @@
             <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
             <sys:Double x:Key="{x:Static SystemParameters.VerticalScrollBarWidthKey}">6</sys:Double>
             <sys:Double x:Key="{x:Static SystemParameters.HorizontalScrollBarHeightKey}">6</sys:Double>
+            <sys:Double x:Key="GlobalVerticalScrollBarWidth">6</sys:Double>
+            <sys:Double x:Key="GlobalHorizontalScrollBarHeight">6</sys:Double>
 
             <Style x:Key="DashboardMassSelectCheckBoxStyle" TargetType="CheckBox">
                 <Setter Property="Width" Value="22"/>
@@ -126,7 +128,9 @@
                                 <TextBlock Text="{TemplateBinding Content}"
                                            Foreground="{TemplateBinding Foreground}"
                                            HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"/>
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
@@ -158,7 +162,12 @@
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     CornerRadius="8"
                                     Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           Foreground="{TemplateBinding Foreground}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
@@ -168,6 +177,44 @@
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="ButtonBorder" Property="Background" Value="#A91B1B"/>
                                     <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#A91B1B"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.45"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="DialogWarningButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource DialogButtonBaseStyle}">
+                <Setter Property="Background" Value="#F59E0B"/>
+                <Setter Property="BorderBrush" Value="#D97706"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="ButtonBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="8"
+                                    Padding="{TemplateBinding Padding}">
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           Foreground="{TemplateBinding Foreground}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#D97706"/>
+                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#B45309"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#B45309"/>
+                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#92400E"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.45"/>
@@ -194,7 +241,9 @@
                                 <TextBlock Text="{TemplateBinding Content}"
                                            Foreground="{TemplateBinding Foreground}"
                                            HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"/>
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
@@ -230,7 +279,7 @@
             <Style TargetType="{x:Type ScrollBar}">
                 <Setter Property="Focusable" Value="False"/>
                 <Setter Property="Opacity" Value="0.85"/>
-                <Setter Property="Width" Value="6"/>
+                <Setter Property="Width" Value="{DynamicResource GlobalVerticalScrollBarWidth}"/>
                 <Setter Property="Height" Value="Auto"/>
                 <Setter Property="Background" Value="{DynamicResource ScrollBarTrackBackground}"/>
                 <Setter Property="Template">
@@ -257,7 +306,7 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="Orientation" Value="Vertical">
-                                    <Setter Property="Width" Value="6"/>
+                                    <Setter Property="Width" Value="{DynamicResource GlobalVerticalScrollBarWidth}"/>
                                     <Setter Property="Height" Value="Auto"/>
                                 </Trigger>
                                 <Trigger Property="Orientation" Value="Horizontal">
@@ -267,7 +316,7 @@
                                     <Setter TargetName="PART_Thumb" Property="MinWidth" Value="26"/>
                                     <Setter TargetName="PART_Thumb" Property="MinHeight" Value="3"/>
                                     <Setter Property="Width" Value="Auto"/>
-                                    <Setter Property="Height" Value="6"/>
+                                    <Setter Property="Height" Value="{DynamicResource GlobalHorizontalScrollBarHeight}"/>
                                 </Trigger>
                                 <Trigger Property="Visibility" Value="Collapsed">
                                     <Setter Property="Opacity" Value="0"/>

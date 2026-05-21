@@ -1,5 +1,6 @@
 using NoteCards.Models;
 using NoteCards.Localization;
+using NoteCards;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -355,23 +356,21 @@ public partial class FlashcardsPreviewWindow : Window, INotifyPropertyChanged
             return UnsavedCloseDecision.LeaveWithoutSaving;
 
         var documentTitle = ResolveEditorTitleForPrompt();
-        var dialog = new DeleteConfirmationDialog(
+        var result = ModernDialog.Show(
+            this,
             LocalizationService.GetString("UnsavedChanges"),
             string.Format(LocalizationService.GetString("UnsavedChangesConfirmationFormat"), documentTitle),
+            ModernDialogTone.Warning,
             LocalizationService.GetString("LeaveWithoutSaving"),
             LocalizationService.GetString("Cancel"),
-            LocalizationService.GetString("SaveAndExit"))
-        {
-            Owner = this
-        };
+            LocalizationService.GetString("SaveAndExit"),
+            primaryStyle: ModernDialogButtonStyle.Danger,
+            secondaryStyle: ModernDialogButtonStyle.Primary);
 
-        if (dialog.ShowDialog() != true)
-            return UnsavedCloseDecision.Cancel;
-
-        return dialog.SelectedAction switch
+        return result switch
         {
-            DeleteConfirmationDialog.ConfirmationAction.Confirm => UnsavedCloseDecision.LeaveWithoutSaving,
-            DeleteConfirmationDialog.ConfirmationAction.Secondary => UnsavedCloseDecision.SaveAndClose,
+            ModernDialogResult.Primary => UnsavedCloseDecision.LeaveWithoutSaving,
+            ModernDialogResult.Secondary => UnsavedCloseDecision.SaveAndClose,
             _ => UnsavedCloseDecision.Cancel
         };
     }
@@ -963,14 +962,13 @@ public partial class FlashcardsPreviewWindow : Window, INotifyPropertyChanged
 
     private void DeleteSet(FlashcardSetOption selectedSet)
     {
-        var dialog = new DeleteConfirmationDialog(
+        var confirmed = ModernDialog.ConfirmDanger(
+            this,
             LocalizationService.GetString("DeleteFlashcardSet"),
-            string.Format(LocalizationService.GetString("DeleteFlashcardSetConfirmationFormat"), selectedSet.DisplayName))
-        {
-            Owner = this
-        };
+            string.Format(LocalizationService.GetString("DeleteFlashcardSetConfirmationFormat"), selectedSet.DisplayName),
+            LocalizationService.GetString("Confirm"));
 
-        if (dialog.ShowDialog() != true)
+        if (!confirmed)
             return;
 
         for (var i = _allItems.Count - 1; i >= 0; i--)
@@ -1262,17 +1260,15 @@ public partial class FlashcardsPreviewWindow : Window, INotifyPropertyChanged
     {
         if (AreAllStudyItemsKnown())
         {
-            var completedDialog = new DeleteConfirmationDialog(
+            var result = ModernDialog.Show(
+                this,
                 LocalizationService.GetString("StudyModeResumeTitle"),
                 LocalizationService.GetString("StudyModeCompletedRestartMessage"),
-                confirmText: LocalizationService.GetString("StudyModeRestart"),
-                cancelText: LocalizationService.GetString("Cancel"))
-            {
-                Owner = this
-            };
+                ModernDialogTone.Question,
+                LocalizationService.GetString("StudyModeRestart"),
+                LocalizationService.GetString("Cancel"));
 
-            return completedDialog.ShowDialog() == true
-                   && completedDialog.SelectedAction == DeleteConfirmationDialog.ConfirmationAction.Confirm
+            return result == ModernDialogResult.Primary
                 ? StudyStartDecision.Restart
                 : StudyStartDecision.Cancel;
         }
@@ -1280,23 +1276,19 @@ public partial class FlashcardsPreviewWindow : Window, INotifyPropertyChanged
         if (!HasStudyProgress())
             return StudyStartDecision.Restart;
 
-        var resumeDialog = new DeleteConfirmationDialog(
+        var resumeResult = ModernDialog.Show(
+            this,
             LocalizationService.GetString("StudyModeResumeTitle"),
             LocalizationService.GetString("StudyModeResumeMessage"),
-            confirmText: LocalizationService.GetString("StudyModeRestart"),
-            cancelText: LocalizationService.GetString("Cancel"),
-            secondaryText: LocalizationService.GetString("StudyModeContinue"))
-        {
-            Owner = this
-        };
+            ModernDialogTone.Question,
+            LocalizationService.GetString("StudyModeRestart"),
+            LocalizationService.GetString("Cancel"),
+            LocalizationService.GetString("StudyModeContinue"));
 
-        if (resumeDialog.ShowDialog() != true)
-            return StudyStartDecision.Cancel;
-
-        return resumeDialog.SelectedAction switch
+        return resumeResult switch
         {
-            DeleteConfirmationDialog.ConfirmationAction.Secondary => StudyStartDecision.Continue,
-            DeleteConfirmationDialog.ConfirmationAction.Confirm => StudyStartDecision.Restart,
+            ModernDialogResult.Secondary => StudyStartDecision.Continue,
+            ModernDialogResult.Primary => StudyStartDecision.Restart,
             _ => StudyStartDecision.Cancel
         };
     }
@@ -1603,18 +1595,13 @@ public partial class FlashcardsPreviewWindow : Window, INotifyPropertyChanged
 
     private void ShowStudyCompletionDialog()
     {
-        var dialog = new ModernInfoDialog(
+        ModernDialog.ShowSuccess(
+            this,
             LocalizationService.GetString("StudyModeCompleteTitle"),
-            LocalizationService.GetString("StudyModeCompleteMessage"))
-        {
-            Owner = this
-        };
+            LocalizationService.GetString("StudyModeCompleteMessage"));
 
-        if (dialog.ShowDialog() == true)
-        {
-            _isStudyMode = false;
-            ApplyStudyModeState();
-        }
+        _isStudyMode = false;
+        ApplyStudyModeState();
     }
 
     private sealed class FlashcardPreviewItem : INotifyPropertyChanged
@@ -1932,7 +1919,7 @@ public partial class FlashcardsPreviewWindow : Window, INotifyPropertyChanged
             return;
 
         // Show confirmation dialog
-        var result = MessageBox.Show(
+        var result = ModernMessageBox.Show(
             LocalizationService.GetString("DeleteFlashcardConfirmation"),
             LocalizationService.GetString("DeleteFlashcard"),
             MessageBoxButton.YesNo,

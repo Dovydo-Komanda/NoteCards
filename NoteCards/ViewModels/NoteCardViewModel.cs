@@ -1,5 +1,6 @@
 using NoteCards.Localization;
 using NoteCards.Models;
+using NoteCards;
 using System.IO;
 using System.Text;
 using System.Windows.Controls;
@@ -146,16 +147,13 @@ public class NoteCardViewModel : ViewModelBase
 
     private async void ConfirmAndDelete()
     {
-        // Create and show the custom dialog
-        var dialog = new NoteCards.Views.DeleteConfirmationDialog();
+        var confirmed = ModernDialog.ConfirmDanger(
+            Application.Current?.MainWindow,
+            LocalizationService.GetString("ConfirmDelete"),
+            LocalizationService.GetString("DeleteNoteConfirmation"),
+            LocalizationService.GetString("Confirm"));
 
-        // Set the owner to ensure proper centering
-        dialog.Owner = Application.Current?.MainWindow;
-
-        // Show dialog and wait for result
-        var result = dialog.ShowDialog();
-
-        if (result == true)
+        if (confirmed)
         {
             ExecuteDelete();
         }

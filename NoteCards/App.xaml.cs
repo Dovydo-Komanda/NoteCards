@@ -11,6 +11,7 @@ public partial class App : Application
         var settings = AppSettingsService.Load();
         LocalizationService.SetCulture(settings.Language);
         ThemeManager.SetTheme(settings.Theme);
+        GlobalScrollBarSettingsService.Apply(settings);
         EventManager.RegisterClassHandler(
             typeof(Window),
             FrameworkElement.LoadedEvent,

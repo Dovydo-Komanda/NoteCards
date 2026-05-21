@@ -5256,6 +5256,7 @@ public class MainViewModel : ViewModelBase
         settings.LastView = _activeDashboard;
 
         AppSettingsService.Save(settings);
+        GlobalScrollBarSettingsService.Apply(settings);
     }
 
     public void RefreshAutoSaveSettings()

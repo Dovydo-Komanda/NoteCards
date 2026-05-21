@@ -1097,7 +1097,7 @@ namespace NoteCards
             }
             catch
             {
-                MessageBox.Show(LocalizationService.GetString("FailedToOpenFile"), LocalizationService.GetString("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernMessageBox.Show(LocalizationService.GetString("FailedToOpenFile"), LocalizationService.GetString("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1535,14 +1535,13 @@ namespace NoteCards
             if (DataContext is not MainViewModel vm)
                 return;
 
-            var dialog = new DeleteConfirmationDialog(
+            var confirmed = ModernDialog.ConfirmDanger(
+                this,
                 LocalizationService.GetString("DeleteQuiz"),
-                string.Format(LocalizationService.GetString("DeleteQuizConfirmationFormat"), quiz.Title))
-            {
-                Owner = this
-            };
+                string.Format(LocalizationService.GetString("DeleteQuizConfirmationFormat"), quiz.Title),
+                LocalizationService.GetString("Confirm"));
 
-            if (dialog.ShowDialog() == true)
+            if (confirmed)
                 vm.DeleteQuiz(quiz);
         }
 
@@ -1607,14 +1606,13 @@ namespace NoteCards
             if (DataContext is not MainViewModel vm)
                 return;
 
-            var dialog = new DeleteConfirmationDialog(
+            var confirmed = ModernDialog.ConfirmDanger(
+                this,
                 LocalizationService.GetString("DeleteFlashcardSet"),
-                string.Format(LocalizationService.GetString("DeleteFlashcardSetConfirmationFormat"), set.Title))
-            {
-                Owner = this
-            };
+                string.Format(LocalizationService.GetString("DeleteFlashcardSetConfirmationFormat"), set.Title),
+                LocalizationService.GetString("Confirm"));
 
-            if (dialog.ShowDialog() == true)
+            if (confirmed)
                 vm.DeleteFlashcardSet(set);
         }
 
@@ -1681,16 +1679,15 @@ namespace NoteCards
             if (sender is not MenuItem menuItem || menuItem.DataContext is not MindMapViewModel mindMapVm)
                 return;
 
-            var dialog = new DeleteConfirmationDialog(
+            var confirmed = ModernDialog.ConfirmDanger(
+                this,
                 LocalizationService.GetString("DeleteMindMap"),
                 string.Format(
                     LocalizationService.GetString("DeleteMindMapConfirmationFormat"),
-                    mindMapVm.Title))
-            {
-                Owner = this
-            };
+                    mindMapVm.Title),
+                LocalizationService.GetString("Confirm"));
 
-            if (dialog.ShowDialog() != true)
+            if (!confirmed)
                 return;
 
             // Delete the mind map
@@ -2477,14 +2474,13 @@ namespace NoteCards
                 LocalizationService.GetString("DeleteSelectedNotesConfirmation"),
                 vm.ActiveMassSelectedCount);
 
-            var dialog = new DeleteConfirmationDialog(
-                title: LocalizationService.GetString("DeleteNotesTitle"),
-                message: message)
-            {
-                Owner = this
-            };
+            var confirmed = ModernDialog.ConfirmDanger(
+                this,
+                LocalizationService.GetString("DeleteNotesTitle"),
+                message,
+                LocalizationService.GetString("Confirm"));
 
-            if (dialog.ShowDialog() != true)
+            if (!confirmed)
                 return;
 
             if (vm.DeleteSelectedNotesCommand.CanExecute(null))
@@ -3227,19 +3223,21 @@ namespace NoteCards
             if (group is null)
                 return;
 
-            var dialog = new GroupDisbandConfirmationDialog(
+            var result = ModernDialog.Show(
+                this,
                 LocalizationService.GetString("DisbandGroup"),
                 LocalizationService.GetString("DisbandGroupPrompt"),
+                ModernDialogTone.Warning,
+                LocalizationService.GetString("DeleteGroupItems"),
+                LocalizationService.GetString("Cancel"),
                 LocalizationService.GetString("KeepItemsUngrouped"),
-                LocalizationService.GetString("DeleteGroupItems"))
-            {
-                Owner = this
-            };
+                primaryStyle: ModernDialogButtonStyle.Danger,
+                secondaryStyle: ModernDialogButtonStyle.Warning);
 
-            if (dialog.ShowDialog() != true || dialog.SelectedChoice == GroupDisbandChoice.Cancel)
+            if (result == ModernDialogResult.Cancel || result == ModernDialogResult.None)
                 return;
 
-            var deleteItems = dialog.SelectedChoice == GroupDisbandChoice.DeleteNotes;
+            var deleteItems = result == ModernDialogResult.Primary;
             switch (group)
             {
                 case FlashcardSetGroupViewModel flashcardGroup:
@@ -3529,17 +3527,21 @@ namespace NoteCards
             if (group is null || DataContext is not MainViewModel vm)
                 return;
 
-            var dialog = new GroupDisbandConfirmationDialog(
+            var result = ModernDialog.Show(
+                this,
                 LocalizationService.GetString("DisbandGroup"),
-                LocalizationService.GetString("DisbandGroupPrompt"))
-            {
-                Owner = this
-            };
+                LocalizationService.GetString("DisbandGroupPrompt"),
+                ModernDialogTone.Warning,
+                LocalizationService.GetString("DeleteGroupNotes"),
+                LocalizationService.GetString("Cancel"),
+                LocalizationService.GetString("KeepNotesUngrouped"),
+                primaryStyle: ModernDialogButtonStyle.Danger,
+                secondaryStyle: ModernDialogButtonStyle.Warning);
 
-            if (dialog.ShowDialog() != true || dialog.SelectedChoice == GroupDisbandChoice.Cancel)
+            if (result == ModernDialogResult.Cancel || result == ModernDialogResult.None)
                 return;
 
-            vm.DisbandGroup(group, deleteNotes: dialog.SelectedChoice == GroupDisbandChoice.DeleteNotes);
+            vm.DisbandGroup(group, deleteNotes: result == ModernDialogResult.Primary);
         }
 
         private static NoteGroupViewModel? ResolveGroupFromMenuSender(object sender)
@@ -3618,7 +3620,7 @@ namespace NoteCards
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show(
+                            ModernMessageBox.Show(
                                 $"{LocalizationService.GetString("ImportError")}\n{Path.GetFileName(filePath)}\n\n{ex.Message}",
                                 LocalizationService.GetString("Error"),
                                 MessageBoxButton.OK,
@@ -3631,7 +3633,7 @@ namespace NoteCards
                         string message = string.Format(
                             LocalizationService.GetString("ImportSuccess"),
                             importedCount);
-                        MessageBox.Show(
+                        ModernMessageBox.Show(
                             message,
                             LocalizationService.GetString("ImportNotes"),
                             MessageBoxButton.OK,
@@ -3641,7 +3643,7 @@ namespace NoteCards
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("ImportError")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -3681,11 +3683,13 @@ namespace NoteCards
             if (group is null) return;
             if (DataContext is not MainViewModel vm) return;
 
-            var dialog = new DeleteConfirmationDialog(
+            var confirmed = ModernDialog.ConfirmDanger(
+                this,
                 "Delete set",
-                $"Delete the set \"{group.Name}\"? Mind maps inside will not be deleted.")
-            { Owner = this };
-            if (dialog.ShowDialog() == true)
+                $"Delete the set \"{group.Name}\"? Mind maps inside will not be deleted.",
+                LocalizationService.GetString("Confirm"));
+
+            if (confirmed)
                 vm.DeleteMindMapGroup(group);
         }
 

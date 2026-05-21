@@ -228,7 +228,7 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
         var selectedQuizzes = _quizzes.Where(quiz => quiz.IsSelected).Select(quiz => quiz.Model).ToList();
         if (selectedQuizzes.Count == 0)
         {
-            MessageBox.Show("Select at least one quiz first.", "Quiz library", MessageBoxButton.OK, MessageBoxImage.Information);
+            ModernMessageBox.Show("Select at least one quiz first.", "Quiz library", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 

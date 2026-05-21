@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using NoteCards.Animations;
 using NoteCards.Localization;
 using NoteCards.Models;
@@ -358,23 +358,21 @@ namespace NoteCards
                 return true;
 
             var documentTitle = ResolveEditorTitleForPrompt();
-            var dialog = new DeleteConfirmationDialog(
+            var result = ModernDialog.Show(
+                GetDialogOwnerWindow(),
                 LocalizationService.GetString("UnsavedChanges"),
                 string.Format(LocalizationService.GetString("UnsavedChangesConfirmationFormat"), documentTitle),
+                ModernDialogTone.Warning,
                 LocalizationService.GetString("LeaveWithoutSaving"),
                 LocalizationService.GetString("Cancel"),
-                LocalizationService.GetString("SaveAndExit"))
-            {
-                Owner = GetDialogOwnerWindow()
-            };
+                LocalizationService.GetString("SaveAndExit"),
+                primaryStyle: ModernDialogButtonStyle.Danger,
+                secondaryStyle: ModernDialogButtonStyle.Primary);
 
-            if (dialog.ShowDialog() != true)
-                return false;
-
-            return dialog.SelectedAction switch
+            return result switch
             {
-                DeleteConfirmationDialog.ConfirmationAction.Confirm => true,
-                DeleteConfirmationDialog.ConfirmationAction.Secondary => SaveCurrentDocument(),
+                ModernDialogResult.Primary => true,
+                ModernDialogResult.Secondary => SaveCurrentDocument(),
                 _ => false
             };
         }
@@ -569,7 +567,7 @@ namespace NoteCards
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("SearchOnlineFailed")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -670,7 +668,7 @@ namespace NoteCards
             var plainText = GetEditorAiText();
             if (string.IsNullOrWhiteSpace(plainText))
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     LocalizationService.GetString("ConvertToFlashcardsEmpty"),
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -710,7 +708,7 @@ namespace NoteCards
                 if (flashcards.Count == 0)
                 {
                     HideStatusIndicator();
-                    MessageBox.Show(
+                    ModernMessageBox.Show(
                         LocalizationService.GetString("ConvertToFlashcardsParseFailed"),
                         LocalizationService.GetString("Error"),
                         MessageBoxButton.OK,
@@ -745,7 +743,7 @@ namespace NoteCards
                 if (_flashcardConversionCancellationSource?.IsCancellationRequested == true)
                     return;
 
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("ConvertToFlashcardsFailed")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -754,7 +752,7 @@ namespace NoteCards
             catch (AiInputRejectedException ex)
             {
                 HideStatusIndicator();
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     ex.Message,
                     LocalizationService.GetString("AiInputRejectedTitle"),
                     MessageBoxButton.OK,
@@ -763,7 +761,7 @@ namespace NoteCards
             catch (TimeoutException ex)
             {
                 HideStatusIndicator();
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("AiGenerationTimedOut")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -772,7 +770,7 @@ namespace NoteCards
             catch (Exception ex)
             {
                 HideStatusIndicator();
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("ConvertToFlashcardsFailed")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -797,7 +795,7 @@ namespace NoteCards
             var plainText = GetEditorAiText();
             if (string.IsNullOrWhiteSpace(plainText))
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     LocalizationService.GetString("ConvertToMindMapEmpty"),
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -842,7 +840,7 @@ namespace NoteCards
                 if (mindMap is null || mindMap.Children.Count == 0)
                 {
                     HideStatusIndicator();
-                    MessageBox.Show(
+                    ModernMessageBox.Show(
                         LocalizationService.GetString("ConvertToMindMapParseFailed"),
                         LocalizationService.GetString("Error"),
                         MessageBoxButton.OK,
@@ -877,7 +875,7 @@ namespace NoteCards
                 if (_mindMapConversionCancellationSource?.IsCancellationRequested == true)
                     return;
 
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("ConvertToMindMapFailed")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -886,7 +884,7 @@ namespace NoteCards
             catch (AiInputRejectedException ex)
             {
                 HideStatusIndicator();
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     ex.Message,
                     LocalizationService.GetString("AiInputRejectedTitle"),
                     MessageBoxButton.OK,
@@ -895,7 +893,7 @@ namespace NoteCards
             catch (TimeoutException ex)
             {
                 HideStatusIndicator();
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("AiGenerationTimedOut")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -904,7 +902,7 @@ namespace NoteCards
             catch (Exception ex)
             {
                 HideStatusIndicator();
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("ConvertToMindMapFailed")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -929,7 +927,7 @@ namespace NoteCards
             var plainText = GetEditorAiText();
             if (string.IsNullOrWhiteSpace(plainText))
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     LocalizationService.GetString("ConvertToTestEmpty"),
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -975,7 +973,7 @@ namespace NoteCards
                 if (quiz is null || quiz.Questions.Count == 0)
                 {
                     HideStatusIndicator();
-                    MessageBox.Show(
+                    ModernMessageBox.Show(
                         LocalizationService.GetString("ConvertToTestParseFailed"),
                         LocalizationService.GetString("Error"),
                         MessageBoxButton.OK,
@@ -1007,7 +1005,7 @@ namespace NoteCards
                 if (_testConversionCancellationSource?.IsCancellationRequested == true)
                     return;
 
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("ConvertToTestFailed")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -1016,7 +1014,7 @@ namespace NoteCards
             catch (AiInputRejectedException ex)
             {
                 HideStatusIndicator();
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     ex.Message,
                     LocalizationService.GetString("AiInputRejectedTitle"),
                     MessageBoxButton.OK,
@@ -1025,7 +1023,7 @@ namespace NoteCards
             catch (TimeoutException ex)
             {
                 HideStatusIndicator();
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("AiGenerationTimedOut")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -1034,7 +1032,7 @@ namespace NoteCards
             catch (Exception ex)
             {
                 HideStatusIndicator();
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("ConvertToTestFailed")}\n\n{ex.Message}",
                     LocalizationService.GetString("Error"),
                     MessageBoxButton.OK,
@@ -1561,7 +1559,7 @@ namespace NoteCards
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading document: {ex.Message}");
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"Error loading document: {ex.Message}",
                     "Load Error",
                     MessageBoxButton.OK,
@@ -1597,7 +1595,7 @@ namespace NoteCards
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("FailedToPrintNote")}\n\n{ex.Message}",
                     LocalizationService.GetString("PrintError"),
                     MessageBoxButton.OK,
@@ -2072,7 +2070,7 @@ namespace NoteCards
                 var exported = ExportToPdf(TitleTextBox.Text);
                 if (exported)
                 {
-                    MessageBox.Show(
+                    ModernMessageBox.Show(
                         LocalizationService.GetString("PdfExportComplete"),
                         LocalizationService.GetString("Success"),
                         MessageBoxButton.OK,
@@ -2081,7 +2079,7 @@ namespace NoteCards
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("FailedToExportPdf")}\n\n{ex.Message}",
                     LocalizationService.GetString("ExportError"),
                     MessageBoxButton.OK,
@@ -2209,7 +2207,7 @@ namespace NoteCards
 
             if (_currentDocument.EditHistory == null || _currentDocument.EditHistory.Count == 0)
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     LocalizationService.GetString("NoEditHistory"),
                     LocalizationService.GetString("EditHistoryTitle"),
                     MessageBoxButton.OK,
@@ -2534,7 +2532,7 @@ namespace NoteCards
             }
             catch
             {
-                MessageBox.Show(LocalizationService.GetString("FailedToOpenFile"), LocalizationService.GetString("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernMessageBox.Show(LocalizationService.GetString("FailedToOpenFile"), LocalizationService.GetString("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -2551,12 +2549,15 @@ namespace NoteCards
                 if (mainWindow is not null && !ReferenceEquals(mainWindow, this))
                     mainWindow.Opacity = 0.82;
 
-                var dlg = new Views.ClearContentConfirmationDialog
-                {
-                    Owner = GetDialogOwnerWindow()
-                };
+                var result = ModernDialog.Show(
+                    GetDialogOwnerWindow(),
+                    LocalizationService.GetString("ClearContentTitle"),
+                    LocalizationService.GetString("ClearContentPrompt"),
+                    ModernDialogTone.Danger,
+                    LocalizationService.GetString("ClearContent"),
+                    LocalizationService.GetString("Cancel"));
 
-                if (dlg.ShowDialog() == true)
+                if (result == ModernDialogResult.Primary)
                 {
                     // Clear all content from the RichTextBox
                     TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
@@ -2589,7 +2590,7 @@ namespace NoteCards
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("FailedToInsertImage")}\n\n{ex.Message}",
                     LocalizationService.GetString("ImageInsertError"),
                     MessageBoxButton.OK,

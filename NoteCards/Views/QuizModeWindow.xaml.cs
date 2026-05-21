@@ -1,4 +1,5 @@
 ﻿using NoteCards.Localization;
+using NoteCards;
 using NoteCards.Models;
 using System.Collections.Generic;
 using System.Linq;
@@ -370,14 +371,15 @@ public partial class QuizModeWindow : Window
 
     private void SubmitButton_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new QuizSubmitConfirmationDialog(
-            title: LocalizationService.GetString("QuizSubmitDialogTitle"),
-            message: LocalizationService.GetString("QuizSubmitDialogMessage"),
-            confirmText: LocalizationService.GetString("QuizSubmitDialogConfirm"),
-            cancelText: LocalizationService.GetString("QuizSubmitDialogCancel"));
-        dialog.Owner = this;
+        var result = ModernDialog.Show(
+            this,
+            LocalizationService.GetString("QuizSubmitDialogTitle"),
+            LocalizationService.GetString("QuizSubmitDialogMessage"),
+            ModernDialogTone.Question,
+            LocalizationService.GetString("QuizSubmitDialogConfirm"),
+            LocalizationService.GetString("QuizSubmitDialogCancel"));
 
-        if (dialog.ShowDialog() == true)
+        if (result == ModernDialogResult.Primary)
             ShowResults();
     }
 

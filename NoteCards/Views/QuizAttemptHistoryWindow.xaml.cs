@@ -51,7 +51,7 @@ public partial class QuizAttemptHistoryWindow : Window
 
     private void ClearAllButton_Click(object sender, RoutedEventArgs e)
     {
-        var result = MessageBox.Show(
+        var result = ModernMessageBox.Show(
             "Clear all saved attempt history?",
             "Clear History",
             MessageBoxButton.YesNo,

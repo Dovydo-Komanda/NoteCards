@@ -359,23 +359,21 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             return UnsavedCloseDecision.LeaveWithoutSaving;
 
         var documentTitle = ResolveEditorTitleForPrompt();
-        var dialog = new DeleteConfirmationDialog(
+        var result = ModernDialog.Show(
+            this,
             LocalizationService.GetString("UnsavedChanges"),
             string.Format(LocalizationService.GetString("UnsavedChangesConfirmationFormat"), documentTitle),
+            ModernDialogTone.Warning,
             LocalizationService.GetString("LeaveWithoutSaving"),
             LocalizationService.GetString("Cancel"),
-            LocalizationService.GetString("SaveAndExit"))
-        {
-            Owner = this
-        };
+            LocalizationService.GetString("SaveAndExit"),
+            primaryStyle: ModernDialogButtonStyle.Danger,
+            secondaryStyle: ModernDialogButtonStyle.Primary);
 
-        if (dialog.ShowDialog() != true)
-            return UnsavedCloseDecision.Cancel;
-
-        return dialog.SelectedAction switch
+        return result switch
         {
-            DeleteConfirmationDialog.ConfirmationAction.Confirm => UnsavedCloseDecision.LeaveWithoutSaving,
-            DeleteConfirmationDialog.ConfirmationAction.Secondary => UnsavedCloseDecision.SaveAndClose,
+            ModernDialogResult.Primary => UnsavedCloseDecision.LeaveWithoutSaving,
+            ModernDialogResult.Secondary => UnsavedCloseDecision.SaveAndClose,
             _ => UnsavedCloseDecision.Cancel
         };
     }
@@ -476,7 +474,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
     {
         if (_sourceDocument?.Questions == null || _sourceDocument.Questions.Count == 0)
         {
-            MessageBox.Show(
+            ModernMessageBox.Show(
                 LocalizationService.GetString("QuizNoQuestions"),
                 LocalizationService.GetString("QuizMode"),
                 MessageBoxButton.OK,
@@ -510,7 +508,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            ModernMessageBox.Show(
                 $"Error starting quiz: {ex.Message}",
                 "Error",
                 MessageBoxButton.OK,
@@ -558,7 +556,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
     private void ResetProgressButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
-        var result = MessageBox.Show(
+        var result = ModernMessageBox.Show(
             "Ar tikrai norite ištrinti visą šio kvizo progreso istoriją?",
             "Resetuoti progresą",
             MessageBoxButton.YesNo,
@@ -639,7 +637,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            ModernMessageBox.Show(
                 string.Format(CultureInfo.CurrentCulture, LocalizationService.GetString("QuizExportFailedFormat"), ex.Message),
                 LocalizationService.GetString("ExportError"),
                 MessageBoxButton.OK,
@@ -649,12 +647,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
     private void ShowExportDialog(string title, string message)
     {
-        var dialog = new ModernInfoDialog(title, message)
-        {
-            Owner = this
-        };
-
-        dialog.ShowDialog();
+        ModernDialog.ShowInfo(this, title, message);
     }
 
     private void ModeToggleButton_Click(object sender, RoutedEventArgs e)

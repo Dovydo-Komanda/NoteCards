@@ -1565,7 +1565,7 @@
 								 AllowDrop="True"
 								 PreviewDragOver="NotesScrollViewer_PreviewDragOver"
 								 PreviewMouseWheel="NotesScrollViewer_PreviewMouseWheel">
-                            <Grid Margin="0,0,0,18">
+                            <Grid Margin="0,0,0,32">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
@@ -2270,7 +2270,7 @@
                                       Drop="DashboardScrollViewer_Drop"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Padding="8">
-                            <Grid Margin="0,0,0,18">
+                            <Grid Margin="0,0,0,32">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
@@ -3344,7 +3344,7 @@
                                       Drop="DashboardScrollViewer_Drop"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Padding="8">
-                            <Grid Margin="0,0,0,18">
+                            <Grid Margin="0,0,0,32">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
@@ -4379,7 +4379,7 @@
                                       Drop="DashboardScrollViewer_Drop"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Padding="8">
-                            <Grid Margin="0,0,0,18">
+                            <Grid Margin="0,0,0,32">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>

@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
 using NoteCards.Localization;
@@ -66,7 +66,7 @@ namespace NoteCards
                         _title
                     );
 
-                    MessageBox.Show(
+                    ModernMessageBox.Show(
                         LocalizationService.GetString("DocumentSentToPrinter"),
                         LocalizationService.GetString("PrintComplete"),
                         MessageBoxButton.OK,
@@ -77,7 +77,7 @@ namespace NoteCards
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                ModernMessageBox.Show(
                     $"{LocalizationService.GetString("FailedToPrint")}\n\n{ex.Message}",
                     LocalizationService.GetString("PrintError"),
                     MessageBoxButton.OK,
