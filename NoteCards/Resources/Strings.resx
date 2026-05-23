@@ -101,6 +101,9 @@
   <data name="ViewMode" xml:space="preserve"><value>View mode</value></data>
   <data name="ViewModeGrid" xml:space="preserve"><value>Grid</value></data>
   <data name="ViewModeList" xml:space="preserve"><value>List</value></data>
+  <data name="MeasurementUnitSystem" xml:space="preserve"><value>Measurement system</value></data>
+  <data name="MeasurementUnitImperial" xml:space="preserve"><value>Imperial (inches)</value></data>
+  <data name="MeasurementUnitMetric" xml:space="preserve"><value>Metric (centimeters)</value></data>
   <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
   <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
   <data name="ThemeSystem" xml:space="preserve"><value>Use system</value></data>
@@ -156,7 +159,12 @@
   <data name="Redo" xml:space="preserve"><value>Redo</value></data>
   <data name="Save" xml:space="preserve"><value>Save</value></data>
   <data name="Print" xml:space="preserve"><value>Print</value></data>
-  <data name="ExportPdf" xml:space="preserve"><value>Export PDF</value></data>
+  <data name="ExportPdf" xml:space="preserve"><value>PDF (*.pdf)</value></data>
+  <data name="ExportNotePackage" xml:space="preserve"><value>NoteCards package (*.notecard)</value></data>
+  <data name="ExportRtf" xml:space="preserve"><value>Rich text (*.rtf)</value></data>
+  <data name="ExportText" xml:space="preserve"><value>Plain text (*.txt)</value></data>
+  <data name="ExportMarkdown" xml:space="preserve"><value>Markdown (*.md)</value></data>
+  <data name="ExportXamlPackage" xml:space="preserve"><value>Rich note body (*.xamlpackage)</value></data>
   <data name="ToggleWordWrap" xml:space="preserve"><value>Toggle word wrap</value></data>
   <data name="ZoomIn" xml:space="preserve"><value>Zoom in</value></data>
   <data name="ZoomOut" xml:space="preserve"><value>Zoom out</value></data>
@@ -169,6 +177,25 @@
   <data name="Font" xml:space="preserve"><value>Font</value></data>
   <data name="FontLabel" xml:space="preserve"><value>Font:</value></data>
   <data name="SizeLabel" xml:space="preserve"><value>Size:</value></data>
+  <data name="SpacingLabel" xml:space="preserve"><value>Spacing:</value></data>
+  <data name="TextStyleLabel" xml:space="preserve"><value>Text:</value></data>
+  <data name="Bold" xml:space="preserve"><value>Bold</value></data>
+  <data name="Italic" xml:space="preserve"><value>Italic</value></data>
+  <data name="Underline" xml:space="preserve"><value>Underline</value></data>
+  <data name="ListStyle" xml:space="preserve"><value>List style</value></data>
+  <data name="BulletListStyle" xml:space="preserve"><value>Bullet list style</value></data>
+  <data name="NumberedListStyle" xml:space="preserve"><value>Numbered list style</value></data>
+  <data name="ListBulletDisc" xml:space="preserve"><value>Bullets (•)</value></data>
+  <data name="ListBulletCircle" xml:space="preserve"><value>Hollow bullets (◦)</value></data>
+  <data name="ListBulletSquare" xml:space="preserve"><value>Square bullets (▪)</value></data>
+  <data name="ListNumberDecimal" xml:space="preserve"><value>Numbers (1, 2, 3)</value></data>
+  <data name="ListNumberLowerLatin" xml:space="preserve"><value>Letters (a, b, c)</value></data>
+  <data name="ListNumberUpperRoman" xml:space="preserve"><value>Roman numerals (I, II, III)</value></data>
+  <data name="ListRemove" xml:space="preserve"><value>Remove list</value></data>
+  <data name="DecreaseIndent" xml:space="preserve"><value>Decrease indent</value></data>
+  <data name="IncreaseIndent" xml:space="preserve"><value>Increase indent</value></data>
+  <data name="IndentLabel" xml:space="preserve"><value>Indent:</value></data>
+  <data name="IndentSize" xml:space="preserve"><value>Indent size</value></data>
   <data name="Cut" xml:space="preserve"><value>Cut</value></data>
   <data name="Copy" xml:space="preserve"><value>Copy</value></data>
   <data name="Paste" xml:space="preserve"><value>Paste</value></data>
@@ -179,7 +206,7 @@
   <data name="Error" xml:space="preserve"><value>Error</value></data>
   <data name="FailedToPrintNote" xml:space="preserve"><value>Failed to print note:</value></data>
   <data name="PrintError" xml:space="preserve"><value>Print Error</value></data>
-  <data name="OpenFileDialogFilter" xml:space="preserve"><value>Text Files (*.txt)|*.txt|Rich Text Format (*.rtf)|*.rtf|All files (*.*)|*.*</value></data>
+  <data name="OpenFileDialogFilter" xml:space="preserve"><value>Supported note files (*.notecard;*.rtf;*.txt;*.md;*.xamlpackage)|*.notecard;*.rtf;*.txt;*.md;*.xamlpackage|NoteCards Package (*.notecard)|*.notecard|Rich Text Format (*.rtf)|*.rtf|Text Files (*.txt)|*.txt|Markdown Files (*.md)|*.md|Rich Note Body (*.xamlpackage)|*.xamlpackage|All files (*.*)|*.*</value></data>
   <data name="AboutDescription" xml:space="preserve"><value>A simple note card app for quick, tidy management of outlines and notes.</value></data>
   <data name="Authors" xml:space="preserve"><value>AUTHORS</value></data>
   <data name="SimpleInputTitle" xml:space="preserve"><value>Simple Input</value></data>
@@ -189,6 +216,13 @@
   <data name="FailedToPrint" xml:space="preserve"><value>Failed to print:</value></data>
   <data name="PdfExportComplete" xml:space="preserve"><value>PDF export complete!</value></data>
   <data name="FailedToExportPdf" xml:space="preserve"><value>Failed to export PDF:</value></data>
+  <data name="ExportComplete" xml:space="preserve"><value>Export complete.</value></data>
+  <data name="FailedToExport" xml:space="preserve"><value>Failed to export:</value></data>
+  <data name="ExportNotePackageDialogFilter" xml:space="preserve"><value>NoteCards Package (*.notecard)|*.notecard</value></data>
+  <data name="ExportRtfDialogFilter" xml:space="preserve"><value>Rich Text Format (*.rtf)|*.rtf</value></data>
+  <data name="ExportTextDialogFilter" xml:space="preserve"><value>Text Files (*.txt)|*.txt</value></data>
+  <data name="ExportMarkdownDialogFilter" xml:space="preserve"><value>Markdown Files (*.md)|*.md</value></data>
+  <data name="ExportXamlPackageDialogFilter" xml:space="preserve"><value>Rich Note Body (*.xamlpackage)|*.xamlpackage</value></data>
   <data name="ExportError" xml:space="preserve"><value>Export Error</value></data>
   <data name="Success" xml:space="preserve"><value>Success</value></data>
   <data name="NoContent" xml:space="preserve"><value>(No content)</value></data>
@@ -212,6 +246,7 @@ Right-click to remove</value></data>
   <data name="FirstNoteContent" xml:space="preserve"><value>Start by creating your first note, adding tags, and organizing notes into groups.</value></data>
   <data name="NewNoteTitle" xml:space="preserve"><value>New Note</value></data>
   <data name="FontButtonFormat" xml:space="preserve"><value>Font: {0}, {1}</value></data>
+  <data name="MixedSelection" xml:space="preserve"><value>Mixed</value></data>
   <data name="Groups" xml:space="preserve"><value>Groups</value></data>
   <data name="UngroupedNotes" xml:space="preserve"><value>Notes</value></data>
   <data name="UngroupedItems" xml:space="preserve"><value>Ungrouped</value></data>
@@ -313,10 +348,12 @@ Right-click to remove</value></data>
   <data name="AiToolsDeletePromptFormat" xml:space="preserve"><value>Are you sure you want to delete '{0}' from AI tools?</value></data>
   <data name="AiToolsRuntimeTitle" xml:space="preserve"><value>llama.cpp runtime</value></data>
   <data name="AiToolsRuntimeReady" xml:space="preserve"><value>Runtime is downloaded and ready.</value></data>
+  <data name="AiToolsRuntimeReadyFormat" xml:space="preserve"><value>Runtime is downloaded and ready. Version: {0}</value></data>
   <data name="AiToolsRuntimeNotDownloaded" xml:space="preserve"><value>Runtime is not downloaded yet.</value></data>
-  <data name="AiToolsRuntimeDownload" xml:space="preserve"><value>Download runtime</value></data>
-  <data name="AiToolsRuntimeOpenFolder" xml:space="preserve"><value>Open runtime folder</value></data>
-  <data name="AiToolsRuntimeDelete" xml:space="preserve"><value>Delete runtime</value></data>
+  <data name="AiToolsRuntimeDownload" xml:space="preserve"><value>Download</value></data>
+  <data name="AiToolsRuntimeCheckUpdates" xml:space="preserve"><value>Check for Updates</value></data>
+  <data name="AiToolsRuntimeOpenFolder" xml:space="preserve"><value>Open folder</value></data>
+  <data name="AiToolsRuntimeDelete" xml:space="preserve"><value>Delete</value></data>
   <data name="AiToolsRuntimeDownloadStarting" xml:space="preserve"><value>Starting runtime download...</value></data>
   <data name="AiToolsRuntimeDownloadPreparing" xml:space="preserve"><value>Preparing runtime download...</value></data>
   <data name="AiToolsRuntimeDownloadingPercentFormat" xml:space="preserve"><value>Downloading runtime: {0}%</value></data>
@@ -324,6 +361,14 @@ Right-click to remove</value></data>
   <data name="AiToolsRuntimeDownloadFailed" xml:space="preserve"><value>Failed to download runtime.</value></data>
   <data name="AiToolsRuntimeDeleteTitle" xml:space="preserve"><value>Delete runtime</value></data>
   <data name="AiToolsRuntimeDeletePrompt" xml:space="preserve"><value>Are you sure you want to delete the llama.cpp runtime files?</value></data>
+  <data name="AiToolsRuntimeUpdateTitle" xml:space="preserve"><value>llama.cpp runtime update</value></data>
+  <data name="AiToolsRuntimeUpdateChecking" xml:space="preserve"><value>Checking llama.cpp runtime updates...</value></data>
+  <data name="AiToolsRuntimeUpdateDownloading" xml:space="preserve"><value>Downloading llama.cpp runtime update...</value></data>
+  <data name="AiToolsRuntimeUpdateDownloadingPercentFormat" xml:space="preserve"><value>Downloading runtime update: {0}%</value></data>
+  <data name="AiToolsRuntimeUpdateSuccessFormat" xml:space="preserve"><value>llama.cpp runtime was updated to {0}.</value></data>
+  <data name="AiToolsRuntimeUpdateNotAvailableFormat" xml:space="preserve"><value>llama.cpp runtime is already up to date ({0}).</value></data>
+  <data name="AiToolsRuntimeUpdateFailed" xml:space="preserve"><value>Failed to update runtime.</value></data>
+  <data name="AiToolsRuntimeUpdateErrorDialogFormat" xml:space="preserve"><value>Could not update llama.cpp runtime automatically. Details: {0}</value></data>
 
   <data name="SortByLastModifiedDesc" xml:space="preserve"><value>Recently edited</value></data>
   <data name="SortByLastModifiedAsc" xml:space="preserve"><value>Least recently edited</value></data>
@@ -371,7 +416,7 @@ Right-click to remove</value></data>
   <data name="SelectFilesToImport" xml:space="preserve"><value>Select files to import</value></data>
   <data name="ImportSuccess" xml:space="preserve"><value>Successfully imported {0} note(s)</value></data>
   <data name="ImportError" xml:space="preserve"><value>Error importing file:</value></data>
-  <data name="SupportedFormats" xml:space="preserve"><value>Text Files (*.txt)|*.txt|Markdown Files (*.md)|*.md|All files (*.*)|*.*</value></data>
+  <data name="SupportedFormats" xml:space="preserve"><value>Supported note files (*.notecard;*.rtf;*.txt;*.md;*.xamlpackage)|*.notecard;*.rtf;*.txt;*.md;*.xamlpackage|NoteCards Package (*.notecard)|*.notecard|Rich Text Format (*.rtf)|*.rtf|Text Files (*.txt)|*.txt|Markdown Files (*.md)|*.md|Rich Note Body (*.xamlpackage)|*.xamlpackage|All files (*.*)|*.*</value></data>
   <data name="InsertImage" xml:space="preserve"><value>Insert Image</value></data>
   <data name="ImageTooltip" xml:space="preserve"><value>Insert an image into the note</value></data>
   <data name="ReplaceFromFile" xml:space="preserve"><value>Replace from file...</value></data>
@@ -493,7 +538,6 @@ Right-click to remove</value></data>
   <data name="QuizCorrect" xml:space="preserve"><value>Correct</value></data>
   <data name="QuizIncorrect" xml:space="preserve"><value>Incorrect</value></data>
   <data name="QuizUnanswered" xml:space="preserve"><value>No answer</value></data>
-  <data name="QuizExplanationFormat" xml:space="preserve"><value>Explanation: {0}</value></data>
   <data name="QuizCheckAnswers" xml:space="preserve"><value>Check answers</value></data>
   <data name="QuizResetAnswers" xml:space="preserve"><value>Reset</value></data>
   <data name="QuizExport" xml:space="preserve"><value>Export</value></data>
@@ -636,6 +680,15 @@ Right-click to remove</value></data>
   <data name="MindMapSearchNext" xml:space="preserve"><value>▶</value></data>
   <data name="MindMapSearchNoResults" xml:space="preserve"><value>No search results</value></data>
   <data name="MindMapSearchResultsFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="MindMapImport" xml:space="preserve"><value>Import mind map</value></data>
+  <data name="MindMapImportDialogTitle" xml:space="preserve"><value>Import mind map</value></data>
+  <data name="MindMapImportDialogFilter" xml:space="preserve"><value>Mind map files (*.mm;*.mmap)|*.mm;*.mmap|All files (*.*)|*.*</value></data>
+  <data name="MindMapImportSuccess" xml:space="preserve"><value>Mind map imported successfully.</value></data>
+  <data name="MindMapImportFailed" xml:space="preserve"><value>The selected file does not contain a valid mind map.</value></data>
+  <data name="MindMapImportFileNotFound" xml:space="preserve"><value>File not found.</value></data>
+  <data name="MindMapImportUnsupportedFormat" xml:space="preserve"><value>Unsupported mind map file format.</value></data>
+  <data name="MindMapImportReadFailed" xml:space="preserve"><value>Unable to read the mind map XML file.</value></data>
+  <data name="MindMapImportInvalidRoot" xml:space="preserve"><value>File is not a valid mind map. The root map element is missing.</value></data>
   <data name="MindMapExportAll" xml:space="preserve"><value>Export all</value></data>
   <data name="MindMapExportSelectedBranch" xml:space="preserve"><value>Export selected branch</value></data>
   <data name="MindMapExportSelectBranchFirst" xml:space="preserve"><value>Select a branch node first.</value></data>

@@ -2,9 +2,14 @@ namespace NoteCards.Models;
 
 public class AppSettings
 {
+    public const string UnitSystemImperial = "Imperial";
+    public const string UnitSystemMetric = "Metric";
+
     public string Language { get; set; } = "en";
 
     public string Theme { get; set; } = "Light";
+
+    public string MeasurementUnitSystem { get; set; } = UnitSystemImperial;
 
     public string NoteSortOptionKey { get; set; } = "last-modified-desc";
 
@@ -92,9 +97,17 @@ public class AppSettings
 
     public bool IsGroupsFirst { get; set; } = true;
 
-    public string PreferredFontFamily { get; set; } = "Segoe UI";
+    public string PreferredFontFamily { get; set; } = "Calibri";
 
     public double PreferredFontSize { get; set; } = 14;
+
+    public bool IsEditorFontPanelOpen { get; set; } = false;
+
+    public bool IsEditorWordWrapEnabled { get; set; } = true;
+
+    public double PreferredLineSpacing { get; set; } = 1.0;
+
+    public double PreferredIndentSize { get; set; } = 48.0;
 
     public string FlashcardModelKey { get; set; } = "AutoSelect";
     public List<AiToolSettingsItem> AiTools { get; set; } = new();
@@ -107,6 +120,11 @@ public class AppSettings
     public long TotalWordsTyped { get; set; } = 0;
     public long TotalCharactersTyped { get; set; } = 0;
     public DateTime? LastActiveDate { get; set; }
+
+    public static string NormalizeMeasurementUnitSystem(string? unitSystem)
+        => string.Equals(unitSystem, UnitSystemMetric, StringComparison.OrdinalIgnoreCase)
+            ? UnitSystemMetric
+            : UnitSystemImperial;
 }
 
 public class AiToolSettingsItem

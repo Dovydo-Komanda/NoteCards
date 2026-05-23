@@ -2685,9 +2685,8 @@ public class MainViewModel : ViewModelBase
         var settings = AppSettingsService.Load();
 
         var fontFamily = string.IsNullOrWhiteSpace(settings.PreferredFontFamily)
-            ? "Segoe UI"
+            ? "Calibri"
             : settings.PreferredFontFamily;
-
         var fontSize = settings.PreferredFontSize > 0
             ? settings.PreferredFontSize
             : 14;

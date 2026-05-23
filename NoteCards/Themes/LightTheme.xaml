@@ -85,6 +85,7 @@
     <!-- RichTextBox Colors -->
     <SolidColorBrush x:Key="RichTextBoxBackground" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="RichTextBoxForeground" Color="#1C1C1C"/>
+    <SolidColorBrush x:Key="EditorSelectionBrush" Color="#3F6FE8"/>
     <SolidColorBrush x:Key="EditorFindMatchBackground" Color="#FEF3C7"/>
     <SolidColorBrush x:Key="EditorFindActiveMatchBackground" Color="#FBBF24"/>
 

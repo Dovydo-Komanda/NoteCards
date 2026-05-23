@@ -101,6 +101,9 @@
   <data name="ViewMode" xml:space="preserve"><value>Peržiūros režimas</value></data>
   <data name="ViewModeGrid" xml:space="preserve"><value>Tinklelis</value></data>
   <data name="ViewModeList" xml:space="preserve"><value>Sąrašas</value></data>
+  <data name="MeasurementUnitSystem" xml:space="preserve"><value>Matavimo sistema</value></data>
+  <data name="MeasurementUnitImperial" xml:space="preserve"><value>Imperinė (coliai)</value></data>
+  <data name="MeasurementUnitMetric" xml:space="preserve"><value>Metrinė (centimetrai)</value></data>
   <data name="ThemeLight" xml:space="preserve"><value>Šviesi</value></data>
   <data name="ThemeDark" xml:space="preserve"><value>Tamsi</value></data>
   <data name="ThemeSystem" xml:space="preserve"><value>Naudoti sistemos</value></data>
@@ -156,7 +159,12 @@
   <data name="Redo" xml:space="preserve"><value>Grąžinti</value></data>
   <data name="Save" xml:space="preserve"><value>Išsaugoti</value></data>
   <data name="Print" xml:space="preserve"><value>Spausdinti</value></data>
-  <data name="ExportPdf" xml:space="preserve"><value>Eksportuoti PDF</value></data>
+  <data name="ExportPdf" xml:space="preserve"><value>PDF (*.pdf)</value></data>
+  <data name="ExportNotePackage" xml:space="preserve"><value>NoteCards paketas (*.notecard)</value></data>
+  <data name="ExportRtf" xml:space="preserve"><value>Raiškusis tekstas (*.rtf)</value></data>
+  <data name="ExportText" xml:space="preserve"><value>Paprastasis tekstas (*.txt)</value></data>
+  <data name="ExportMarkdown" xml:space="preserve"><value>Markdown (*.md)</value></data>
+  <data name="ExportXamlPackage" xml:space="preserve"><value>Raiškusis užrašo turinys (*.xamlpackage)</value></data>
   <data name="ToggleWordWrap" xml:space="preserve"><value>Perjungti žodžių laužymą</value></data>
   <data name="ZoomIn" xml:space="preserve"><value>Priartinti</value></data>
   <data name="ZoomOut" xml:space="preserve"><value>Atitolinti</value></data>
@@ -169,6 +177,25 @@
   <data name="Font" xml:space="preserve"><value>Šriftas</value></data>
   <data name="FontLabel" xml:space="preserve"><value>Šriftas:</value></data>
   <data name="SizeLabel" xml:space="preserve"><value>Dydis:</value></data>
+  <data name="SpacingLabel" xml:space="preserve"><value>Tarpai:</value></data>
+  <data name="TextStyleLabel" xml:space="preserve"><value>Tekstas:</value></data>
+  <data name="Bold" xml:space="preserve"><value>Paryškinti</value></data>
+  <data name="Italic" xml:space="preserve"><value>Kursyvas</value></data>
+  <data name="Underline" xml:space="preserve"><value>Pabraukti</value></data>
+  <data name="ListStyle" xml:space="preserve"><value>Sąrašo stilius</value></data>
+  <data name="BulletListStyle" xml:space="preserve"><value>Punktų sąrašo stilius</value></data>
+  <data name="NumberedListStyle" xml:space="preserve"><value>Numeruoto sąrašo stilius</value></data>
+  <data name="ListBulletDisc" xml:space="preserve"><value>Punktai (•)</value></data>
+  <data name="ListBulletCircle" xml:space="preserve"><value>Tuščiaviduriai punktai (◦)</value></data>
+  <data name="ListBulletSquare" xml:space="preserve"><value>Kvadratiniai punktai (▪)</value></data>
+  <data name="ListNumberDecimal" xml:space="preserve"><value>Skaičiai (1, 2, 3)</value></data>
+  <data name="ListNumberLowerLatin" xml:space="preserve"><value>Raidės (a, b, c)</value></data>
+  <data name="ListNumberUpperRoman" xml:space="preserve"><value>Romėniški skaičiai (I, II, III)</value></data>
+  <data name="ListRemove" xml:space="preserve"><value>Pašalinti sąrašą</value></data>
+  <data name="DecreaseIndent" xml:space="preserve"><value>Sumažinti įtrauką</value></data>
+  <data name="IncreaseIndent" xml:space="preserve"><value>Padidinti įtrauką</value></data>
+  <data name="IndentLabel" xml:space="preserve"><value>Įtrauka:</value></data>
+  <data name="IndentSize" xml:space="preserve"><value>Įtraukos dydis</value></data>
   <data name="Cut" xml:space="preserve"><value>Iškirpti</value></data>
   <data name="Copy" xml:space="preserve"><value>Kopijuoti</value></data>
   <data name="Paste" xml:space="preserve"><value>Įklijuoti</value></data>
@@ -179,7 +206,7 @@
   <data name="Error" xml:space="preserve"><value>Klaida</value></data>
   <data name="FailedToPrintNote" xml:space="preserve"><value>Nepavyko atspausdinti užrašo:</value></data>
   <data name="PrintError" xml:space="preserve"><value>Spausdinimo klaida</value></data>
-  <data name="OpenFileDialogFilter" xml:space="preserve"><value>Tekstiniai failai (*.txt)|*.txt|Rich Text Format (*.rtf)|*.rtf|Visi failai (*.*)|*.*</value></data>
+  <data name="OpenFileDialogFilter" xml:space="preserve"><value>Palaikomi užrašų failai (*.notecard;*.rtf;*.txt;*.md;*.xamlpackage)|*.notecard;*.rtf;*.txt;*.md;*.xamlpackage|NoteCards paketas (*.notecard)|*.notecard|Rich Text Format (*.rtf)|*.rtf|Tekstiniai failai (*.txt)|*.txt|Markdown failai (*.md)|*.md|Raiškusis užrašo turinys (*.xamlpackage)|*.xamlpackage|Visi failai (*.*)|*.*</value></data>
   <data name="AboutDescription" xml:space="preserve"><value>Paprasta užrašų kortelių programėlė greitam ir tvarkingam konspektų bei užrašų valdymui.</value></data>
   <data name="Authors" xml:space="preserve"><value>AUTORIAI</value></data>
   <data name="SimpleInputTitle" xml:space="preserve"><value>Paprastas įvedimas</value></data>
@@ -189,6 +216,13 @@
   <data name="FailedToPrint" xml:space="preserve"><value>Nepavyko atspausdinti:</value></data>
   <data name="PdfExportComplete" xml:space="preserve"><value>PDF eksportas baigtas!</value></data>
   <data name="FailedToExportPdf" xml:space="preserve"><value>Nepavyko eksportuoti į PDF:</value></data>
+  <data name="ExportComplete" xml:space="preserve"><value>Eksportas baigtas.</value></data>
+  <data name="FailedToExport" xml:space="preserve"><value>Nepavyko eksportuoti:</value></data>
+  <data name="ExportNotePackageDialogFilter" xml:space="preserve"><value>NoteCards paketas (*.notecard)|*.notecard</value></data>
+  <data name="ExportRtfDialogFilter" xml:space="preserve"><value>Rich Text Format (*.rtf)|*.rtf</value></data>
+  <data name="ExportTextDialogFilter" xml:space="preserve"><value>Tekstiniai failai (*.txt)|*.txt</value></data>
+  <data name="ExportMarkdownDialogFilter" xml:space="preserve"><value>Markdown failai (*.md)|*.md</value></data>
+  <data name="ExportXamlPackageDialogFilter" xml:space="preserve"><value>Raiškusis užrašo turinys (*.xamlpackage)|*.xamlpackage</value></data>
   <data name="ExportError" xml:space="preserve"><value>Eksporto klaida</value></data>
   <data name="Success" xml:space="preserve"><value>Pavyko</value></data>
   <data name="NoContent" xml:space="preserve"><value>(Nėra turinio)</value></data>
@@ -212,6 +246,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="FirstNoteContent" xml:space="preserve"><value>Pradėkite nuo pirmojo užrašo: pridėkite žymes ir suskirstykite užrašus į grupes.</value></data>
   <data name="NewNoteTitle" xml:space="preserve"><value>Naujas užrašas</value></data>
   <data name="FontButtonFormat" xml:space="preserve"><value>Šriftas: {0}, {1}</value></data>
+  <data name="MixedSelection" xml:space="preserve"><value>Mišru</value></data>
   <data name="Groups" xml:space="preserve"><value>Grupės</value></data>
   <data name="UngroupedNotes" xml:space="preserve"><value>Nesugrupuoti užrašai</value></data>
   <data name="UngroupedItems" xml:space="preserve"><value>Nesugrupuoti</value></data>
@@ -329,7 +364,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="SelectFilesToImport" xml:space="preserve"><value>Pasirinkite importuotinus failus</value></data>
   <data name="ImportSuccess" xml:space="preserve"><value>Sėkmingai importuota {0} užrašai(-ų)</value></data>
   <data name="ImportError" xml:space="preserve"><value>Klaida importuojant failą:</value></data>
-  <data name="SupportedFormats" xml:space="preserve"><value>Tekstiniai failai (*.txt)|*.txt|Markdown failai (*.md)|*.md|Visi failai (*.*)|*.*</value></data>
+  <data name="SupportedFormats" xml:space="preserve"><value>Palaikomi užrašų failai (*.notecard;*.rtf;*.txt;*.md;*.xamlpackage)|*.notecard;*.rtf;*.txt;*.md;*.xamlpackage|NoteCards paketas (*.notecard)|*.notecard|Rich Text Format (*.rtf)|*.rtf|Tekstiniai failai (*.txt)|*.txt|Markdown failai (*.md)|*.md|Raiškusis užrašo turinys (*.xamlpackage)|*.xamlpackage|Visi failai (*.*)|*.*</value></data>
   <data name="InsertImage" xml:space="preserve"><value>Įterpti paveikslėlį</value></data>
   <data name="ImageTooltip" xml:space="preserve"><value>Įterpti paveikslėlį į užrašą</value></data>
   <data name="ReplaceFromFile" xml:space="preserve"><value>Pakeisti iš failo...</value></data>
@@ -451,7 +486,6 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="QuizCorrect" xml:space="preserve"><value>Teisingai</value></data>
   <data name="QuizIncorrect" xml:space="preserve"><value>Neteisingai</value></data>
   <data name="QuizUnanswered" xml:space="preserve"><value>Neatsakyta</value></data>
-  <data name="QuizExplanationFormat" xml:space="preserve"><value>Paaiškinimas: {0}</value></data>
   <data name="QuizCheckAnswers" xml:space="preserve"><value>Tikrinti atsakymus</value></data>
   <data name="QuizResetAnswers" xml:space="preserve"><value>Iš naujo</value></data>
   <data name="QuizExport" xml:space="preserve"><value>Eksportuoti</value></data>
@@ -594,6 +628,15 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="MindMapSearchNext" xml:space="preserve"><value>▶</value></data>
   <data name="MindMapSearchNoResults" xml:space="preserve"><value>Paieškos rezultatų nėra</value></data>
   <data name="MindMapSearchResultsFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="MindMapImport" xml:space="preserve"><value>Importuoti minčių žemėlapį</value></data>
+  <data name="MindMapImportDialogTitle" xml:space="preserve"><value>Importuoti minčių žemėlapį</value></data>
+  <data name="MindMapImportDialogFilter" xml:space="preserve"><value>Minčių žemėlapių failai (*.mm;*.mmap)|*.mm;*.mmap|Visi failai (*.*)|*.*</value></data>
+  <data name="MindMapImportSuccess" xml:space="preserve"><value>Minčių žemėlapis sėkmingai importuotas.</value></data>
+  <data name="MindMapImportFailed" xml:space="preserve"><value>Pasirinktame faile nėra tinkamo minčių žemėlapio.</value></data>
+  <data name="MindMapImportFileNotFound" xml:space="preserve"><value>Failas nerastas.</value></data>
+  <data name="MindMapImportUnsupportedFormat" xml:space="preserve"><value>Nepalaikomas minčių žemėlapio failo formatas.</value></data>
+  <data name="MindMapImportReadFailed" xml:space="preserve"><value>Nepavyko perskaityti minčių žemėlapio XML failo.</value></data>
+  <data name="MindMapImportInvalidRoot" xml:space="preserve"><value>Failas nėra tinkamas minčių žemėlapis. Trūksta šakninio map elemento.</value></data>
   <data name="MindMapExportAll" xml:space="preserve"><value>Eksportuoti viską</value></data>
   <data name="MindMapExportSelectedBranch" xml:space="preserve"><value>Eksportuoti pasirinktą šaką</value></data>
   <data name="MindMapExportSelectBranchFirst" xml:space="preserve"><value>Pirma pasirinkite šakos mazgą.</value></data>
@@ -635,10 +678,12 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="AiToolsDeletePromptFormat" xml:space="preserve"><value>Ar tikrai norite pašalinti „{0}“ iš DI įrankių?</value></data>
   <data name="AiToolsRuntimeTitle" xml:space="preserve"><value>llama.cpp vykdymo modulis</value></data>
   <data name="AiToolsRuntimeReady" xml:space="preserve"><value>Vykdymo modulis atsiųstas ir paruoštas.</value></data>
+  <data name="AiToolsRuntimeReadyFormat" xml:space="preserve"><value>Vykdymo modulis atsiųstas ir paruoštas. Versija: {0}</value></data>
   <data name="AiToolsRuntimeNotDownloaded" xml:space="preserve"><value>Vykdymo modulis dar neatsiųstas.</value></data>
-  <data name="AiToolsRuntimeDownload" xml:space="preserve"><value>Atsiųsti vykdymo modulį</value></data>
-  <data name="AiToolsRuntimeOpenFolder" xml:space="preserve"><value>Atverti vykdymo modulio aplanką</value></data>
-  <data name="AiToolsRuntimeDelete" xml:space="preserve"><value>Ištrinti vykdymo modulį</value></data>
+  <data name="AiToolsRuntimeDownload" xml:space="preserve"><value>Atsiųsti</value></data>
+  <data name="AiToolsRuntimeCheckUpdates" xml:space="preserve"><value>Tikrinti atnaujinimus</value></data>
+  <data name="AiToolsRuntimeOpenFolder" xml:space="preserve"><value>Atverti aplanką</value></data>
+  <data name="AiToolsRuntimeDelete" xml:space="preserve"><value>Ištrinti</value></data>
   <data name="AiToolsRuntimeDownloadStarting" xml:space="preserve"><value>Pradedamas vykdymo modulio atsisiuntimas...</value></data>
   <data name="AiToolsRuntimeDownloadPreparing" xml:space="preserve"><value>Ruošiamas vykdymo modulio atsisiuntimas...</value></data>
   <data name="AiToolsRuntimeDownloadingPercentFormat" xml:space="preserve"><value>Atsiunčiamas vykdymo modulis: {0}%</value></data>
@@ -646,4 +691,12 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="AiToolsRuntimeDownloadFailed" xml:space="preserve"><value>Nepavyko atsiųsti vykdymo modulio.</value></data>
   <data name="AiToolsRuntimeDeleteTitle" xml:space="preserve"><value>Ištrinti vykdymo modulį</value></data>
   <data name="AiToolsRuntimeDeletePrompt" xml:space="preserve"><value>Ar tikrai norite ištrinti llama.cpp vykdymo modulio failus?</value></data>
+  <data name="AiToolsRuntimeUpdateTitle" xml:space="preserve"><value>llama.cpp modulio atnaujinimas</value></data>
+  <data name="AiToolsRuntimeUpdateChecking" xml:space="preserve"><value>Tikrinami llama.cpp modulio atnaujinimai...</value></data>
+  <data name="AiToolsRuntimeUpdateDownloading" xml:space="preserve"><value>Atsiunčiamas llama.cpp modulio atnaujinimas...</value></data>
+  <data name="AiToolsRuntimeUpdateDownloadingPercentFormat" xml:space="preserve"><value>Atsiunčiamas modulio atnaujinimas: {0}%</value></data>
+  <data name="AiToolsRuntimeUpdateSuccessFormat" xml:space="preserve"><value>llama.cpp modulis atnaujintas į {0}.</value></data>
+  <data name="AiToolsRuntimeUpdateNotAvailableFormat" xml:space="preserve"><value>llama.cpp modulis jau naujausias ({0}).</value></data>
+  <data name="AiToolsRuntimeUpdateFailed" xml:space="preserve"><value>Nepavyko atnaujinti modulio.</value></data>
+  <data name="AiToolsRuntimeUpdateErrorDialogFormat" xml:space="preserve"><value>Nepavyko automatiškai atnaujinti llama.cpp modulio. Informacija: {0}</value></data>
 </root>

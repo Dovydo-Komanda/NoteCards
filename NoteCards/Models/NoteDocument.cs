@@ -8,8 +8,10 @@ public class NoteDocument
     public string Content { get; set; } = string.Empty;
     public List<NoteImageAttachment> Images { get; set; } = new();
     public List<string> Tags { get; set; } = new();
-    public string FontFamily { get; set; } = "Segoe UI";
+    public string FontFamily { get; set; } = "Calibri";
     public double FontSize { get; set; } = 14;
+    public bool? IsEditorFontPanelOpen { get; set; }
+    public bool? IsWordWrapEnabled { get; set; }
     public DateTime LastModified { get; set; } = DateTime.Now;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ScheduledAt { get; set; }

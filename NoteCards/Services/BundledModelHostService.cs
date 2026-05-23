@@ -21,6 +21,11 @@ public sealed class BundledModelHostService
         int? GeneratedChars = null,
         int? ChunkIndex = null,
         int? ChunkCount = null);
+    public sealed record RuntimeUpdateResult(
+        string CurrentVersion,
+        string LatestVersion,
+        bool IsUpdateAvailable,
+        bool WasUpdated);
     public sealed record FlashcardToolInfo(string Key, string DisplayName);
 
     private sealed record ModelInfo(
@@ -33,6 +38,18 @@ public sealed class BundledModelHostService
         long MinimumBytes,
         long MinimumRecommendedMemoryBytes,
         string[] Urls);
+
+    private sealed record RuntimeReleaseInfo(
+        string TagName,
+        string HtmlUrl,
+        DateTimeOffset? PublishedAt,
+        IReadOnlyList<string> Urls);
+
+    private sealed record RuntimeVersionMetadata(
+        string TagName,
+        string? ReleaseUrl,
+        DateTimeOffset? PublishedAt,
+        DateTimeOffset InstalledAt);
 
     private readonly SemaphoreSlim _sync = new(1, 1);
     private static readonly HttpClient DownloadClient = new()
@@ -59,6 +76,7 @@ public sealed class BundledModelHostService
 
     private const string RuntimeExeName = "llama-completion.exe";
     private const string RuntimeArchivePrefix = "notecards-model-runtime";
+    private const string RuntimeVersionMetadataFileName = "runtime-release.json";
     private const string DefaultModelKey = "Qwen3.5-0.8B";
     private static readonly string[] RuntimeReleaseApiUrls =
     [
@@ -748,8 +766,7 @@ public sealed class BundledModelHostService
             throw new FileNotFoundException("Bundled llama.cpp runtime is missing and runtime download failed.", Path.Combine(runtimeAssetsDir, RuntimeExeName));
         }
 
-        TryDeleteDirectory(runtimeCacheDir);
-        CopyRuntimePayload(bundledRuntimePath, cacheRuntimePath);
+        await InstallRuntimePayloadAsync(bundledRuntimePath, runtimeCacheDir, null, cancellationToken);
 
         if (!await IsRuntimeRunnableAsync(cacheRuntimePath, cancellationToken))
             throw new InvalidOperationException("Bundled llama runtime is present but could not be started from cache.");
@@ -760,12 +777,22 @@ public sealed class BundledModelHostService
         IProgress<FlashcardProgress>? progress,
         CancellationToken cancellationToken)
     {
-        var runtimeUrls = await ResolveRuntimeDownloadUrlsAsync(cancellationToken);
-        if (runtimeUrls.Count == 0)
+        var release = await ResolveRuntimeDownloadReleaseAsync(cancellationToken);
+        if (release is null || release.Urls.Count == 0)
             throw new InvalidOperationException("No compatible llama.cpp runtime download URLs were resolved for this architecture.");
 
         progress?.Report(new FlashcardProgress("ConvertToFlashcardsStatusDownloadingRuntime", 0));
 
+        await DownloadRuntimePayloadToDirectoryAsync(runtimeCacheDir, release.Urls, release, progress, cancellationToken);
+    }
+
+    private static async Task DownloadRuntimePayloadToDirectoryAsync(
+        string runtimeCacheDir,
+        IReadOnlyList<string> runtimeUrls,
+        RuntimeReleaseInfo? release,
+        IProgress<FlashcardProgress>? progress,
+        CancellationToken cancellationToken)
+    {
         Exception? lastError = null;
         foreach (var runtimeUrl in runtimeUrls)
         {
@@ -788,8 +815,7 @@ public sealed class BundledModelHostService
                 if (string.IsNullOrWhiteSpace(extractedRuntimePath))
                     throw new FileNotFoundException("Downloaded runtime archive does not contain llama-completion executable.", RuntimeExeName);
 
-                TryDeleteDirectory(runtimeCacheDir);
-                CopyRuntimePayload(extractedRuntimePath, Path.Combine(runtimeCacheDir, RuntimeExeName));
+                await InstallRuntimePayloadAsync(extractedRuntimePath, runtimeCacheDir, release, cancellationToken);
 
                 return;
             }
@@ -813,13 +839,16 @@ public sealed class BundledModelHostService
     }
 
     private static async Task<IReadOnlyList<string>> ResolveRuntimeDownloadUrlsAsync(CancellationToken cancellationToken)
+        => (await ResolveRuntimeDownloadReleaseAsync(cancellationToken))?.Urls ?? Array.Empty<string>();
+
+    private static async Task<RuntimeReleaseInfo?> ResolveRuntimeDownloadReleaseAsync(CancellationToken cancellationToken)
     {
         var overrideUrl = Environment.GetEnvironmentVariable("NOTECARDS_LLAMA_RUNTIME_URL");
         if (string.IsNullOrWhiteSpace(overrideUrl))
             overrideUrl = Environment.GetEnvironmentVariable("NOTECARDS_OLLAMA_RUNTIME_URL");
 
         if (string.IsNullOrWhiteSpace(overrideUrl))
-            return await ResolveRuntimeUrlsFromReleaseApiAsync(cancellationToken);
+            return await ResolveRuntimeReleaseFromReleaseApiAsync(cancellationToken);
 
 #if DEBUG
         if (Uri.TryCreate(overrideUrl, UriKind.Absolute, out var debugUri)
@@ -827,16 +856,19 @@ public sealed class BundledModelHostService
                 || string.Equals(debugUri.Host, "localhost", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(debugUri.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)))
         {
-            return [overrideUrl];
+            return new RuntimeReleaseInfo("debug-override", overrideUrl, null, [overrideUrl]);
         }
 
         throw new InvalidOperationException("NOTECARDS_LLAMA_RUNTIME_URL must be an HTTPS URL (or localhost) in Debug builds.");
 #else
-        return await ResolveRuntimeUrlsFromReleaseApiAsync(cancellationToken);
+        return await ResolveRuntimeReleaseFromReleaseApiAsync(cancellationToken);
 #endif
     }
 
     private static async Task<IReadOnlyList<string>> ResolveRuntimeUrlsFromReleaseApiAsync(CancellationToken cancellationToken)
+        => (await ResolveRuntimeReleaseFromReleaseApiAsync(cancellationToken))?.Urls ?? Array.Empty<string>();
+
+    private static async Task<RuntimeReleaseInfo?> ResolveRuntimeReleaseFromReleaseApiAsync(CancellationToken cancellationToken)
     {
         var isArm64 = RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
         var preferredArchTokens = isArm64
@@ -855,6 +887,19 @@ public sealed class BundledModelHostService
 
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+                var tagName = document.RootElement.TryGetProperty("tag_name", out var tagProp)
+                    ? tagProp.GetString()
+                    : null;
+                var htmlUrl = document.RootElement.TryGetProperty("html_url", out var htmlUrlProp)
+                    ? htmlUrlProp.GetString()
+                    : apiUrl;
+                DateTimeOffset? publishedAt = null;
+                if (document.RootElement.TryGetProperty("published_at", out var publishedProp)
+                    && publishedProp.ValueKind == JsonValueKind.String
+                    && DateTimeOffset.TryParse(publishedProp.GetString(), out var parsedPublishedAt))
+                {
+                    publishedAt = parsedPublishedAt;
+                }
 
                 if (!document.RootElement.TryGetProperty("assets", out var assets)
                     || assets.ValueKind != JsonValueKind.Array)
@@ -887,14 +932,20 @@ public sealed class BundledModelHostService
                     .ToArray();
 
                 if (urls.Length > 0)
-                    return urls;
+                {
+                    return new RuntimeReleaseInfo(
+                        string.IsNullOrWhiteSpace(tagName) ? "latest" : tagName,
+                        string.IsNullOrWhiteSpace(htmlUrl) ? apiUrl : htmlUrl,
+                        publishedAt,
+                        urls);
+                }
             }
             catch
             {
             }
         }
 
-        return Array.Empty<string>();
+        return null;
     }
 
     private static bool IsSafeRuntimeDownloadUrl(string url)
@@ -908,6 +959,223 @@ public sealed class BundledModelHostService
         return string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase)
             || string.Equals(uri.Host, "objects.githubusercontent.com", StringComparison.OrdinalIgnoreCase)
             || string.Equals(uri.Host, "api.github.com", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsRuntimeUpdateAvailable(string currentVersion, string latestVersion)
+    {
+        if (string.IsNullOrWhiteSpace(latestVersion))
+            return false;
+
+        if (string.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (string.IsNullOrWhiteSpace(currentVersion)
+            || string.Equals(currentVersion, "unknown", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return TryCompareRuntimeVersions(currentVersion, latestVersion, out var comparison)
+            ? comparison < 0
+            : true;
+    }
+
+    private static bool TryCompareRuntimeVersions(string currentVersion, string latestVersion, out int comparison)
+    {
+        comparison = 0;
+
+        if (TryExtractLlamaBuildNumber(currentVersion, out var currentBuild)
+            && TryExtractLlamaBuildNumber(latestVersion, out var latestBuild))
+        {
+            comparison = currentBuild.CompareTo(latestBuild);
+            return true;
+        }
+
+        if (TryParseNumericVersion(currentVersion, out var currentNumbers)
+            && TryParseNumericVersion(latestVersion, out var latestNumbers))
+        {
+            for (var i = 0; i < Math.Max(currentNumbers.Length, latestNumbers.Length); i++)
+            {
+                var current = i < currentNumbers.Length ? currentNumbers[i] : 0;
+                var latest = i < latestNumbers.Length ? latestNumbers[i] : 0;
+                comparison = current.CompareTo(latest);
+                if (comparison != 0)
+                    return true;
+            }
+
+            comparison = 0;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryExtractLlamaBuildNumber(string value, out int buildNumber)
+    {
+        buildNumber = 0;
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        var match = Regex.Match(value.Trim(), @"(?:^|[^\p{L}\p{N}])b(?<build>\d+)(?:$|[^\p{L}\p{N}])", RegexOptions.IgnoreCase);
+        return match.Success
+            && int.TryParse(match.Groups["build"].Value, out buildNumber);
+    }
+
+    private static bool TryParseNumericVersion(string value, out int[] numbers)
+    {
+        numbers = Array.Empty<int>();
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        var normalized = value.Trim().TrimStart('v', 'V');
+        var suffixIndex = normalized.IndexOfAny(['-', '+', ' ']);
+        if (suffixIndex >= 0)
+            normalized = normalized[..suffixIndex];
+
+        var parts = normalized.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            return false;
+
+        var parsed = new List<int>();
+        foreach (var part in parts)
+        {
+            if (!int.TryParse(part, out var number))
+                return false;
+
+            parsed.Add(number);
+        }
+
+        numbers = parsed.ToArray();
+        return true;
+    }
+
+    private static RuntimeVersionMetadata? TryReadRuntimeVersionMetadata(string runtimeDir)
+    {
+        try
+        {
+            var path = Path.Combine(runtimeDir, RuntimeVersionMetadataFileName);
+            if (!File.Exists(path))
+                return null;
+
+            var json = File.ReadAllText(path, Encoding.UTF8);
+            return JsonSerializer.Deserialize<RuntimeVersionMetadata>(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static async Task WriteRuntimeVersionMetadataAsync(
+        string runtimeDir,
+        RuntimeReleaseInfo release,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            Directory.CreateDirectory(runtimeDir);
+            var metadata = new RuntimeVersionMetadata(
+                release.TagName,
+                release.HtmlUrl,
+                release.PublishedAt,
+                DateTimeOffset.UtcNow);
+            var json = JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(Path.Combine(runtimeDir, RuntimeVersionMetadataFileName), json, Encoding.UTF8, cancellationToken);
+        }
+        catch
+        {
+        }
+    }
+
+    private static async Task InstallRuntimePayloadAsync(
+        string sourceRuntimeExePath,
+        string runtimeCacheDir,
+        RuntimeReleaseInfo? release,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var cacheParentDir = Path.GetDirectoryName(runtimeCacheDir)
+            ?? throw new InvalidOperationException("Invalid runtime cache directory.");
+        Directory.CreateDirectory(cacheParentDir);
+        CleanupOldRuntimeTransactionDirectories(cacheParentDir);
+
+        var stagingDir = Path.Combine(cacheParentDir, $"runtime.staging-{Guid.NewGuid():N}");
+        try
+        {
+            CopyRuntimePayload(sourceRuntimeExePath, Path.Combine(stagingDir, RuntimeExeName));
+            var stagedRuntimePath = Path.Combine(stagingDir, RuntimeExeName);
+            if (!IsRuntimePayloadAvailable(stagedRuntimePath))
+                throw new InvalidDataException("Downloaded llama.cpp runtime payload is incomplete.");
+
+            if (release is not null)
+                await WriteRuntimeVersionMetadataAsync(stagingDir, release, cancellationToken);
+
+            CommitRuntimePayload(stagingDir, runtimeCacheDir);
+        }
+        catch
+        {
+            TryDeleteDirectory(stagingDir);
+            throw;
+        }
+    }
+
+    private static void CommitRuntimePayload(string stagingDir, string runtimeCacheDir)
+    {
+        var cacheParentDir = Path.GetDirectoryName(runtimeCacheDir)
+            ?? throw new InvalidOperationException("Invalid runtime cache directory.");
+        var backupDir = Path.Combine(cacheParentDir, $"runtime.backup-{Guid.NewGuid():N}");
+        var hasExistingRuntime = Directory.Exists(runtimeCacheDir);
+
+        try
+        {
+            if (hasExistingRuntime)
+                Directory.Move(runtimeCacheDir, backupDir);
+
+            Directory.Move(stagingDir, runtimeCacheDir);
+            TryDeleteDirectory(backupDir);
+        }
+        catch
+        {
+            if (!Directory.Exists(runtimeCacheDir) && Directory.Exists(backupDir))
+            {
+                try
+                {
+                    Directory.Move(backupDir, runtimeCacheDir);
+                }
+                catch
+                {
+                    // Preserve the backup directory if rollback cannot complete.
+                }
+            }
+
+            throw;
+        }
+    }
+
+    private static void CleanupOldRuntimeTransactionDirectories(string cacheParentDir)
+    {
+        try
+        {
+            var cutoffUtc = DateTime.UtcNow - TimeSpan.FromDays(1);
+            foreach (var directory in Directory.EnumerateDirectories(cacheParentDir, "runtime.staging-*")
+                         .Concat(Directory.EnumerateDirectories(cacheParentDir, "runtime.backup-*")))
+            {
+                try
+                {
+                    var info = new DirectoryInfo(directory);
+                    var lastWriteUtc = info.LastWriteTimeUtc;
+                    if (lastWriteUtc < cutoffUtc)
+                        TryDeleteDirectory(directory);
+                }
+                catch
+                {
+                }
+            }
+        }
+        catch
+        {
+        }
     }
 
     private static async Task EnsureModelAssetAsync(
@@ -1160,6 +1428,12 @@ public sealed class BundledModelHostService
         return IsRuntimePayloadAvailable(GetRuntimeExecutablePath());
     }
 
+    public static string GetRuntimeInstalledVersionDisplay()
+    {
+        var metadata = TryReadRuntimeVersionMetadata(GetRuntimeDirectoryPath());
+        return string.IsNullOrWhiteSpace(metadata?.TagName) ? "unknown" : metadata.TagName;
+    }
+
     public static void DeleteModelArtifacts(string key)
     {
         var model = SupportedModels.FirstOrDefault(m => string.Equals(m.Key, key, StringComparison.OrdinalIgnoreCase));
@@ -1188,7 +1462,24 @@ public sealed class BundledModelHostService
 
     public static void DeleteRuntimeArtifacts()
     {
-        TryDeleteDirectory(GetRuntimeDirectoryPath());
+        var runtimeDir = GetRuntimeDirectoryPath();
+        TryDeleteDirectory(runtimeDir);
+        var parentDir = Path.GetDirectoryName(runtimeDir);
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(parentDir) && Directory.Exists(parentDir))
+            {
+                foreach (var directory in Directory.EnumerateDirectories(parentDir, "runtime.staging-*")
+                             .Concat(Directory.EnumerateDirectories(parentDir, "runtime.backup-*")))
+                {
+                    TryDeleteDirectory(directory);
+                }
+            }
+        }
+        catch
+        {
+        }
+
         TryDeleteDirectory(Path.Combine(AppContext.BaseDirectory, "Assets", "ModelRuntime"));
     }
 
@@ -1207,6 +1498,55 @@ public sealed class BundledModelHostService
             Directory.CreateDirectory(runtimeCacheDir);
 
             await EnsureRuntimeAssetsAsync(runtimeAssetsDir, runtimeCacheDir, progress, cancellationToken);
+        }
+        finally
+        {
+            _sync.Release();
+        }
+    }
+
+    public async Task<RuntimeUpdateResult> CheckAndUpdateRuntimeAsync(
+        IProgress<FlashcardProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        await _sync.WaitAsync(cancellationToken);
+        try
+        {
+            var runtimeCacheDir = GetRuntimeDirectoryPath();
+            var runtimeExePath = Path.Combine(runtimeCacheDir, RuntimeExeName);
+            if (!IsRuntimePayloadAvailable(runtimeExePath))
+            {
+                throw new InvalidOperationException("llama.cpp runtime is not downloaded yet.");
+            }
+
+            progress?.Report(new FlashcardProgress("AiToolsRuntimeUpdateChecking"));
+            var latestRelease = await ResolveRuntimeDownloadReleaseAsync(cancellationToken)
+                ?? throw new InvalidOperationException("No compatible llama.cpp runtime release was found.");
+
+            var currentVersion = GetRuntimeInstalledVersionDisplay();
+            var updateAvailable = IsRuntimeUpdateAvailable(currentVersion, latestRelease.TagName);
+            if (!updateAvailable)
+            {
+                return new RuntimeUpdateResult(
+                    currentVersion,
+                    latestRelease.TagName,
+                    IsUpdateAvailable: false,
+                    WasUpdated: false);
+            }
+
+            progress?.Report(new FlashcardProgress("AiToolsRuntimeUpdateDownloading", 0));
+            await DownloadRuntimePayloadToDirectoryAsync(runtimeCacheDir, latestRelease.Urls, latestRelease, progress, cancellationToken);
+
+            if (!IsRuntimePayloadAvailable(runtimeExePath))
+            {
+                throw new InvalidOperationException("Updated llama.cpp runtime was downloaded, but the runtime files are incomplete.");
+            }
+
+            return new RuntimeUpdateResult(
+                currentVersion,
+                latestRelease.TagName,
+                IsUpdateAvailable: true,
+                WasUpdated: true);
         }
         finally
         {
@@ -1249,7 +1589,7 @@ public sealed class BundledModelHostService
         try
         {
             var info = new FileInfo(path);
-            return info.Exists && info.Length > 100 * 1024;
+            return info.Exists && info.Length > 4 * 1024;
         }
         catch
         {
@@ -1266,9 +1606,38 @@ public sealed class BundledModelHostService
         if (string.IsNullOrWhiteSpace(runtimeDir) || !Directory.Exists(runtimeDir))
             return false;
 
-        // Basic payload check: runtime folder should contain several dll dependencies.
-        var dllCount = Directory.GetFiles(runtimeDir, "*.dll", SearchOption.TopDirectoryOnly).Length;
-        return dllCount > 0;
+        var runtimeExe = new FileInfo(runtimeExePath);
+        var companionLibraryPath = Path.Combine(
+            runtimeDir,
+            $"{Path.GetFileNameWithoutExtension(runtimeExePath)}-impl.dll");
+        var hasCompanionLibrary = IsRuntimeLibraryValid(companionLibraryPath);
+        var hasLauncherImplementation = runtimeExe.Length > 100 * 1024 || hasCompanionLibrary;
+        var hasLlamaCore = IsRuntimeLibraryValid(Path.Combine(runtimeDir, "llama.dll"))
+            && IsRuntimeLibraryValid(Path.Combine(runtimeDir, "llama-common.dll"));
+        var hasGgmlCore = IsRuntimeLibraryValid(Path.Combine(runtimeDir, "ggml.dll"))
+            && IsRuntimeLibraryValid(Path.Combine(runtimeDir, "ggml-base.dll"));
+        var hasCpuBackend = Directory
+            .GetFiles(runtimeDir, "ggml-cpu*.dll", SearchOption.TopDirectoryOnly)
+            .Any(IsRuntimeLibraryValid);
+
+        // New llama.cpp Windows packages use small launcher executables plus *-impl.dll.
+        return hasLauncherImplementation
+            && hasLlamaCore
+            && hasGgmlCore
+            && hasCpuBackend;
+    }
+
+    private static bool IsRuntimeLibraryValid(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            return info.Exists && info.Length > 64 * 1024;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static void CopyRuntimePayload(string sourceExePath, string destinationExePath)

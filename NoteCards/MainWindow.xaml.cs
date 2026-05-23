@@ -1021,42 +1021,16 @@ namespace NoteCards
             var path = dlg.FileName;
             try
             {
-                var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
-                string content = string.Empty;
-
-                if (ext == ".rtf")
-                {
-                    var bytes = System.IO.File.ReadAllBytes(path);
-                    content = Convert.ToBase64String(bytes);
-                }
-                else
-                {
-                    // Try strict UTF8 then fallbacks
-                    var rawBytes = System.IO.File.ReadAllBytes(path);
-                    try
-                    {
-                        content = new System.Text.UTF8Encoding(false, true).GetString(rawBytes);
-                    }
-                    catch
-                    {
-                        try
-                        {
-                            using (var ms = new System.IO.MemoryStream(rawBytes))
-                            using (var sr = new System.IO.StreamReader(ms, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true))
-                            {
-                                content = sr.ReadToEnd();
-                            }
-                        }
-                        catch
-                        {
-                            try { content = System.Text.Encoding.Default.GetString(rawBytes); }
-                            catch { try { content = System.Text.Encoding.GetEncoding(1257).GetString(rawBytes); } catch { content = string.Empty; } }
-                        }
-                    }
-                }
-
                 var vm = this.DataContext as MainViewModel;
                 if (vm == null) return;
+
+                if (NoteFileService.IsNotePackagePath(path))
+                {
+                    OpenNoteEditor(vm.AddNoteFromDocument(NoteFileService.LoadNotePackage(path)));
+                    return;
+                }
+
+                var content = NoteFileService.LoadEditorContentFromFile(path);
 
                 // Try find existing note with identical content; otherwise create new
                 NoteCardViewModel? existing = null;
@@ -1076,9 +1050,7 @@ namespace NoteCards
                 else
                 {
                     var settings = AppSettingsService.Load();
-                    var preferredFontFamily = string.IsNullOrWhiteSpace(settings.PreferredFontFamily)
-                        ? "Segoe UI"
-                        : settings.PreferredFontFamily;
+                    var preferredFontFamily = "Calibri";
                     var preferredFontSize = settings.PreferredFontSize > 0
                         ? settings.PreferredFontSize
                         : 14;
@@ -3597,22 +3569,32 @@ namespace NoteCards
                     {
                         try
                         {
-                            string content = File.ReadAllText(filePath);
-                            if (string.IsNullOrWhiteSpace(content))
-                                continue;
-
-                            // Extract filename without extension as the title
-                            string fileName = Path.GetFileNameWithoutExtension(filePath);
-
-                            // Create a new note from the imported content
-                            var newDocument = new NoteDocument
+                            NoteDocument newDocument;
+                            if (NoteFileService.IsNotePackagePath(filePath))
                             {
-                                Title = fileName,
-                                Content = content,
-                                Tags = new List<string>(),
-                                FontFamily = "Segoe UI",
-                                FontSize = 14
-                            };
+                                newDocument = NoteFileService.LoadNotePackage(filePath);
+                            }
+                            else
+                            {
+                                string content = NoteFileService.LoadEditorContentFromFile(filePath);
+                                if (string.IsNullOrWhiteSpace(content))
+                                    continue;
+
+                                var settings = AppSettingsService.Load();
+                                var preferredFontFamily = "Calibri";
+                                var preferredFontSize = settings.PreferredFontSize > 0
+                                    ? settings.PreferredFontSize
+                                    : 14;
+
+                                newDocument = new NoteDocument
+                                {
+                                    Title = Path.GetFileNameWithoutExtension(filePath),
+                                    Content = content,
+                                    Tags = new List<string>(),
+                                    FontFamily = preferredFontFamily,
+                                    FontSize = preferredFontSize
+                                };
+                            }
 
                             // Add to view model
                             vm.AddNoteFromDocument(newDocument);

@@ -61,8 +61,29 @@ namespace NoteCards
         private bool _isLoadingDocument;
         private bool _isSerializingEditorContent;
         private bool _allowCloseWithoutPrompt;
+        private bool _isFontPanelOpen;
+        private bool _isSyncingLineSpacingSelector;
+        private bool _isSyncingIndentSizeSelector;
+        private double _lineSpacingMultiplier = 1.0;
+        private double _indentSize = DefaultIndentSize;
+        private string _measurementUnitSystem = AppSettings.UnitSystemImperial;
+        private const string DefaultEditorFontFamily = "Calibri";
+        private int _fontPanelAnimationVersion;
         private long _editorChangeVersion;
         private long _lastSavedEditorChangeVersion;
+        private const double DefaultIndentSize = 48.0;
+        private const double MinimumIndentSize = 24.0;
+        private const double MaximumIndentSize = 144.0;
+        private const double MaximumAppliedIndent = 640.0;
+        private const double DipsPerInch = 96.0;
+        private const double CentimetersPerInch = 2.54;
+        private const string LiteralTabText = "\t";
+        private const int PlainTextTabEquivalentSpaces = 4;
+        private const int MaximumInsertedIndentSpaces = 96;
+        private const double PdfPageWidth = 816;
+        private const double PdfPageHeight = 1056;
+        private const double PdfPagePadding = 60;
+        private const double PdfContentTopOffset = 74;
         private const double StatusIndicatorExpandedHeight = 20;
         private const double FloatingImageAnchorHeight = 80;
         private const double UnwrappedDocumentPageWidth = 10000;
@@ -95,20 +116,43 @@ namespace NoteCards
                 typeof(NoteEditorWindow),
                 new PropertyMetadata(Guid.Empty));
 
+        private static readonly double[] WordFontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72];
+        private static readonly double[] WordIndentSizes = [24, 48, 72, 96, 120, 144];
+        private static readonly string[] PreferredFontFamilyOptions =
+        [
+            "Calibri",
+            "Aptos",
+            "Segoe UI",
+            "Arial",
+            "Times New Roman",
+            "Verdana",
+            "Tahoma",
+            "Georgia",
+            "Trebuchet MS",
+            "Cambria",
+            "Garamond",
+            "Consolas",
+            "Courier New"
+        ];
+
         public static bool IsAiGenerationInProgress => _activeAiGenerationCount > 0;
 
         public NoteEditorWindow()
         {
             InitializeComponent();
             NoteCards.Services.WindowThemeService.Register(this);
+            InitializeEditorFormattingOptions();
+            InitializeEditorUiPreferences();
             InitializeAutoSave();
             UpdateCounter();
             UpdateOnlineSearchAvailability();
             DataContextChanged += NoteEditorWindow_DataContextChanged;
             AttachEditorSettingsSource(DataContext as INotifyPropertyChanged);
             ApplyEditorTextLayout();
+            ApplyCurrentLineSpacingToDocument();
             UpdateEditorToolButtonStates();
             ContentTextBox.IsDocumentEnabled = true; // Ensure interactive elements (like ResizableImage) can receive pointer events
+            ContentTextBox.CommandBindings.Add(new CommandBinding(ApplicationCommands.Copy, ContentTextBox_CopyExecuted, ContentTextBox_CopyCanExecute));
             ContentTextBox.PreviewMouseDown += ContentTextBox_PreviewMouseDown;
             ContentTextBox.SizeChanged += (_, _) => ScheduleFloatingImageOverlayLayoutUpdate();
             EditorSurface.SizeChanged += (_, _) => ScheduleFloatingImageOverlayLayoutUpdate();
@@ -118,6 +162,83 @@ namespace NoteCards
 
             // Subscribe to theme changes to update RichTextBox foreground
             ThemeManager.ThemeChanged += ThemeManager_ThemeChanged;
+        }
+
+        private void InitializeEditorUiPreferences()
+        {
+            var settings = AppSettingsService.Load();
+            _measurementUnitSystem = AppSettings.NormalizeMeasurementUnitSystem(settings.MeasurementUnitSystem);
+            _isWordWrapEnabled = settings.IsEditorWordWrapEnabled;
+            _lineSpacingMultiplier = NormalizeLineSpacingMultiplier(settings.PreferredLineSpacing);
+            _indentSize = NormalizeIndentSize(settings.PreferredIndentSize);
+            PopulateIndentSizeOptions();
+            SyncLineSpacingSelectorFromPreference();
+            SyncIndentSizeSelectorFromPreference();
+            SetFontPanelOpen(settings.IsEditorFontPanelOpen, animate: false, persist: false);
+        }
+
+        private void InitializeEditorFormattingOptions()
+        {
+            PopulateFontFamilyOptions();
+            PopulateFontSizeOptions();
+        }
+
+        private void PopulateFontFamilyOptions()
+        {
+            var fontNames = new List<string>();
+
+            void AddFontName(string? fontName)
+            {
+                if (string.IsNullOrWhiteSpace(fontName))
+                    return;
+
+                if (fontNames.Any(existing => string.Equals(existing, fontName, StringComparison.OrdinalIgnoreCase)))
+                    return;
+
+                fontNames.Add(fontName);
+            }
+
+            foreach (var fontName in PreferredFontFamilyOptions)
+                AddFontName(fontName);
+
+            foreach (var fontFamily in Fonts.SystemFontFamilies
+                         .Select(fontFamily => fontFamily.Source)
+                         .OrderBy(fontName => fontName, StringComparer.CurrentCultureIgnoreCase))
+            {
+                AddFontName(fontFamily);
+            }
+
+            FontFamilyBox.Items.Clear();
+            foreach (var fontName in fontNames)
+                FontFamilyBox.Items.Add(CreateEditorComboBoxItem(fontName));
+        }
+
+        private void PopulateFontSizeOptions()
+        {
+            FontSizeBox.Items.Clear();
+            foreach (var fontSize in WordFontSizes)
+                FontSizeBox.Items.Add(CreateEditorComboBoxItem(FormatFontSize(fontSize), fontSize));
+        }
+
+        private void PopulateIndentSizeOptions()
+        {
+            IndentSizeBox.Items.Clear();
+            foreach (var indentSize in WordIndentSizes)
+                IndentSizeBox.Items.Add(CreateEditorComboBoxItem(FormatIndentSizeLabel(indentSize, _measurementUnitSystem), indentSize));
+        }
+
+        private ComboBoxItem CreateEditorComboBoxItem(string content, object? tag = null)
+        {
+            var item = new ComboBoxItem
+            {
+                Content = content,
+                Tag = tag
+            };
+
+            if (TryFindResource("EditorFontComboBoxItemStyle") is Style style)
+                item.Style = style;
+
+            return item;
         }
 
         private void NoteEditorWindow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -255,6 +376,7 @@ namespace NoteCards
         {
             var horizontalScrollbarAvailable = ResolveEditorScrollbarSettings().Horizontal;
             SetEditorToolButtonActive(WordWrapButton, _isWordWrapEnabled || !horizontalScrollbarAvailable);
+            SetEditorToolButtonActive(FontButton, _isFontPanelOpen);
             SetEditorToolButtonActive(ZoomInButton, _zoomLevel > 1.0001);
             SetEditorToolButtonActive(ZoomOutButton, _zoomLevel < 0.9999);
             SetEditorToolButtonActive(ZoomResetButton, false);
@@ -291,6 +413,17 @@ namespace NoteCards
                 if (RootGrid.RenderTransform is TranslateTransform translate)
                     translate.Y = 0;
             }
+        }
+
+        public void ApplyMeasurementUnitSystemPreference(string unitSystem)
+        {
+            var normalized = AppSettings.NormalizeMeasurementUnitSystem(unitSystem);
+            if (string.Equals(_measurementUnitSystem, normalized, StringComparison.Ordinal))
+                return;
+
+            _measurementUnitSystem = normalized;
+            PopulateIndentSizeOptions();
+            SyncIndentSizeSelectorFromPreference();
         }
 
         public UIElement? DetachEditorContentForHosting()
@@ -447,22 +580,18 @@ namespace NoteCards
 
             var text = textRange.Text;
 
-            // RichTextBox/FlowDocument always includes one trailing paragraph break.
-            // Remove only that synthetic ending so empty notes are not counted as 2 chars/2 lines.
-            if (text.EndsWith("\r\n", StringComparison.Ordinal))
-                text = text[..^2];
-            else if (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal))
-                text = text[..^1];
+            text = TrimSingleTrailingLineBreak(text);
 
             var normalizedText = text
                 .Replace("\r\n", "\n", StringComparison.Ordinal)
                 .Replace('\r', '\n');
+            var countableText = RemoveIndentationForCounter(normalizedText);
 
-            int characters = normalizedText.Length;
+            int characters = countableText.Length;
 
-            int words = string.IsNullOrWhiteSpace(normalizedText)
+            int words = string.IsNullOrWhiteSpace(countableText)
                 ? 0
-                : normalizedText.Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries).Length;
+                : countableText.Split(new[] { ' ', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries).Length;
 
             int lines = string.IsNullOrEmpty(normalizedText)
                 ? 1
@@ -489,6 +618,8 @@ namespace NoteCards
             }
 
             UpdateOnlineSearchAvailability();
+            SyncFontSelectorsFromSelection();
+            UpdateListRemoveButtonState();
             UpdateCounter();
         }
 
@@ -502,6 +633,7 @@ namespace NoteCards
             // Only update counter, not theme (theme is applied during load and on theme change)
             UpdateCounter();
             UpdateEditedIndicator();
+            UpdateListRemoveButtonState();
             ScheduleFloatingImageOverlayLayoutUpdate();
         }
 
@@ -620,6 +752,9 @@ namespace NoteCards
 
         private void NoteEditorWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if (TryHandleEditorTabKey(e))
+                return;
+
             var isCtrlOnly = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control
                 && (Keyboard.Modifiers & ModifierKeys.Alt) != ModifierKeys.Alt;
 
@@ -646,6 +781,39 @@ namespace NoteCards
 
                 e.Handled = true;
             }
+        }
+
+        private bool IsEditorKeyboardFocusWithin(object? eventSource = null)
+        {
+            if (eventSource != null)
+            {
+                if (ReferenceEquals(eventSource, ContentTextBox))
+                    return true;
+                if (eventSource is DependencyObject src && ContentTextBox.IsAncestorOf(src))
+                    return true;
+            }
+
+            if (ContentTextBox.IsKeyboardFocusWithin)
+                return true;
+
+            return ReferenceEquals(Keyboard.FocusedElement, ContentTextBox);
+        }
+
+        public bool TryHandleEditorTabKey(KeyEventArgs e)
+        {
+            if (e.Handled
+                || !IsTabKey(e)
+                || (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) != 0
+                || !IsEditorKeyboardFocusWithin(e.OriginalSource))
+            {
+                return false;
+            }
+
+            if (!HandleEditorTabKey((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift))
+                return false;
+
+            e.Handled = true;
+            return true;
         }
 
         private bool IsAnyAiConversionInProgress()
@@ -1518,8 +1686,14 @@ namespace NoteCards
                     }
 
                     var settings = AppSettingsService.Load();
+                    _isWordWrapEnabled = document.IsWordWrapEnabled ?? settings.IsEditorWordWrapEnabled;
+                    SetFontPanelOpen(
+                        document.IsEditorFontPanelOpen ?? settings.IsEditorFontPanelOpen,
+                        animate: false,
+                        persist: false);
+
                     var preferredFontFamily = string.IsNullOrWhiteSpace(settings.PreferredFontFamily)
-                        ? "Segoe UI"
+                        ? DefaultEditorFontFamily
                         : settings.PreferredFontFamily;
                     var preferredFontSize = settings.PreferredFontSize > 0
                         ? settings.PreferredFontSize
@@ -1538,7 +1712,7 @@ namespace NoteCards
                     document.FontFamily = ContentTextBox.FontFamily.Source;
                     document.FontSize = ContentTextBox.FontSize;
 
-                    SyncFontSelectorsFromEditor();
+                    SyncFontSelectorsFromSelection();
                     UpdateFontButtonText();
 
                     // Initialize last saved content
@@ -1550,9 +1724,11 @@ namespace NoteCards
                     ApplyRichTextBoxTheme();
                     ConfigureResizableImages();
                     ApplyEditorTextLayout();
+                    ApplyCurrentLineSpacingToDocument();
 
                     // Clear any selection and move caret to start
                     ContentTextBox.CaretPosition = ContentTextBox.Document.ContentStart;
+                    SyncFontSelectorsFromSelection();
                     MarkCurrentStateSaved();
                 }
             }
@@ -1646,6 +1822,8 @@ namespace NoteCards
                 document.Images = CloneImageAttachments(newImages);
                 document.FontFamily = newFontFamily;
                 document.FontSize = newFontSize;
+                document.IsEditorFontPanelOpen = _isFontPanelOpen;
+                document.IsWordWrapEnabled = _isWordWrapEnabled;
             }
         }
 
@@ -1703,7 +1881,10 @@ namespace NoteCards
             // Hook into content changes to track modifications
             ContentTextBox.TextChanged += ContentTextBox_TextChanged;
             ContentTextBox.PreviewTextInput += ContentTextBox_PreviewTextInput;
-            ContentTextBox.PreviewKeyDown += ContentTextBox_PreviewKeyDown;
+            ContentTextBox.AddHandler(
+                Keyboard.PreviewKeyDownEvent,
+                new KeyEventHandler(ContentTextBox_PreviewKeyDown),
+                true);
         }
 
         private void ContentTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
@@ -1716,10 +1897,751 @@ namespace NoteCards
 
         private void ContentTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if (TryHandleEditorTabKey(e))
+                return;
+
             if (e.Key == Key.Space || e.Key == Key.Enter)
             {
                 NoteCards.Services.ActivityTracker.RecordTyping(0, 1);
             }
+        }
+
+        private void ContentTextBox_CopyCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = ContentTextBox.Selection is { IsEmpty: false };
+            e.Handled = true;
+        }
+
+        private void ContentTextBox_CopyExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (CopyEditorSelectionToClipboard())
+                e.Handled = true;
+        }
+
+        private bool CopyEditorSelectionToClipboard()
+        {
+            var selection = ContentTextBox.Selection;
+            if (selection == null || selection.IsEmpty)
+                return false;
+
+            try
+            {
+                var dataObject = new DataObject();
+                var plainText = GetClipboardPlainText(selection, out var convertedIndentationForPlainText);
+                dataObject.SetText(plainText, TextDataFormat.UnicodeText);
+                dataObject.SetText(plainText, TextDataFormat.Text);
+                if (!convertedIndentationForPlainText)
+                    TryAddSelectionRtfToClipboardData(dataObject, selection);
+                Clipboard.SetDataObject(dataObject, true);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to copy editor selection: {ex.Message}");
+                return false;
+            }
+        }
+
+        private string GetClipboardPlainText(TextSelection selection, out bool convertedIndentationForPlainText)
+        {
+            if (TryGetWholeParagraphSelectionParagraphs(selection, out var selectedParagraphs))
+                return BuildWholeParagraphClipboardText(selectedParagraphs, out convertedIndentationForPlainText);
+
+            return NormalizeIndentationForPlainTextExport(selection.Text, out convertedIndentationForPlainText);
+        }
+
+        private string BuildWholeParagraphClipboardText(
+            IReadOnlyList<Paragraph> paragraphs,
+            out bool convertedIndentationForPlainText)
+        {
+            convertedIndentationForPlainText = false;
+            var lines = new List<string>();
+            foreach (var paragraph in paragraphs)
+            {
+                var prefix = ResolveParagraphMarginIndentClipboardPrefix(paragraph);
+                if (prefix.Length > 0)
+                    convertedIndentationForPlainText = true;
+
+                var paragraphText = new TextRange(paragraph.ContentStart, paragraph.ContentEnd).Text;
+                paragraphText = TrimSingleTrailingLineBreak(paragraphText)
+                    .Replace("\r\n", "\n", StringComparison.Ordinal)
+                    .Replace('\r', '\n');
+
+                var paragraphLines = paragraphText.Split('\n');
+                foreach (var line in paragraphLines)
+                {
+                    var normalizedLine = NormalizeLeadingIndentationForPlainTextExport(line, out var convertedLineIndentation);
+                    convertedIndentationForPlainText |= convertedLineIndentation;
+                    lines.Add(prefix + normalizedLine);
+                }
+            }
+
+            return string.Join("\r\n", lines);
+        }
+
+        private string ResolveParagraphMarginIndentClipboardPrefix(Paragraph paragraph)
+        {
+            var indentLevel = (int)Math.Round(
+                NormalizeAppliedIndent(paragraph.Margin.Left) / NormalizeIndentSize(_indentSize),
+                MidpointRounding.AwayFromZero);
+
+            return indentLevel <= 0
+                ? string.Empty
+                : new string('\t', Math.Min(indentLevel * ResolveEditorIndentTabCount(), 64));
+        }
+
+        private void TryAddSelectionRtfToClipboardData(DataObject dataObject, TextSelection selection)
+        {
+            try
+            {
+                var range = new TextRange(selection.Start, selection.End);
+                using var stream = new MemoryStream();
+                range.Save(stream, DataFormats.Rtf);
+                dataObject.SetData(DataFormats.Rtf, Encoding.ASCII.GetString(stream.ToArray()));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to add RTF clipboard data: {ex.Message}");
+            }
+        }
+
+        private static bool IsTabKey(KeyEventArgs e)
+            => e.Key == Key.Tab
+                || e.SystemKey == Key.Tab
+                || e.ImeProcessedKey == Key.Tab;
+
+        private bool HandleEditorTabKey(bool decreaseIndent)
+        {
+            var selection = ContentTextBox.Selection;
+            if (selection == null)
+                return false;
+
+            if (selection.IsEmpty)
+            {
+                if (!decreaseIndent)
+                    return TryInsertIndentAtCaret();
+
+                return TryRemoveIndentBeforeCaret() || AdjustEditorIndent(decreaseIndent);
+            }
+
+            if (TryGetWholeParagraphSelectionParagraphs(selection, out var selectedParagraphs))
+                return TryAdjustWholeParagraphSelectionIndent(selection, selectedParagraphs, decreaseIndent)
+                    || AdjustEditorIndent(decreaseIndent);
+
+            if (!decreaseIndent)
+            {
+                return TryReplaceSelectionWithIndent();
+            }
+
+            return AdjustEditorIndent(decreaseIndent);
+        }
+
+        private bool TryInsertIndentAtCaret()
+        {
+            var selection = ContentTextBox.Selection;
+            if (selection == null || !selection.IsEmpty)
+                return false;
+
+            var insertionPosition = TryGetInsertionPosition(selection.Start, LogicalDirection.Forward)
+                ?? TryGetInsertionPosition(ContentTextBox.CaretPosition, LogicalDirection.Forward)
+                ?? selection.Start;
+            var caretOffset = GetTextOffsetForPointer(insertionPosition);
+            var indentText = ResolveEditorIndentText();
+            var changeStarted = false;
+
+            try
+            {
+                ContentTextBox.BeginChange();
+                changeStarted = true;
+                new TextRange(insertionPosition, insertionPosition).Text = indentText;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                if (changeStarted)
+                    ContentTextBox.EndChange();
+            }
+
+            MoveEditorCaretToTextOffset(caretOffset + indentText.Length);
+            return true;
+        }
+
+        private bool TryReplaceSelectionWithIndent()
+        {
+            var selection = ContentTextBox.Selection;
+            if (selection == null || selection.IsEmpty)
+                return false;
+
+            var startOffset = GetTextOffsetForPointer(selection.Start);
+            var indentText = ResolveEditorIndentText();
+            var changeStarted = false;
+
+            try
+            {
+                ContentTextBox.BeginChange();
+                changeStarted = true;
+                new TextRange(selection.Start, selection.End).Text = indentText;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                if (changeStarted)
+                    ContentTextBox.EndChange();
+            }
+
+            MoveEditorCaretToTextOffset(startOffset + indentText.Length);
+            return true;
+        }
+
+        private bool TryAdjustWholeParagraphSelectionIndent(
+            TextSelection selection,
+            IReadOnlyList<Paragraph> targetParagraphs,
+            bool decreaseIndent)
+        {
+            if (targetParagraphs.Count == 0)
+                return false;
+
+            var selectionStart = selection.Start;
+            var selectionEnd = selection.End;
+            var changed = false;
+            foreach (var paragraph in targetParagraphs)
+                changed |= TryAdjustBlockIndent(paragraph, decreaseIndent);
+
+            if (changed)
+            {
+                MarkEditorContentChanged();
+                UpdateEditedIndicator();
+                ContentTextBox.InvalidateVisual();
+                ContentTextBox.UpdateLayout();
+            }
+
+            try
+            {
+                ContentTextBox.Selection.Select(selectionStart, selectionEnd);
+            }
+            catch
+            {
+                // Formatting-only changes should keep text pointers valid, but the indent itself succeeded.
+            }
+
+            return true;
+        }
+
+        private bool TryGetWholeParagraphSelectionParagraphs(
+            TextSelection selection,
+            out List<Paragraph> selectedParagraphs)
+        {
+            selectedParagraphs = new List<Paragraph>();
+            if (selection.IsEmpty)
+                return false;
+
+            var paragraphs = new List<Paragraph>();
+            CollectParagraphs(ContentTextBox.Document.Blocks, selection.Start, selection.End, paragraphs);
+            var distinctParagraphs = paragraphs.Distinct().ToList();
+            if (distinctParagraphs.Count == 0)
+                return false;
+
+            foreach (var paragraph in distinctParagraphs)
+            {
+                if (!IsParagraphFullySelected(paragraph, selection.Start, selection.End))
+                    return false;
+            }
+
+            selectedParagraphs = distinctParagraphs;
+            return true;
+        }
+
+        private static bool IsParagraphFullySelected(
+            Paragraph paragraph,
+            TextPointer selectionStart,
+            TextPointer selectionEnd)
+        {
+            try
+            {
+                var paragraphStart = FindFirstParagraphTextPosition(paragraph) ?? paragraph.ContentStart;
+                var paragraphEnd = FindLastParagraphTextPosition(paragraph) ?? paragraph.ContentEnd;
+
+                return selectionStart.CompareTo(paragraphStart) <= 0
+                    && selectionEnd.CompareTo(paragraphEnd) >= 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static TextPointer? FindFirstParagraphTextPosition(Paragraph paragraph)
+        {
+            var navigator = paragraph.ContentStart;
+            while (navigator != null && navigator.CompareTo(paragraph.ContentEnd) < 0)
+            {
+                if (navigator.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text
+                    && navigator.GetTextInRun(LogicalDirection.Forward).Length > 0)
+                {
+                    return navigator;
+                }
+
+                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+            }
+
+            return null;
+        }
+
+        private static TextPointer? FindLastParagraphTextPosition(Paragraph paragraph)
+        {
+            TextPointer? lastTextEnd = null;
+            var navigator = paragraph.ContentStart;
+            while (navigator != null && navigator.CompareTo(paragraph.ContentEnd) < 0)
+            {
+                if (navigator.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
+                {
+                    var text = navigator.GetTextInRun(LogicalDirection.Forward);
+                    if (text.Length > 0)
+                    {
+                        var runEnd = navigator.GetPositionAtOffset(text.Length, LogicalDirection.Forward);
+                        if (runEnd != null)
+                            lastTextEnd = runEnd;
+                    }
+                }
+
+                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+            }
+
+            return lastTextEnd;
+        }
+
+        private bool TryRemoveIndentBeforeCaret()
+        {
+            var selection = ContentTextBox.Selection;
+            if (selection == null || !selection.IsEmpty)
+                return false;
+
+            var caret = TryGetInsertionPosition(selection.Start, LogicalDirection.Backward)
+                ?? TryGetInsertionPosition(ContentTextBox.CaretPosition, LogicalDirection.Backward)
+                ?? selection.Start;
+            var textBeforeCaret = caret.GetTextInRun(LogicalDirection.Backward);
+            if (string.IsNullOrEmpty(textBeforeCaret))
+                return false;
+
+            var removeLength = ResolveIndentTextRemovalLength(textBeforeCaret);
+            if (removeLength <= 0)
+                return false;
+
+            var removalStart = caret.GetPositionAtOffset(-removeLength, LogicalDirection.Backward);
+            if (removalStart == null)
+                return false;
+            var changeStarted = false;
+
+            try
+            {
+                ContentTextBox.BeginChange();
+                changeStarted = true;
+                new TextRange(removalStart, caret).Text = string.Empty;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                if (changeStarted)
+                    ContentTextBox.EndChange();
+            }
+
+            ContentTextBox.CaretPosition = removalStart;
+            ContentTextBox.Selection.Select(removalStart, removalStart);
+            return true;
+        }
+
+        private string ResolveEditorIndentText()
+            => new('\t', ResolveEditorIndentTabCount());
+
+        private int ResolveEditorIndentTabCount()
+            => Math.Clamp((int)Math.Round(NormalizeIndentSize(_indentSize) / MinimumIndentSize), 1, 8);
+
+        private int ResolveEditorIndentSpaceCount()
+        {
+            var typography = ResolveCurrentSelectionTypography();
+            var fontSize = typography.FontSize > 0 ? typography.FontSize : ContentTextBox.FontSize;
+            var fontFamily = string.IsNullOrWhiteSpace(typography.FontFamily)
+                ? ContentTextBox.FontFamily
+                : new FontFamily(typography.FontFamily);
+            var estimatedSpaceWidth = fontSize * 0.33;
+
+            try
+            {
+                var dpi = VisualTreeHelper.GetDpi(ContentTextBox);
+                var formattedSpace = new FormattedText(
+                    " ",
+                    CultureInfo.CurrentUICulture,
+                    ContentTextBox.FlowDirection,
+                    new Typeface(fontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
+                    fontSize,
+                    Brushes.Transparent,
+                    dpi.PixelsPerDip);
+
+                if (!double.IsNaN(formattedSpace.WidthIncludingTrailingWhitespace)
+                    && formattedSpace.WidthIncludingTrailingWhitespace > 0)
+                {
+                    estimatedSpaceWidth = formattedSpace.WidthIncludingTrailingWhitespace;
+                }
+            }
+            catch
+            {
+                // Fall back to the common proportional-font space width estimate above.
+            }
+
+            var spaceCount = (int)Math.Round(NormalizeIndentSize(_indentSize) / Math.Max(1, estimatedSpaceWidth));
+            return Math.Clamp(spaceCount, 1, MaximumInsertedIndentSpaces);
+        }
+
+        private int ResolveIndentTextRemovalLength(string textBeforeCaret)
+        {
+            var tabs = 0;
+            var indentTabCount = ResolveEditorIndentTabCount();
+            for (var i = textBeforeCaret.Length - 1; i >= 0 && textBeforeCaret[i] == '\t'; i--)
+            {
+                tabs++;
+                if (tabs == indentTabCount)
+                    break;
+            }
+
+            if (tabs > 0)
+                return tabs;
+
+            var spaces = 0;
+            var indentSpaceCount = ResolveEditorIndentSpaceCount();
+            for (var i = textBeforeCaret.Length - 1; i >= 0 && textBeforeCaret[i] == ' '; i--)
+            {
+                spaces++;
+                if (spaces == indentSpaceCount)
+                    break;
+            }
+
+            return spaces;
+        }
+
+        private string RemoveIndentationForCounter(string text)
+        {
+            var lines = text.Split('\n');
+            for (var i = 0; i < lines.Length; i++)
+                lines[i] = RemoveLeadingIndentationForCounter(lines[i]);
+
+            return string.Join('\n', lines);
+        }
+
+        private string RemoveLeadingIndentationForCounter(string line)
+        {
+            if (string.IsNullOrEmpty(line))
+                return line;
+
+            var index = 0;
+            while (index < line.Length && line[index] == '\t')
+                index++;
+
+            var indentSpaceCount = ResolveEditorIndentSpaceCount();
+            while (index + indentSpaceCount <= line.Length
+                   && IsAllSpaces(line, index, indentSpaceCount))
+            {
+                index += indentSpaceCount;
+            }
+
+            return index == 0 ? line : line[index..];
+        }
+
+        private string NormalizeIndentationForPlainTextExport(
+            string text,
+            out bool convertedIndentationForPlainText)
+        {
+            convertedIndentationForPlainText = false;
+            var normalized = text
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace('\r', '\n');
+            var lines = normalized.Split('\n');
+            for (var i = 0; i < lines.Length; i++)
+            {
+                lines[i] = NormalizeLeadingIndentationForPlainTextExport(lines[i], out var convertedLineIndentation);
+                convertedIndentationForPlainText |= convertedLineIndentation;
+            }
+
+            return string.Join("\r\n", lines);
+        }
+
+        private string NormalizeLeadingIndentationForPlainTextExport(
+            string line,
+            out bool convertedIndentationForPlainText)
+        {
+            convertedIndentationForPlainText = false;
+            if (string.IsNullOrEmpty(line))
+                return line;
+
+            var index = 0;
+            var tabs = 0;
+            while (index < line.Length && line[index] == '\t')
+            {
+                tabs++;
+                index++;
+            }
+
+            var indentSpaceCount = ResolveEditorIndentSpaceCount();
+            while (index + indentSpaceCount <= line.Length
+                   && IsAllSpaces(line, index, indentSpaceCount))
+            {
+                tabs += ResolveEditorIndentTabCount();
+                index += indentSpaceCount;
+                convertedIndentationForPlainText = true;
+            }
+
+            var leadingSpaces = 0;
+            while (index < line.Length && line[index] == ' ')
+            {
+                leadingSpaces++;
+                index++;
+            }
+
+            if (leadingSpaces >= PlainTextTabEquivalentSpaces)
+            {
+                tabs += leadingSpaces / PlainTextTabEquivalentSpaces;
+                leadingSpaces %= PlainTextTabEquivalentSpaces;
+                convertedIndentationForPlainText = true;
+            }
+
+            if (leadingSpaces > 0 && tabs == 0 && !convertedIndentationForPlainText)
+                index -= leadingSpaces;
+
+            return tabs == 0 ? line : new string('\t', tabs) + line[index..];
+        }
+
+        private static bool IsAllSpaces(string text, int start, int length)
+        {
+            for (var i = 0; i < length; i++)
+            {
+                if (text[start + i] != ' ')
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static string TrimSingleTrailingLineBreak(string text)
+        {
+            // RichTextBox/FlowDocument text ranges often include one synthetic paragraph break.
+            if (text.EndsWith("\r\n", StringComparison.Ordinal))
+                return text[..^2];
+            if (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal))
+                return text[..^1];
+
+            return text;
+        }
+
+        private void MoveEditorCaretToTextOffset(int offset)
+        {
+            var caret = GetTextPointerAtTextOffset(offset)
+                ?? ContentTextBox.Document.ContentEnd.GetInsertionPosition(LogicalDirection.Backward)
+                ?? ContentTextBox.Document.ContentEnd;
+
+            ContentTextBox.CaretPosition = caret;
+            ContentTextBox.Selection.Select(caret, caret);
+        }
+
+        private bool AdjustEditorIndent(bool decreaseIndent)
+        {
+            var targetBlocks = GetTargetBlocksForIndentFormatting()
+                .Distinct()
+                .ToList();
+
+            if (targetBlocks.Count == 0)
+                return false;
+
+            var changed = false;
+            foreach (var block in targetBlocks)
+            {
+                changed |= TryAdjustBlockIndent(block, decreaseIndent);
+            }
+
+            if (changed)
+            {
+                MarkEditorContentChanged();
+                UpdateEditedIndicator();
+                ContentTextBox.InvalidateVisual();
+                ContentTextBox.UpdateLayout();
+            }
+
+            return true;
+        }
+
+        private bool TryAdjustBlockIndent(Block block, bool decreaseIndent)
+        {
+            var margin = block.Margin;
+            var currentIndent = NormalizeAppliedIndent(margin.Left);
+            var nextIndent = ResolveNextIndent(currentIndent, _indentSize, decreaseIndent);
+            var changed = Math.Abs(nextIndent - currentIndent) >= 0.1
+                || double.IsNaN(margin.Left)
+                || double.IsInfinity(margin.Left)
+                || margin.Left < 0;
+
+            if (changed)
+                block.Margin = new Thickness(nextIndent, margin.Top, margin.Right, margin.Bottom);
+
+            if (block is Paragraph paragraph && Math.Abs(paragraph.TextIndent) >= 0.1)
+            {
+                paragraph.TextIndent = 0;
+                changed = true;
+            }
+
+            return changed;
+        }
+
+        private List<Block> GetTargetBlocksForIndentFormatting()
+        {
+            var selection = ContentTextBox.Selection;
+            if (selection == null)
+                return new List<Block>();
+
+            if (selection.IsEmpty)
+            {
+                var activeBlock = ResolveCurrentIndentTargetBlock();
+                return activeBlock == null ? new List<Block>() : new List<Block> { activeBlock };
+            }
+
+            var blocks = new List<Block>();
+            CollectIndentBlocks(ContentTextBox.Document.Blocks, selection.Start, selection.End, blocks);
+            return blocks;
+        }
+
+        private Block? ResolveCurrentIndentTargetBlock()
+        {
+            foreach (var pointer in EnumerateCaretIndentPointerCandidates(
+                         ContentTextBox.Selection?.Start,
+                         ContentTextBox.CaretPosition))
+            {
+                var block = FindIndentTargetBlock(pointer);
+                if (block != null)
+                    return block;
+            }
+
+            return null;
+        }
+
+        private static void CollectIndentBlocks(
+            BlockCollection blocks,
+            TextPointer start,
+            TextPointer end,
+            ICollection<Block> targetBlocks)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case Paragraph paragraph when TextElementIntersectsRange(paragraph, start, end):
+                        targetBlocks.Add(paragraph);
+                        break;
+                    case BlockUIContainer blockContainer when TextElementIntersectsRange(blockContainer, start, end):
+                        targetBlocks.Add(blockContainer);
+                        break;
+                    case System.Windows.Documents.List list when TextElementIntersectsRange(list, start, end):
+                        targetBlocks.Add(list);
+                        break;
+                    case Section section:
+                        CollectIndentBlocks(section.Blocks, start, end, targetBlocks);
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                    CollectIndentBlocks(cell.Blocks, start, end, targetBlocks);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        private static Block? FindIndentTargetBlock(TextPointer? pointer)
+        {
+            if (pointer == null)
+                return null;
+
+            if (pointer.Paragraph != null)
+                return pointer.Paragraph;
+
+            DependencyObject? current = pointer?.Parent as DependencyObject;
+            while (current != null)
+            {
+                if (current is Block block)
+                    return block;
+
+                current = current switch
+                {
+                    FrameworkContentElement contentElement => contentElement.Parent,
+                    FrameworkElement frameworkElement => frameworkElement.Parent,
+                    _ => LogicalTreeHelper.GetParent(current)
+                };
+            }
+
+            return null;
+        }
+
+        private static IEnumerable<TextPointer> EnumerateCaretIndentPointerCandidates(
+            params TextPointer?[] pointers)
+        {
+            foreach (var pointer in pointers)
+            {
+                if (pointer == null)
+                    continue;
+
+                yield return pointer;
+
+                var forwardInsertion = TryGetInsertionPosition(pointer, LogicalDirection.Forward);
+                if (forwardInsertion != null)
+                    yield return forwardInsertion;
+
+                var backwardInsertion = TryGetInsertionPosition(pointer, LogicalDirection.Backward);
+                if (backwardInsertion != null)
+                    yield return backwardInsertion;
+            }
+        }
+
+        private static TextPointer? TryGetInsertionPosition(TextPointer? pointer, LogicalDirection direction)
+        {
+            if (pointer == null)
+                return null;
+
+            try
+            {
+                return pointer.GetInsertionPosition(direction);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static double ResolveNextIndent(double currentIndent, double indentSize, bool decreaseIndent)
+        {
+            var step = NormalizeIndentSize(indentSize);
+            var currentLevel = currentIndent / step;
+            var nextLevel = decreaseIndent
+                ? Math.Ceiling(currentLevel) - 1
+                : Math.Floor(currentLevel) + 1;
+
+            return Math.Clamp(nextLevel * step, 0, MaximumAppliedIndent);
+        }
+
+        private static double NormalizeAppliedIndent(double indent)
+        {
+            if (double.IsNaN(indent) || double.IsInfinity(indent) || indent < 0)
+                return 0;
+
+            return Math.Min(indent, MaximumAppliedIndent);
         }
 
         // Start the auto-save timer
@@ -2087,13 +3009,223 @@ namespace NoteCards
             }
         }
 
+        private void ExportButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ExportButton.ContextMenu == null)
+                return;
+
+            ExportButton.ContextMenu.PlacementTarget = ExportButton;
+            ExportButton.ContextMenu.IsOpen = true;
+        }
+
+        private void ExportTextMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            ExportFile(
+                "ExportTextDialogFilter",
+                ".txt",
+                path => NoteFileService.SavePlainText(path, GetContentTextForFileExport()));
+        }
+
+        private void ExportMarkdownMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            ExportFile(
+                "ExportMarkdownDialogFilter",
+                ".md",
+                path => NoteFileService.SavePlainText(path, GetContentTextForFileExport()));
+        }
+
+        private void ExportRtfMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            ExportFile(
+                "ExportRtfDialogFilter",
+                ".rtf",
+                path =>
+                {
+                    ClearAllHighlights();
+                    NoteFileService.SaveTextRange(path, GetCurrentEditorTextRange(), DataFormats.Rtf);
+                });
+        }
+
+        private void ExportXamlPackageMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            ExportFile(
+                "ExportXamlPackageDialogFilter",
+                ".xamlpackage",
+                path =>
+                {
+                    ClearAllHighlights();
+                    NoteFileService.SaveTextRange(path, GetCurrentEditorTextRange(), DataFormats.XamlPackage);
+                });
+        }
+
+        private void ExportNotePackageMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            ExportFile(
+                "ExportNotePackageDialogFilter",
+                ".notecard",
+                path =>
+                {
+                    ClearAllHighlights();
+                    NoteFileService.SaveNotePackage(path, CreateExportNoteDocument());
+                });
+        }
+
+        private void ExportFile(string filterResourceKey, string defaultExtension, Action<string> saveAction)
+        {
+            try
+            {
+                if (!TryChooseExportPath(filterResourceKey, defaultExtension, out var path))
+                    return;
+
+                saveAction(path);
+
+                ModernMessageBox.Show(
+                    LocalizationService.GetString("ExportComplete"),
+                    LocalizationService.GetString("Success"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ModernMessageBox.Show(
+                    $"{LocalizationService.GetString("FailedToExport")}\n\n{ex.Message}",
+                    LocalizationService.GetString("ExportError"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private bool TryChooseExportPath(string filterResourceKey, string defaultExtension, out string path)
+        {
+            var fallbackTitle = LocalizationService.GetString("NewNoteTitle");
+            var dialog = new SaveFileDialog
+            {
+                AddExtension = true,
+                DefaultExt = defaultExtension,
+                FileName = NoteFileService.CreateSafeFileName(TitleTextBox.Text, fallbackTitle),
+                Filter = LocalizationService.GetString(filterResourceKey),
+                Title = LocalizationService.GetString("Export")
+            };
+
+            if (dialog.ShowDialog(GetDialogOwnerWindow()) == true)
+            {
+                path = dialog.FileName;
+                return true;
+            }
+
+            path = string.Empty;
+            return false;
+        }
+
+        private TextRange GetCurrentEditorTextRange()
+            => new(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
+
+        private string GetContentTextForFileExport()
+        {
+            var text = BuildDocumentPlainTextForFileExport();
+
+            if (text.EndsWith("\r\n", StringComparison.Ordinal))
+                return text[..^2];
+
+            if (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal))
+                return text[..^1];
+
+            return text;
+        }
+
+        private string BuildDocumentPlainTextForFileExport()
+        {
+            var lines = new List<string>();
+            AppendBlocksPlainTextForFileExport(ContentTextBox.Document.Blocks, lines);
+            return string.Join("\r\n", lines);
+        }
+
+        private void AppendBlocksPlainTextForFileExport(BlockCollection blocks, ICollection<string> lines)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case Paragraph paragraph:
+                        AppendParagraphPlainTextForFileExport(paragraph, lines);
+                        break;
+                    case Section section:
+                        AppendBlocksPlainTextForFileExport(section.Blocks, lines);
+                        break;
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                            AppendBlocksPlainTextForFileExport(item.Blocks, lines);
+                        break;
+                    case Table table:
+                        AppendTablePlainTextForFileExport(table, lines);
+                        break;
+                    default:
+                        AppendPlainTextLinesForFileExport(
+                            new TextRange(block.ContentStart, block.ContentEnd).Text,
+                            string.Empty,
+                            lines);
+                        break;
+                }
+            }
+        }
+
+        private void AppendTablePlainTextForFileExport(Table table, ICollection<string> lines)
+        {
+            foreach (TableRowGroup rowGroup in table.RowGroups)
+            {
+                foreach (TableRow row in rowGroup.Rows)
+                {
+                    foreach (TableCell cell in row.Cells)
+                        AppendBlocksPlainTextForFileExport(cell.Blocks, lines);
+                }
+            }
+        }
+
+        private void AppendParagraphPlainTextForFileExport(Paragraph paragraph, ICollection<string> lines)
+        {
+            var prefix = ResolveParagraphMarginIndentClipboardPrefix(paragraph);
+            var paragraphText = new TextRange(paragraph.ContentStart, paragraph.ContentEnd).Text;
+            AppendPlainTextLinesForFileExport(paragraphText, prefix, lines);
+        }
+
+        private void AppendPlainTextLinesForFileExport(
+            string text,
+            string prefix,
+            ICollection<string> lines)
+        {
+            text = TrimSingleTrailingLineBreak(text)
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace('\r', '\n');
+
+            foreach (var line in text.Split('\n'))
+            {
+                var normalizedLine = NormalizeLeadingIndentationForPlainTextExport(line, out _);
+                lines.Add(prefix + normalizedLine);
+            }
+        }
+
+        private NoteDocument CreateExportNoteDocument()
+            => new()
+            {
+                Title = TitleTextBox.Text,
+                Content = SerializeEditorContentWithImageMarkers(),
+                Images = CloneImageAttachments(BuildImageAttachments()),
+                Tags = ParseTags(TagsTextBox.Text),
+                FontFamily = ContentTextBox.FontFamily.Source,
+                FontSize = ContentTextBox.FontSize,
+                IsEditorFontPanelOpen = _isFontPanelOpen,
+                IsWordWrapEnabled = _isWordWrapEnabled,
+                CreatedAt = _currentDocument?.CreatedAt ?? DateTime.UtcNow,
+                LastModified = DateTime.Now
+            };
+
         private bool ExportToPdf(string title)
         {
             var exportDoc = new FlowDocument();
-            exportDoc.PageWidth = 816;  // A4 at 96 DPI
-            exportDoc.PageHeight = 1056;
-            exportDoc.ColumnWidth = 680;
-            exportDoc.PagePadding = new Thickness(60);
+            exportDoc.PageWidth = PdfPageWidth;  // A4 at 96 DPI
+            exportDoc.PageHeight = PdfPageHeight;
+            exportDoc.ColumnWidth = PdfPageWidth - (PdfPagePadding * 2);
+            exportDoc.PagePadding = new Thickness(PdfPagePadding);
 
             // Add title as FIRST paragraph (from TitleTextBox only)
             var titleParagraph = new Paragraph(new Run(title))
@@ -2114,7 +3246,8 @@ namespace NoteCards
             };
             exportDoc.Blocks.Add(separator);
 
-            var contentClone = CloneFlowDocument(ContentTextBox.Document);
+            var exportNote = CreateExportNoteDocument();
+            var contentClone = CreatePdfContentDocument(exportNote, exportDoc.ColumnWidth);
             if (contentClone != null && contentClone.Blocks.FirstBlock != null)
             {
                 while (contentClone.Blocks.FirstBlock != null)
@@ -2134,6 +3267,7 @@ namespace NoteCards
                 });
             }
 
+            var printableDocument = CreatePdfFixedDocument(exportDoc, exportNote.Images);
             var printDialog = new PrintDialog();
 
             var printQueue = new System.Printing.PrintQueue(
@@ -2144,7 +3278,7 @@ namespace NoteCards
             var queuedJobsBefore = GetQueuedJobCount(printQueue);
 
             printDialog.PrintDocument(
-                ((IDocumentPaginatorSource)exportDoc).DocumentPaginator,
+                printableDocument.DocumentPaginator,
                 title);
 
             System.Threading.Thread.Sleep(150);
@@ -2154,6 +3288,396 @@ namespace NoteCards
                 return true;
 
             return queuedJobsAfter > queuedJobsBefore;
+        }
+
+        private FlowDocument? CreatePdfContentDocument(NoteDocument exportNote, double maximumImageWidth)
+        {
+            var document = LoadFlowDocumentFromStoredContent(exportNote.Content);
+            if (document == null)
+                return null;
+
+            InsertPdfImages(document, exportNote.Images, maximumImageWidth, includeFloatingImages: false);
+            return document;
+        }
+
+        private FixedDocument CreatePdfFixedDocument(
+            FlowDocument sourceDocument,
+            IReadOnlyList<NoteImageAttachment>? images)
+        {
+            sourceDocument.PageWidth = PdfPageWidth;
+            sourceDocument.PageHeight = PdfPageHeight;
+            sourceDocument.PagePadding = new Thickness(PdfPagePadding);
+            sourceDocument.ColumnWidth = PdfPageWidth - (PdfPagePadding * 2);
+
+            var paginator = ((IDocumentPaginatorSource)sourceDocument).DocumentPaginator;
+            paginator.PageSize = new Size(PdfPageWidth, PdfPageHeight);
+            paginator.ComputePageCount();
+
+            var fixedDocument = new FixedDocument();
+            fixedDocument.DocumentPaginator.PageSize = new Size(PdfPageWidth, PdfPageHeight);
+
+            var pageCount = Math.Max(
+                Math.Max(1, paginator.PageCount),
+                ResolveRequiredPdfPageCountForFloatingImages(images));
+            for (var pageIndex = 0; pageIndex < pageCount; pageIndex++)
+            {
+                var documentPage = paginator.GetPage(pageIndex);
+                var fixedPage = new FixedPage
+                {
+                    Width = PdfPageWidth,
+                    Height = PdfPageHeight,
+                    Background = Brushes.White
+                };
+
+                fixedPage.Children.Add(new Rectangle
+                {
+                    Width = PdfPageWidth,
+                    Height = PdfPageHeight,
+                    Fill = new VisualBrush(documentPage.Visual)
+                    {
+                        Stretch = Stretch.None,
+                        AlignmentX = AlignmentX.Left,
+                        AlignmentY = AlignmentY.Top,
+                        ViewboxUnits = BrushMappingMode.Absolute,
+                        Viewbox = new Rect(0, 0, PdfPageWidth, PdfPageHeight),
+                        ViewportUnits = BrushMappingMode.Absolute,
+                        Viewport = new Rect(0, 0, PdfPageWidth, PdfPageHeight)
+                    }
+                });
+
+                AddFloatingImagesToPdfPage(fixedPage, images, pageIndex);
+
+                fixedPage.Measure(new Size(PdfPageWidth, PdfPageHeight));
+                fixedPage.Arrange(new Rect(0, 0, PdfPageWidth, PdfPageHeight));
+                fixedPage.UpdateLayout();
+
+                var pageContent = new PageContent();
+                ((IAddChild)pageContent).AddChild(fixedPage);
+                fixedDocument.Pages.Add(pageContent);
+            }
+
+            return fixedDocument;
+        }
+
+        private static int ResolveRequiredPdfPageCountForFloatingImages(IReadOnlyList<NoteImageAttachment>? images)
+        {
+            if (images == null || images.Count == 0)
+                return 1;
+
+            var firstPageContentHeight = PdfPageHeight - (PdfPagePadding * 2) - PdfContentTopOffset;
+            var laterPageContentHeight = PdfPageHeight - (PdfPagePadding * 2);
+            var maxPage = 0;
+            foreach (var image in images.Where(image =>
+                         string.Equals(image.Layout, NoteImageLayout.Floating, StringComparison.OrdinalIgnoreCase)))
+            {
+                var top = double.IsNaN(image.Top) ? 0 : Math.Max(0, image.Top);
+                maxPage = Math.Max(maxPage, ResolvePdfFloatingPlacement(
+                    top,
+                    firstPageContentHeight,
+                    laterPageContentHeight).PageIndex);
+            }
+
+            return maxPage + 1;
+        }
+
+        private static void AddFloatingImagesToPdfPage(
+            FixedPage fixedPage,
+            IReadOnlyList<NoteImageAttachment>? images,
+            int pageIndex)
+        {
+            if (images == null || images.Count == 0)
+                return;
+
+            var contentWidth = PdfPageWidth - (PdfPagePadding * 2);
+            var firstPageContentHeight = PdfPageHeight - (PdfPagePadding * 2) - PdfContentTopOffset;
+            var laterPageContentHeight = PdfPageHeight - (PdfPagePadding * 2);
+            foreach (var attachment in images.Where(image =>
+                         string.Equals(image.Layout, NoteImageLayout.Floating, StringComparison.OrdinalIgnoreCase)
+                         && !string.IsNullOrWhiteSpace(image.Data)))
+            {
+                var imageTop = double.IsNaN(attachment.Top) ? 0 : Math.Max(0, attachment.Top);
+                var placement = ResolvePdfFloatingPlacement(imageTop, firstPageContentHeight, laterPageContentHeight);
+                var targetPage = placement.PageIndex;
+                if (targetPage != pageIndex)
+                    continue;
+
+                var imageElement = CreatePdfImageElement(attachment, contentWidth);
+                if (imageElement == null)
+                    continue;
+
+                var imageLeft = double.IsNaN(attachment.Left) ? 0 : Math.Max(0, attachment.Left);
+                FixedPage.SetLeft(imageElement, PdfPagePadding + Math.Min(imageLeft, contentWidth - 1));
+                FixedPage.SetTop(imageElement, PdfPagePadding + placement.TopOffset);
+                Panel.SetZIndex(imageElement, 1000);
+                fixedPage.Children.Add(imageElement);
+            }
+        }
+
+        private static (int PageIndex, double TopOffset) ResolvePdfFloatingPlacement(
+            double documentTop,
+            double firstPageContentHeight,
+            double laterPageContentHeight)
+        {
+            firstPageContentHeight = Math.Max(1, firstPageContentHeight);
+            laterPageContentHeight = Math.Max(1, laterPageContentHeight);
+
+            if (documentTop < firstPageContentHeight)
+                return (0, PdfContentTopOffset + documentTop);
+
+            var remainingTop = documentTop - firstPageContentHeight;
+            var laterPageOffset = remainingTop % laterPageContentHeight;
+            var pageIndex = 1 + (int)Math.Floor(remainingTop / laterPageContentHeight);
+            return (pageIndex, laterPageOffset);
+        }
+
+        private static FlowDocument? LoadFlowDocumentFromStoredContent(string? content)
+        {
+            if (string.IsNullOrEmpty(content))
+                return null;
+
+            var document = new FlowDocument();
+            var range = new TextRange(document.ContentStart, document.ContentEnd);
+
+            try
+            {
+                var bytes = Convert.FromBase64String(content);
+                if (bytes.Length >= 5)
+                {
+                    var header = Encoding.ASCII.GetString(bytes, 0, Math.Min(5, bytes.Length));
+                    using var stream = new MemoryStream(bytes);
+
+                    if (header.StartsWith("{\\rtf", StringComparison.Ordinal))
+                    {
+                        range.Load(stream, DataFormats.Rtf);
+                        return document;
+                    }
+
+                    if (bytes[0] == 0x50 && bytes[1] == 0x4B)
+                    {
+                        range.Load(stream, DataFormats.XamlPackage);
+                        return document;
+                    }
+                }
+            }
+            catch (FormatException)
+            {
+                range.Text = content;
+                return document;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load PDF export content as rich text: {ex.Message}");
+            }
+
+            range.Text = content;
+            return document;
+        }
+
+        private static void InsertPdfImages(
+            FlowDocument document,
+            IReadOnlyList<NoteImageAttachment>? images,
+            double maximumImageWidth,
+            bool includeFloatingImages)
+        {
+            if (images == null || images.Count == 0)
+                return;
+
+            var inserted = new HashSet<Guid>();
+            foreach (var image in images.Where(image => image.Id != Guid.Empty && !string.IsNullOrWhiteSpace(image.Data)))
+            {
+                var marker = FindTextRange(document, CreateImageMarker(image.Id));
+                if (marker == null)
+                    continue;
+
+                if (string.Equals(image.Layout, NoteImageLayout.Inline, StringComparison.OrdinalIgnoreCase))
+                {
+                    InsertPdfInlineImage(marker, image, maximumImageWidth);
+                }
+                else if (includeFloatingImages)
+                {
+                    InsertPdfBlockImage(marker, image, maximumImageWidth);
+                }
+                else
+                {
+                    marker.Text = string.Empty;
+                }
+
+                inserted.Add(image.Id);
+            }
+
+            if (!includeFloatingImages)
+                return;
+
+            foreach (var image in images
+                         .Where(image => image.Id != Guid.Empty
+                                         && !inserted.Contains(image.Id)
+                                         && !string.IsNullOrWhiteSpace(image.Data))
+                         .OrderBy(image => double.IsNaN(image.Top) ? 0 : image.Top)
+                         .ThenBy(image => double.IsNaN(image.Left) ? 0 : image.Left))
+            {
+                var imageElement = CreatePdfImageElement(image, maximumImageWidth);
+                if (imageElement == null)
+                    continue;
+
+                document.Blocks.Add(new BlockUIContainer(imageElement)
+                {
+                    Margin = new Thickness(
+                        Math.Max(0, Math.Min(double.IsNaN(image.Left) ? 0 : image.Left, 96)),
+                        8,
+                        0,
+                        8)
+                });
+            }
+        }
+
+        private static void InsertPdfInlineImage(
+            TextRange markerRange,
+            NoteImageAttachment attachment,
+            double maximumImageWidth)
+        {
+            var imageElement = CreatePdfImageElement(attachment, maximumImageWidth);
+            if (imageElement == null)
+            {
+                markerRange.Text = string.Empty;
+                return;
+            }
+
+            var insertionPosition = markerRange.Start;
+            markerRange.Text = string.Empty;
+            insertionPosition = insertionPosition.GetInsertionPosition(LogicalDirection.Forward) ?? insertionPosition;
+            new InlineUIContainer(imageElement, insertionPosition);
+        }
+
+        private static void InsertPdfBlockImage(
+            TextRange markerRange,
+            NoteImageAttachment attachment,
+            double maximumImageWidth)
+        {
+            var imageElement = CreatePdfImageElement(attachment, maximumImageWidth);
+            if (imageElement == null)
+            {
+                markerRange.Text = string.Empty;
+                return;
+            }
+
+            var markerParagraph = markerRange.Start.Paragraph;
+            var parentBlocks = markerParagraph == null ? null : GetParentBlockCollection(markerParagraph);
+            if (markerParagraph != null
+                && parentBlocks != null
+                && IsParagraphMarkerOnly(markerParagraph, CreateImageMarker(attachment.Id)))
+            {
+                var imageBlock = new BlockUIContainer(imageElement)
+                {
+                    Margin = new Thickness(
+                        Math.Max(0, Math.Min(double.IsNaN(attachment.Left) ? markerParagraph.Margin.Left : attachment.Left, 96)),
+                        markerParagraph.Margin.Top,
+                        markerParagraph.Margin.Right,
+                        Math.Max(markerParagraph.Margin.Bottom, 8))
+                };
+
+                parentBlocks.InsertBefore(markerParagraph, imageBlock);
+                parentBlocks.Remove(markerParagraph);
+                return;
+            }
+
+            var insertionPosition = markerRange.Start;
+            markerRange.Text = string.Empty;
+            insertionPosition = insertionPosition.GetInsertionPosition(LogicalDirection.Forward) ?? insertionPosition;
+            new InlineUIContainer(imageElement, insertionPosition);
+        }
+
+        private static Image? CreatePdfImageElement(NoteImageAttachment attachment, double maximumImageWidth)
+        {
+            var source = TryCreateImageSourceFromBase64(attachment.Data);
+            if (source == null)
+                return null;
+
+            var size = ResolvePdfImageSize(attachment, source, maximumImageWidth);
+            return new Image
+            {
+                Source = source,
+                Width = size.Width,
+                Height = size.Height,
+                Stretch = Stretch.Uniform,
+                SnapsToDevicePixels = true,
+                Margin = new Thickness(0, 4, 0, 4)
+            };
+        }
+
+        private static BitmapImage? TryCreateImageSourceFromBase64(string imageData)
+        {
+            try
+            {
+                var bytes = Convert.FromBase64String(imageData);
+                using var stream = new MemoryStream(bytes);
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.StreamSource = stream;
+                bitmap.EndInit();
+                bitmap.Freeze();
+                return bitmap;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to decode PDF export image: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static Size ResolvePdfImageSize(
+            NoteImageAttachment attachment,
+            BitmapSource source,
+            double maximumImageWidth)
+        {
+            var width = attachment.Width > 0 ? attachment.Width : source.Width;
+            var height = attachment.Height > 0 ? attachment.Height : source.Height;
+            if (width <= 0)
+                width = Math.Max(1, source.PixelWidth);
+            if (height <= 0)
+                height = Math.Max(1, source.PixelHeight);
+
+            var maxWidth = maximumImageWidth > 0 ? maximumImageWidth : 680;
+            if (width > maxWidth)
+            {
+                var scale = maxWidth / width;
+                width = maxWidth;
+                height *= scale;
+            }
+
+            const double maxHeight = 880;
+            if (height > maxHeight)
+            {
+                var scale = maxHeight / height;
+                height = maxHeight;
+                width *= scale;
+            }
+
+            return new Size(Math.Max(1, width), Math.Max(1, height));
+        }
+
+        private static TextRange? FindTextRange(FlowDocument document, string text)
+        {
+            var navigator = document.ContentStart;
+            while (navigator != null && navigator.CompareTo(document.ContentEnd) < 0)
+            {
+                var runText = navigator.GetTextInRun(LogicalDirection.Forward);
+                if (!string.IsNullOrEmpty(runText))
+                {
+                    var index = runText.IndexOf(text, StringComparison.Ordinal);
+                    if (index >= 0)
+                    {
+                        var start = navigator.GetPositionAtOffset(index, LogicalDirection.Forward);
+                        var end = start?.GetPositionAtOffset(text.Length, LogicalDirection.Forward);
+                        if (start != null && end != null)
+                            return new TextRange(start, end);
+                    }
+                }
+
+                navigator = navigator.GetNextContextPosition(LogicalDirection.Forward);
+            }
+
+            return null;
         }
 
         private static int GetQueuedJobCount(System.Printing.PrintQueue printQueue)
@@ -2278,6 +3802,7 @@ namespace NoteCards
                 tr.Text = string.Empty;
                 RestoreImagesFromMarkers(images);
                 ConfigureResizableImages();
+                SyncFontSelectorsFromSelection();
                 return;
             }
 
@@ -2314,6 +3839,7 @@ namespace NoteCards
 
             RestoreImagesFromMarkers(images);
             ConfigureResizableImages();
+            SyncFontSelectorsFromSelection();
         }
 
         private void ShowStatusIndicator(string message)
@@ -2339,27 +3865,22 @@ namespace NoteCards
             if (_isSyncingFontSelectors)
                 return;
 
-            if (FontFamilyBox.SelectedItem is ComboBoxItem item && item.Content != null)
-            {
-                string? fontName = item.Content.ToString();
-                if (!string.IsNullOrEmpty(fontName))
-                {
-                    if (ContentTextBox.Selection != null && !ContentTextBox.Selection.IsEmpty)
-                    {
-                        ContentTextBox.Selection.ApplyPropertyValue(TextElement.FontFamilyProperty, new FontFamily(fontName));
-                    }
-                    else
-                    {
-                        ContentTextBox.FontFamily = new FontFamily(fontName);
-                    }
+            if (!TryGetSelectedComboBoxContent(FontFamilyBox, out var fontName))
+                return;
 
-                    SavePreferredTypography(ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
-                    SyncFontSelectorsFromEditor();
-                    UpdateFontButtonText();
-                    MarkEditorContentChanged();
-                    UpdateEditedIndicator();
-                }
+            var selectionChangesDocument = ContentTextBox.Selection is { IsEmpty: false };
+            ContentTextBox.Selection.ApplyPropertyValue(TextElement.FontFamilyProperty, new FontFamily(fontName));
+
+            SavePreferredFontFamily(fontName);
+            SyncFontSelectorsFromSelection();
+
+            if (selectionChangesDocument)
+            {
+                MarkEditorContentChanged();
+                UpdateEditedIndicator();
             }
+
+            ContentTextBox.Focus();
         }
 
         private void FontSizeBox_Changed(object sender, SelectionChangedEventArgs e)
@@ -2367,38 +3888,497 @@ namespace NoteCards
             if (_isSyncingFontSelectors)
                 return;
 
-            if (FontSizeBox.SelectedItem is ComboBoxItem item && item.Content != null)
+            if (!TryGetSelectedComboBoxContent(FontSizeBox, out var sizeText)
+                || !double.TryParse(sizeText, NumberStyles.Float, CultureInfo.InvariantCulture, out var size))
             {
-                string? sizeText = item.Content.ToString();
-                if (!string.IsNullOrEmpty(sizeText)
-                    && double.TryParse(sizeText, NumberStyles.Float, CultureInfo.InvariantCulture, out double size))
-                {
-                    if (ContentTextBox.Selection != null && !ContentTextBox.Selection.IsEmpty)
-                    {
-                        ContentTextBox.Selection.ApplyPropertyValue(TextElement.FontSizeProperty, size);
-                    }
-                    else
-                    {
-                        ContentTextBox.FontSize = size;
-                    }
-
-                    SavePreferredTypography(ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
-                    SyncFontSelectorsFromEditor();
-                    UpdateFontButtonText();
-                    MarkEditorContentChanged();
-                    UpdateEditedIndicator();
-                }
+                return;
             }
+
+            size = NormalizeEditorFontSize(size);
+            var selectionChangesDocument = ContentTextBox.Selection is { IsEmpty: false };
+            ContentTextBox.Selection.ApplyPropertyValue(TextElement.FontSizeProperty, size);
+
+            ApplyLineSpacingToInlineFormattingTarget(size);
+
+            SavePreferredFontSize(size);
+            SyncFontSelectorsFromSelection();
+
+            if (selectionChangesDocument)
+            {
+                MarkEditorContentChanged();
+                UpdateEditedIndicator();
+            }
+
+            ContentTextBox.Focus();
+        }
+
+        private void LineSpacingBox_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isSyncingLineSpacingSelector)
+                return;
+
+            if (LineSpacingBox.SelectedItem is not ComboBoxItem item || item.Content == null)
+                return;
+
+            var spacingText = item.Content.ToString();
+            if (string.IsNullOrWhiteSpace(spacingText)
+                || !double.TryParse(spacingText, NumberStyles.Float, CultureInfo.InvariantCulture, out var spacing))
+            {
+                return;
+            }
+
+            _lineSpacingMultiplier = NormalizeLineSpacingMultiplier(spacing);
+            ApplyLineSpacingToTargetParagraphs(_lineSpacingMultiplier);
+            SavePreferredLineSpacing(_lineSpacingMultiplier);
+            MarkEditorContentChanged();
+            UpdateEditedIndicator();
+            ContentTextBox.Focus();
+        }
+
+        private void IndentSizeBox_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isSyncingIndentSizeSelector)
+                return;
+
+            if (IndentSizeBox.SelectedItem is not ComboBoxItem item)
+                return;
+
+            var indentText = item.Tag?.ToString() ?? item.Content?.ToString();
+            if (string.IsNullOrWhiteSpace(indentText)
+                || !double.TryParse(
+                    indentText.Replace("px", string.Empty, StringComparison.OrdinalIgnoreCase).Trim(),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out var indentSize))
+            {
+                return;
+            }
+
+            _indentSize = NormalizeIndentSize(indentSize);
+            SavePreferredIndentSize(_indentSize);
+            ContentTextBox.Focus();
         }
 
         private void FontSettings_Click(object sender, RoutedEventArgs e)
         {
-            // Toggle panel visibility
-            FontPanel.Visibility = FontPanel.Visibility == Visibility.Visible
-                ? Visibility.Collapsed
-                : Visibility.Visible;
-
+            SetFontPanelOpen(!_isFontPanelOpen, animate: true);
             UpdateFontButtonText();
+        }
+
+        private void SetFontPanelOpen(bool isOpen, bool animate, bool persist = true)
+        {
+            _isFontPanelOpen = isOpen;
+            if (persist)
+            {
+                SaveEditorFontPanelPreference(isOpen);
+                PersistCurrentDocumentEditorUiState();
+            }
+
+            UpdateEditorToolButtonStates();
+
+            if (!animate)
+            {
+                FontPanel.BeginAnimation(UIElement.OpacityProperty, null);
+                EnsureFontPanelTransform().BeginAnimation(TranslateTransform.YProperty, null);
+                FontPanel.Visibility = isOpen ? Visibility.Visible : Visibility.Collapsed;
+                FontPanel.Opacity = isOpen ? 1 : 0;
+                EnsureFontPanelTransform().Y = isOpen ? 0 : -6;
+                return;
+            }
+
+            AnimateFontPanel(isOpen);
+        }
+
+        private void AnimateFontPanel(bool show)
+        {
+            var animationVersion = ++_fontPanelAnimationVersion;
+            var transform = EnsureFontPanelTransform();
+            var duration = TimeSpan.FromMilliseconds(170);
+            var ease = new QuadraticEase
+            {
+                EasingMode = show ? EasingMode.EaseOut : EasingMode.EaseIn
+            };
+
+            if (show)
+            {
+                FontPanel.Visibility = Visibility.Visible;
+            }
+
+            var opacityAnimation = new DoubleAnimation
+            {
+                To = show ? 1 : 0,
+                Duration = duration,
+                EasingFunction = ease
+            };
+
+            var slideAnimation = new DoubleAnimation
+            {
+                To = show ? 0 : -6,
+                Duration = duration,
+                EasingFunction = ease
+            };
+
+            if (!show)
+            {
+                opacityAnimation.Completed += (_, _) =>
+                {
+                    if (animationVersion == _fontPanelAnimationVersion && !_isFontPanelOpen)
+                        FontPanel.Visibility = Visibility.Collapsed;
+                };
+            }
+
+            FontPanel.BeginAnimation(UIElement.OpacityProperty, opacityAnimation);
+            transform.BeginAnimation(TranslateTransform.YProperty, slideAnimation);
+        }
+
+        private TranslateTransform EnsureFontPanelTransform()
+        {
+            if (FontPanel.RenderTransform is TranslateTransform translate)
+                return translate;
+
+            translate = new TranslateTransform { Y = _isFontPanelOpen ? 0 : -6 };
+            FontPanel.RenderTransform = translate;
+            return translate;
+        }
+
+        private void ApplyLineSpacingToTargetParagraphs(double spacingMultiplier)
+        {
+            NormalizeVerticalMarginsForLineSpacingTarget();
+
+            var paragraphs = GetTargetParagraphsForParagraphFormatting();
+            foreach (var paragraph in paragraphs)
+            {
+                ApplyLineSpacingToParagraph(paragraph, spacingMultiplier);
+            }
+        }
+
+        private void ApplyLineSpacingToInlineFormattingTarget(double? minimumFontSize = null)
+        {
+            foreach (var paragraph in GetTargetParagraphsForInlineFormatting())
+                ApplyLineSpacingToParagraph(paragraph, _lineSpacingMultiplier, minimumFontSize);
+        }
+
+        private void ApplyCurrentLineSpacingToDocument()
+        {
+            if (ContentTextBox.Document == null)
+                return;
+
+            NormalizeVerticalBlockMargins(
+                ContentTextBox.Document.Blocks,
+                ContentTextBox.Document.ContentStart,
+                ContentTextBox.Document.ContentEnd);
+
+            var paragraphs = new List<Paragraph>();
+            CollectParagraphs(
+                ContentTextBox.Document.Blocks,
+                ContentTextBox.Document.ContentStart,
+                ContentTextBox.Document.ContentEnd,
+                paragraphs);
+
+            foreach (var paragraph in paragraphs)
+                ApplyLineSpacingToParagraph(paragraph, _lineSpacingMultiplier);
+        }
+
+        private void ApplyLineSpacingToParagraph(Paragraph paragraph, double spacingMultiplier, double? minimumFontSize = null)
+        {
+            paragraph.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
+            paragraph.LineHeight = ResolveParagraphLineHeight(paragraph, spacingMultiplier, minimumFontSize);
+            paragraph.Margin = NormalizeVerticalBlockMargin(paragraph.Margin);
+        }
+
+        private void NormalizeVerticalMarginsForLineSpacingTarget()
+        {
+            var selection = ContentTextBox.Selection;
+            var start = selection == null || selection.IsEmpty
+                ? ContentTextBox.Document.ContentStart
+                : selection.Start;
+            var end = selection == null || selection.IsEmpty
+                ? ContentTextBox.Document.ContentEnd
+                : selection.End;
+
+            NormalizeVerticalBlockMargins(ContentTextBox.Document.Blocks, start, end);
+        }
+
+        private static void NormalizeVerticalBlockMargins(
+            BlockCollection blocks,
+            TextPointer start,
+            TextPointer end)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case Paragraph paragraph when TextElementIntersectsRange(paragraph, start, end):
+                        paragraph.Margin = NormalizeVerticalBlockMargin(paragraph.Margin);
+                        break;
+                    case BlockUIContainer blockContainer when TextElementIntersectsRange(blockContainer, start, end):
+                        blockContainer.Margin = NormalizeVerticalBlockMargin(blockContainer.Margin);
+                        break;
+                    case System.Windows.Documents.List list when TextElementIntersectsRange(list, start, end):
+                        list.Margin = NormalizeVerticalBlockMargin(list.Margin);
+                        foreach (ListItem item in list.ListItems)
+                            NormalizeVerticalBlockMargins(item.Blocks, start, end);
+                        break;
+                    case Section section:
+                        NormalizeVerticalBlockMargins(section.Blocks, start, end);
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                    NormalizeVerticalBlockMargins(cell.Blocks, start, end);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        private static Thickness NormalizeVerticalBlockMargin(Thickness margin)
+            => new(margin.Left, 0, margin.Right, 0);
+
+        private List<Paragraph> GetTargetParagraphsForParagraphFormatting()
+        {
+            var selection = ContentTextBox.Selection;
+            var start = selection == null || selection.IsEmpty
+                ? ContentTextBox.Document.ContentStart
+                : selection.Start;
+            var end = selection == null || selection.IsEmpty
+                ? ContentTextBox.Document.ContentEnd
+                : selection.End;
+
+            var paragraphs = new List<Paragraph>();
+            CollectParagraphs(ContentTextBox.Document.Blocks, start, end, paragraphs);
+            return paragraphs;
+        }
+
+        private List<Paragraph> GetTargetParagraphsForInlineFormatting()
+        {
+            var selection = ContentTextBox.Selection;
+            if (selection == null)
+                return new List<Paragraph>();
+
+            if (selection.IsEmpty)
+            {
+                var paragraph = selection.Start.Paragraph ?? ContentTextBox.CaretPosition?.Paragraph;
+                return paragraph == null ? new List<Paragraph>() : new List<Paragraph> { paragraph };
+            }
+
+            var paragraphs = new List<Paragraph>();
+            CollectParagraphs(ContentTextBox.Document.Blocks, selection.Start, selection.End, paragraphs);
+            return paragraphs;
+        }
+
+        private static void CollectParagraphs(
+            BlockCollection blocks,
+            TextPointer start,
+            TextPointer end,
+            ICollection<Paragraph> paragraphs)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case Paragraph paragraph when TextElementIntersectsRange(paragraph, start, end):
+                        paragraphs.Add(paragraph);
+                        break;
+                    case Section section:
+                        CollectParagraphs(section.Blocks, start, end, paragraphs);
+                        break;
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                            CollectParagraphs(item.Blocks, start, end, paragraphs);
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                    CollectParagraphs(cell.Blocks, start, end, paragraphs);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
+        private static bool TextElementIntersectsRange(TextElement element, TextPointer start, TextPointer end)
+        {
+            try
+            {
+                return element.ContentEnd.CompareTo(start) > 0
+                    && element.ContentStart.CompareTo(end) < 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private double ResolveParagraphLineHeight(Paragraph paragraph, double spacingMultiplier, double? minimumFontSize = null)
+        {
+            var fontSize = ResolveLargestParagraphFontSize(paragraph);
+            if (minimumFontSize.HasValue && minimumFontSize.Value > fontSize)
+                fontSize = minimumFontSize.Value;
+
+            if (double.IsNaN(fontSize) || fontSize <= 0)
+                fontSize = ContentTextBox.FontSize;
+
+            if (double.IsNaN(fontSize) || fontSize <= 0)
+                fontSize = 14;
+
+            return Math.Max(1, fontSize * spacingMultiplier);
+        }
+
+        private double ResolveLargestParagraphFontSize(Paragraph paragraph)
+        {
+            var fontSize = NormalizeFontSizeValue(paragraph.FontSize);
+            foreach (var inlineFontSize in EnumerateInlineFontSizes(paragraph.Inlines))
+            {
+                if (inlineFontSize > fontSize)
+                    fontSize = inlineFontSize;
+            }
+
+            return fontSize;
+        }
+
+        private static IEnumerable<double> EnumerateInlineFontSizes(InlineCollection inlines)
+        {
+            foreach (Inline inline in inlines)
+            {
+                var fontSize = NormalizeFontSizeValue(inline.FontSize);
+                if (fontSize > 0)
+                    yield return fontSize;
+
+                switch (inline)
+                {
+                    case Span span:
+                        foreach (var nestedFontSize in EnumerateInlineFontSizes(span.Inlines))
+                            yield return nestedFontSize;
+                        break;
+                    case AnchoredBlock anchoredBlock:
+                        foreach (var nestedFontSize in EnumerateBlockFontSizes(anchoredBlock.Blocks))
+                            yield return nestedFontSize;
+                        break;
+                }
+            }
+        }
+
+        private static IEnumerable<double> EnumerateBlockFontSizes(BlockCollection blocks)
+        {
+            foreach (Block block in blocks)
+            {
+                var fontSize = NormalizeFontSizeValue(block.FontSize);
+                if (fontSize > 0)
+                    yield return fontSize;
+
+                switch (block)
+                {
+                    case Paragraph paragraph:
+                        foreach (var nestedFontSize in EnumerateInlineFontSizes(paragraph.Inlines))
+                            yield return nestedFontSize;
+                        break;
+                    case Section section:
+                        foreach (var nestedFontSize in EnumerateBlockFontSizes(section.Blocks))
+                            yield return nestedFontSize;
+                        break;
+                    case System.Windows.Documents.List list:
+                        foreach (ListItem item in list.ListItems)
+                        {
+                            foreach (var nestedFontSize in EnumerateBlockFontSizes(item.Blocks))
+                                yield return nestedFontSize;
+                        }
+
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                {
+                                    foreach (var nestedFontSize in EnumerateBlockFontSizes(cell.Blocks))
+                                        yield return nestedFontSize;
+                                }
+                            }
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        private static double NormalizeFontSizeValue(double fontSize)
+            => double.IsNaN(fontSize) || double.IsInfinity(fontSize) || fontSize <= 0
+                ? 0
+                : fontSize;
+
+        private static double NormalizeEditorFontSize(double fontSize)
+        {
+            if (double.IsNaN(fontSize) || double.IsInfinity(fontSize) || fontSize <= 0)
+                return 14;
+
+            return Math.Clamp(fontSize, 1, 300);
+        }
+
+        private void SyncLineSpacingSelectorFromPreference()
+        {
+            _isSyncingLineSpacingSelector = true;
+
+            try
+            {
+                var spacingText = _lineSpacingMultiplier.ToString("0.##", CultureInfo.InvariantCulture);
+                SelectComboBoxItemByContent(LineSpacingBox, spacingText, "1.0", StringComparison.Ordinal);
+            }
+            finally
+            {
+                _isSyncingLineSpacingSelector = false;
+            }
+        }
+
+        private void SyncIndentSizeSelectorFromPreference()
+        {
+            _isSyncingIndentSizeSelector = true;
+
+            try
+            {
+                _indentSize = NormalizeIndentSize(_indentSize);
+                if (!TrySelectComboBoxItemByTag(IndentSizeBox, _indentSize))
+                {
+                    _indentSize = DefaultIndentSize;
+                    TrySelectComboBoxItemByTag(IndentSizeBox, DefaultIndentSize);
+                }
+            }
+            finally
+            {
+                _isSyncingIndentSizeSelector = false;
+            }
+        }
+
+        private static double NormalizeLineSpacingMultiplier(double spacing)
+        {
+            if (double.IsNaN(spacing) || double.IsInfinity(spacing))
+                return 1.0;
+
+            return Math.Clamp(spacing, 0.8, 3.0);
+        }
+
+        private static double NormalizeIndentSize(double indentSize)
+        {
+            if (double.IsNaN(indentSize) || double.IsInfinity(indentSize))
+                return DefaultIndentSize;
+
+            var clamped = Math.Clamp(indentSize, MinimumIndentSize, MaximumIndentSize);
+            foreach (var option in WordIndentSizes)
+            {
+                if (Math.Abs(option - clamped) < 0.1)
+                    return option;
+            }
+
+            return DefaultIndentSize;
         }
 
         private void ToggleBoldButton_Click(object sender, RoutedEventArgs e)
@@ -2428,6 +4408,190 @@ namespace NoteCards
             ContentTextBox.Focus();
         }
 
+        private void BulletListButton_Click(object sender, RoutedEventArgs e)
+            => OpenButtonContextMenu(BulletListButton);
+
+        private void NumberedListButton_Click(object sender, RoutedEventArgs e)
+            => OpenButtonContextMenu(NumberedListButton);
+
+        private static void OpenButtonContextMenu(Button button)
+        {
+            if (button.ContextMenu == null)
+                return;
+
+            button.ContextMenu.PlacementTarget = button;
+            button.ContextMenu.IsOpen = true;
+        }
+
+        private void ListBulletDiscMenuItem_Click(object sender, RoutedEventArgs e)
+            => ApplyListStyle(TextMarkerStyle.Disc);
+
+        private void ListBulletCircleMenuItem_Click(object sender, RoutedEventArgs e)
+            => ApplyListStyle(TextMarkerStyle.Circle);
+
+        private void ListBulletSquareMenuItem_Click(object sender, RoutedEventArgs e)
+            => ApplyListStyle(TextMarkerStyle.Square);
+
+        private void ListNumberDecimalMenuItem_Click(object sender, RoutedEventArgs e)
+            => ApplyListStyle(TextMarkerStyle.Decimal);
+
+        private void ListNumberLowerLatinMenuItem_Click(object sender, RoutedEventArgs e)
+            => ApplyListStyle(TextMarkerStyle.LowerLatin);
+
+        private void ListNumberUpperRomanMenuItem_Click(object sender, RoutedEventArgs e)
+            => ApplyListStyle(TextMarkerStyle.UpperRoman);
+
+        private void ListRemoveButton_Click(object sender, RoutedEventArgs e)
+        {
+            ContentTextBox.Focus();
+            var activeLists = GetActiveDocumentLists();
+            if (activeLists.Count == 0)
+                return;
+
+            var markerStyle = activeLists.First().MarkerStyle;
+            var command = IsNumberedMarkerStyle(markerStyle)
+                ? EditingCommands.ToggleNumbering
+                : EditingCommands.ToggleBullets;
+
+            if (command.CanExecute(null, ContentTextBox))
+                command.Execute(null, ContentTextBox);
+
+            MarkEditorContentChanged();
+            UpdateEditedIndicator();
+            UpdateListRemoveButtonState();
+            ContentTextBox.Focus();
+        }
+
+        private void ApplyListStyle(TextMarkerStyle markerStyle)
+        {
+            ContentTextBox.Focus();
+
+            var activeLists = GetActiveDocumentLists();
+            if (activeLists.Count == 0)
+            {
+                var command = IsNumberedMarkerStyle(markerStyle)
+                    ? EditingCommands.ToggleNumbering
+                    : EditingCommands.ToggleBullets;
+
+                if (command.CanExecute(null, ContentTextBox))
+                    command.Execute(null, ContentTextBox);
+
+                activeLists = GetActiveDocumentLists();
+            }
+
+            foreach (var list in activeLists)
+            {
+                list.MarkerStyle = markerStyle;
+            }
+
+            MarkEditorContentChanged();
+            UpdateEditedIndicator();
+            UpdateListRemoveButtonState();
+            ContentTextBox.Focus();
+        }
+
+        private void UpdateListRemoveButtonState()
+        {
+            if (ListRemoveButton is null)
+                return;
+
+            ListRemoveButton.IsEnabled = GetActiveDocumentLists().Count > 0;
+        }
+
+        private HashSet<System.Windows.Documents.List> GetActiveDocumentLists()
+        {
+            var lists = new HashSet<System.Windows.Documents.List>();
+            var selection = ContentTextBox.Selection;
+
+            if (selection is null)
+                return lists;
+
+            if (selection.IsEmpty)
+            {
+                AddActiveDocumentList(selection.Start, lists);
+            }
+            else
+            {
+                CollectDocumentLists(ContentTextBox.Document.Blocks, selection.Start, selection.End, lists);
+                AddActiveDocumentList(selection.Start, lists);
+                AddActiveDocumentList(selection.End, lists);
+            }
+
+            AddActiveDocumentList(ContentTextBox.CaretPosition, lists);
+            return lists;
+        }
+
+        private static void CollectDocumentLists(
+            BlockCollection blocks,
+            TextPointer start,
+            TextPointer end,
+            ISet<System.Windows.Documents.List> lists)
+        {
+            foreach (Block block in blocks)
+            {
+                switch (block)
+                {
+                    case System.Windows.Documents.List list:
+                        if (TextElementIntersectsRange(list, start, end))
+                            lists.Add(list);
+
+                        foreach (ListItem item in list.ListItems)
+                            CollectDocumentLists(item.Blocks, start, end, lists);
+
+                        break;
+                    case Section section:
+                        CollectDocumentLists(section.Blocks, start, end, lists);
+                        break;
+                    case Table table:
+                        foreach (TableRowGroup rowGroup in table.RowGroups)
+                        {
+                            foreach (TableRow row in rowGroup.Rows)
+                            {
+                                foreach (TableCell cell in row.Cells)
+                                    CollectDocumentLists(cell.Blocks, start, end, lists);
+                            }
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        private static void AddActiveDocumentList(
+            TextPointer? pointer,
+            ISet<System.Windows.Documents.List> lists)
+        {
+            var list = FindAncestorDocumentList(pointer);
+            if (list != null)
+                lists.Add(list);
+        }
+
+        private static System.Windows.Documents.List? FindAncestorDocumentList(TextPointer? pointer)
+        {
+            DependencyObject? current = pointer?.Parent as DependencyObject;
+            while (current != null)
+            {
+                if (current is System.Windows.Documents.List list)
+                    return list;
+
+                current = current switch
+                {
+                    FrameworkContentElement contentElement => contentElement.Parent,
+                    FrameworkElement frameworkElement => frameworkElement.Parent,
+                    _ => LogicalTreeHelper.GetParent(current)
+                };
+            }
+
+            return null;
+        }
+
+        private static bool IsNumberedMarkerStyle(TextMarkerStyle markerStyle)
+            => markerStyle == TextMarkerStyle.Decimal
+                || markerStyle == TextMarkerStyle.LowerLatin
+                || markerStyle == TextMarkerStyle.UpperLatin
+                || markerStyle == TextMarkerStyle.LowerRoman
+                || markerStyle == TextMarkerStyle.UpperRoman;
+
         private void ToggleSelectionTextStyle(DependencyProperty property, object enabledValue, object disabledValue)
         {
             var selection = ContentTextBox.Selection;
@@ -2440,29 +4604,211 @@ namespace NoteCards
             ContentTextBox.Focus();
         }
 
+        private readonly record struct EditorTypographyState(
+            string FontFamily,
+            double FontSize,
+            bool HasMixedFontFamily,
+            bool HasMixedFontSize);
+
         private void UpdateFontButtonText()
+            => UpdateFontButtonText(ResolveCurrentSelectionTypography());
+
+        private void UpdateFontButtonText(EditorTypographyState typography)
         {
-            if (FindName("FontButton") is Button fontButton)
-            {
-                fontButton.ToolTip = string.Format(LocalizationService.GetString("FontButtonFormat"), ContentTextBox.FontFamily.Source, ContentTextBox.FontSize);
-            }
+            if (FindName("FontButton") is not Button fontButton)
+                return;
+
+            var mixedText = GetMixedSelectionText();
+            var fontFamily = typography.HasMixedFontFamily ? mixedText : typography.FontFamily;
+            var fontSize = typography.HasMixedFontSize ? mixedText : FormatFontSize(typography.FontSize);
+            fontButton.ToolTip = string.Format(LocalizationService.GetString("FontButtonFormat"), fontFamily, fontSize);
         }
 
-        private void SyncFontSelectorsFromEditor()
+        private void SyncFontSelectorsFromSelection()
         {
+            var typography = ResolveCurrentSelectionTypography();
             _isSyncingFontSelectors = true;
 
             try
             {
-                SelectComboBoxItemByContent(FontFamilyBox, ContentTextBox.FontFamily.Source, "Segoe UI", StringComparison.OrdinalIgnoreCase);
+                if (typography.HasMixedFontFamily)
+                    FontFamilyBox.SelectedIndex = -1;
+                else
+                    SelectOrAddComboBoxItemByContent(FontFamilyBox, typography.FontFamily, null, StringComparison.OrdinalIgnoreCase);
 
-                var fontSizeText = Math.Round(ContentTextBox.FontSize).ToString(CultureInfo.InvariantCulture);
-                SelectComboBoxItemByContent(FontSizeBox, fontSizeText, "14", StringComparison.Ordinal);
+                if (typography.HasMixedFontSize)
+                    FontSizeBox.SelectedIndex = -1;
+                else
+                    SelectOrAddComboBoxItemByContent(FontSizeBox, FormatFontSize(typography.FontSize), typography.FontSize, StringComparison.Ordinal);
             }
             finally
             {
                 _isSyncingFontSelectors = false;
             }
+
+            UpdateFontButtonText(typography);
+        }
+
+        private EditorTypographyState ResolveCurrentSelectionTypography()
+        {
+            var fallbackFamily = string.IsNullOrWhiteSpace(ContentTextBox.FontFamily?.Source)
+                ? DefaultEditorFontFamily
+                : ContentTextBox.FontFamily.Source;
+            var fallbackSize = NormalizeEditorFontSize(ContentTextBox.FontSize);
+            var fontFamily = fallbackFamily;
+            var fontSize = fallbackSize;
+            var hasMixedFontFamily = false;
+            var hasMixedFontSize = false;
+
+            var selection = ContentTextBox.Selection;
+            if (selection == null)
+                return new EditorTypographyState(fontFamily, fontSize, false, false);
+
+            if (TryGetSelectionPropertyValue(selection, TextElement.FontFamilyProperty, out var familyValue)
+                && TryGetFontFamily(familyValue, out var selectedFamily))
+            {
+                fontFamily = selectedFamily;
+            }
+            else if (selection.IsEmpty)
+            {
+                TryResolveFontFamilyAtPointer(selection.Start, ref fontFamily);
+            }
+            else
+            {
+                hasMixedFontFamily = true;
+            }
+
+            if (TryGetSelectionPropertyValue(selection, TextElement.FontSizeProperty, out var sizeValue)
+                && TryGetFontSize(sizeValue, out var selectedSize))
+            {
+                fontSize = NormalizeEditorFontSize(selectedSize);
+            }
+            else if (selection.IsEmpty)
+            {
+                TryResolveFontSizeAtPointer(selection.Start, ref fontSize);
+            }
+            else
+            {
+                hasMixedFontSize = true;
+            }
+
+            return new EditorTypographyState(fontFamily, fontSize, hasMixedFontFamily, hasMixedFontSize);
+        }
+
+        private static bool TryGetSelectionPropertyValue(TextSelection selection, DependencyProperty property, out object value)
+        {
+            try
+            {
+                value = selection.GetPropertyValue(property);
+                return value != DependencyProperty.UnsetValue;
+            }
+            catch
+            {
+                value = DependencyProperty.UnsetValue;
+                return false;
+            }
+        }
+
+        private static void TryResolveFontFamilyAtPointer(TextPointer? pointer, ref string fontFamily)
+        {
+            var current = pointer?.Parent as DependencyObject;
+            while (current != null)
+            {
+                if (TryGetFontFamily(current.GetValue(TextElement.FontFamilyProperty), out var resolvedFamily))
+                {
+                    fontFamily = resolvedFamily;
+                    return;
+                }
+
+                current = current switch
+                {
+                    FrameworkContentElement contentElement => contentElement.Parent,
+                    FrameworkElement frameworkElement => frameworkElement.Parent,
+                    _ => LogicalTreeHelper.GetParent(current)
+                };
+            }
+        }
+
+        private static void TryResolveFontSizeAtPointer(TextPointer? pointer, ref double fontSize)
+        {
+            var current = pointer?.Parent as DependencyObject;
+            while (current != null)
+            {
+                if (TryGetFontSize(current.GetValue(TextElement.FontSizeProperty), out var resolvedSize))
+                {
+                    fontSize = NormalizeEditorFontSize(resolvedSize);
+                    return;
+                }
+
+                current = current switch
+                {
+                    FrameworkContentElement contentElement => contentElement.Parent,
+                    FrameworkElement frameworkElement => frameworkElement.Parent,
+                    _ => LogicalTreeHelper.GetParent(current)
+                };
+            }
+        }
+
+        private static bool TryGetFontFamily(object? value, out string fontFamily)
+        {
+            fontFamily = string.Empty;
+
+            switch (value)
+            {
+                case FontFamily family when !string.IsNullOrWhiteSpace(family.Source):
+                    fontFamily = family.Source;
+                    return true;
+                case string familyName when !string.IsNullOrWhiteSpace(familyName):
+                    fontFamily = familyName.Trim();
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool TryGetFontSize(object? value, out double fontSize)
+        {
+            switch (value)
+            {
+                case double size when size > 0:
+                    fontSize = size;
+                    return true;
+                case int size when size > 0:
+                    fontSize = size;
+                    return true;
+                case string sizeText when double.TryParse(sizeText, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedSize) && parsedSize > 0:
+                    fontSize = parsedSize;
+                    return true;
+                default:
+                    fontSize = 0;
+                    return false;
+            }
+        }
+
+        private bool TryGetSelectedComboBoxContent(ComboBox comboBox, out string content)
+        {
+            if (comboBox.SelectedItem is ComboBoxItem { Content: not null } item)
+            {
+                content = item.Content.ToString() ?? string.Empty;
+                return !string.IsNullOrWhiteSpace(content);
+            }
+
+            content = comboBox.SelectedItem?.ToString() ?? string.Empty;
+            return !string.IsNullOrWhiteSpace(content);
+        }
+
+        private void SelectOrAddComboBoxItemByContent(
+            ComboBox comboBox,
+            string content,
+            object? tag,
+            StringComparison comparison)
+        {
+            if (TrySelectComboBoxItemByContent(comboBox, content, comparison))
+                return;
+
+            var item = CreateEditorComboBoxItem(content, tag);
+            comboBox.Items.Add(item);
+            comboBox.SelectedItem = item;
         }
 
         private static void SelectComboBoxItemByContent(ComboBox comboBox, string preferredContent, string fallbackContent, StringComparison comparison)
@@ -2489,12 +4835,103 @@ namespace NoteCards
             return false;
         }
 
-        private static void SavePreferredTypography(string fontFamily, double fontSize)
+        private static bool TrySelectComboBoxItemByTag(ComboBox comboBox, double tagValue)
+        {
+            foreach (var option in comboBox.Items.OfType<ComboBoxItem>())
+            {
+                if (TryGetFontSize(option.Tag, out var optionValue)
+                    && Math.Abs(optionValue - tagValue) < 0.1)
+                {
+                    comboBox.SelectedItem = option;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string FormatFontSize(double fontSize)
+        {
+            fontSize = NormalizeEditorFontSize(fontSize);
+            return FormatCompactNumber(fontSize);
+        }
+
+        private static string FormatIndentSizeLabel(double indentSize, string measurementUnitSystem)
+        {
+            if (string.Equals(
+                    AppSettings.NormalizeMeasurementUnitSystem(measurementUnitSystem),
+                    AppSettings.UnitSystemMetric,
+                    StringComparison.Ordinal))
+            {
+                return $"{FormatCompactNumber(indentSize / DipsPerInch * CentimetersPerInch)} cm";
+            }
+
+            return $"{FormatCompactNumber(indentSize / DipsPerInch)} in";
+        }
+
+        private static string FormatCompactNumber(double value)
+            => Math.Abs(value - Math.Round(value)) < 0.01
+                ? Math.Round(value).ToString(CultureInfo.InvariantCulture)
+                : value.ToString("0.##", CultureInfo.InvariantCulture);
+
+        private static string GetMixedSelectionText()
+        {
+            var text = LocalizationService.GetString("MixedSelection");
+            return string.Equals(text, "MixedSelection", StringComparison.Ordinal) ? "Mixed" : text;
+        }
+
+        private static void SavePreferredFontFamily(string fontFamily)
         {
             var settings = AppSettingsService.Load();
-            settings.PreferredFontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Segoe UI" : fontFamily;
-            settings.PreferredFontSize = fontSize > 0 ? fontSize : 14;
+            settings.PreferredFontFamily = string.IsNullOrWhiteSpace(fontFamily) ? DefaultEditorFontFamily : fontFamily;
             AppSettingsService.Save(settings);
+        }
+
+        private static void SavePreferredFontSize(double fontSize)
+        {
+            var settings = AppSettingsService.Load();
+            settings.PreferredFontSize = NormalizeEditorFontSize(fontSize);
+            AppSettingsService.Save(settings);
+        }
+
+        private static void SavePreferredLineSpacing(double lineSpacing)
+        {
+            var settings = AppSettingsService.Load();
+            settings.PreferredLineSpacing = NormalizeLineSpacingMultiplier(lineSpacing);
+            AppSettingsService.Save(settings);
+        }
+
+        private static void SavePreferredIndentSize(double indentSize)
+        {
+            var settings = AppSettingsService.Load();
+            settings.PreferredIndentSize = NormalizeIndentSize(indentSize);
+            AppSettingsService.Save(settings);
+        }
+
+        private static void SaveEditorFontPanelPreference(bool isOpen)
+        {
+            var settings = AppSettingsService.Load();
+            settings.IsEditorFontPanelOpen = isOpen;
+            AppSettingsService.Save(settings);
+        }
+
+        private static void SaveEditorWordWrapPreference(bool isEnabled)
+        {
+            var settings = AppSettingsService.Load();
+            settings.IsEditorWordWrapEnabled = isEnabled;
+            AppSettingsService.Save(settings);
+        }
+
+        private void PersistCurrentDocumentEditorUiState()
+        {
+            if (_currentDocument == null)
+                return;
+
+            _currentDocument.IsEditorFontPanelOpen = _isFontPanelOpen;
+            _currentDocument.IsWordWrapEnabled = _isWordWrapEnabled;
+
+            if (Application.Current.MainWindow?.DataContext is MainViewModel mainViewModel)
+                mainViewModel.SaveNotes();
         }
 
         private void OpenFromFileButton_Click(object sender, RoutedEventArgs e)
@@ -2507,33 +4944,41 @@ namespace NoteCards
             var path = dlg.FileName;
             try
             {
-                var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
-                string content = string.Empty;
-
-                if (ext == ".rtf")
+                if (NoteFileService.IsNotePackagePath(path))
                 {
-                    var bytes = System.IO.File.ReadAllBytes(path);
-                    // Load RTF directly into RichTextBox
-                    TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
-                    using (var ms = new MemoryStream(bytes))
-                    {
-                        tr.Load(ms, DataFormats.Rtf);
-                    }
+                    ImportNotePackageIntoEditor(NoteFileService.LoadNotePackage(path));
                 }
                 else
                 {
-                    // plain text
-                    content = File.ReadAllText(path);
-                    TextRange tr = new TextRange(ContentTextBox.Document.ContentStart, ContentTextBox.Document.ContentEnd);
-                    tr.Text = content;
+                    ApplyContentToEditor(NoteFileService.LoadEditorContentFromFile(path));
                 }
 
                 ApplyEditorTextLayout();
+                MarkEditorContentChanged();
+                UpdateEditedIndicator();
+                UpdateCounter();
             }
-            catch
+            catch (Exception ex)
             {
-                ModernMessageBox.Show(LocalizationService.GetString("FailedToOpenFile"), LocalizationService.GetString("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernMessageBox.Show(
+                    $"{LocalizationService.GetString("FailedToOpenFile")}\n\n{ex.Message}",
+                    LocalizationService.GetString("Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
+        }
+
+        private void ImportNotePackageIntoEditor(NoteDocument document)
+        {
+            TitleTextBox.Text = document.Title;
+            TagsTextBox.Text = string.Join(", ", document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()));
+            ContentTextBox.FontFamily = new FontFamily(string.IsNullOrWhiteSpace(document.FontFamily) ? DefaultEditorFontFamily : document.FontFamily);
+            ContentTextBox.FontSize = document.FontSize > 0 ? document.FontSize : 14;
+            _isWordWrapEnabled = document.IsWordWrapEnabled ?? _isWordWrapEnabled;
+            SetFontPanelOpen(document.IsEditorFontPanelOpen ?? _isFontPanelOpen, animate: false);
+            ApplyContentToEditor(document.Content, document.Images);
+            ApplyEditorTextLayout();
+            SyncFontSelectorsFromSelection();
         }
 
         private void ClearContentButton_Click(object sender, RoutedEventArgs e)
@@ -4669,6 +7114,8 @@ namespace NoteCards
         private void ToggleWordWrap_Click(object sender, RoutedEventArgs e)
         {
             _isWordWrapEnabled = !_isWordWrapEnabled;
+            SaveEditorWordWrapPreference(_isWordWrapEnabled);
+            PersistCurrentDocumentEditorUiState();
             ApplyEditorTextLayout();
         }
 

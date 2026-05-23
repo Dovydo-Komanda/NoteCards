@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace NoteCards;
@@ -30,6 +31,7 @@ public partial class NoteEditorTabsWindow : Window
     {
         InitializeComponent();
         NoteCards.Services.WindowThemeService.Register(this);
+        PreviewKeyDown += NoteEditorTabsWindow_PreviewKeyDown;
     }
 
     public void OpenOrFocusNote(NoteCardViewModel noteViewModel, object? sharedDataContext)
@@ -118,6 +120,21 @@ public partial class NoteEditorTabsWindow : Window
 
         EditorTabs.Items.Add(tabItem);
         EditorTabs.SelectedItem = tabItem;
+    }
+
+    public void ApplyMeasurementUnitSystemPreference(string unitSystem)
+    {
+        foreach (var state in _tabsByDocumentId.Values)
+            state.Editor.ApplyMeasurementUnitSystemPreference(unitSystem);
+    }
+
+    private void NoteEditorTabsWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Handled || EditorTabs.SelectedItem is not TabItem selectedTab)
+            return;
+
+        var state = _tabsByDocumentId.Values.FirstOrDefault(state => ReferenceEquals(state.TabItem, selectedTab));
+        state?.Editor.TryHandleEditorTabKey(e);
     }
 
     private static string GetTabHeaderText(NoteCardViewModel noteViewModel)

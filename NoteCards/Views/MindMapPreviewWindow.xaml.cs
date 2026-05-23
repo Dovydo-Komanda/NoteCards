@@ -1819,18 +1819,18 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
     {
         var openDialog = new OpenFileDialog
         {
-            Title = LocalizationService.GetString("MindMapImportDialogTitle") ?? "Import Mind Map",
-            Filter = "Mind map files (*.mm;*.mmap)|*.mm;*.mmap|All files (*.*)|*.*"
+            Title = LocalizationService.GetString("MindMapImportDialogTitle"),
+            Filter = LocalizationService.GetString("MindMapImportDialogFilter")
         };
 
         if (openDialog.ShowDialog(this) != true)
             return;
 
-try
+        try
         {
             var imported = ImportMindMapFile(openDialog.FileName);
             if (imported is null)
-                throw new InvalidOperationException(LocalizationService.GetString("MindMapImportFailed") ?? "The selected file does not contain a valid mind map.");
+                throw new InvalidOperationException(LocalizationService.GetString("MindMapImportFailed"));
 
             _root.Text = imported.Text ?? string.Empty;
             _root.Children.Clear();
@@ -1842,12 +1842,12 @@ try
 
             ShowExportDialog(
                 LocalizationService.GetString("Success"),
-                LocalizationService.GetString("MindMapImportSuccess") ?? "Mind map imported successfully.");
+                LocalizationService.GetString("MindMapImportSuccess"));
         }
         catch (Exception ex)
         {
             ShowExportDialog(
-                LocalizationService.GetString("ImportError") ?? LocalizationService.GetString("ExportError") ?? "Import Error",
+                LocalizationService.GetString("ImportError"),
                 ex.Message);
         }
     }
@@ -1855,11 +1855,11 @@ try
     private MindMapNode? ImportMindMapFile(string path)
     {
         if (!System.IO.File.Exists(path))
-            throw new FileNotFoundException("File not found.", path);
+            throw new FileNotFoundException(LocalizationService.GetString("MindMapImportFileNotFound"), path);
 
         var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
         if (ext != ".mm" && ext != ".mmap")
-            throw new InvalidOperationException("Unsupported file format.");
+            throw new InvalidOperationException(LocalizationService.GetString("MindMapImportUnsupportedFormat"));
 
         XDocument doc;
         try
@@ -1868,12 +1868,12 @@ try
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException("Unable to read XML file.", ex);
+            throw new InvalidOperationException(LocalizationService.GetString("MindMapImportReadFailed"), ex);
         }
 
         var map = doc.Root;
         if (map == null || !string.Equals(map.Name.LocalName, "map", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("File is not a valid mind map (root <map> missing).");
+            throw new InvalidOperationException(LocalizationService.GetString("MindMapImportInvalidRoot"));
 
         var firstNode = map.Elements("node").FirstOrDefault();
         if (firstNode == null)

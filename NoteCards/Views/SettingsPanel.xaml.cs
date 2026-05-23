@@ -38,6 +38,7 @@ namespace NoteCards.Views
         private bool _isApplyingSettings;
         private bool _isDownloadingAiModel;
         private bool _isDownloadingRuntime;
+        private bool _isCheckingRuntimeUpdates;
         private bool _isCheckingForUpdates;
         private string _lastSelectedFlashcardModelKey = "Qwen3.5-0.8B";
         private readonly ObservableCollection<ManagedAiToolItem> _managedAiTools = new();
@@ -150,6 +151,11 @@ namespace NoteCards.Views
                     break;
                 }
             }
+
+            SelectComboBoxItemByTag(
+                MeasurementUnitSystemBox,
+                AppSettings.NormalizeMeasurementUnitSystem(settings.MeasurementUnitSystem),
+                AppSettings.UnitSystemImperial);
             _isApplyingSettings = false;
 
         }
@@ -278,8 +284,13 @@ namespace NoteCards.Views
             if (_isDownloadingRuntime)
                 return;
 
+            if (_isCheckingRuntimeUpdates)
+                return;
+
             RuntimeStatusText.Text = BundledModelHostService.IsRuntimeDownloaded()
-                ? LocalizationService.GetString("AiToolsRuntimeReady")
+                ? string.Format(
+                    LocalizationService.GetString("AiToolsRuntimeReadyFormat"),
+                    BundledModelHostService.GetRuntimeInstalledVersionDisplay())
                 : LocalizationService.GetString("AiToolsRuntimeNotDownloaded");
 
             UpdateAiActionButtons();
@@ -306,10 +317,13 @@ namespace NoteCards.Views
             var isRuntimeDownloaded = BundledModelHostService.IsRuntimeDownloaded();
 
             if (FindName("RuntimeDownloadButton") is Button runtimeDownloadButton)
-                runtimeDownloadButton.IsEnabled = !_isDownloadingRuntime && !isRuntimeDownloaded;
+                runtimeDownloadButton.IsEnabled = !_isDownloadingRuntime && !_isCheckingRuntimeUpdates && !isRuntimeDownloaded;
 
             if (FindName("RuntimeDeleteButton") is Button runtimeDeleteButton)
-                runtimeDeleteButton.IsEnabled = !_isDownloadingRuntime && isRuntimeDownloaded;
+                runtimeDeleteButton.IsEnabled = !_isDownloadingRuntime && !_isCheckingRuntimeUpdates && isRuntimeDownloaded;
+
+            if (FindName("RuntimeUpdateButton") is Button runtimeUpdateButton)
+                runtimeUpdateButton.IsEnabled = !_isDownloadingRuntime && !_isCheckingRuntimeUpdates && isRuntimeDownloaded;
         }
 
         private void RefreshManagedAiToolDownloadState()
@@ -813,6 +827,69 @@ namespace NoteCards.Views
             }
         }
 
+        private async void CheckRuntimeUpdates_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isCheckingRuntimeUpdates || _isDownloadingRuntime)
+                return;
+
+            if (!BundledModelHostService.IsRuntimeDownloaded())
+            {
+                UpdateRuntimeStatusText();
+                return;
+            }
+
+            _isCheckingRuntimeUpdates = true;
+            RuntimeStatusText.Text = LocalizationService.GetString("AiToolsRuntimeUpdateChecking");
+            UpdateAiActionButtons();
+
+            try
+            {
+                var progress = new Progress<BundledModelHostService.FlashcardProgress>(p =>
+                {
+                    if (p.Percent.HasValue)
+                        RuntimeStatusText.Text = string.Format(LocalizationService.GetString("AiToolsRuntimeUpdateDownloadingPercentFormat"), p.Percent.Value);
+                    else if (string.Equals(p.StatusKey, "AiToolsRuntimeUpdateDownloading", StringComparison.Ordinal))
+                        RuntimeStatusText.Text = LocalizationService.GetString("AiToolsRuntimeUpdateDownloading");
+                    else
+                        RuntimeStatusText.Text = LocalizationService.GetString("AiToolsRuntimeUpdateChecking");
+                });
+
+                var result = await BundledModelHostService.Instance.CheckAndUpdateRuntimeAsync(progress);
+                RuntimeStatusText.Text = result.WasUpdated
+                    ? string.Format(LocalizationService.GetString("AiToolsRuntimeUpdateSuccessFormat"), result.LatestVersion)
+                    : string.Format(LocalizationService.GetString("AiToolsRuntimeUpdateNotAvailableFormat"), result.CurrentVersion);
+
+                if (result.WasUpdated)
+                {
+                    ModernDialog.ShowSuccess(
+                        Window.GetWindow(this),
+                        LocalizationService.GetString("AiToolsRuntimeUpdateTitle"),
+                        string.Format(LocalizationService.GetString("AiToolsRuntimeUpdateSuccessFormat"), result.LatestVersion));
+                }
+                else
+                {
+                    ModernDialog.ShowInfo(
+                        Window.GetWindow(this),
+                        LocalizationService.GetString("AiToolsRuntimeUpdateTitle"),
+                        string.Format(LocalizationService.GetString("AiToolsRuntimeUpdateNotAvailableFormat"), result.CurrentVersion));
+                }
+            }
+            catch (Exception ex)
+            {
+                RuntimeStatusText.Text = LocalizationService.GetString("AiToolsRuntimeUpdateFailed");
+
+                ModernDialog.ShowError(
+                    Window.GetWindow(this),
+                    LocalizationService.GetString("Error"),
+                    string.Format(LocalizationService.GetString("AiToolsRuntimeUpdateErrorDialogFormat"), ex.Message));
+            }
+            finally
+            {
+                _isCheckingRuntimeUpdates = false;
+                UpdateAiActionButtons();
+            }
+        }
+
         private void DeleteRuntime_Click(object sender, RoutedEventArgs e)
         {
             var confirmed = ModernDialog.ConfirmDanger(
@@ -1065,6 +1142,37 @@ namespace NoteCards.Views
                 if (Application.Current.MainWindow.DataContext is MainViewModel vm)
                 {
                     vm.ViewMode = selected;
+                }
+            }
+        }
+
+        private void MeasurementUnitSystemBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isApplyingSettings)
+                return;
+
+            if (MeasurementUnitSystemBox.SelectedItem is not ComboBoxItem item)
+                return;
+
+            var selected = AppSettings.NormalizeMeasurementUnitSystem(item.Tag?.ToString());
+            var settings = AppSettingsService.Load();
+            settings.MeasurementUnitSystem = selected;
+            AppSettingsService.Save(settings);
+            RefreshOpenEditorMeasurementUnits(selected);
+        }
+
+        private static void RefreshOpenEditorMeasurementUnits(string unitSystem)
+        {
+            foreach (var window in Application.Current.Windows.OfType<Window>())
+            {
+                switch (window)
+                {
+                    case NoteEditorWindow editorWindow:
+                        editorWindow.ApplyMeasurementUnitSystemPreference(unitSystem);
+                        break;
+                    case NoteEditorTabsWindow tabsWindow:
+                        tabsWindow.ApplyMeasurementUnitSystemPreference(unitSystem);
+                        break;
                 }
             }
         }
