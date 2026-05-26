@@ -47,7 +47,6 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -94,33 +93,7 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="1"
-                Margin="14,0,14,10"
-                Padding="12"
-                Background="{DynamicResource CardBackground}"
-                BorderBrush="{DynamicResource BorderColor}"
-                BorderThickness="1"
-                CornerRadius="12">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Text="Categories"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextColor}"
-                           VerticalAlignment="Center"/>
-                <Button HorizontalAlignment="Right"
-                        Content="Categories"
-                        Style="{StaticResource LibraryToolbarButtonStyle}"
-                        Click="CategoriesButton_Click"
-                        ToolTip="Filter quizzes by category/tag"/>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="2"
+        <Grid Grid.Row="1"
               Margin="14,0,14,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*"/>
@@ -160,7 +133,8 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type views:QuizLibraryItemViewModel}">
                                     <Border Style="{StaticResource LibraryQuizItemBorderStyle}"
-                                            MouseLeftButtonUp="QuizItem_MouseLeftButtonUp">
+                                            MouseLeftButtonUp="QuizItem_MouseLeftButtonUp"
+                                            Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
@@ -230,7 +204,7 @@
             </Border>
         </Grid>
 
-        <Border Grid.Row="3"
+        <Border Grid.Row="2"
                 Margin="14,0,14,14"
                 Padding="12"
                 Background="{DynamicResource CardBackground}"

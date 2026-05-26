@@ -3634,13 +3634,20 @@
                                                        Foreground="{DynamicResource TextColor}"
                                                        Margin="8,0,0,0"
                                                        VerticalAlignment="Center"/>
-                                            <Button Grid.Column="4"
-                                                    Style="{StaticResource GroupHeaderIconButtonStyle}"
-                                                    FontSize="14"
-                                                    Content="▤"
-                                                    Margin="6,0,0,0"
-                                                    ToolTip="Open quiz library"
-                                                    Click="OpenQuizLibraryButton_Click"/>
+                                            <StackPanel Grid.Column="4" Orientation="Horizontal">
+                                                <Button Style="{StaticResource GroupHeaderIconButtonStyle}"
+                                                        FontSize="14"
+                                                        Content="▤"
+                                                        Margin="6,0,0,0"
+                                                        ToolTip="Open quiz library"
+                                                        Click="OpenQuizLibraryButton_Click"/>
+                                                <Button Style="{StaticResource GroupHeaderIconButtonStyle}"
+                                                        FontSize="14"
+                                                        Content="🕒"
+                                                        Margin="6,0,0,0"
+                                                        ToolTip="Open attempt history"
+                                                        Click="OpenAttemptHistoryButton_Click"/>
+                                            </StackPanel>
                                         </Grid>
 
                                         <StackPanel x:Name="QuizGroupsSectionBody"

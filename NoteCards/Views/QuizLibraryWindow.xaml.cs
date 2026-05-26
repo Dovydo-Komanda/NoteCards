@@ -164,28 +164,6 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
             QuizSearchQuery = tb.Text;
     }
 
-    private void CategoriesButton_Click(object sender, RoutedEventArgs e)
-    {
-        var popup = new ContextMenu();
-        foreach (var filter in _categoryFilters)
-        {
-            var item = new MenuItem
-            {
-                Header = filter.Tag,
-                IsCheckable = true,
-                IsChecked = filter.IsSelected
-            };
-            item.Click += (_, _) => filter.IsSelected = !filter.IsSelected;
-            popup.Items.Add(item);
-        }
-
-        if (sender is Button button)
-        {
-            popup.PlacementTarget = button;
-            popup.IsOpen = true;
-        }
-    }
-
     private void ClearFiltersButton_Click(object sender, RoutedEventArgs e)
     {
         _selectedTags.Clear();
