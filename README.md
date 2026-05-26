@@ -22,7 +22,11 @@ Most learning tools either require an internet connection or charge extra for AI
 
 ## Screenshots
 
-> *Screenshots will be added here.*
+### Dark Theme
+![Main Window - Dark](screenshots/main-window-dark.png)
+
+### Light Theme
+![Main Window - Light](screenshots/main-window-light.png)
 
 ## Key Features
 
