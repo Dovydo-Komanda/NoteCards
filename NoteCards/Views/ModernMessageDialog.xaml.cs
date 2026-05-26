@@ -82,7 +82,8 @@ public partial class ModernMessageDialog : Window
         string? secondaryText = null,
         ModernDialogButtonStyle? primaryStyle = null,
         ModernDialogButtonStyle secondaryStyle = ModernDialogButtonStyle.Secondary,
-        ModernDialogButtonStyle cancelStyle = ModernDialogButtonStyle.Secondary)
+        ModernDialogButtonStyle cancelStyle = ModernDialogButtonStyle.Secondary,
+        ModernDialogResult? defaultChoice = null)
     {
         TitleText = title ?? string.Empty;
         MessageText = message ?? string.Empty;
@@ -104,19 +105,24 @@ public partial class ModernMessageDialog : Window
                 ? MessageBoxResult.No
                 : MessageBoxResult.OK;
 
-        SelectedResult = EscapeResult;
-        SelectedChoice = CancelVisibility == Visibility.Visible
+        var fallbackChoice = CancelVisibility == Visibility.Visible
             ? ModernDialogResult.Cancel
             : NoVisibility == Visibility.Visible
                 ? ModernDialogResult.Secondary
                 : ModernDialogResult.Primary;
+        SelectedChoice = ResolveDefaultChoice(
+            defaultChoice,
+            NoVisibility == Visibility.Visible,
+            CancelVisibility == Visibility.Visible,
+            fallbackChoice);
+        SelectedResult = ChoiceToResult(SelectedChoice);
         _pendingResult = SelectedResult;
         _pendingChoice = SelectedChoice;
 
         PrimaryChoice = ModernDialogResult.Primary;
         SecondaryChoice = ModernDialogResult.Secondary;
         CancelChoice = ModernDialogResult.Cancel;
-        EscapeChoice = SelectedChoice;
+        EscapeChoice = ResultToChoice(EscapeResult);
 
         InitializeComponent();
         ApplyButtonStyles(
@@ -316,6 +322,34 @@ public partial class ModernMessageDialog : Window
             MessageBoxResult.Cancel => ModernDialogResult.Cancel,
             _ => ModernDialogResult.Primary
         };
+    }
+
+    private static MessageBoxResult ChoiceToResult(ModernDialogResult choice)
+    {
+        return choice switch
+        {
+            ModernDialogResult.Secondary => MessageBoxResult.No,
+            ModernDialogResult.Cancel => MessageBoxResult.Cancel,
+            _ => MessageBoxResult.OK
+        };
+    }
+
+    private static ModernDialogResult ResolveDefaultChoice(
+        ModernDialogResult? requestedChoice,
+        bool hasSecondary,
+        bool hasCancel,
+        ModernDialogResult fallbackChoice)
+    {
+        if (!requestedChoice.HasValue)
+            return fallbackChoice;
+
+        if (requestedChoice == ModernDialogResult.Cancel && !hasCancel)
+            return fallbackChoice;
+
+        if (requestedChoice == ModernDialogResult.Secondary && !hasSecondary)
+            return fallbackChoice;
+
+        return requestedChoice.Value;
     }
 
     private static ModernDialogButtonStyle DefaultPrimaryButtonStyleForTone(ModernDialogTone tone)

@@ -6,7 +6,8 @@
         Width="800"
         WindowStartupLocation="CenterOwner"
         WindowState="Maximized"
-        Background="{DynamicResource WindowBackground}">
+        Background="{DynamicResource WindowBackground}"
+        PreviewKeyDown="QuizModeWindow_PreviewKeyDown">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

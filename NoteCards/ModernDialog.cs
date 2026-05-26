@@ -42,7 +42,8 @@ public static class ModernDialog
         string? secondaryText = null,
         ModernDialogButtonStyle? primaryStyle = null,
         ModernDialogButtonStyle secondaryStyle = ModernDialogButtonStyle.Secondary,
-        ModernDialogButtonStyle cancelStyle = ModernDialogButtonStyle.Secondary)
+        ModernDialogButtonStyle cancelStyle = ModernDialogButtonStyle.Secondary,
+        ModernDialogResult? defaultChoice = null)
     {
         var dialog = new ModernMessageDialog(
             title,
@@ -53,7 +54,8 @@ public static class ModernDialog
             secondaryText,
             primaryStyle,
             secondaryStyle,
-            cancelStyle);
+            cancelStyle,
+            defaultChoice);
         var resolvedOwner = owner ?? ResolveOwner();
         if (resolvedOwner is not null)
             dialog.Owner = resolvedOwner;

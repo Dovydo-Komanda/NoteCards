@@ -256,6 +256,58 @@ public partial class QuizModeWindow : Window
             doneButton.Visibility = Visibility.Collapsed;
     }
 
+    private void QuizModeWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (_isResultsView)
+        {
+            if (e.Key == Key.Enter && FindName("DoneButton") is Button doneButton && doneButton.Visibility == Visibility.Visible)
+            {
+                DoneButton_Click(this, new RoutedEventArgs());
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        if (e.Key == Key.Enter)
+        {
+            if (FindName("NextButton") is Button nextButton && nextButton.Visibility == Visibility.Visible && nextButton.IsEnabled)
+            {
+                NextButton_Click(this, new RoutedEventArgs());
+                e.Handled = true;
+            }
+            else if (FindName("SubmitButton") is Button submitButton && submitButton.Visibility == Visibility.Visible && submitButton.IsEnabled)
+            {
+                SubmitButton_Click(this, new RoutedEventArgs());
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        if ((e.Key >= Key.D1 && e.Key <= Key.D9) || (e.Key >= Key.NumPad1 && e.Key <= Key.NumPad9))
+        {
+            int optionIndex = e.Key >= Key.NumPad1 ? e.Key - Key.NumPad1 : e.Key - Key.D1;
+            if (TrySelectOption(optionIndex))
+                e.Handled = true;
+        }
+    }
+
+    private bool TrySelectOption(int optionIndex)
+    {
+        if (FindName("OptionsPanel") is not StackPanel optionsPanel)
+            return false;
+
+        if (optionIndex < 0 || optionIndex >= optionsPanel.Children.Count)
+            return false;
+
+        if (optionsPanel.Children[optionIndex] is not Button optionButton)
+            return false;
+
+        OptionButton_Click(optionButton, new RoutedEventArgs());
+        return true;
+    }
+
     private void OptionButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button clickedButton || clickedButton.Tag is not QuizOption clickedOption)
@@ -377,7 +429,8 @@ public partial class QuizModeWindow : Window
             LocalizationService.GetString("QuizSubmitDialogMessage"),
             ModernDialogTone.Question,
             LocalizationService.GetString("QuizSubmitDialogConfirm"),
-            LocalizationService.GetString("QuizSubmitDialogCancel"));
+            LocalizationService.GetString("QuizSubmitDialogCancel"),
+            defaultChoice: ModernDialogResult.Primary);
 
         if (result == ModernDialogResult.Primary)
             ShowResults();
