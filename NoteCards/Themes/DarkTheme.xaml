@@ -15,8 +15,8 @@
     <SolidColorBrush x:Key="NoteCardBackground" Color="#2D2D2D"/>
     <SolidColorBrush x:Key="NoteCardBorder" Color="#3F3F3F"/>
     <SolidColorBrush x:Key="NoteCardTitle" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="NoteCardSelection" Color="#4A6EE0"/>
-    <SolidColorBrush x:Key="NoteCardSelectionBorder" Color="#3D5FC7"/>
+    <SolidColorBrush x:Key="NoteCardSelection" Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="NoteCardSelectionBorder" Color="#7EA2FF"/>
 
     <!-- Flashcard Colors -->
     <SolidColorBrush x:Key="FlashcardCardBackground" Color="#2B2B2B"/>

@@ -8,7 +8,24 @@
         ResizeMode="CanResize"
         MinHeight="380"
         MinWidth="520"
-        Background="#F6F8FD">
+        Background="{DynamicResource WindowBackground}">
+    <Window.Resources>
+        <Style x:Key="EditHistoryListBoxItemStyle" TargetType="{x:Type ListBoxItem}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -21,22 +38,41 @@
         <TextBlock Text="{Binding [EditHistoryTitle], Source={StaticResource Loc}}"
                    FontSize="20"
                    FontWeight="SemiBold"
-                   Foreground="#1C1C1C"/>
+                   Foreground="{DynamicResource TextColor}"/>
 
         <Border Grid.Row="2"
-                BorderBrush="#D7E0F2"
+                BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
                 CornerRadius="12"
-                Background="#FFFFFF"
+                Background="{DynamicResource CardBackground}"
                 Padding="8">
             <ListBox x:Name="HistoryListBox"
                      BorderThickness="0"
                      Background="Transparent"
                      HorizontalContentAlignment="Stretch"
+                     ItemContainerStyle="{StaticResource EditHistoryListBoxItemStyle}"
                      MouseDoubleClick="HistoryListBox_MouseDoubleClick">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Border Padding="10" Margin="0,0,0,6" BorderBrush="#EDF1FA" BorderThickness="1" CornerRadius="8" Background="#FBFCFF">
+                        <Border Padding="10"
+                                Margin="0,0,0,6"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource SelectionBackground}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource NoteCardSelectionBorder}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -44,11 +80,11 @@
                                 </Grid.RowDefinitions>
                                 <TextBlock Text="{Binding TimestampText}"
                                            FontWeight="SemiBold"
-                                           Foreground="#27364F"
+                                           Foreground="{DynamicResource TextColor}"
                                            Margin="0,0,0,4"/>
                                 <TextBlock Grid.Row="1"
                                            Text="{Binding PreviewText}"
-                                           Foreground="#5D6B83"
+                                           Foreground="{DynamicResource TextColorSecondary}"
                                            TextWrapping="Wrap"
                                            MaxHeight="58"/>
                             </Grid>
