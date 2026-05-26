@@ -41,6 +41,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
     private string _modelDisplayName = string.Empty;
     private bool _hasCenteredOnRootInitially;
     private MindMapNode? _selectedNode;
+    private readonly HashSet<MindMapNode> _selectedNodes = new();
     private readonly List<MindMapNode> _searchMatches = [];
     private string _searchQuery = string.Empty;
     private int _currentSearchMatchIndex = -1;
@@ -1120,7 +1121,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
             };
         }
 
-        if (ReferenceEquals(node, _selectedNode))
+        if (_selectedNodes.Contains(node))
         {
             border.BorderBrush = GetThemeBrush("MindMapSelectedBorderBrush", Color.FromRgb(63, 111, 232));
             border.BorderThickness = new Thickness(3);
@@ -1230,15 +1231,20 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
                     _draggedNode = null;
                     _draggedBorder = null;
                     border.ReleaseMouseCapture();
-                    _selectedNode = node;
+                    SelectSingleNode(node);
                     RebuildMap();
                     e.Handled = true;
                     return;
                 }
 
-                if (!ReferenceEquals(_selectedNode, node))
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
                 {
-                    _selectedNode = node;
+                    ToggleNodeSelection(node);
+                    RebuildMap();
+                }
+                else if (!ReferenceEquals(_selectedNode, node) || _selectedNodes.Count != 1)
+                {
+                    SelectSingleNode(node);
                     RebuildMap();
                 }
 
@@ -1246,10 +1252,10 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
             };
 
             border.ContextMenu = new ContextMenu();
-            border.ContextMenuOpening += (_, _) =>
-            {
-                _selectedNode = node;
-            };
+        border.ContextMenuOpening += (_, _) =>
+        {
+            EnsureNodeSelected(node);
+        };
 
         if (node.HasChildren)
         {
@@ -1324,8 +1330,86 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
             return;
 
         node.IsExpanded = !node.IsExpanded;
-        _selectedNode = node;
+        SelectSingleNode(node);
         RebuildMap();
+    }
+
+    private void SelectSingleNode(MindMapNode node)
+    {
+        _selectedNodes.Clear();
+        _selectedNodes.Add(node);
+        _selectedNode = node;
+    }
+
+    private void ToggleNodeSelection(MindMapNode node)
+    {
+        if (_selectedNodes.Remove(node))
+        {
+            if (ReferenceEquals(_selectedNode, node))
+                _selectedNode = _selectedNodes.FirstOrDefault();
+            return;
+        }
+
+        _selectedNodes.Add(node);
+        _selectedNode = node;
+    }
+
+    private void EnsureNodeSelected(MindMapNode node)
+    {
+        if (_selectedNodes.Add(node))
+            _selectedNode = node;
+        else
+            _selectedNode = node;
+    }
+
+    private void RemoveSelectedNode(MindMapNode node)
+    {
+        if (!_selectedNodes.Remove(node))
+            return;
+
+        if (ReferenceEquals(_selectedNode, node))
+            _selectedNode = _selectedNodes.FirstOrDefault();
+    }
+
+    private void ClearSelectedNodes()
+    {
+        _selectedNodes.Clear();
+        _selectedNode = null;
+    }
+
+    private bool HasSelectedNodes() => _selectedNodes.Count > 0;
+
+    private IReadOnlyList<MindMapNode> GetSelectedExportRoots()
+    {
+        if (_selectedNodes.Count == 0)
+            return Array.Empty<MindMapNode>();
+
+        if (_selectedNodes.Count == 1)
+            return _selectedNodes.ToList();
+
+        var selected = _selectedNodes.ToList();
+        return selected
+            .Where(node => !selected.Any(other => !ReferenceEquals(node, other) && IsAncestorNode(other, node)))
+            .ToList();
+    }
+
+    private MindMapNode BuildExportRoot(IReadOnlyList<MindMapNode> selectedRoots)
+    {
+        if (selectedRoots.Count == 0)
+            return _root;
+
+        if (selectedRoots.Count == 1)
+            return selectedRoots[0];
+
+        var exportRoot = new MindMapNode
+        {
+            Text = _root.Text
+        };
+
+        foreach (var node in selectedRoots)
+            exportRoot.Children.Add(CloneNode(node));
+
+        return exportRoot;
     }
 
     private static CornerRadius GetCornerRadius(string? nodeShape, bool isRoot)
@@ -1390,7 +1474,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
 
             parentNode.Children.Add(newNode);
             parentNode.IsExpanded = true;
-            _selectedNode = newNode;
+            SelectSingleNode(newNode);
             RebuildMap();
         }
     }
@@ -1428,7 +1512,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
 
             parent.Children.Add(newNode);
             parent.IsExpanded = true;
-            _selectedNode = newNode;
+            SelectSingleNode(newNode);
             RebuildMap();
         }
     }
@@ -1491,8 +1575,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
         // Now remove the selected node
         parent.Children.Remove(node);
 
-        if (ReferenceEquals(_selectedNode, node))
-            _selectedNode = null;
+        RemoveSelectedNode(node);
 
         RebuildMap();
     }
@@ -1728,7 +1811,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
 
     private void ExportSelectedBranchButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_selectedNode is null)
+        if (!HasSelectedNodes())
         {
             ShowExportDialog(
                 LocalizationService.GetString("Export"),
@@ -1754,12 +1837,15 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
         try
         {
             var extension = System.IO.Path.GetExtension(saveDialog.FileName).ToLowerInvariant();
-            var exportRoot = exportSelectedBranchOnly ? _selectedNode! : _root;
+            var selectedRoots = exportSelectedBranchOnly ? GetSelectedExportRoots() : Array.Empty<MindMapNode>();
+            var exportRoot = exportSelectedBranchOnly
+                ? BuildExportRoot(selectedRoots)
+                : _root;
 
             switch (extension)
             {
                 case ".png":
-                    ExportToPng(saveDialog.FileName, exportRoot, exportSelectedBranchOnly);
+                    ExportToPng(saveDialog.FileName, exportRoot, exportSelectedBranchOnly, selectedRoots);
                     break;
                 case ".mm":
                     ExportToMindMapFile(saveDialog.FileName, exportRoot, exportSelectedBranchOnly);
@@ -1837,7 +1923,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
             foreach (var child in imported.Children)
                 _root.Children.Add(CloneNode(child));
 
-            _selectedNode = null;
+            ClearSelectedNodes();
             RebuildMap();
 
             ShowExportDialog(
@@ -1965,7 +2051,7 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
         return copy;
     }
 
-    private void ExportToPng(string path, MindMapNode exportRoot, bool isBranch)
+    private void ExportToPng(string path, MindMapNode exportRoot, bool isBranch, IReadOnlyList<MindMapNode> selectedRoots)
     {
         if (MapCanvas.ActualWidth <= 0 || MapCanvas.ActualHeight <= 0)
             RebuildMap();
@@ -1985,13 +2071,16 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
             SetExpanded(exportRoot, true);
             SetExpanded(_root, true);
 
-            _renderOnlyNodes = isBranch ? CollectSubtreeNodes(exportRoot) : null;
+            var branchNodes = isBranch
+                ? CollectSubtreeNodes(selectedRoots.Count > 0 ? selectedRoots : new List<MindMapNode> { exportRoot })
+                : null;
+            _renderOnlyNodes = branchNodes;
 
             RebuildMap();
             MapCanvas.UpdateLayout();
 
             var bounds = isBranch
-                ? GetBranchBounds(exportRoot)
+                ? GetBranchBounds(branchNodes ?? CollectSubtreeNodes(exportRoot))
                 : GetAllContentBounds();
             if (bounds.Width <= 0 || bounds.Height <= 0)
                 throw new InvalidOperationException(LocalizationService.GetString("MindMapExportEmptyCanvas"));
@@ -2058,6 +2147,18 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
         return nodes;
     }
 
+    private static HashSet<MindMapNode> CollectSubtreeNodes(IReadOnlyCollection<MindMapNode> roots)
+    {
+        var nodes = new HashSet<MindMapNode>();
+        foreach (var root in roots)
+        {
+            foreach (var node in EnumerateAllNodes(root))
+                nodes.Add(node);
+        }
+
+        return nodes;
+    }
+
     private Rect GetAllContentBounds()
     {
         var renderedBounds = GetRenderedContentBounds();
@@ -2070,11 +2171,15 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
 
     private Rect GetBranchBounds(MindMapNode branchRoot)
     {
+        return GetBranchBounds(new HashSet<MindMapNode>(EnumerateAllNodes(branchRoot)));
+    }
+
+    private Rect GetBranchBounds(HashSet<MindMapNode> branchNodes)
+    {
         var renderedBounds = GetRenderedContentBounds();
         if (!renderedBounds.IsEmpty)
             return renderedBounds;
 
-        var branchNodes = new HashSet<MindMapNode>(EnumerateAllNodes(branchRoot));
         var connectedNodes = _layouts.Keys
             .Where(node => branchNodes.Contains(node) || IsDirectlyConnectedToBranch(node, branchNodes))
             .ToList();
@@ -2168,6 +2273,20 @@ public partial class MindMapPreviewWindow : Window, INotifyPropertyChanged
             foreach (var descendant in EnumerateAllNodes(child))
                 yield return descendant;
         }
+    }
+
+    private static bool IsAncestorNode(MindMapNode ancestor, MindMapNode descendant)
+    {
+        if (ReferenceEquals(ancestor, descendant))
+            return false;
+
+        foreach (var node in EnumerateAllNodes(ancestor))
+        {
+            if (ReferenceEquals(node, descendant))
+                return true;
+        }
+
+        return false;
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
