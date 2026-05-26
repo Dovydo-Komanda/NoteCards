@@ -1310,6 +1310,39 @@ namespace NoteCards
                 OpenFlashcardSetEditor(vm, null);
         }
 
+        private void FlashcardDashboardActionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { ContextMenu: { } menu } button)
+            {
+                menu.PlacementTarget = button;
+                menu.IsOpen = true;
+            }
+        }
+
+        private void OpenFlashcardCombineMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            var window = new NoteCards.Views.FlashcardCombineWindow(vm)
+            {
+                Owner = this
+            };
+            window.ShowDialog();
+        }
+
+        private void OpenFlashcardHistoryMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            var window = new NoteCards.Views.FlashcardStudyHistoryWindow(vm)
+            {
+                Owner = this
+            };
+            window.ShowDialog();
+        }
+
         private void CreateQuizButton_Click(object sender, RoutedEventArgs e)
         {
             if (DataContext is MainViewModel vm)
@@ -1469,10 +1502,31 @@ namespace NoteCards
             window.ShowDialog();
         }
 
+        private void QuizDashboardActionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { ContextMenu: { } menu } button)
+            {
+                menu.PlacementTarget = button;
+                menu.IsOpen = true;
+            }
+        }
+
+        private void OpenQuizLibraryMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OpenQuizLibraryButton_Click(sender, e);
+        }
+
+        private void OpenAttemptHistoryMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OpenAttemptHistoryButton_Click(sender, e);
+        }
+
         private void OpenAttemptHistoryButton_Click(object sender, RoutedEventArgs e)
         {
-            var savedAttempts = NoteCards.Models.QuizDocument.SavedAttempts;
-            var window = new NoteCards.Views.QuizAttemptHistoryWindow()
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            var window = new NoteCards.Views.QuizAttemptHistoryWindow(vm)
             {
                 Owner = this
             };

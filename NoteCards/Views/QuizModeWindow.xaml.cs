@@ -31,7 +31,6 @@ public partial class QuizModeWindow : Window
     private readonly HashSet<int> _hintUsedQuestions = new();
     public QuizAttempt? LastAttempt { get; private set; }
     private List<int> _wrongQuestionIndices = new();
-    private bool _attemptSaved = false;
 
     public QuizModeWindow(QuizDocument quiz, int timeLimitSeconds = 0)
     {
@@ -510,9 +509,6 @@ public partial class QuizModeWindow : Window
         {
             rwb.Visibility = _wrongQuestionIndices.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
-        if (FindName("SaveAttemptButton") is Button sab) sab.Visibility = Visibility.Visible;
-
-
         if (FindName("ResultsQuestionsPanel") is StackPanel rp)
         {
             rp.Children.Clear();
@@ -621,7 +617,7 @@ public partial class QuizModeWindow : Window
             Owner = this.Owner
         };
         retryWindow.ShowDialog();
-        // Propagate any saved attempt back
+        // Propagate the retry attempt back to the preview window.
         if (retryWindow.LastAttempt != null)
             LastAttempt = retryWindow.LastAttempt;
         Close();
@@ -654,22 +650,6 @@ public partial class QuizModeWindow : Window
         if (retryWindow.LastAttempt != null)
             LastAttempt = retryWindow.LastAttempt;
         Close();
-    }
-
-    private void SaveAttemptButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (LastAttempt == null) return;
-        if (_attemptSaved) return;
-
-        LastAttempt.IsSaved = true;
-        LastAttempt.PassingScorePercent = Math.Clamp(_quiz.PassingScorePercent, 0, 100);
-        QuizDocument.SavedAttempts.Add(LastAttempt);
-        _attemptSaved = true;
-        if (FindName("SaveAttemptButton") is Button sab)
-        {
-            sab.Content = "✅ Saved";
-            sab.IsEnabled = false;
-        }
     }
 
 }

@@ -521,6 +521,10 @@
                             Style="{StaticResource QuizCompactToolButtonStyle}"
                             Click="CategoriesAndSetsButton_Click"
                             ToolTip="Edit quiz tags"/>
+                    <Button Content="History"
+                            Style="{StaticResource QuizCompactToolButtonStyle}"
+                            Click="QuizHistoryButton_Click"
+                            ToolTip="Show this quiz's attempt history"/>
                     <Button x:Name="ExportButton"
                             Content="{Binding [Export], Source={StaticResource Loc}}"
                             Style="{StaticResource QuizCompactToolButtonStyle}"

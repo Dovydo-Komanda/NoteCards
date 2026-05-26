@@ -2554,13 +2554,31 @@
                                                 </Button.Style>
                                             </Button>
                                             <TextBlock Grid.Column="3"
-                                                       Grid.ColumnSpan="2"
                                                        Text="{Binding [FlashcardGroupsDashboardTitle], Source={StaticResource Loc}}"
                                                        FontSize="16"
                                                        FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextColor}"
                                                        Margin="8,0,0,0"
                                                        VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Column="4"
+                                                        Orientation="Horizontal"
+                                                        HorizontalAlignment="Right">
+                                                <Button Style="{StaticResource DashboardSectionMoveButtonStyle}"
+                                                        FontSize="16"
+                                                        FontWeight="Bold"
+                                                        Content="&#x22EE;"
+                                                        ToolTip="Flashcard actions"
+                                                        Click="FlashcardDashboardActionsButton_Click">
+                                                    <Button.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="Combine flashcards"
+                                                                      Click="OpenFlashcardCombineMenuItem_Click"/>
+                                                            <MenuItem Header="Flashcard history"
+                                                                      Click="OpenFlashcardHistoryMenuItem_Click"/>
+                                                        </ContextMenu>
+                                                    </Button.ContextMenu>
+                                                </Button>
+                                            </StackPanel>
                                         </Grid>
 
                                         <StackPanel x:Name="FlashcardGroupsSectionBody"
@@ -3634,19 +3652,25 @@
                                                        Foreground="{DynamicResource TextColor}"
                                                        Margin="8,0,0,0"
                                                        VerticalAlignment="Center"/>
-                                            <StackPanel Grid.Column="4" Orientation="Horizontal">
-                                                <Button Style="{StaticResource GroupHeaderIconButtonStyle}"
-                                                        FontSize="14"
-                                                        Content="▤"
-                                                        Margin="6,0,0,0"
-                                                        ToolTip="Open quiz library"
-                                                        Click="OpenQuizLibraryButton_Click"/>
-                                                <Button Style="{StaticResource GroupHeaderIconButtonStyle}"
-                                                        FontSize="14"
-                                                        Content="🕒"
-                                                        Margin="6,0,0,0"
-                                                        ToolTip="Open attempt history"
-                                                        Click="OpenAttemptHistoryButton_Click"/>
+                                            <StackPanel Grid.Column="4"
+                                                        Orientation="Horizontal"
+                                                        HorizontalAlignment="Right">
+                                                <Button Style="{StaticResource DashboardSectionMoveButtonStyle}"
+                                                        FontSize="16"
+                                                        FontWeight="Bold"
+                                                        Content="&#x22EE;"
+                                                        Margin="0,0,0,0"
+                                                        ToolTip="Quiz actions"
+                                                        Click="QuizDashboardActionsButton_Click">
+                                                    <Button.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="Combine quizzes"
+                                                                      Click="OpenQuizLibraryMenuItem_Click"/>
+                                                            <MenuItem Header="Quiz history"
+                                                                      Click="OpenAttemptHistoryMenuItem_Click"/>
+                                                        </ContextMenu>
+                                                    </Button.ContextMenu>
+                                                </Button>
                                             </StackPanel>
                                         </Grid>
 

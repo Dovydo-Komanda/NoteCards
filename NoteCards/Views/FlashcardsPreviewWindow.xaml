@@ -616,6 +616,9 @@
                     <Button Content="{Binding [CreateFlashcardSet], Source={StaticResource Loc}}"
                             Style="{StaticResource FlashcardToolbarButtonStyle}"
                             Click="CreateSetButton_Click"/>
+                    <Button Content="History"
+                            Style="{StaticResource FlashcardToolbarButtonStyle}"
+                            Click="FlashcardHistoryButton_Click"/>
                     <Button Content="{Binding [AddFlashcard], Source={StaticResource Loc}}"
                             Style="{StaticResource FlashcardToolbarPrimaryButtonStyle}"
                             Click="AddFlashcardButton_Click"/>

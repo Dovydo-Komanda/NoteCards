@@ -17,7 +17,6 @@ public sealed class QuizDocument
     public int PassingScorePercent { get; set; } = 70;
 
     public List<QuizAttempt> Attempts { get; set; } = new();
-    public static List<QuizAttempt> SavedAttempts { get; } = new();
 }
 
 public sealed class QuizAttempt
@@ -27,7 +26,6 @@ public sealed class QuizAttempt
     public int TotalQuestions { get; set; }
     public double Percentage => TotalQuestions == 0 ? 0 : (double)CorrectCount / TotalQuestions * 100;
     public TimeSpan TimeTaken { get; set; }
-    public bool IsSaved { get; set; }
     public string QuizTitle { get; set; } = string.Empty;
     public int PassingScorePercent { get; set; } = 50;
 }

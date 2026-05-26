@@ -341,13 +341,24 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 optionsSnapshot);
         }));
 
+        var attemptsSnapshot = string.Join('\u001E', (_sourceDocument.Attempts ?? []).Select(attempt =>
+            string.Join(
+                '\u001D',
+                attempt.Date.ToString("O", CultureInfo.InvariantCulture),
+                attempt.CorrectCount.ToString(CultureInfo.InvariantCulture),
+                attempt.TotalQuestions.ToString(CultureInfo.InvariantCulture),
+                attempt.TimeTaken.Ticks.ToString(CultureInfo.InvariantCulture),
+                attempt.QuizTitle,
+                attempt.PassingScorePercent.ToString(CultureInfo.InvariantCulture))));
+
         return string.Join(
             '\u001F',
             TitleTextBox.Text,
             GetSourceNoteIdForSnapshot(),
             string.Join('\u001E', _sourceDocument.Tags ?? []),
             (_sourceDocument.GroupId?.ToString() ?? string.Empty),
-            questionsSnapshot);
+            questionsSnapshot,
+            attemptsSnapshot);
     }
 
     private string GetSourceNoteIdForSnapshot()
@@ -518,8 +529,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
     private void SaveQuizProgress()
     {
         // Naudojam tą patį save mechanizmą kaip ir visur kitur projekte
-        DialogResult = true;
         _allowCloseWithoutPrompt = true;
+        MarkCurrentStateSaved();
+        DialogResult = true;
     }
 
     private void RefreshProgressPanel()
@@ -567,6 +579,18 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             _sourceDocument.Attempts.Clear();
             RefreshProgressPanel();
         }
+    }
+
+    private void QuizHistoryButton_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new QuizAttemptHistoryWindow(_sourceDocument)
+        {
+            Owner = this
+        };
+
+        window.ShowDialog();
+        RefreshProgressPanel();
+        UpdateEditedIndicator();
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)

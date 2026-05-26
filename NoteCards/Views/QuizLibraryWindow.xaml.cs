@@ -20,6 +20,9 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
     private readonly HashSet<string> _selectedTags = new(StringComparer.OrdinalIgnoreCase);
     private string _statusText = string.Empty;
     private string _searchText = string.Empty;
+    private string _combinedQuizTitle = "Combined quiz";
+    private bool _shuffleCombinedQuestions = true;
+    private bool _skipDuplicateQuestions = true;
 
     public string QuizSearchQuery
     {
@@ -53,6 +56,34 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
     public ObservableCollection<TagFilterItemViewModel> CategoryFilters => _categoryFilters;
 
     public string FilteredCountText => string.Format(CultureInfo.CurrentCulture, "{0} quizzes", _quizzes.Count(q => q.IsVisible));
+    public string SelectedCountText => string.Format(CultureInfo.CurrentCulture, "{0} selected", _quizzes.Count(q => q.IsSelected));
+    public string SelectedQuestionCountText => string.Format(CultureInfo.CurrentCulture, "{0} questions in combined quiz", GetCombinedQuestionCount());
+    public bool HasSelectedQuizzes => _quizzes.Any(q => q.IsSelected);
+
+    public string CombinedQuizTitle
+    {
+        get => _combinedQuizTitle;
+        set
+        {
+            if (_combinedQuizTitle == value)
+                return;
+
+            _combinedQuizTitle = value ?? string.Empty;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool ShuffleCombinedQuestions
+    {
+        get => _shuffleCombinedQuestions;
+        set => SetOptionProperty(ref _shuffleCombinedQuestions, value);
+    }
+
+    public bool SkipDuplicateQuestions
+    {
+        get => _skipDuplicateQuestions;
+        set => SetOptionProperty(ref _skipDuplicateQuestions, value);
+    }
 
     public string StatusText
     {
@@ -98,6 +129,9 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
             or nameof(QuizLibraryItemViewModel.IsSelected))
         {
             OnPropertyChanged(nameof(FilteredCountText));
+            OnPropertyChanged(nameof(SelectedCountText));
+            OnPropertyChanged(nameof(SelectedQuestionCountText));
+            OnPropertyChanged(nameof(HasSelectedQuizzes));
             UpdateStatusText();
         }
     }
@@ -175,30 +209,21 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
         UpdateStatusText();
     }
 
+    private void ClearSelectionButton_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var quiz in _quizzes)
+            quiz.IsSelected = false;
+    }
+
     private void QuizItem_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (sender is Border border && border.DataContext is global::NoteCards.Views.QuizLibraryItemViewModel quiz)
-            OpenQuiz(quiz);
+            quiz.IsSelected = !quiz.IsSelected;
     }
 
-    private void OpenQuizButton_Click(object sender, RoutedEventArgs e)
+    private void SelectionCheckBox_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button { Tag: global::NoteCards.Views.QuizLibraryItemViewModel quiz })
-            OpenQuiz(quiz);
-    }
-
-    private void OpenQuiz(QuizLibraryItemViewModel quiz)
-    {
-        var editor = new QuizPreviewWindow(
-            quiz.Document,
-            quiz.Document.AiModelDisplayName,
-            quiz.Document.Title)
-        {
-            Owner = this
-        };
-
-        if (editor.ShowDialog() == true)
-            _mainViewModel.AddOrUpdateQuiz(editor.ToDocument(quiz.Document));
+        e.Handled = true;
     }
 
     private void CreateCombinedQuizButton_Click(object sender, RoutedEventArgs e)
@@ -206,11 +231,15 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
         var selectedQuizzes = _quizzes.Where(quiz => quiz.IsSelected).Select(quiz => quiz.Model).ToList();
         if (selectedQuizzes.Count == 0)
         {
-            ModernMessageBox.Show("Select at least one quiz first.", "Quiz library", MessageBoxButton.OK, MessageBoxImage.Information);
+            ModernMessageBox.Show("Select at least one quiz first.", "Combine quizzes", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        var combined = BuildCombinedQuiz(selectedQuizzes);
+        var combined = BuildCombinedQuiz(
+            selectedQuizzes,
+            CombinedQuizTitle,
+            ShuffleCombinedQuestions,
+            SkipDuplicateQuestions);
         var editor = new QuizPreviewWindow(
             combined,
             combined.AiModelDisplayName,
@@ -223,22 +252,29 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
             _mainViewModel.AddOrUpdateQuiz(editor.ToDocument());
     }
 
-    private static QuizDocument BuildCombinedQuiz(IEnumerable<QuizViewModel> selectedQuizzes)
+    private static QuizDocument BuildCombinedQuiz(
+        IEnumerable<QuizViewModel> selectedQuizzes,
+        string title,
+        bool shuffleQuestions,
+        bool skipDuplicateQuestions)
     {
         var documents = selectedQuizzes.Select(q => q.Document).ToList();
         var combinedTags = documents.SelectMany(d => d.Tags ?? []).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var combinedQuestions = new List<QuizQuestion>();
+        var seenQuestions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var document in documents)
         {
             foreach (var question in document.Questions)
             {
+                if (skipDuplicateQuestions && !seenQuestions.Add(BuildQuestionSignature(question)))
+                    continue;
+
                 combinedQuestions.Add(new QuizQuestion
                 {
                     Type = question.Type,
                     Question = question.Question,
                     Explanation = question.Explanation,
-                    SetIndex = combinedQuestions.Count + 1,
                     Options = question.Options.Select(option => new QuizOption
                     {
                         Text = option.Text,
@@ -248,14 +284,72 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
             }
         }
 
+        if (shuffleQuestions)
+            Shuffle(combinedQuestions);
+
+        for (var i = 0; i < combinedQuestions.Count; i++)
+            combinedQuestions[i].SetIndex = i + 1;
+
         return new QuizDocument
         {
-            Title = "Combined quiz",
+            Title = string.IsNullOrWhiteSpace(title) ? "Combined quiz" : title.Trim(),
             Tags = combinedTags,
             Questions = combinedQuestions,
             CreatedAt = DateTime.UtcNow,
             LastModified = DateTime.Now
         };
+    }
+
+    private static string BuildQuestionSignature(QuizQuestion question)
+    {
+        var options = question.Options
+            .Select(option => $"{NormalizeForSignature(option.Text)}:{option.IsCorrect}")
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase);
+
+        return string.Join("|",
+            question.Type,
+            NormalizeForSignature(question.Question),
+            string.Join(";", options));
+    }
+
+    private static string NormalizeForSignature(string? value)
+    {
+        return string.Join(" ", (value ?? string.Empty).Trim().Split(Array.Empty<char>(), StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    private static void Shuffle<T>(IList<T> items)
+    {
+        for (var i = items.Count - 1; i > 0; i--)
+        {
+            var j = Random.Shared.Next(i + 1);
+            (items[i], items[j]) = (items[j], items[i]);
+        }
+    }
+
+    private bool SetOptionProperty(ref bool field, bool value, [System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+    {
+        if (field == value)
+            return false;
+
+        field = value;
+        OnPropertyChanged(propertyName);
+        OnPropertyChanged(nameof(SelectedQuestionCountText));
+        return true;
+    }
+
+    private int GetCombinedQuestionCount()
+    {
+        var questions = _quizzes
+            .Where(quiz => quiz.IsSelected)
+            .SelectMany(quiz => quiz.Document.Questions ?? []);
+
+        if (!SkipDuplicateQuestions)
+            return questions.Count();
+
+        return questions
+            .Select(BuildQuestionSignature)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)

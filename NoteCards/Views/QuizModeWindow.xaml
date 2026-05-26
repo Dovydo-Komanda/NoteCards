@@ -177,8 +177,7 @@
                 <Grid.ColumnDefinitions>
 					<ColumnDefinition Width="Auto"/>
 					<ColumnDefinition Width="*"/>
-					<ColumnDefinition Width="Auto"/>
-					<ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
 					<ColumnDefinition Width="Auto"/>
 					<ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
@@ -191,41 +190,24 @@
                         Padding="16,10"
                         Click="PreviousButton_Click"/>
 
-                <Button Grid.Column="2"
+                <Button Grid.Column="4"
                         x:Name="NextButton"
                         Content="{Binding [QuizNextButton], Source={StaticResource Loc}}"
                         Style="{StaticResource DialogPrimaryButtonStyle}"
                         MinWidth="130"
                         Padding="16,10"
-                        Background="{DynamicResource ButtonBackground}"
-                        BorderBrush="{DynamicResource ButtonBorder}"
-                        Foreground="{DynamicResource ButtonForeground}"
                         Click="NextButton_Click"/>
 
-                <Button Grid.Column="2"
+                <Button Grid.Column="4"
                         x:Name="SubmitButton"
                         Content="{Binding [QuizSubmitButton], Source={StaticResource Loc}}"
                         Style="{StaticResource DialogPrimaryButtonStyle}"
                         MinWidth="130"
                         Padding="16,10"
-                        Background="{DynamicResource ButtonBackground}"
-                        BorderBrush="{DynamicResource ButtonBorder}"
-                        Foreground="{DynamicResource ButtonForeground}"
                         Visibility="Collapsed"
                         Click="SubmitButton_Click"/>
 
-                <Button Grid.Column="2"
-                        x:Name="DoneButton"
-                        Content="{Binding [QuizDoneButton], Source={StaticResource Loc}}"
-                        Style="{StaticResource DialogPrimaryButtonStyle}"
-                        MinWidth="130"
-                        Padding="16,10"
-                        Background="{DynamicResource ButtonBackground}"
-                        BorderBrush="{DynamicResource ButtonBorder}"
-                        Foreground="{DynamicResource ButtonForeground}"
-                        Visibility="Collapsed"
-                        Click="DoneButton_Click"/>
-				<Button Grid.Column="3"
+				<Button Grid.Column="2"
 						x:Name="RetryAllButton"
 						Content="🔁 Retry All"
 						Style="{StaticResource DialogSecondaryButtonStyle}"
@@ -234,7 +216,7 @@
 						Visibility="Collapsed"
 						Click="RetryAllButton_Click"/>
 
-				<Button Grid.Column="4"
+				<Button Grid.Column="3"
 						x:Name="RetryWrongButton"
 						Content="⚠️ Retry Wrong"
 						Style="{StaticResource DialogSecondaryButtonStyle}"
@@ -244,15 +226,16 @@
 						Visibility="Collapsed"
 						Click="RetryWrongButton_Click"/>
 
-				<Button Grid.Column="5"
-						x:Name="SaveAttemptButton"
-						Content="💾 Save Attempt"
-						Style="{StaticResource DialogPrimaryButtonStyle}"
-						MinWidth="130"
-						Padding="16,10"
-						Margin="8,0,0,0"
-						Visibility="Collapsed"
-						Click="SaveAttemptButton_Click"/>
+                <Button Grid.Column="4"
+                        x:Name="DoneButton"
+                        Content="{Binding [QuizDoneButton], Source={StaticResource Loc}}"
+                        Style="{StaticResource DialogPrimaryButtonStyle}"
+                        MinWidth="130"
+                        Padding="16,10"
+                        Margin="8,0,0,0"
+                        Visibility="Collapsed"
+                        Click="DoneButton_Click"/>
+
             </Grid>
         </Border>
     </Grid>

@@ -16,6 +16,8 @@ public sealed class QuizLibraryItemViewModel : ViewModelBase
     public QuizViewModel Model { get; }
     public QuizDocument Document => Model.Document;
     public string Title => Model.Title;
+    public string QuestionCountText => Model.QuestionCountText;
+    public bool HasTags => Model.HasTags;
     public string TagsDisplay => Model.TagsDisplay;
 
     public bool IsVisible

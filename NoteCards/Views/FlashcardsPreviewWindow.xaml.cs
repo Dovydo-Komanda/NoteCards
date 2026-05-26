@@ -692,6 +692,30 @@ public partial class FlashcardsPreviewWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private void ResetStudyStatusesForAllSets()
+    {
+        foreach (var item in _allItems)
+        {
+            item.IsKnown = false;
+            item.IsUnknown = false;
+        }
+
+        ResetStudyHistory();
+        ApplyFilters();
+        UpdateEditedIndicator();
+    }
+
+    private void FlashcardHistoryButton_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new FlashcardStudyHistoryWindow(() => ToDocument(), ResetStudyStatusesForAllSets)
+        {
+            Owner = this
+        };
+
+        window.ShowDialog();
+        UpdateEditedIndicator();
+    }
+
     private void MoveToStudyItem(FlashcardPreviewItem item, bool appendToHistory)
     {
         var index = _items.IndexOf(item);
