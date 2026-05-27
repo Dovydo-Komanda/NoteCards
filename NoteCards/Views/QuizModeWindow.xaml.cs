@@ -133,12 +133,77 @@ public partial class QuizModeWindow : Window
             }
         }
 
-        // Clear and populate options
+        // Clear and populate options or text input for PlainText questions
         if (FindName("OptionsPanel") is StackPanel optionsPanel)
         {
             optionsPanel.Children.Clear();
 
-            if (question.Options != null)
+            if (question.Type == QuizQuestionType.PlainText)
+            {
+                // Create a TextBox for plain text answer
+                var textBox = new TextBox
+                {
+                    Name = "PlainTextAnswerBox",
+                    Padding = new Thickness(12, 10, 12, 10),
+                    FontSize = 14,
+                    Foreground = (Brush)FindResource("TextColor"),
+                    Background = (Brush)FindResource("CardBackground"),
+                    BorderBrush = (Brush)FindResource("BorderColor"),
+                    BorderThickness = new Thickness(1),
+                    Margin = new Thickness(0, 0, 0, 10),
+                    TextWrapping = TextWrapping.Wrap,
+                    AcceptsReturn = true,
+                    MinHeight = 100,
+                    MaxHeight = 200,
+                    Tag = "PlainTextQuestion"
+                };
+
+                // Set character limit if specified
+                if (question.PlainTextCharLimit > 0)
+                {
+                    textBox.MaxLength = question.PlainTextCharLimit;
+                }
+
+                // Restore previous answer if it exists
+                if (_userAnswers.TryGetValue(_currentQuestionIndex, out var previousAnswer) && previousAnswer.Count > 0)
+                {
+                    // PlainText answers are stored as a special marker
+                    if (previousAnswer[0].Text?.StartsWith("__PLAINTEXT__:") == true)
+                    {
+                        textBox.Text = previousAnswer[0].Text.Substring("__PLAINTEXT__:".Length);
+                    }
+                }
+
+                optionsPanel.Children.Add(textBox);
+
+                // Add character count label
+                var charCountLabel = new TextBlock
+                {
+                    Name = "CharCountLabel",
+                    FontSize = 12,
+                    Foreground = (Brush)FindResource("TextColorSecondary"),
+                    Margin = new Thickness(0, 4, 0, 0),
+                    Text = question.PlainTextCharLimit > 0 
+                        ? $"0 / {question.PlainTextCharLimit} characters" 
+                        : "0 characters"
+                };
+
+                textBox.TextChanged += (s, e) =>
+                {
+                    if (charCountLabel != null)
+                    {
+                        charCountLabel.Text = question.PlainTextCharLimit > 0
+                            ? $"{textBox.Text.Length} / {question.PlainTextCharLimit} characters"
+                            : $"{textBox.Text.Length} characters";
+                    }
+
+                    // Auto-save the answer as user types
+                    SavePlainTextAnswer(textBox.Text);
+                };
+
+                optionsPanel.Children.Add(charCountLabel);
+            }
+            else if (question.Options != null)
             {
                 foreach (var option in question.Options)
                 {
@@ -231,6 +296,20 @@ public partial class QuizModeWindow : Window
         }
     }
 
+    private void SavePlainTextAnswer(string answer)
+    {
+        if (!_userAnswers.ContainsKey(_currentQuestionIndex))
+            _userAnswers[_currentQuestionIndex] = new List<QuizOption>();
+
+        // Store plain text answer as a special marker option
+        _userAnswers[_currentQuestionIndex].Clear();
+        _userAnswers[_currentQuestionIndex].Add(new QuizOption 
+        { 
+            Text = $"__PLAINTEXT__:{answer}",
+            IsCorrect = false 
+        });
+    }
+
     private void UpdateNavigationButtons()
     {
         if (FindName("PreviousButton") is Button prevButton)
@@ -266,6 +345,31 @@ public partial class QuizModeWindow : Window
             }
 
             return;
+        }
+
+        // Check if we're in a PlainText TextBox (Ctrl+Enter to submit from TextBox)
+        if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (FindName("OptionsPanel") is StackPanel optionsPanel)
+            {
+                var question = _quiz.Questions[_currentQuestionIndex];
+                if (question.Type == QuizQuestionType.PlainText)
+                {
+                    // Ctrl+Enter in PlainText box moves to next question
+                    if (FindName("NextButton") is Button nextButton && nextButton.Visibility == Visibility.Visible && nextButton.IsEnabled)
+                    {
+                        NextButton_Click(this, new RoutedEventArgs());
+                        e.Handled = true;
+                        return;
+                    }
+                    else if (FindName("SubmitButton") is Button submitButton && submitButton.Visibility == Visibility.Visible && submitButton.IsEnabled)
+                    {
+                        SubmitButton_Click(this, new RoutedEventArgs());
+                        e.Handled = true;
+                        return;
+                    }
+                }
+            }
         }
 
         if (e.Key == Key.Enter)
@@ -437,6 +541,30 @@ public partial class QuizModeWindow : Window
 
     private void DoneButton_Click(object sender, RoutedEventArgs e) => Close();
 
+    private bool IsAnswerCorrect(QuizQuestion question, List<QuizOption> userSelected)
+    {
+        if (question.Type == QuizQuestionType.PlainText)
+        {
+            // For plain text questions, check if user's answer matches the expected answer (case-insensitive)
+            if (userSelected.Count == 0) return false;
+
+            var userAnswer = userSelected[0].Text;
+            if (!userAnswer?.StartsWith("__PLAINTEXT__:") == true) return false;
+
+            var userText = userAnswer.Substring("__PLAINTEXT__:".Length).Trim();
+            var expectedText = question.PlainTextAnswer?.Trim() ?? string.Empty;
+
+            return userText.Equals(expectedText, StringComparison.OrdinalIgnoreCase);
+        }
+        else
+        {
+            // For multiple choice questions, check if selected options match correct options
+            var correctOptions = question.Options?.Where(o => o.IsCorrect).ToList() ?? new List<QuizOption>();
+            return userSelected.Count == correctOptions.Count &&
+                   userSelected.All(opt => correctOptions.Contains(opt));
+        }
+    }
+
     private void ShowResults()
     {
         _timer?.Stop();
@@ -450,9 +578,7 @@ public partial class QuizModeWindow : Window
             var question = _quiz.Questions[i];
             if (!_userAnswers.TryGetValue(i, out var userSelected)) continue;
 
-            var correctOptions = question.Options?.Where(o => o.IsCorrect).ToList() ?? new List<QuizOption>();
-            bool isCorrect = userSelected.Count == correctOptions.Count &&
-                            userSelected.All(opt => correctOptions.Contains(opt));
+            bool isCorrect = IsAnswerCorrect(question, userSelected);
             if (isCorrect) correctCount++;
         }
 
@@ -465,9 +591,7 @@ public partial class QuizModeWindow : Window
                 _wrongQuestionIndices.Add(i);
                 continue;
             }
-            var correctOptions = question.Options?.Where(o => o.IsCorrect).ToList() ?? new List<QuizOption>();
-            bool isCorrect = userSelected.Count == correctOptions.Count &&
-                             userSelected.All(opt => correctOptions.Contains(opt));
+            bool isCorrect = IsAnswerCorrect(question, userSelected);
             if (!isCorrect) _wrongQuestionIndices.Add(i);
         }
 
@@ -494,6 +618,7 @@ public partial class QuizModeWindow : Window
         if (FindName("ProgressText") is TextBlock pt) pt.Text = string.Format(LocalizationService.GetString("QuizResultsLabelFormat"), correctCount, totalQuestions);
         var displayTime = _isCountdown ? TimeSpan.FromSeconds(_timeLimitSeconds) - _remainingTime : _elapsedTime;
         if (FindName("TimerText") is TextBlock tt) tt.Text = displayTime.ToString(@"hh\:mm\:ss");
+
         if (FindName("ResultsTitleText") is TextBlock rt)
             rt.Text = passed ? "You pass" : "You failed";
         if (FindName("ResultsScoreText") is TextBlock rs)
@@ -516,8 +641,7 @@ public partial class QuizModeWindow : Window
             {
                 var q = _quiz.Questions[i];
                 var userSel = _userAnswers.TryGetValue(i, out var ans) ? ans : new List<QuizOption>();
-                var correctOpts = q.Options?.Where(o => o.IsCorrect).ToList() ?? new List<QuizOption>();
-                var isCorrect = userSel.Count == correctOpts.Count && userSel.All(opt => correctOpts.Contains(opt));
+                var isCorrect = IsAnswerCorrect(q, userSel);
 
                 var card = new Border
                 {
@@ -565,29 +689,71 @@ public partial class QuizModeWindow : Window
 
                 content.Children.Add(header);
 
-                var userAns = new TextBlock
+                // Handle display based on question type
+                if (q.Type == QuizQuestionType.PlainText)
                 {
-                    Text = string.Format(
-                        LocalizationService.GetString("QuizYourAnswerFormat"),
-                        userSel.Count > 0 ? string.Join(", ", userSel.Select(o => o.Text)) : LocalizationService.GetString("QuizNoAnswer")),
-                    FontSize = 13,
-                    Foreground = (Brush)FindResource("TextColor"),
-                    Margin = new Thickness(0, 8, 0, 4),
-                    TextWrapping = TextWrapping.Wrap
-                };
-                content.Children.Add(userAns);
+                    // Extract the plain text answer
+                    var userAnswer = userSel.Count > 0 && userSel[0].Text?.StartsWith("__PLAINTEXT__:") == true
+                        ? userSel[0].Text.Substring("__PLAINTEXT__:".Length)
+                        : LocalizationService.GetString("QuizNoAnswer");
 
-                if (!isCorrect && correctOpts.Count > 0)
-                {
-                    var correctAns = new TextBlock
+                    var userAnsBlock = new TextBlock
                     {
-                        Text = string.Format(LocalizationService.GetString("QuizCorrectAnswerFormat"), string.Join(", ", correctOpts.Select(o => o.Text))),
+                        Text = string.Format(
+                            LocalizationService.GetString("QuizYourAnswerFormat"),
+                            userAnswer),
                         FontSize = 13,
-                        Foreground = new SolidColorBrush(CorrectAnswerBorderColor),
-                        Margin = new Thickness(0, 0, 0, 4),
+                        Foreground = (Brush)FindResource("TextColor"),
+                        Margin = new Thickness(0, 8, 0, 4),
                         TextWrapping = TextWrapping.Wrap
                     };
-                    content.Children.Add(correctAns);
+                    content.Children.Add(userAnsBlock);
+
+                    // Show correct answer if incorrect
+                    if (!isCorrect && !string.IsNullOrEmpty(q.PlainTextAnswer))
+                    {
+                        var correctAnsBlock = new TextBlock
+                        {
+                            Text = string.Format(
+                                LocalizationService.GetString("QuizCorrectAnswerFormat"),
+                                q.PlainTextAnswer),
+                            FontSize = 13,
+                            Foreground = new SolidColorBrush(CorrectAnswerBorderColor),
+                            Margin = new Thickness(0, 0, 0, 4),
+                            TextWrapping = TextWrapping.Wrap
+                        };
+                        content.Children.Add(correctAnsBlock);
+                    }
+                }
+                else
+                {
+                    // Multiple choice answer display
+                    var correctOpts = q.Options?.Where(o => o.IsCorrect).ToList() ?? new List<QuizOption>();
+
+                    var userAns = new TextBlock
+                    {
+                        Text = string.Format(
+                            LocalizationService.GetString("QuizYourAnswerFormat"),
+                            userSel.Count > 0 ? string.Join(", ", userSel.Select(o => o.Text)) : LocalizationService.GetString("QuizNoAnswer")),
+                        FontSize = 13,
+                        Foreground = (Brush)FindResource("TextColor"),
+                        Margin = new Thickness(0, 8, 0, 4),
+                        TextWrapping = TextWrapping.Wrap
+                    };
+                    content.Children.Add(userAns);
+
+                    if (!isCorrect && correctOpts.Count > 0)
+                    {
+                        var correctAns = new TextBlock
+                        {
+                            Text = string.Format(LocalizationService.GetString("QuizCorrectAnswerFormat"), string.Join(", ", correctOpts.Select(o => o.Text))),
+                            FontSize = 13,
+                            Foreground = new SolidColorBrush(CorrectAnswerBorderColor),
+                            Margin = new Thickness(0, 0, 0, 4),
+                            TextWrapping = TextWrapping.Wrap
+                        };
+                        content.Children.Add(correctAns);
+                    }
                 }
 
                 if (!string.IsNullOrWhiteSpace(q.Explanation))
