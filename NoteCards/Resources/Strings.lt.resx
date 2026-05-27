@@ -60,6 +60,9 @@
   <data name="QuizResultsTitleGreat" xml:space="preserve"><value>🎉 Puikiai padirbėta!</value></data>
   <data name="QuizResultsTitleGood" xml:space="preserve"><value>👍 Gerai padirbėta!</value></data>
   <data name="QuizResultsTitleKeepLearning" xml:space="preserve"><value>📚 Tęskite mokymąsi!</value></data>
+  <data name="QuizPassedResult" xml:space="preserve"><value>Išlaikyta</value></data>
+  <data name="QuizFailedResult" xml:space="preserve"><value>Neišlaikyta</value></data>
+  <data name="QuizScoreWithPassingFormat" xml:space="preserve"><value>{0} / {1} ({2:F1}%) · išlaikymo riba {3}%</value></data>
   <data name="QuizResultsLabelFormat" xml:space="preserve"><value>Rezultatai: {0}/{1}</value></data>
   <data name="QuizTimeFormat" xml:space="preserve"><value>Laikas: {0}</value></data>
   <data name="QuizQuestionPrefixFormat" xml:space="preserve"><value>Klausimas {0}: {1}</value></data>
@@ -517,6 +520,16 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="RemoveOption" xml:space="preserve"><value>Pašalinti variantą</value></data>
   <data name="QuizExplanationLabel" xml:space="preserve"><value>Paaiškinimas</value></data>
   <data name="QuizExplanationHint" xml:space="preserve"><value>Pasirenkamas paaiškinimas</value></data>
+  <data name="QuizPlainTextEditAnswerLabel" xml:space="preserve"><value>Tikėtinas atsakymas</value></data>
+  <data name="QuizPlainTextYourAnswerLabel" xml:space="preserve"><value>Jūsų atsakymas</value></data>
+  <data name="QuizPlainTextAnswerHint" xml:space="preserve"><value>Atsakymas, pagal kurį vertinamas atviras klausimas</value></data>
+  <data name="QuizPlainTextPracticeHint" xml:space="preserve"><value>Įrašykite savo atsakymą į atvirą klausimą</value></data>
+  <data name="QuizPlainTextPracticePlaceholder" xml:space="preserve"><value>Rašykite atsakymą čia...</value></data>
+  <data name="QuizPlainTextMatchCase" xml:space="preserve"><value>Skirti raidžių dydį</value></data>
+  <data name="QuizPlainTextMatchCaseHint" xml:space="preserve"><value>Reikalauti, kad didžiosios ir mažosios raidės sutaptų tiksliai.</value></data>
+  <data name="QuizPlainTextIgnorePunctuation" xml:space="preserve"><value>Nepaisyti skyrybos</value></data>
+  <data name="QuizPlainTextIgnorePunctuationHint" xml:space="preserve"><value>Vertinant skyrybos ženklus ir simbolius laikyti tarpais.</value></data>
+  <data name="QuizCharactersFormat" xml:space="preserve"><value>{0} simbol.</value></data>
   <data name="NewQuizQuestion" xml:space="preserve"><value>Naujas klausimas</value></data>
   <data name="NewQuizCorrectAnswer" xml:space="preserve"><value>Teisingas atsakymas</value></data>
   <data name="NewQuizWrongAnswer" xml:space="preserve"><value>Klaidingas atsakymas</value></data>

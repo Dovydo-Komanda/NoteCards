@@ -242,6 +242,12 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
     private void QuizQuestion_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(QuizPreviewQuestion.PlainTextUserAnswer)
+            || e.PropertyName == nameof(QuizPreviewQuestion.HasSelection))
+        {
+            UpdateSummary();
+        }
+
         if (IsSavedQuestionProperty(e.PropertyName))
             UpdateEditedIndicator();
     }
@@ -289,7 +295,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             || propertyName == nameof(QuizPreviewQuestion.Question)
             || propertyName == nameof(QuizPreviewQuestion.Explanation)
             || propertyName == nameof(QuizPreviewQuestion.PlainTextAnswer)      
-            || propertyName == nameof(QuizPreviewQuestion.PlainTextCharLimit);  
+            || propertyName == nameof(QuizPreviewQuestion.PlainTextCharLimit)
+            || propertyName == nameof(QuizPreviewQuestion.PlainTextMatchCase)
+            || propertyName == nameof(QuizPreviewQuestion.PlainTextIgnorePunctuation);
     }
 
     private static bool IsSavedOptionProperty(string? propertyName)
@@ -343,6 +351,8 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 question.Hint ?? string.Empty,
                 question.PlainTextAnswer,  // ✅ ADD THIS
                 question.PlainTextCharLimit.ToString(CultureInfo.InvariantCulture),  // ✅ ADD THIS
+                question.PlainTextMatchCase.ToString(CultureInfo.InvariantCulture),
+                question.PlainTextIgnorePunctuation.ToString(CultureInfo.InvariantCulture),
                 optionsSnapshot);
         }));
 
@@ -484,6 +494,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         if (IsEditMode)
             return;
 
+        CommitFocusedTextBoxBinding();
         _isSubmitted = true;
 
         foreach (var question in _questions)
@@ -1046,7 +1057,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         foreach (var question in exportDocument.Questions)
         {
-            var correctAnswers = string.Join(" | ", question.Options.Where(option => option.IsCorrect).Select(option => option.Text));
+            var correctAnswers = question.Type == QuizQuestionType.PlainText
+                ? question.PlainTextAnswer
+                : string.Join(" | ", question.Options.Where(option => option.IsCorrect).Select(option => option.Text));
             sb.AppendLine(string.Join(",",
                 EscapeCsv(question.SetIndex.ToString(CultureInfo.InvariantCulture)),
                 EscapeCsv(question.Type.ToString()),
@@ -1091,6 +1104,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             {
                 QuizQuestionType.TrueFalse => LocalizationService.GetString("QuizTypeTrueFalse"),
                 QuizQuestionType.MultipleChoice => LocalizationService.GetString("QuizTypeMultipleChoice"),
+                QuizQuestionType.PlainText => LocalizationService.GetString("QuizTypePlainText"),
                 _ => LocalizationService.GetString("QuizTypeSingleChoice")
             })))
             {
@@ -1103,6 +1117,14 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             {
                 Margin = new Thickness(0, 0, 0, 6)
             });
+
+            if (question.IsPlainText)
+            {
+                document.Blocks.Add(new Paragraph(new Run(string.Format(CultureInfo.CurrentCulture, LocalizationService.GetString("QuizCorrectAnswerFormat"), question.PlainTextAnswer)))
+                {
+                    Margin = new Thickness(12, 0, 0, 2)
+                });
+            }
 
             foreach (var option in question.Options.Where(option => !string.IsNullOrWhiteSpace(option.Text)))
             {
@@ -1146,7 +1168,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             },
             // ✅ Add defaults for plain text
             PlainTextAnswer = string.Empty,
-            PlainTextCharLimit = 500
+            PlainTextCharLimit = 500,
+            PlainTextMatchCase = false,
+            PlainTextIgnorePunctuation = false
         };
     }
 
@@ -1302,7 +1326,10 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         private string _explanation = string.Empty;
         private string _hint = string.Empty;
         private string _plainTextAnswer = string.Empty;
+        private string _plainTextUserAnswer = string.Empty;
         private int _plainTextCharLimit = 500;  // Default 500 characters
+        private bool _plainTextMatchCase;
+        private bool _plainTextIgnorePunctuation;
         public QuizPreviewQuestion(int number, QuizQuestion source)
         {
             _source = source;
@@ -1314,6 +1341,8 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
             _plainTextAnswer = source.PlainTextAnswer ?? string.Empty;
             _plainTextCharLimit = source.PlainTextCharLimit;
+            _plainTextMatchCase = source.PlainTextMatchCase;
+            _plainTextIgnorePunctuation = source.PlainTextIgnorePunctuation;
 
             foreach (var option in source.Options)
                 Options.Add(new QuizPreviewOption(this, option.Text, option.IsCorrect));
@@ -1328,13 +1357,28 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 if (_plainTextAnswer == (value ?? string.Empty))
                     return;
 
-                // Enforce character limit
-                if (value?.Length > PlainTextCharLimit)
-                    value = value.Substring(0, PlainTextCharLimit);
-
                 _plainTextAnswer = value ?? string.Empty;
                 OnPropertyChanged();  // ✅ This notifies the UI
                 OnPropertyChanged(nameof(PlainTextAnswerCharCountText));  // ✅ And updates counter
+            }
+        }
+
+        public string PlainTextUserAnswer
+        {
+            get => _plainTextUserAnswer;
+            set
+            {
+                if (_isSubmitted)
+                    return;
+
+                var nextValue = value ?? string.Empty;
+                if (_plainTextUserAnswer == nextValue)
+                    return;
+
+                _plainTextUserAnswer = nextValue;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(PlainTextPracticeCharCountText));
+                OnPropertyChanged(nameof(HasSelection));
             }
         }
 
@@ -1346,19 +1390,45 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 if (_plainTextCharLimit == value)
                     return;
 
-                _plainTextCharLimit = Math.Max(10, Math.Min(5000, value)); // Limit 10-5000 chars
-
-                // Trim answer if it exceeds new limit
-                if (PlainTextAnswer?.Length > _plainTextCharLimit)
-                    PlainTextAnswer = PlainTextAnswer.Substring(0, _plainTextCharLimit);
+                _plainTextCharLimit = value;
 
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(PlainTextAnswerCharCountText));
+                OnPropertyChanged(nameof(PlainTextPracticeCharCountText));
             }
         }
 
         public string PlainTextAnswerCharCountText =>
-        $"{PlainTextAnswer?.Length ?? 0}/{PlainTextCharLimit}";
+            string.Format(LocalizationService.GetString("QuizCharactersFormat"), PlainTextAnswer?.Length ?? 0);
+
+        public string PlainTextPracticeCharCountText =>
+            string.Format(LocalizationService.GetString("QuizCharactersFormat"), PlainTextUserAnswer?.Length ?? 0);
+
+        public bool PlainTextMatchCase
+        {
+            get => _plainTextMatchCase;
+            set
+            {
+                if (_plainTextMatchCase == value)
+                    return;
+
+                _plainTextMatchCase = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool PlainTextIgnorePunctuation
+        {
+            get => _plainTextIgnorePunctuation;
+            set
+            {
+                if (_plainTextIgnorePunctuation == value)
+                    return;
+
+                _plainTextIgnorePunctuation = value;
+                OnPropertyChanged();
+            }
+        }
         // ✅ NEW: Helper property to check if this is a plain text question
         public bool IsPlainText => Type == QuizQuestionType.PlainText;
 
@@ -1456,7 +1526,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         public bool CanRemoveOption => Type != QuizQuestionType.TrueFalse && Options.Count > 2;
 
-        public bool HasSelection => Options.Any(option => option.IsSelected);
+        public bool HasSelection => IsPlainText
+            ? !string.IsNullOrWhiteSpace(PlainTextUserAnswer)
+            : Options.Any(option => option.IsSelected);
 
         public bool IsSubmitted => _isSubmitted;
 
@@ -1505,6 +1577,20 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         public bool HasVisibleExplanation => _isSubmitted && !string.IsNullOrWhiteSpace(Explanation);
 
         public string ExplanationText => string.Format(LocalizationService.GetString("QuizExplanationFormat"), Explanation);
+
+        public bool ShowPlainTextCorrectAnswer => IsPlainText && _isSubmitted && IsCorrect != true;
+
+        public string CorrectPlainTextAnswerDisplay
+        {
+            get
+            {
+                var correctAnswer = string.IsNullOrWhiteSpace(PlainTextAnswer)
+                    ? LocalizationService.GetString("QuizNoAnswer")
+                    : PlainTextAnswer.Trim();
+
+                return string.Format(LocalizationService.GetString("QuizCorrectAnswerFormat"), correctAnswer);
+            }
+        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -1586,11 +1672,15 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         {
             if (IsPlainText)
             {
-                // ✅ For plain text: check if answer matches (case-insensitive, trimmed)
                 _isSubmitted = true;
-                var userAnswer = PlainTextAnswer?.Trim().ToLowerInvariant();
-                var correctAnswer = _source.PlainTextAnswer?.Trim().ToLowerInvariant();
-                IsCorrect = string.Equals(userAnswer, correctAnswer, StringComparison.OrdinalIgnoreCase);
+                var userAnswer = NormalizePlainTextAnswer(PlainTextUserAnswer, PlainTextIgnorePunctuation);
+                var correctAnswer = NormalizePlainTextAnswer(PlainTextAnswer, PlainTextIgnorePunctuation);
+                var comparison = PlainTextMatchCase
+                    ? StringComparison.Ordinal
+                    : StringComparison.OrdinalIgnoreCase;
+                IsCorrect = !string.IsNullOrEmpty(userAnswer)
+                    && !string.IsNullOrEmpty(correctAnswer)
+                    && string.Equals(userAnswer, correctAnswer, comparison);
                 RefreshState();
                 return;
             }
@@ -1610,7 +1700,10 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             {
                 _isSubmitted = false;
                 IsCorrect = null;
-                // Don't clear the answer - let user re-enter
+                _plainTextUserAnswer = string.Empty;
+                OnPropertyChanged(nameof(PlainTextUserAnswer));
+                OnPropertyChanged(nameof(PlainTextPracticeCharCountText));
+                OnPropertyChanged(nameof(HasSelection));
                 RefreshState();
                 return;
             }
@@ -1639,6 +1732,8 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                     Hint = Hint?.Trim() ?? string.Empty,
                     PlainTextAnswer = PlainTextAnswer.Trim(),
                     PlainTextCharLimit = PlainTextCharLimit,
+                    PlainTextMatchCase = PlainTextMatchCase,
+                    PlainTextIgnorePunctuation = PlainTextIgnorePunctuation,
                     SetIndex = Math.Max(1, _source.SetIndex),
                     Options = new List<QuizOption>()
                 };
@@ -1666,7 +1761,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 Options = options,
                 // ✅ EXPLICITLY clear plain-text fields for non-PlainText questions
                 PlainTextAnswer = string.Empty,
-                PlainTextCharLimit = 500
+                PlainTextCharLimit = 500,
+                PlainTextMatchCase = false,
+                PlainTextIgnorePunctuation = false
             };
         }
 
@@ -1772,9 +1869,26 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             OnPropertyChanged(nameof(ExplanationText));
             OnPropertyChanged(nameof(IsPlainText));  // ✅ Notify UI of type change
             OnPropertyChanged(nameof(PlainTextAnswerCharCountText));
+            OnPropertyChanged(nameof(PlainTextPracticeCharCountText));
+            OnPropertyChanged(nameof(ShowPlainTextCorrectAnswer));
+            OnPropertyChanged(nameof(CorrectPlainTextAnswerDisplay));
+            OnPropertyChanged(nameof(PlainTextMatchCase));
+            OnPropertyChanged(nameof(PlainTextIgnorePunctuation));
 
             foreach (var option in Options)
                 option.RefreshState();
+        }
+
+        private static string NormalizePlainTextAnswer(string? value, bool ignorePunctuation)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            var normalized = ignorePunctuation
+                ? new string(value.Select(ch => char.IsPunctuation(ch) || char.IsSymbol(ch) ? ' ' : ch).ToArray())
+                : value;
+
+            return string.Join(" ", normalized.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).Trim();
         }
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

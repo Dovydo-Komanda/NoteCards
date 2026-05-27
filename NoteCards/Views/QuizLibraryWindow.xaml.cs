@@ -275,6 +275,11 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
                     Type = question.Type,
                     Question = question.Question,
                     Explanation = question.Explanation,
+                    Hint = question.Hint,
+                    PlainTextAnswer = question.PlainTextAnswer,
+                    PlainTextCharLimit = question.PlainTextCharLimit,
+                    PlainTextMatchCase = question.PlainTextMatchCase,
+                    PlainTextIgnorePunctuation = question.PlainTextIgnorePunctuation,
                     Options = question.Options.Select(option => new QuizOption
                     {
                         Text = option.Text,
@@ -309,6 +314,9 @@ public partial class QuizLibraryWindow : Window, INotifyPropertyChanged
         return string.Join("|",
             question.Type,
             NormalizeForSignature(question.Question),
+            NormalizeForSignature(question.PlainTextAnswer),
+            question.PlainTextMatchCase,
+            question.PlainTextIgnorePunctuation,
             string.Join(";", options));
     }
 

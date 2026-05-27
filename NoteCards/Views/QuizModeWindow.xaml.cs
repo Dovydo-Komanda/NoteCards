@@ -18,6 +18,7 @@ public partial class QuizModeWindow : Window
     private static readonly Color CorrectAnswerBorderColor = Color.FromRgb(16, 185, 129);
     private static readonly Color IncorrectAnswerBackgroundColor = Color.FromRgb(254, 242, 242);
     private static readonly Color IncorrectAnswerBorderColor = Color.FromRgb(220, 38, 38);
+    private const string PlainTextAnswerMarker = "__PLAINTEXT__:";
 
     private readonly QuizDocument _quiz;
     private int _currentQuestionIndex;
@@ -140,68 +141,7 @@ public partial class QuizModeWindow : Window
 
             if (question.Type == QuizQuestionType.PlainText)
             {
-                // Create a TextBox for plain text answer
-                var textBox = new TextBox
-                {
-                    Name = "PlainTextAnswerBox",
-                    Padding = new Thickness(12, 10, 12, 10),
-                    FontSize = 14,
-                    Foreground = (Brush)FindResource("TextColor"),
-                    Background = (Brush)FindResource("CardBackground"),
-                    BorderBrush = (Brush)FindResource("BorderColor"),
-                    BorderThickness = new Thickness(1),
-                    Margin = new Thickness(0, 0, 0, 10),
-                    TextWrapping = TextWrapping.Wrap,
-                    AcceptsReturn = true,
-                    MinHeight = 100,
-                    MaxHeight = 200,
-                    Tag = "PlainTextQuestion"
-                };
-
-                // Set character limit if specified
-                if (question.PlainTextCharLimit > 0)
-                {
-                    textBox.MaxLength = question.PlainTextCharLimit;
-                }
-
-                // Restore previous answer if it exists
-                if (_userAnswers.TryGetValue(_currentQuestionIndex, out var previousAnswer) && previousAnswer.Count > 0)
-                {
-                    // PlainText answers are stored as a special marker
-                    if (previousAnswer[0].Text?.StartsWith("__PLAINTEXT__:") == true)
-                    {
-                        textBox.Text = previousAnswer[0].Text.Substring("__PLAINTEXT__:".Length);
-                    }
-                }
-
-                optionsPanel.Children.Add(textBox);
-
-                // Add character count label
-                var charCountLabel = new TextBlock
-                {
-                    Name = "CharCountLabel",
-                    FontSize = 12,
-                    Foreground = (Brush)FindResource("TextColorSecondary"),
-                    Margin = new Thickness(0, 4, 0, 0),
-                    Text = question.PlainTextCharLimit > 0 
-                        ? $"0 / {question.PlainTextCharLimit} characters" 
-                        : "0 characters"
-                };
-
-                textBox.TextChanged += (s, e) =>
-                {
-                    if (charCountLabel != null)
-                    {
-                        charCountLabel.Text = question.PlainTextCharLimit > 0
-                            ? $"{textBox.Text.Length} / {question.PlainTextCharLimit} characters"
-                            : $"{textBox.Text.Length} characters";
-                    }
-
-                    // Auto-save the answer as user types
-                    SavePlainTextAnswer(textBox.Text);
-                };
-
-                optionsPanel.Children.Add(charCountLabel);
+                optionsPanel.Children.Add(CreatePlainTextAnswerCard(question));
             }
             else if (question.Options != null)
             {
@@ -296,6 +236,120 @@ public partial class QuizModeWindow : Window
         }
     }
 
+    private Border CreatePlainTextAnswerCard(QuizQuestion question)
+    {
+        var answerBorder = new Border
+        {
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0),
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+
+        var content = new StackPanel();
+
+        var header = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var label = new TextBlock
+        {
+            Text = LocalizationService.GetString("QuizPlainTextYourAnswerLabel"),
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)FindResource("TextColorSecondary"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        header.Children.Add(label);
+
+        var charCountLabel = new TextBlock
+        {
+            FontSize = 12,
+            Foreground = (Brush)FindResource("TextColorSecondary"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(charCountLabel, 1);
+        header.Children.Add(charCountLabel);
+        content.Children.Add(header);
+
+        var inputBorder = new Border
+        {
+            Background = (Brush)FindResource("WindowBackground"),
+            BorderBrush = (Brush)FindResource("BorderColor"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(10, 8, 10, 8)
+        };
+
+        var inputGrid = new Grid();
+        var textBox = new TextBox
+        {
+            Name = "PlainTextAnswerBox",
+            Padding = new Thickness(0),
+            FontSize = 15,
+            Foreground = (Brush)FindResource("TextColor"),
+            CaretBrush = (Brush)FindResource("TextColor"),
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            TextWrapping = TextWrapping.Wrap,
+            AcceptsReturn = true,
+            MinHeight = 130,
+            MaxHeight = 260,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Tag = "PlainTextQuestion"
+        };
+
+        if (_userAnswers.TryGetValue(_currentQuestionIndex, out var previousAnswer)
+            && TryGetPlainTextAnswer(previousAnswer, out var restoredAnswer))
+        {
+            textBox.Text = restoredAnswer;
+        }
+
+        var placeholder = new TextBlock
+        {
+            Text = LocalizationService.GetString("QuizPlainTextPracticePlaceholder"),
+            FontSize = 15,
+            Foreground = (Brush)FindResource("TextColorSecondary"),
+            Opacity = 0.72,
+            IsHitTestVisible = false,
+            Margin = new Thickness(0, 1, 0, 0),
+            TextWrapping = TextWrapping.Wrap,
+            Visibility = string.IsNullOrEmpty(textBox.Text) ? Visibility.Visible : Visibility.Collapsed
+        };
+
+        void UpdatePlainTextState()
+        {
+            charCountLabel.Text = string.Format(LocalizationService.GetString("QuizCharactersFormat"), textBox.Text.Length);
+            placeholder.Visibility = string.IsNullOrEmpty(textBox.Text) && !textBox.IsKeyboardFocusWithin
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        textBox.TextChanged += (s, e) =>
+        {
+            UpdatePlainTextState();
+            SavePlainTextAnswer(textBox.Text);
+        };
+        textBox.GotKeyboardFocus += (s, e) =>
+        {
+            inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(63, 111, 232));
+            UpdatePlainTextState();
+        };
+        textBox.LostKeyboardFocus += (s, e) =>
+        {
+            inputBorder.BorderBrush = (Brush)FindResource("BorderColor");
+            UpdatePlainTextState();
+        };
+
+        inputGrid.Children.Add(textBox);
+        inputGrid.Children.Add(placeholder);
+        inputBorder.Child = inputGrid;
+        content.Children.Add(inputBorder);
+        answerBorder.Child = content;
+        UpdatePlainTextState();
+        return answerBorder;
+    }
+
     private void SavePlainTextAnswer(string answer)
     {
         if (!_userAnswers.ContainsKey(_currentQuestionIndex))
@@ -305,7 +359,7 @@ public partial class QuizModeWindow : Window
         _userAnswers[_currentQuestionIndex].Clear();
         _userAnswers[_currentQuestionIndex].Add(new QuizOption 
         { 
-            Text = $"__PLAINTEXT__:{answer}",
+            Text = $"{PlainTextAnswerMarker}{answer}",
             IsCorrect = false 
         });
     }
@@ -545,16 +599,18 @@ public partial class QuizModeWindow : Window
     {
         if (question.Type == QuizQuestionType.PlainText)
         {
-            // For plain text questions, check if user's answer matches the expected answer (case-insensitive)
-            if (userSelected.Count == 0) return false;
+            if (!TryGetPlainTextAnswer(userSelected, out var userText))
+                return false;
 
-            var userAnswer = userSelected[0].Text;
-            if (!userAnswer?.StartsWith("__PLAINTEXT__:") == true) return false;
+            var normalizedUserText = NormalizePlainTextAnswer(userText, question.PlainTextIgnorePunctuation);
+            var normalizedExpectedText = NormalizePlainTextAnswer(question.PlainTextAnswer, question.PlainTextIgnorePunctuation);
+            var comparison = question.PlainTextMatchCase
+                ? StringComparison.Ordinal
+                : StringComparison.OrdinalIgnoreCase;
 
-            var userText = userAnswer.Substring("__PLAINTEXT__:".Length).Trim();
-            var expectedText = question.PlainTextAnswer?.Trim() ?? string.Empty;
-
-            return userText.Equals(expectedText, StringComparison.OrdinalIgnoreCase);
+            return !string.IsNullOrEmpty(normalizedUserText)
+                && !string.IsNullOrEmpty(normalizedExpectedText)
+                && string.Equals(normalizedUserText, normalizedExpectedText, comparison);
         }
         else
         {
@@ -565,17 +621,44 @@ public partial class QuizModeWindow : Window
         }
     }
 
+    private static bool TryGetPlainTextAnswer(List<QuizOption> userSelected, out string answer)
+    {
+        answer = string.Empty;
+        if (userSelected.Count == 0)
+            return false;
+
+        var storedAnswer = userSelected[0].Text;
+        if (string.IsNullOrEmpty(storedAnswer) || !storedAnswer.StartsWith(PlainTextAnswerMarker, StringComparison.Ordinal))
+            return false;
+
+        answer = storedAnswer[PlainTextAnswerMarker.Length..];
+        return true;
+    }
+
+    private static string NormalizePlainTextAnswer(string? value, bool ignorePunctuation)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var normalized = ignorePunctuation
+            ? new string(value.Select(ch => char.IsPunctuation(ch) || char.IsSymbol(ch) ? ' ' : ch).ToArray())
+            : value;
+
+        return string.Join(" ", normalized.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).Trim();
+    }
+
     private void ShowResults()
     {
         _timer?.Stop();
         _isResultsView = true;
 
         var correctCount = 0;
-        var totalQuestions = _quiz.Questions?.Count ?? 0;
+        var questions = _quiz.Questions ?? new List<QuizQuestion>();
+        var totalQuestions = questions.Count;
 
         for (int i = 0; i < totalQuestions; i++)
         {
-            var question = _quiz.Questions[i];
+            var question = questions[i];
             if (!_userAnswers.TryGetValue(i, out var userSelected)) continue;
 
             bool isCorrect = IsAnswerCorrect(question, userSelected);
@@ -585,7 +668,7 @@ public partial class QuizModeWindow : Window
         _wrongQuestionIndices.Clear();
         for (int i = 0; i < totalQuestions; i++)
         {
-            var question = _quiz.Questions[i];
+            var question = questions[i];
             if (!_userAnswers.TryGetValue(i, out var userSelected))
             {
                 _wrongQuestionIndices.Add(i);
@@ -620,9 +703,9 @@ public partial class QuizModeWindow : Window
         if (FindName("TimerText") is TextBlock tt) tt.Text = displayTime.ToString(@"hh\:mm\:ss");
 
         if (FindName("ResultsTitleText") is TextBlock rt)
-            rt.Text = passed ? "You pass" : "You failed";
+            rt.Text = LocalizationService.GetString(passed ? "QuizPassedResult" : "QuizFailedResult");
         if (FindName("ResultsScoreText") is TextBlock rs)
-            rs.Text = $"{correctCount} / {totalQuestions} ({percentage:F1}%) - percent needed to pass {passingScore}%";
+            rs.Text = string.Format(LocalizationService.GetString("QuizScoreWithPassingFormat"), correctCount, totalQuestions, percentage, passingScore);
         if (FindName("ResultsTimeText") is TextBlock rtime)
             rtime.Text = string.Format(LocalizationService.GetString("QuizTimeFormat"), displayTime.ToString(@"hh\:mm\:ss"));
         if (FindName("PreviousButton") is Button pb) pb.Visibility = Visibility.Collapsed;
@@ -637,9 +720,9 @@ public partial class QuizModeWindow : Window
         if (FindName("ResultsQuestionsPanel") is StackPanel rp)
         {
             rp.Children.Clear();
-            for (int i = 0; i < _quiz.Questions.Count; i++)
+            for (int i = 0; i < questions.Count; i++)
             {
-                var q = _quiz.Questions[i];
+                var q = questions[i];
                 var userSel = _userAnswers.TryGetValue(i, out var ans) ? ans : new List<QuizOption>();
                 var isCorrect = IsAnswerCorrect(q, userSel);
 
@@ -693,8 +776,8 @@ public partial class QuizModeWindow : Window
                 if (q.Type == QuizQuestionType.PlainText)
                 {
                     // Extract the plain text answer
-                    var userAnswer = userSel.Count > 0 && userSel[0].Text?.StartsWith("__PLAINTEXT__:") == true
-                        ? userSel[0].Text.Substring("__PLAINTEXT__:".Length)
+                    var userAnswer = TryGetPlainTextAnswer(userSel, out var plainTextAnswer) && !string.IsNullOrWhiteSpace(plainTextAnswer)
+                        ? plainTextAnswer
                         : LocalizationService.GetString("QuizNoAnswer");
 
                     var userAnsBlock = new TextBlock

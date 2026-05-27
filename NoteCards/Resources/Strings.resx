@@ -60,6 +60,9 @@
   <data name="QuizResultsTitleGreat" xml:space="preserve"><value>🎉 Great Job!</value></data>
   <data name="QuizResultsTitleGood" xml:space="preserve"><value>👍 Good Effort!</value></data>
   <data name="QuizResultsTitleKeepLearning" xml:space="preserve"><value>📚 Keep Learning!</value></data>
+  <data name="QuizPassedResult" xml:space="preserve"><value>Passed</value></data>
+  <data name="QuizFailedResult" xml:space="preserve"><value>Not passed</value></data>
+  <data name="QuizScoreWithPassingFormat" xml:space="preserve"><value>{0} / {1} ({2:F1}%) · passing score {3}%</value></data>
   <data name="QuizResultsLabelFormat" xml:space="preserve"><value>Results: {0}/{1}</value></data>
   <data name="QuizTimeFormat" xml:space="preserve"><value>Time: {0}</value></data>
   <data name="QuizQuestionPrefixFormat" xml:space="preserve"><value>Question {0}: {1}</value></data>
@@ -569,6 +572,16 @@ Right-click to remove</value></data>
   <data name="RemoveOption" xml:space="preserve"><value>Remove option</value></data>
   <data name="QuizExplanationLabel" xml:space="preserve"><value>Explanation</value></data>
   <data name="QuizExplanationHint" xml:space="preserve"><value>Optional explanation</value></data>
+  <data name="QuizPlainTextEditAnswerLabel" xml:space="preserve"><value>Expected answer</value></data>
+  <data name="QuizPlainTextYourAnswerLabel" xml:space="preserve"><value>Your answer</value></data>
+  <data name="QuizPlainTextAnswerHint" xml:space="preserve"><value>Answer used to grade this open-ended question</value></data>
+  <data name="QuizPlainTextPracticeHint" xml:space="preserve"><value>Type your answer for this open-ended question</value></data>
+  <data name="QuizPlainTextPracticePlaceholder" xml:space="preserve"><value>Type your answer here...</value></data>
+  <data name="QuizPlainTextMatchCase" xml:space="preserve"><value>Match case</value></data>
+  <data name="QuizPlainTextMatchCaseHint" xml:space="preserve"><value>Require uppercase and lowercase letters to match exactly.</value></data>
+  <data name="QuizPlainTextIgnorePunctuation" xml:space="preserve"><value>Ignore punctuation</value></data>
+  <data name="QuizPlainTextIgnorePunctuationHint" xml:space="preserve"><value>Treat punctuation and symbols as spacing when grading.</value></data>
+  <data name="QuizCharactersFormat" xml:space="preserve"><value>{0} characters</value></data>
   <data name="NewQuizQuestion" xml:space="preserve"><value>New question</value></data>
   <data name="NewQuizCorrectAnswer" xml:space="preserve"><value>Correct answer</value></data>
   <data name="NewQuizWrongAnswer" xml:space="preserve"><value>Wrong answer</value></data>

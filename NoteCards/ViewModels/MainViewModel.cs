@@ -191,7 +191,13 @@ public class MainViewModel : ViewModelBase
                 Text = o.Text,
                 IsCorrect = o.IsCorrect
             }).ToList(),
-            Explanation = source.Explanation
+            Explanation = source.Explanation,
+            Hint = source.Hint,
+            SetIndex = source.SetIndex,
+            PlainTextAnswer = source.PlainTextAnswer,
+            PlainTextCharLimit = source.PlainTextCharLimit,
+            PlainTextMatchCase = source.PlainTextMatchCase,
+            PlainTextIgnorePunctuation = source.PlainTextIgnorePunctuation
         };
     }
 
@@ -2038,6 +2044,8 @@ public class MainViewModel : ViewModelBase
     {
         question.Question = question.Question?.Trim() ?? string.Empty;
         question.Explanation = question.Explanation?.Trim() ?? string.Empty;
+        question.Hint = question.Hint?.Trim() ?? string.Empty;
+        question.PlainTextAnswer = question.PlainTextAnswer?.Trim() ?? string.Empty;
         question.Options = question.Options?
             .Where(option => option != null && !string.IsNullOrWhiteSpace(option.Text))
             .Select(option => new QuizOption
@@ -3716,6 +3724,7 @@ public class MainViewModel : ViewModelBase
                || quiz.Document.Questions.Any(question =>
                    (question.Question ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)
                    || (question.Explanation ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)
+                   || (question.PlainTextAnswer ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)
                    || question.Options.Any(option => (option.Text ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)));
     }
 

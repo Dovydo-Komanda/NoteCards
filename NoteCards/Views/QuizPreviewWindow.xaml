@@ -96,7 +96,7 @@
             <Setter Property="Margin" Value="4,0,0,0"/>
         </Style>
 
-        <Style x:Key="QuizOptionRemoveButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogDangerButtonStyle}">
+        <Style x:Key="QuizOptionRemoveButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogSecondaryButtonStyle}">
             <Setter Property="Padding" Value="0"/>
             <Setter Property="MinWidth" Value="28"/>
             <Setter Property="Width" Value="28"/>
@@ -104,6 +104,10 @@
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="4,0,0,0"/>
+            <Setter Property="Background" Value="#F6DEDE"/>
+            <Setter Property="BorderBrush" Value="#D7A6A6"/>
+            <Setter Property="Foreground" Value="#9F2D2D"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -118,12 +122,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#C92222"/>
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#C92222"/>
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#EFCACA"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#C78D8D"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#A91B1B"/>
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#A91B1B"/>
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#E5BABA"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#B97979"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45"/>
@@ -741,64 +745,119 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
 
-                                    <!-- ✅ NEW: Plain Text Answer Section (shown when PlainText) -->
+                                    <!-- Plain text answer section -->
                                     <Border Visibility="{Binding IsPlainText, Converter={StaticResource BoolToVis}}"
-                                    Background="{DynamicResource WindowBackground}"
-                                    BorderBrush="{DynamicResource BorderColor}"
-                                    BorderThickness="1"
-                                    CornerRadius="10"
-                                    Padding="12">
-                                                                <StackPanel>
-                                                                    <Grid>
-                                                                        <Grid.ColumnDefinitions>
-                                                                            <ColumnDefinition Width="*"/>
-                                                                            <ColumnDefinition Width="Auto"/>
-                                                                        </Grid.ColumnDefinitions>
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="0">
+                                        <StackPanel>
+                                            <Grid>
+                                                <TextBlock Text="{Binding [QuizPlainTextEditAnswerLabel], Source={StaticResource Loc}}"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextColorSecondary}"
+                                                           Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
+                                                <TextBlock Text="{Binding [QuizPlainTextYourAnswerLabel], Source={StaticResource Loc}}"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextColorSecondary}"
+                                                           Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVis}}"/>
+                                            </Grid>
 
-                                                                        <TextBlock Text="{Binding [QuizPlainTextAnswerLabel], Source={StaticResource Loc}}"
-                                                   FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TextColorSecondary}"/>
-
-                                                                        <!-- Character limit input (edit mode only) -->
-                                                                        <StackPanel Grid.Column="1"
-                                                    Orientation="Horizontal"
-                                                    Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
-                                                                            <TextBlock Text="{Binding [QuizCharLimit], Source={StaticResource Loc}}"
-                                                       FontSize="11"
-                                                       Foreground="{DynamicResource TextColorSecondary}"
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,4,0"/>
-                                                                            <TextBox Text="{Binding PlainTextCharLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                     Width="50"
-                                                     FontSize="11"
-                                                     Padding="4,2"
-                                                     TextAlignment="Center"
-                                                     Style="{StaticResource QuizEditorTextBoxStyle}"/>
-                                                                        </StackPanel>
-                                                                    </Grid>
-
-                                            <!-- Answer input -->
                                             <TextBox Text="{Binding PlainTextAnswer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             IsEnabled="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}"
-                                             AcceptsReturn="True"
-                                             TextWrapping="Wrap"
-                                             MinHeight="60"
-                                             MaxHeight="120"
-                                             VerticalScrollBarVisibility="Auto"
-                                             Style="{StaticResource QuizEditorTextBoxStyle}"
-                                             Margin="0,8,0,0"
-                                             ToolTip="{Binding [QuizPlainTextAnswerHint], Source={StaticResource Loc}}"
-                                             BorderBrush="#10B981" />
+                                                     AcceptsReturn="True"
+                                                     TextWrapping="Wrap"
+                                                     MinHeight="76"
+                                                     MaxHeight="150"
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     Style="{StaticResource QuizEditorTextBoxStyle}"
+                                                     Margin="0,8,0,0"
+                                                     ToolTip="{Binding [QuizPlainTextAnswerHint], Source={StaticResource Loc}}"
+                                                     Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
 
-                                            <!-- Character count display -->
-                                                                    <TextBlock Text="{Binding PlainTextAnswerCharCountText}"
-                                               FontSize="11"
-                                               Foreground="{DynamicResource TextColorSecondary}"
-                                               HorizontalAlignment="Right"
-                                               Margin="0,4,0,0"/>
-                                                                </StackPanel>
-                                                            </Border>
+                                            <Grid Margin="0,8,0,0"
+                                                  Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVis}}">
+                                                <TextBox x:Name="PlainTextPracticeTextBox"
+                                                         Text="{Binding PlainTextUserAnswer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         IsReadOnly="{Binding IsSubmitted}"
+                                                         AcceptsReturn="True"
+                                                         TextWrapping="Wrap"
+                                                         MinHeight="86"
+                                                         MaxHeight="170"
+                                                         VerticalScrollBarVisibility="Auto"
+                                                         Style="{StaticResource QuizEditorTextBoxStyle}"
+                                                         ToolTip="{Binding [QuizPlainTextPracticeHint], Source={StaticResource Loc}}"/>
+                                                <TextBlock Text="{Binding [QuizPlainTextPracticePlaceholder], Source={StaticResource Loc}}"
+                                                           IsHitTestVisible="False"
+                                                           Margin="10,8,10,0"
+                                                           FontSize="13"
+                                                           Foreground="{DynamicResource TextColorSecondary}"
+                                                           Opacity="0.72"
+                                                           TextWrapping="Wrap">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <MultiDataTrigger>
+                                                                    <MultiDataTrigger.Conditions>
+                                                                        <Condition Binding="{Binding Text, ElementName=PlainTextPracticeTextBox}" Value=""/>
+                                                                        <Condition Binding="{Binding IsKeyboardFocusWithin, ElementName=PlainTextPracticeTextBox}" Value="False"/>
+                                                                        <Condition Binding="{Binding IsSubmitted}" Value="False"/>
+                                                                    </MultiDataTrigger.Conditions>
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </MultiDataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+
+                                            <Grid Margin="0,4,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0"
+                                                            Orientation="Horizontal"
+                                                            Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
+                                                    <CheckBox Content="{Binding [QuizPlainTextMatchCase], Source={StaticResource Loc}}"
+                                                              IsChecked="{Binding PlainTextMatchCase, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                              FontSize="12"
+                                                              Foreground="{DynamicResource TextColorSecondary}"
+                                                              VerticalAlignment="Center"
+                                                              Margin="0,0,16,0"
+                                                              ToolTip="{Binding [QuizPlainTextMatchCaseHint], Source={StaticResource Loc}}"/>
+                                                    <CheckBox Content="{Binding [QuizPlainTextIgnorePunctuation], Source={StaticResource Loc}}"
+                                                              IsChecked="{Binding PlainTextIgnorePunctuation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                              FontSize="12"
+                                                              Foreground="{DynamicResource TextColorSecondary}"
+                                                              VerticalAlignment="Center"
+                                                              ToolTip="{Binding [QuizPlainTextIgnorePunctuationHint], Source={StaticResource Loc}}"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding CorrectPlainTextAnswerDisplay}"
+                                                           Grid.Column="0"
+                                                           FontSize="12"
+                                                           Foreground="{DynamicResource TextColorSecondary}"
+                                                           TextWrapping="Wrap"
+                                                           Visibility="{Binding ShowPlainTextCorrectAnswer, Converter={StaticResource BoolToVis}}"/>
+                                                <TextBlock FontSize="11"
+                                                           Grid.Column="1"
+                                                           Foreground="{DynamicResource TextColorSecondary}"
+                                                           HorizontalAlignment="Right">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="{Binding PlainTextPracticeCharCountText}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                    <Setter Property="Text" Value="{Binding PlainTextAnswerCharCountText}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
 
                                 </Grid>
 
