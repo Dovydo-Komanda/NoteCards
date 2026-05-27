@@ -533,6 +533,7 @@ Right-click to remove</value></data>
   <data name="QuizTypeSingleChoice" xml:space="preserve"><value>single choice</value></data>
   <data name="QuizTypeMultipleChoice" xml:space="preserve"><value>multiple choice</value></data>
   <data name="QuizTypeTrueFalse" xml:space="preserve"><value>true / false</value></data>
+  <data name="QuizTypePlainText" xml:space="preserve"><value>open-ended</value></data>
   <data name="QuizOptionTrue" xml:space="preserve"><value>True</value></data>
   <data name="QuizOptionFalse" xml:space="preserve"><value>False</value></data>
   <data name="QuizCorrect" xml:space="preserve"><value>Correct</value></data>

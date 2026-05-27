@@ -481,6 +481,7 @@ Dešiniu pelės mygtuku pašalinsite</value></data>
   <data name="QuizTypeSingleChoice" xml:space="preserve"><value>vienas atsakymas</value></data>
   <data name="QuizTypeMultipleChoice" xml:space="preserve"><value>keli atsakymai</value></data>
   <data name="QuizTypeTrueFalse" xml:space="preserve"><value>teisinga / klaidinga</value></data>
+  <data name="QuizTypePlainText" xml:space="preserve"><value>atviras klausimas</value></data>
   <data name="QuizOptionTrue" xml:space="preserve"><value>Teisinga</value></data>
   <data name="QuizOptionFalse" xml:space="preserve"><value>Klaidinga</value></data>
   <data name="QuizCorrect" xml:space="preserve"><value>Teisingai</value></data>
