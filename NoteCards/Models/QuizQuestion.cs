@@ -4,7 +4,8 @@ public enum QuizQuestionType
 {
     SingleChoice = 0,
     MultipleChoice = 1,
-    TrueFalse = 2
+    TrueFalse = 2,
+    PlainText = 3
 }
 
 public sealed class QuizQuestion
@@ -15,4 +16,8 @@ public sealed class QuizQuestion
     public string Explanation { get; set; } = string.Empty;
     public string Hint { get; set; } = string.Empty;  
     public int SetIndex { get; set; } = 1;
+
+    // ✅ NEW: Plain text question properties
+    public string PlainTextAnswer { get; set; } = string.Empty;
+    public int PlainTextCharLimit { get; set; } = 500;
 }

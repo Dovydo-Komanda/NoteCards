@@ -287,7 +287,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             || propertyName == nameof(QuizPreviewQuestion.Number)
             || propertyName == nameof(QuizPreviewQuestion.Type)
             || propertyName == nameof(QuizPreviewQuestion.Question)
-            || propertyName == nameof(QuizPreviewQuestion.Explanation);
+            || propertyName == nameof(QuizPreviewQuestion.Explanation)
+            || propertyName == nameof(QuizPreviewQuestion.PlainTextAnswer)      
+            || propertyName == nameof(QuizPreviewQuestion.PlainTextCharLimit);  
     }
 
     private static bool IsSavedOptionProperty(string? propertyName)
@@ -338,6 +340,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 question.Type.ToString(),
                 question.Question,
                 question.Explanation,
+                question.Hint ?? string.Empty,
+                question.PlainTextAnswer,  // ✅ ADD THIS
+                question.PlainTextCharLimit.ToString(CultureInfo.InvariantCulture),  // ✅ ADD THIS
                 optionsSnapshot);
         }));
 
@@ -399,10 +404,42 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
     private void SaveAndClose()
     {
+        // Ensure any in-progress edits (focused TextBox) update their binding source
+        CommitFocusedTextBoxBinding();
+
         MarkCurrentStateSaved();
         _allowCloseWithoutPrompt = true;
         DialogResult = true;
         Close();
+    }
+
+    private void CommitFocusedTextBoxBinding()
+    {
+        try
+        {
+            // Commit all TextBox bindings in the window to ensure all pending edits are saved
+            CommitTextBoxBindingsInVisualTree(this);
+        }
+        catch
+        {
+            // Swallow any exceptions - this is a best-effort commit to avoid losing edits when closing
+        }
+    }
+
+    private void CommitTextBoxBindingsInVisualTree(DependencyObject obj)
+    {
+        // Recursively walk the visual tree and update all TextBox bindings
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+        {
+            var child = VisualTreeHelper.GetChild(obj, i);
+            if (child is System.Windows.Controls.TextBox tb)
+            {
+                var be = tb.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty);
+                be?.UpdateSource();
+            }
+
+            CommitTextBoxBindingsInVisualTree(child);
+        }
     }
 
     public QuizDocument ToDocument(QuizDocument? existingDocument = null)
@@ -738,7 +775,24 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         if (!Enum.TryParse(item.Tag.ToString(), out QuizQuestionType type))
             return;
 
+        var oldType = question.Type;
         question.Type = type;
+
+        // ✅ Reset options when switching to/from plain text
+        if (type == QuizQuestionType.PlainText)
+        {
+            // Clear options for plain text questions
+            question.Options.Clear();
+            // ✅ Initialize with empty answer if switching to plain text
+            if (string.IsNullOrWhiteSpace(question.PlainTextAnswer))
+                question.PlainTextAnswer = string.Empty;
+        }
+        else if (question.Options.Count == 0)
+        {
+            // Add default options when switching away from plain text
+            question.ResetOptions(CreateDefaultQuestion().Options);
+        }
+
         UpdateSummary();
     }
 
@@ -1086,10 +1140,13 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             Question = LocalizationService.GetString("NewQuizQuestion"),
             Options = new List<QuizOption>
             {
-                new() { Text = LocalizationService.GetString("NewQuizCorrectAnswer"), IsCorrect = true },
-                new() { Text = LocalizationService.GetString("NewQuizWrongAnswer"), IsCorrect = false },
-                new() { Text = LocalizationService.GetString("NewQuizWrongAnswer"), IsCorrect = false }
-            }
+            new() { Text = LocalizationService.GetString("NewQuizCorrectAnswer"), IsCorrect = true },
+            new() { Text = LocalizationService.GetString("NewQuizWrongAnswer"), IsCorrect = false },
+            new() { Text = LocalizationService.GetString("NewQuizWrongAnswer"), IsCorrect = false }
+            },
+            // ✅ Add defaults for plain text
+            PlainTextAnswer = string.Empty,
+            PlainTextCharLimit = 500
         };
     }
 
@@ -1243,7 +1300,9 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
         private QuizQuestionType _type;
         private string _question = string.Empty;
         private string _explanation = string.Empty;
-        private string _hint = string.Empty;  
+        private string _hint = string.Empty;
+        private string _plainTextAnswer = string.Empty;
+        private int _plainTextCharLimit = 500;  // Default 500 characters
         public QuizPreviewQuestion(int number, QuizQuestion source)
         {
             _source = source;
@@ -1251,11 +1310,60 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             _type = source.Type;
             Question = source.Question;
             Explanation = source.Explanation;
-            Hint = source.Hint; 
+            Hint = source.Hint;
+
+            _plainTextAnswer = source.PlainTextAnswer ?? string.Empty;
+            _plainTextCharLimit = source.PlainTextCharLimit;
+
             foreach (var option in source.Options)
                 Options.Add(new QuizPreviewOption(this, option.Text, option.IsCorrect));
             EnsureValidOptions();
         }
+
+        public string PlainTextAnswer
+        {
+            get => _plainTextAnswer;
+            set
+            {
+                if (_plainTextAnswer == (value ?? string.Empty))
+                    return;
+
+                // Enforce character limit
+                if (value?.Length > PlainTextCharLimit)
+                    value = value.Substring(0, PlainTextCharLimit);
+
+                _plainTextAnswer = value ?? string.Empty;
+                OnPropertyChanged();  // ✅ This notifies the UI
+                OnPropertyChanged(nameof(PlainTextAnswerCharCountText));  // ✅ And updates counter
+            }
+        }
+
+        public int PlainTextCharLimit
+        {
+            get => _plainTextCharLimit;
+            set
+            {
+                if (_plainTextCharLimit == value)
+                    return;
+
+                _plainTextCharLimit = Math.Max(10, Math.Min(5000, value)); // Limit 10-5000 chars
+
+                // Trim answer if it exceeds new limit
+                if (PlainTextAnswer?.Length > _plainTextCharLimit)
+                    PlainTextAnswer = PlainTextAnswer.Substring(0, _plainTextCharLimit);
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(PlainTextAnswerCharCountText));
+            }
+        }
+
+        public string PlainTextAnswerCharCountText =>
+        $"{PlainTextAnswer?.Length ?? 0}/{PlainTextCharLimit}";
+        // ✅ NEW: Helper property to check if this is a plain text question
+        public bool IsPlainText => Type == QuizQuestionType.PlainText;
+
+        // ✅ Update CanAddOption to exclude plain text
+        public bool CanAddOption => Type != QuizQuestionType.TrueFalse && Type != QuizQuestionType.PlainText;
 
         public bool IsFocused
         {
@@ -1298,6 +1406,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 OnPropertyChanged(nameof(HeaderText));
                 OnPropertyChanged(nameof(CanAddOption));
                 OnPropertyChanged(nameof(CanReorderOptions));
+                OnPropertyChanged(nameof(IsPlainText));
                 foreach (var option in Options)
                     option.RefreshState();
             }
@@ -1343,8 +1452,6 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         public ObservableCollection<QuizPreviewOption> Options { get; } = new();
 
-        public bool CanAddOption => Type != QuizQuestionType.TrueFalse;
-
         public bool CanReorderOptions => Type != QuizQuestionType.TrueFalse && Options.Count > 1;
 
         public bool CanRemoveOption => Type != QuizQuestionType.TrueFalse && Options.Count > 2;
@@ -1362,6 +1469,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             {
                 QuizQuestionType.TrueFalse => LocalizationService.GetString("QuizTypeTrueFalse"),
                 QuizQuestionType.MultipleChoice => LocalizationService.GetString("QuizTypeMultipleChoice"),
+                QuizQuestionType.PlainText => LocalizationService.GetString("QuizTypePlainText"),
                 _ => LocalizationService.GetString("QuizTypeSingleChoice")
             });
 
@@ -1402,7 +1510,7 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         public void SelectOption(QuizPreviewOption option)
         {
-            if (_isSubmitted)
+            if (_isSubmitted || IsPlainText)
                 return;
 
             if (Type == QuizQuestionType.MultipleChoice)
@@ -1476,6 +1584,17 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         public void Submit()
         {
+            if (IsPlainText)
+            {
+                // ✅ For plain text: check if answer matches (case-insensitive, trimmed)
+                _isSubmitted = true;
+                var userAnswer = PlainTextAnswer?.Trim().ToLowerInvariant();
+                var correctAnswer = _source.PlainTextAnswer?.Trim().ToLowerInvariant();
+                IsCorrect = string.Equals(userAnswer, correctAnswer, StringComparison.OrdinalIgnoreCase);
+                RefreshState();
+                return;
+            }
+
             _isSubmitted = true;
             var selectedOptions = Options.Where(option => option.IsSelected).ToList();
             var correctCount = Options.Count(option => option.IsCorrect);
@@ -1487,6 +1606,15 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         public void Reset()
         {
+            if (IsPlainText)
+            {
+                _isSubmitted = false;
+                IsCorrect = null;
+                // Don't clear the answer - let user re-enter
+                RefreshState();
+                return;
+            }
+
             _isSubmitted = false;
             IsCorrect = null;
 
@@ -1501,6 +1629,21 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         public QuizQuestion ToModel()
         {
+            if (IsPlainText)
+            {
+                return new QuizQuestion
+                {
+                    Type = QuizQuestionType.PlainText,
+                    Question = Question.Trim(),
+                    Explanation = Explanation.Trim(),
+                    Hint = Hint?.Trim() ?? string.Empty,
+                    PlainTextAnswer = PlainTextAnswer.Trim(),
+                    PlainTextCharLimit = PlainTextCharLimit,
+                    SetIndex = Math.Max(1, _source.SetIndex),
+                    Options = new List<QuizOption>()
+                };
+            }
+
             var options = Options
                 .Where(option => !string.IsNullOrWhiteSpace(option.Text))
                 .Select(option => new QuizOption
@@ -1520,7 +1663,10 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
                 Explanation = Explanation.Trim(),
                 Hint = Hint.Trim(),
                 SetIndex = Math.Max(1, _source.SetIndex),
-                Options = options
+                Options = options,
+                // ✅ EXPLICITLY clear plain-text fields for non-PlainText questions
+                PlainTextAnswer = string.Empty,
+                PlainTextCharLimit = 500
             };
         }
 
@@ -1543,6 +1689,13 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
 
         private void NormalizeOptionsForType()
         {
+            if (Type == QuizQuestionType.PlainText)
+            {
+                // ✅ Plain text questions don't have options
+                Options.Clear();
+                return;
+            }
+
             if (Type == QuizQuestionType.TrueFalse)
             {
                 ResetToTrueFalseOptions();
@@ -1617,6 +1770,8 @@ public partial class QuizPreviewWindow : Window, INotifyPropertyChanged
             OnPropertyChanged(nameof(ResultBackground));
             OnPropertyChanged(nameof(HasVisibleExplanation));
             OnPropertyChanged(nameof(ExplanationText));
+            OnPropertyChanged(nameof(IsPlainText));  // ✅ Notify UI of type change
+            OnPropertyChanged(nameof(PlainTextAnswerCharCountText));
 
             foreach (var option in Options)
                 option.RefreshState();

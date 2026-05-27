@@ -603,6 +603,9 @@
                                             <ComboBoxItem Style="{StaticResource QuizEditorComboBoxItemStyle}"
                                                           Tag="TrueFalse"
                                                           Content="{Binding [QuizTypeTrueFalse], Source={StaticResource Loc}}"/>
+                                            <ComboBoxItem Style="{StaticResource QuizEditorComboBoxItemStyle}"
+                                                          Tag="PlainText"
+                                                          Content="{Binding [QuizTypePlainText], Source={StaticResource Loc}}"/>
                                         </ComboBox>
                                         <Button Content="↑"
                                                 Style="{StaticResource QuizToolbarButtonStyle}"
@@ -657,82 +660,147 @@
                                          Margin="0,0,0,12"
                                          Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
 
-                                <ItemsControl Grid.Row="2"
-                                              ItemsSource="{Binding Options}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Button Style="{StaticResource QuizOptionButtonStyle}"
-                                                    Margin="0,0,0,8"
-                                                    Click="OptionButton_Click">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="28"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
+                                <!-- Grid.Row="2" - Question Content Area (Options OR PlainText Answer) -->
+                                <Grid Grid.Row="2">
 
-                                                    <TextBlock Text="{Binding MarkerText}"
-                                                               FontSize="14"
-                                                                           FontWeight="Bold"
-                                                                           HorizontalAlignment="Center"
-                                                                           VerticalAlignment="Center"
-                                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                                               <CheckBox Grid.Column="1"
-                                                                         IsChecked="{Binding IsCorrect, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                         Margin="0,0,8,0"
-                                                                         VerticalAlignment="Center"
-                                                                         ToolTip="{Binding [CorrectAnswer], Source={StaticResource Loc}}"
-                                                                         Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
-                                                               <TextBlock Grid.Column="2"
-                                                               Text="{Binding Text}"
-                                                               TextWrapping="Wrap"
-                                                               FontSize="13"
-                                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                                               Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVis}}"/>
-                                                    <TextBox Grid.Column="2"
-                                                             Text="{Binding Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             TextWrapping="Wrap"
-                                                             FontSize="13"
-                                                             Style="{StaticResource QuizEditorTextBoxStyle}"
-                                                             MinHeight="30"
-                                                             Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
-                                                    <StackPanel Grid.Column="3"
-                                                                Orientation="Horizontal"
-                                                                Margin="6,0,0,0">
-                                                        <StackPanel.Style>
-                                                            <Style TargetType="StackPanel">
-                                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                                <Style.Triggers>
-                                                                    <MultiDataTrigger>
-                                                                        <MultiDataTrigger.Conditions>
-                                                                            <Condition Binding="{Binding Parent.CanReorderOptions}" Value="True"/>
-                                                                            <Condition Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
-                                                                        </MultiDataTrigger.Conditions>
-                                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                                    </MultiDataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </StackPanel.Style>
-                                                        <Button Content="↑"
-                                                                Style="{StaticResource QuizOptionMoveButtonStyle}"
-                                                                ToolTip="{Binding [MoveOptionUp], Source={StaticResource Loc}}"
-                                                                Click="MoveOptionUpButton_Click"/>
-                                                        <Button Content="↓"
-                                                                Style="{StaticResource QuizOptionMoveButtonStyle}"
-                                                                ToolTip="{Binding [MoveOptionDown], Source={StaticResource Loc}}"
-                                                                Click="MoveOptionDownButton_Click"/>
-                                                        <Button Content="×"
-                                                                Style="{StaticResource QuizOptionRemoveButtonStyle}"
-                                                                ToolTip="{Binding [RemoveOption], Source={StaticResource Loc}}"
-                                                                Click="RemoveOptionButton_Click"
-                                                                Visibility="{Binding Parent.CanRemoveOption, Converter={StaticResource BoolToVis}}"/>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Button>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                    <!-- ✅ Multiple choice / True-False options (hidden when PlainText) -->
+                                    <ItemsControl ItemsSource="{Binding Options}"
+                  Visibility="{Binding IsPlainText, Converter={StaticResource InverseBoolToVis}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{StaticResource QuizOptionButtonStyle}"
+                        Margin="0,0,0,8"
+                        Click="OptionButton_Click">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="28"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <TextBlock Text="{Binding MarkerText}"
+                                   FontSize="14"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                                        <CheckBox Grid.Column="1"
+                                  IsChecked="{Binding IsCorrect, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  Margin="0,0,8,0"
+                                  VerticalAlignment="Center"
+                                  ToolTip="{Binding [CorrectAnswer], Source={StaticResource Loc}}"
+                                  Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
+                                                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Text}"
+                                   TextWrapping="Wrap"
+                                   FontSize="13"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                   Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVis}}"/>
+                                                        <TextBox Grid.Column="2"
+                                 Text="{Binding Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 TextWrapping="Wrap"
+                                 FontSize="13"
+                                 Style="{StaticResource QuizEditorTextBoxStyle}"
+                                 MinHeight="30"
+                                 Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
+                                                        <StackPanel Grid.Column="3"
+                                    Orientation="Horizontal"
+                                    Margin="6,0,0,0">
+                                                            <StackPanel.Style>
+                                                                <Style TargetType="StackPanel">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <MultiDataTrigger>
+                                                                            <MultiDataTrigger.Conditions>
+                                                                                <Condition Binding="{Binding Parent.CanReorderOptions}" Value="True"/>
+                                                                                <Condition Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                                                            </MultiDataTrigger.Conditions>
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </MultiDataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </StackPanel.Style>
+                                                            <Button Content="↑"
+                                    Style="{StaticResource QuizOptionMoveButtonStyle}"
+                                    ToolTip="{Binding [MoveOptionUp], Source={StaticResource Loc}}"
+                                    Click="MoveOptionUpButton_Click"/>
+                                                            <Button Content="↓"
+                                    Style="{StaticResource QuizOptionMoveButtonStyle}"
+                                    ToolTip="{Binding [MoveOptionDown], Source={StaticResource Loc}}"
+                                    Click="MoveOptionDownButton_Click"/>
+                                                            <Button Content="×"
+                                    Style="{StaticResource QuizOptionRemoveButtonStyle}"
+                                    ToolTip="{Binding [RemoveOption], Source={StaticResource Loc}}"
+                                    Click="RemoveOptionButton_Click"
+                                    Visibility="{Binding Parent.CanRemoveOption, Converter={StaticResource BoolToVis}}"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- ✅ NEW: Plain Text Answer Section (shown when PlainText) -->
+                                    <Border Visibility="{Binding IsPlainText, Converter={StaticResource BoolToVis}}"
+                                    Background="{DynamicResource WindowBackground}"
+                                    BorderBrush="{DynamicResource BorderColor}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="12">
+                                                                <StackPanel>
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                        </Grid.ColumnDefinitions>
+
+                                                                        <TextBlock Text="{Binding [QuizPlainTextAnswerLabel], Source={StaticResource Loc}}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextColorSecondary}"/>
+
+                                                                        <!-- Character limit input (edit mode only) -->
+                                                                        <StackPanel Grid.Column="1"
+                                                    Orientation="Horizontal"
+                                                    Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
+                                                                            <TextBlock Text="{Binding [QuizCharLimit], Source={StaticResource Loc}}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextColorSecondary}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,4,0"/>
+                                                                            <TextBox Text="{Binding PlainTextCharLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Width="50"
+                                                     FontSize="11"
+                                                     Padding="4,2"
+                                                     TextAlignment="Center"
+                                                     Style="{StaticResource QuizEditorTextBoxStyle}"/>
+                                                                        </StackPanel>
+                                                                    </Grid>
+
+                                            <!-- Answer input -->
+                                            <TextBox Text="{Binding PlainTextAnswer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             IsEnabled="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             MinHeight="60"
+                                             MaxHeight="120"
+                                             VerticalScrollBarVisibility="Auto"
+                                             Style="{StaticResource QuizEditorTextBoxStyle}"
+                                             Margin="0,8,0,0"
+                                             ToolTip="{Binding [QuizPlainTextAnswerHint], Source={StaticResource Loc}}"
+                                             BorderBrush="#10B981" />
+
+                                            <!-- Character count display -->
+                                                                    <TextBlock Text="{Binding PlainTextAnswerCharCountText}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextColorSecondary}"
+                                               HorizontalAlignment="Right"
+                                               Margin="0,4,0,0"/>
+                                                                </StackPanel>
+                                                            </Border>
+
+                                </Grid>
 
                                 <Border Grid.Row="3"
                                         Margin="0,4,0,0"

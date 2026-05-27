@@ -2027,7 +2027,7 @@ public class MainViewModel : ViewModelBase
         document.Questions = document.Questions?
             .Where(question => question != null)
             .Select(NormalizeQuizQuestion)
-            .Where(question => !string.IsNullOrWhiteSpace(question.Question) && question.Options.Count > 0)
+            .Where(question => !string.IsNullOrWhiteSpace(question.Question) && (question.Type == QuizQuestionType.PlainText || question.Options.Count > 0))
             .ToList() ?? new List<QuizQuestion>();
         document.CreatedAt = document.CreatedAt == default ? DateTime.UtcNow : document.CreatedAt;
         document.LastModified = document.LastModified == default ? DateTime.Now : document.LastModified;
